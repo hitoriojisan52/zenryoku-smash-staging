@@ -111,18 +111,63 @@ async function copyOwnLineId(){
  }
  notice(copied?'LINEユーザーIDをコピーしました':'IDを選択しました。長押ししてコピーしてください');
 }
-async function init(){
- try{if(!CFG.liffId||CFG.liffId.includes('REPLACE_')||!CFG.apiBaseUrl||CFG.apiBaseUrl.includes('REPLACE_'))throw Error('runtime-config.js を設定してください');
-  if(!window.liff)throw Error('LINE SDKを読み込めません');await liff.init({liffId:CFG.liffId});if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return;}
-  showOwnLineId();
-  S.token=liff.getIDToken();if(!S.token)throw Error('LINE認証を取得できません');S.actor=await request('/api/session');
-  if(!isDuty()){ $('matchHeader').textContent='当番チーム所属者・管理者専用です';return;}
-  const choices=await request('/api/match/practices');const selector=$('matchPractice');selector.replaceChildren(...choices.practices.map(p=>new Option(`${p.date} ${p.place}`,p.practiceId)));
-  if(choices.practices.length){const requested=new URLSearchParams(location.search).get('practiceId');S.practiceId=choices.practices.some(p=>p.practiceId===requested)?requested:choices.practices.at(-1).practiceId;selector.value=S.practiceId;await load();}
-  else $('matchHeader').textContent='練習日程がありません';
-  setInterval(()=>{if(!S.busy&&!SMMatchConfirm.isOpen()&&!document.hidden&&!$('courtSettings').open&&!$('participantSettings').open)load().catch(()=>{});},9000);
- }catch(e){$('matchHeader').textContent='対戦表を読み込めませんでした';await SMMatchConfirm.showError(e,label);}
+const Startup={scriptStarted:performance.now(),timings:{}};
+async function timedStartup(key,fn){
+ const start=performance.now();
+ try{return await fn();}finally{Startup.timings[key]=Math.round(performance.now()-start);}
 }
+function showStartupTimings(){
+ const d=Startup.timings;
+ const seconds=v=>Number.isFinite(v)?(v/1000).toFixed(2)+'秒':'未実行';
+ const info=[
+  'ページ表示から：'+seconds(performance.now()),
+  'LIFF初期化：'+seconds(d.liff),
+  '利用者確認：'+seconds(d.member),
+  '日程取得：'+seconds(d.practices),
+  '並列取得の実時間：'+seconds(d.parallel),
+  '対戦表取得：'+seconds(d.match),
+  '※ページ表示前のLINE起動時間は含みません。'
+ ];
+ $('startupTimingDetails').textContent=info.join('\n');
+ $('startupTimingPanel').hidden=false;
+}
+async function copyStartupTimings(){
+ const value=$('startupTimingDetails').textContent;if(!value)return;
+ try{await navigator.clipboard.writeText(value);notice('診断結果をコピーしました');}
+ catch(_){notice('コピーできませんでした。スクリーンショットで確認してください');}
+}
+async function init(){
+ try{
+  if(!CFG.liffId||CFG.liffId.includes('REPLACE_')||!CFG.apiBaseUrl||CFG.apiBaseUrl.includes('REPLACE_'))throw Error('runtime-config.js を設定してください');
+  if(!window.liff)throw Error('LINE SDKを読み込めません');
+  $('matchHeader').textContent='LINE認証を確認しています…';
+  await timedStartup('liff',()=>liff.init({liffId:CFG.liffId}));
+  if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return;}
+  showOwnLineId();
+  S.token=liff.getIDToken();if(!S.token)throw Error('LINE認証を取得できません');
+  $('matchHeader').textContent='利用者情報・練習日程を読み込んでいます…';
+  const parallelStart=performance.now();
+  const [actor,choices]=await Promise.all([
+   timedStartup('member',()=>request('/api/session')),
+   timedStartup('practices',()=>request('/api/match/practices'))
+  ]);
+  Startup.timings.parallel=Math.round(performance.now()-parallelStart);
+  S.actor=actor;
+  if(!isDuty()){$('matchHeader').textContent='当番チーム所属者・管理者専用です';return;}
+  const selector=$('matchPractice');selector.replaceChildren(...choices.practices.map(p=>new Option(`${p.date} ${p.place}`,p.practiceId)));
+  if(choices.practices.length){
+   const requested=new URLSearchParams(location.search).get('practiceId');
+   S.practiceId=choices.practices.some(p=>p.practiceId===requested)?requested:choices.practices.at(-1).practiceId;
+   selector.value=S.practiceId;
+   $('matchHeader').textContent='対戦表を読み込んでいます…';
+   await timedStartup('match',()=>load());
+  }else $('matchHeader').textContent='練習日程がありません';
+  setInterval(()=>{if(!S.busy&&!SMMatchConfirm.isOpen()&&!document.hidden&&!$('courtSettings').open&&!$('participantSettings').open)load().catch(()=>{});},9000);
+ }catch(e){$('matchHeader').textContent='対戦表を読み込めませんでした';showStartupTimings();await SMMatchConfirm.showError(e,label);}
+ finally{if(!$('startupTimingDetails').textContent)showStartupTimings();}
+}
+$('copyStartupTiming').addEventListener('click',copyStartupTimings);
+
 $('matchPractice').addEventListener('change',()=>guard(async()=>{S.practiceId=$('matchPractice').value;await load();}));
 $('refreshMatch').addEventListener('click',()=>guard(load));
 $('mainMatchAction').addEventListener('click',()=>guard(async()=>{
