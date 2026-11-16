@@ -42,6 +42,15 @@
        await api('/api/member/manage/role',{memberId:m.memberId,role:select.value,operationId:crypto.randomUUID()});
        status('権限を変更しました。');await load();
      }));
+     if(m.active){
+       row.append(button('退会',async()=>{
+         ensureAdmin();
+         if(!confirm(m.name+'さんの登録情報を削除します。過去の試合・収支履歴は保持されます。続行しますか？'))return;
+         if(prompt('誤操作防止のため「退会」と入力してください')!=='退会')return;
+         await api('/api/member/manage/withdraw',{memberId:m.memberId,confirmMemberId:m.memberId,operationId:crypto.randomUUID()});
+         status('退会処理が完了しました。');await load();
+       },'btn-danger'));
+     }
      members.append(row);
    }
  }
