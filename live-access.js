@@ -46,7 +46,7 @@
    }
  }
  async function open(){
-   ensureAdmin();const dialog=$('memberAccessDialog');if(!dialog.open)dialog.showModal();
+   ensureAdmin();const parent=$('manageDialog');if(parent?.open)parent.close();const dialog=$('memberAccessDialog');if(!dialog.open)dialog.showModal();
    status('管理情報を取得しています…');
    try{await load();status('');}catch(e){status(e.message||String(e));}
  }
