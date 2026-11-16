@@ -100,3 +100,6 @@ button:disabled{opacity:.45!important;background:#d6d6d6!important;color:#777!im
 
 /* v0.15.7: collapsible local-only startup measurements */
 .startup-timing-text{font-size:12px;line-height:1.6;white-space:pre-line;overflow-wrap:anywhere;padding:5px 0;color:#334}
+
+/* Never show operator controls while the member role has not been verified. */
+#matchControls[hidden]{display:none!important}
