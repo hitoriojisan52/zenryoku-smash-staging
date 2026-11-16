@@ -32,6 +32,7 @@ async function boot(){
   if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return;}
   S.token=liff.getIDToken();if(!S.token)throw new Error('LINE IDトークンを取得できません');
   S.actor=await call('/api/session');gateEdit();
+  window.SMLiveAccess?.setup({api:call,actor:S.actor});
   for(const id of ['reimbursementBtn','manageBtn','refresh','adjustment','expense'])$(id).disabled=false;
   await reload(true);setInterval(()=>{if(!document.hidden&&S.pending.size===0)reload(false).catch(()=>{});},8000);
   toast('接続しました');
