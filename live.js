@@ -55,6 +55,11 @@ function renderHome(){const v=S.overview;if(!v)return;const {practice,ledger,par
  if(document.activeElement!==$('adjustment'))$('adjustment').value=ledger?.adjustment??0;
  if(document.activeElement!==$('expense'))$('expense').value=ledger?.expense??0;
  const homeLocked=!ledger||ledger.status==='confirmed';
+ const reason=$('collectionLockReason');
+ if(reason){
+   reason.textContent=!ledger?'この開催日は集金・収支データが未作成のため、集金操作はできません。':ledger.status==='confirmed'?'この開催日の収支は確定済みです。確定解除は管理者が収支表から実施してください。':'';
+   reason.hidden=!reason.textContent;
+ }
  $('confirm').disabled=homeLocked||practice.date>today();$('confirm').textContent=ledger?.status==='confirmed'?'確定済':'収支を確定';
  $('adjustment').disabled=homeLocked;$('expense').disabled=homeLocked;
  const list=$('list'),pos=list.scrollTop;list.replaceChildren();
