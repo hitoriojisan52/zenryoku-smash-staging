@@ -51,7 +51,7 @@ $('accessShareClose').onclick=()=>{$('accessShare').hidden=true;};
 $('accessAdminButton').onclick=()=>{const open=$('accessManagement').hidden;$('accessManagement').hidden=!open;if(open)manage().catch(e=>say(e.message||String(e)));};
 $('accessAdminClose').onclick=()=>{$('accessManagement').hidden=true;};
 window.SMAccess={
- showRegistration(o){api=o.api;$('accessRegistration').hidden=false;$('accessToolbar').hidden=true;status();},
- setup(o){api=o.api;getPracticeId=o.getPracticeId;role=o.role;$('accessToolbar').hidden=false;$('accessRegistration').hidden=true;$('accessAdminButton').hidden=role!=='admin';}
+ showRegistration(o){api=o.api;$('accessRegistration').hidden=false;$('accessQrHeader').hidden=true;$('accessToolbar').hidden=true;status();},
+ setup(o){api=o.api;getPracticeId=o.getPracticeId;role=o.role;$('accessQrHeader').hidden=false;$('accessRegistration').hidden=true;$('accessAdminButton').hidden=role!=='admin';$('accessToolbar').hidden=role!=='admin';}
 };
 })();
