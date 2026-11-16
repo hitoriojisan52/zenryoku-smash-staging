@@ -140,6 +140,13 @@ function showStartupTimings(){
   'WorkerからGASへの通信全体：'+seconds(d.workerGas),
   '  うちGASのPOST応答まで：'+seconds(d.workerGasPost),
   '  うちGoogleの転送先取得：'+seconds(d.workerGasContent),
+  ...(d.gasTotal===undefined?['GAS内部詳細：未提供（旧GASの可能性）']:[
+    'GAS内部の一括取得：'+seconds(d.gasTotal),
+    '  練習日程取得：'+seconds(d.gasPractices),
+    '  試合版読み込み：'+seconds(d.gasRevision),
+    '  参加者読み込み：'+seconds(d.gasAttendees),
+    '  表示用データ生成：'+seconds(d.gasRender)
+  ]),
   '起動API通信回数：1回',
   '※ページ表示前のLINE起動時間は含みません。'
  ]:[
@@ -174,6 +181,16 @@ async function init(){
     $('matchHeader').textContent='利用者情報・日程・対戦表をまとめて読み込んでいます…';
     const requested=new URLSearchParams(location.search).get('practiceId')||'';
     const data=await timedStartup('bootstrap',()=>request('/api/match/bootstrap',{practiceId:requested}));
+    // v0.15.11: GAS-side breakdown is optional for compatibility with v0.15.8.
+    if(data?.bootstrapTimings && typeof data.bootstrapTimings==='object'){
+      const keys={practicesReadMs:'gasPractices',matchRevisionReadMs:'gasRevision',
+        attendeeReadMs:'gasAttendees',lineupRenderMs:'gasRender',bootstrapTotalMs:'gasTotal'};
+      for(const [source,target] of Object.entries(keys)){
+        const ms=data.bootstrapTimings[source];
+        if(typeof ms==='number'&&Number.isFinite(ms)&&ms>=0&&ms<=300000)
+          Startup.timings[target]=Math.round(ms);
+      }
+    }
     if(!data||!data.actor||!Array.isArray(data.practices))throw Error('一括取得の応答形式が不正です');
     S.actor=data.actor;
     if(!isDuty()){$('matchHeader').textContent='当番チーム所属者・管理者専用です';return;}
