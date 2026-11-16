@@ -44,7 +44,7 @@ async function reload(refreshDates){
  if(S.loading||S.pending.size)return;S.loading=true;
  try{
    const d=await call('/api/overview',{practiceId:S.practiceId});
-   if(refreshDates||!S.practiceId){$('date').replaceChildren(...d.practices.map(p=>new Option(`${p.date.replace(/-/g,'/')} ${p.startTime}～${p.endTime}`,p.practiceId)));}
+   if(refreshDates||!S.practiceId){$('date').replaceChildren(...d.practices.map(p=>new Option(`${window.SMDate.date(p.date)} ${p.startTime}～${p.endTime}`,p.practiceId)));}
    S.practiceId=d.practice.practiceId;$('date').value=S.practiceId;S.overview=d;
    renderHome();
  }finally{S.loading=false;}
@@ -116,7 +116,7 @@ async function openLedger(){await guard(async()=>{gateEdit();close('manageDialog
 async function loadLedger(){const month=$('ledgerMonth').value,ledger=await call('/api/ledger',{month});S.ledger=ledger;const b=$('ledgerBody');b.replaceChildren();
  const rows=[{rowId:'CARRY-'+month,date:month+'-01',label:'前月繰越',income:0,expense:0,balance:ledger.carried,confirmedBy:'',kind:'carry',status:'confirmed'},...ledger.rows.filter(r=>r.kind!=='opening')];
  for(const r of rows){const tr=document.createElement('tr');
-  for(const v of [r.date,r.label,yen(r.income),yen(r.expense),yen(r.balance),r.confirmedBy||'']){const td=document.createElement('td');td.textContent=v;tr.append(td);}
+  for(const v of [window.SMDate.date(r.date),r.label,yen(r.income),yen(r.expense),yen(r.balance),r.confirmedBy||'']){const td=document.createElement('td');td.textContent=v;tr.append(td);}
   const actions=document.createElement('td');const buttons=[];
   if(r.kind!=='carry'){
     if(r.status==='confirmed'&&S.actor.role==='admin')buttons.push(['解除','unlock']);
@@ -145,7 +145,7 @@ function openEditor(row=null,kind='reimbursement'){
  $('ledgerReimbursementReceipt').disabled=true;$('ledgerCurrentReceipt').textContent='';
  const choices=$('ledgerPractice');choices.replaceChildren();
  const existing=new Set((S.ledger?.rows||[]).filter(r=>r.kind==='practice').map(r=>r.practiceId));
- for(const p of S.overview?.practices||[]){if(p.date<=today()&&!existing.has(p.practiceId))choices.append(new Option(p.date+' '+p.place,p.practiceId));}
+ for(const p of S.overview?.practices||[]){if(p.date<=today()&&!existing.has(p.practiceId))choices.append(new Option(window.SMDate.date(p.date)+' '+p.place,p.practiceId));}
  if(targetKind==='practice'&&!choices.length){toast('再登録できる練習日はありません');return;}
  updateEditorKind();dialog('ledgerEditDialog');
 }
