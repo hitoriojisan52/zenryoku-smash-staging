@@ -76,7 +76,6 @@ async function guard(fn){
      try{await load();}catch{render();}
    }else render();
    await SMMatchConfirm.showError(e,label);
- }finally{ /* lock released in runMatchProcessing_ after completion */ }
  });
 }
 function el(tag,cls,content){const node=document.createElement(tag);if(cls)node.className=cls;if(content!==undefined)node.textContent=content;return node;}
