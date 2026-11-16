@@ -117,6 +117,7 @@ async function timedStartup(key,fn){
  try{return await fn();}finally{Startup.timings[key]=Math.round(performance.now()-start);}
 }
 function showStartupTimings(){
+ if(!$('startupTimingDetails')||!$('startupTimingPanel'))return;
  const d=Startup.timings;
  const seconds=v=>Number.isFinite(v)?(v/1000).toFixed(2)+'秒':'未実行';
  const info=[
@@ -164,9 +165,9 @@ async function init(){
   }else $('matchHeader').textContent='練習日程がありません';
   setInterval(()=>{if(!S.busy&&!SMMatchConfirm.isOpen()&&!document.hidden&&!$('courtSettings').open&&!$('participantSettings').open)load().catch(()=>{});},9000);
  }catch(e){$('matchHeader').textContent='対戦表を読み込めませんでした';showStartupTimings();await SMMatchConfirm.showError(e,label);}
- finally{if(!$('startupTimingDetails').textContent)showStartupTimings();}
+ finally{if(!$('startupTimingDetails')?.textContent)showStartupTimings();}
 }
-$('copyStartupTiming').addEventListener('click',copyStartupTimings);
+$('copyStartupTiming')?.addEventListener('click',copyStartupTimings);
 
 $('matchPractice').addEventListener('change',()=>guard(async()=>{S.practiceId=$('matchPractice').value;await load();}));
 $('refreshMatch').addEventListener('click',()=>guard(load));
