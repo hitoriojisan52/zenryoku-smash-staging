@@ -5,7 +5,7 @@ const $=id=>document.getElementById(id);
 const token=new URLSearchParams(location.hash.replace(/^#/, '')).get('t')||'';
 const el=(tag,cls,value)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(value!==undefined)n.textContent=value;return n;};
 let inFlight=false;
-async function load(){if(inFlight)return;inFlight=true;try{
+async function load(){if(inFlight)return;inFlight=true;const refresh=$('guestRefresh');refresh.disabled=true;refresh.textContent='更新中…';try{
  if(!/^[0-9a-f]{64}$/.test(token))throw Error('閲覧リンクが無効です。担当者から新しいQRをご案内ください。');
  const resp=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token}),cache:'no-store',referrerPolicy:'no-referrer'});
  const result=await resp.json();if(!resp.ok||!result.ok)throw Error(result.error||'対戦表を取得できません');
@@ -25,6 +25,6 @@ async function load(){if(inFlight)return;inFlight=true;try{
  }
  $('guestExpiry').textContent='閲覧期限：'+window.SMDate.dateTimeJst(data.expiresAt);
  }catch(e){$('guestStatus').textContent=e.message||'読み込めませんでした';$('guestRounds').replaceChildren();}
- finally{inFlight=false;}}
+ finally{inFlight=false;refresh.disabled=false;refresh.textContent='🔄 更新';}}
 $('guestRefresh').addEventListener('click',load);load();setInterval(()=>{if(!document.hidden)load();},15000);
 })();
