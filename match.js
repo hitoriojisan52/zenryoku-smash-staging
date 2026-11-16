@@ -52,16 +52,32 @@ async function request(path,payload={}){
 }
 const isDuty=()=>['duty','admin'].includes(S.actor?.role);
 const operationId=()=>crypto.randomUUID();
+function matchProcessingUi_(active){
+ const main=document.querySelector('main.match-container'),layer=$('matchBusyOverlay');
+ if(!main||!layer)return;
+ main.inert=active; main.setAttribute('aria-busy',String(active));
+ document.body.classList.toggle('match-is-processing',active);
+ layer.hidden=!active;
+}
+async function runMatchProcessing_(fn){
+ if(S.busy || SMMatchConfirm.isOpen())return;
+ S.busy=true;matchProcessingUi_(true);
+ try{return await fn();}
+ finally{S.busy=false;matchProcessingUi_(false);}
+}
+// The QR share operation can use the same screen-wide lock.
+window.SMMatchBusy={run:runMatchProcessing_};
 async function guard(fn){
  if(S.busy || SMMatchConfirm.isOpen())return;
- S.busy=true;
+ await runMatchProcessing_(async()=>{
  try{await fn();}
  catch(e){
    if(e.status===409 || e.code==='VERSION_CONFLICT'){
      try{await load();}catch{render();}
    }else render();
    await SMMatchConfirm.showError(e,label);
- }finally{S.busy=false;}
+ }finally{ /* lock released in runMatchProcessing_ after completion */ }
+ });
 }
 function el(tag,cls,content){const node=document.createElement(tag);if(cls)node.className=cls;if(content!==undefined)node.textContent=content;return node;}
 function label(id){const p=S.view?.numberMap?.[id];if(p)return p.number+' '+p.name;return S.view?.session?.people?.find(p=>p.participationId===id)?.name||id;}
@@ -178,7 +194,7 @@ async function copyStartupTimings(){
 async function openGeneralMemberView16_(){
  const list=await request('/api/match/practices');
  const selector=$('matchPractice');
- selector.replaceChildren(...list.practices.map(p=>new Option(p.date+' '+p.place,p.practiceId)));
+ selector.replaceChildren(...list.practices.map(p=>new Option(window.SMDate.date(p.date)+' '+p.place,p.practiceId)));
  if(list.practices.length){
    const requested=new URLSearchParams(location.search).get('practiceId');
    S.practiceId=list.practices.some(p=>p.practiceId===requested)?requested:list.practices.at(-1).practiceId;
@@ -217,7 +233,7 @@ async function init(){
     S.actor=data.actor;
     if(!isDuty()){if(CFG.accessFeaturesEnabled===true){await openGeneralMemberView16_();return;} $('matchHeader').textContent='当番チーム所属者・管理者専用です';return;}
     const choices=data.practices;
-    const selector=$('matchPractice');selector.replaceChildren(...choices.map(p=>new Option(`${p.date} ${p.place}`,p.practiceId)));
+    const selector=$('matchPractice');selector.replaceChildren(...choices.map(p=>new Option(`${window.SMDate.date(p.date)} ${p.place}`,p.practiceId)));
     if(choices.length){
       const selected=data.selectedPracticeId;
       if(!choices.some(p=>p.practiceId===selected)||!data.view||data.view.practiceId!==selected){
@@ -237,7 +253,7 @@ async function init(){
   Startup.timings.parallel=Math.round(performance.now()-parallelStart);
   S.actor=actor;
   if(!isDuty()){if(CFG.accessFeaturesEnabled===true){await openGeneralMemberView16_();return;} $('matchHeader').textContent='当番チーム所属者・管理者専用です';return;}
-  const selector=$('matchPractice');selector.replaceChildren(...choices.practices.map(p=>new Option(`${p.date} ${p.place}`,p.practiceId)));
+  const selector=$('matchPractice');selector.replaceChildren(...choices.practices.map(p=>new Option(`${window.SMDate.date(p.date)} ${p.place}`,p.practiceId)));
   if(choices.practices.length){
    const requested=new URLSearchParams(location.search).get('practiceId');
    S.practiceId=choices.practices.some(p=>p.practiceId===requested)?requested:choices.practices.at(-1).practiceId;
