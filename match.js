@@ -34,6 +34,18 @@ async function mutation(path,payload){
 async function request(path,payload={}){
  if(!S.token||!CFG.apiBaseUrl)throw Error('LINE認証またはAPI設定がありません');
  const res=await fetch(CFG.apiBaseUrl.replace(/\/$/,'')+path,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},body:JSON.stringify(payload),cache:'no-store'});
+
+ if(path==='/api/match/bootstrap'){
+   const names={line:'workerLine',gas:'workerGas',gas_post:'workerGasPost',gas_content:'workerGasContent'};
+   const header=res.headers.get('Server-Timing')||'';
+   for(const value of header.split(',')){
+     const match=/^\s*(line|gas|gas_post|gas_content);dur=(\d+(?:\.\d+)?)\s*$/.exec(value);
+     if(match){
+       const ms=Number(match[2]);
+       if(Number.isFinite(ms)&&ms>=0&&ms<=300000)Startup.timings[names[match[1]]]=Math.round(ms);
+     }
+   }
+ }
  let data;try{data=await res.json();}catch{throw Error('API応答を取得できません');}
  if(!res.ok||!data.ok){const e=Error(data.error||'操作できませんでした');e.code=data.code;e.status=res.status;throw e;}return data.data;
 }
@@ -124,6 +136,10 @@ function showStartupTimings(){
   'ページ表示から：'+seconds(performance.now()),
   'LIFF初期化：'+seconds(d.liff),
   '起動データ一括取得：'+seconds(d.bootstrap),
+  'Worker内 LINE認証API：'+seconds(d.workerLine),
+  'WorkerからGASへの通信全体：'+seconds(d.workerGas),
+  '  うちGASのPOST応答まで：'+seconds(d.workerGasPost),
+  '  うちGoogleの転送先取得：'+seconds(d.workerGasContent),
   '起動API通信回数：1回',
   '※ページ表示前のLINE起動時間は含みません。'
  ]:[
