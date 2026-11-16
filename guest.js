@@ -10,7 +10,7 @@ async function load(){if(inFlight)return;inFlight=true;try{
  const resp=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token}),cache:'no-store',referrerPolicy:'no-referrer'});
  const result=await resp.json();if(!resp.ok||!result.ok)throw Error(result.error||'対戦表を取得できません');
  const data=result.data;
- $('guestPractice').textContent=data.practice.date+'　'+data.practice.place;
+ $('guestPractice').textContent=window.SMDate.date(data.practice.date)+'　'+data.practice.place;
  $('guestStatus').textContent=data.state==='not_created'?'対戦表はまだ作成されていません':data.state==='finished'?'進行終了':data.state==='ready'?'試合開始前':'第'+data.currentRound+'試合を進行中';
  const box=$('guestRounds');box.replaceChildren();
  for(const r of data.rounds||[]){
@@ -23,7 +23,7 @@ async function load(){if(inFlight)return;inFlight=true;try{
   }
   box.append(section);
  }
- $('guestExpiry').textContent='閲覧期限：'+new Date(data.expiresAt).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'});
+ $('guestExpiry').textContent='閲覧期限：'+window.SMDate.dateTimeJst(data.expiresAt);
  }catch(e){$('guestStatus').textContent=e.message||'読み込めませんでした';$('guestRounds').replaceChildren();}
  finally{inFlight=false;}}
 $('guestRefresh').addEventListener('click',load);load();setInterval(()=>{if(!document.hidden)load();},15000);
