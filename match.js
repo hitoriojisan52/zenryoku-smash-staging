@@ -120,7 +120,13 @@ function showStartupTimings(){
  if(!$('startupTimingDetails')||!$('startupTimingPanel'))return;
  const d=Startup.timings;
  const seconds=v=>Number.isFinite(v)?(v/1000).toFixed(2)+'秒':'未実行';
- const info=[
+ const info=CFG.useMatchBootstrap===true?[
+  'ページ表示から：'+seconds(performance.now()),
+  'LIFF初期化：'+seconds(d.liff),
+  '起動データ一括取得：'+seconds(d.bootstrap),
+  '起動API通信回数：1回',
+  '※ページ表示前のLINE起動時間は含みません。'
+ ]:[
   'ページ表示から：'+seconds(performance.now()),
   'LIFF初期化：'+seconds(d.liff),
   '利用者確認：'+seconds(d.member),
@@ -132,6 +138,7 @@ function showStartupTimings(){
  $('startupTimingDetails').textContent=info.join('\n');
  $('startupTimingPanel').hidden=false;
 }
+
 async function copyStartupTimings(){
  const value=$('startupTimingDetails').textContent;if(!value)return;
  try{await navigator.clipboard.writeText(value);notice('診断結果をコピーしました');}
@@ -147,6 +154,26 @@ async function init(){
   showOwnLineId();
   S.token=liff.getIDToken();if(!S.token)throw Error('LINE認証を取得できません');
   $('matchHeader').textContent='利用者情報・練習日程を読み込んでいます…';
+  if(CFG.useMatchBootstrap===true){
+    $('matchHeader').textContent='利用者情報・日程・対戦表をまとめて読み込んでいます…';
+    const requested=new URLSearchParams(location.search).get('practiceId')||'';
+    const data=await timedStartup('bootstrap',()=>request('/api/match/bootstrap',{practiceId:requested}));
+    if(!data||!data.actor||!Array.isArray(data.practices))throw Error('一括取得の応答形式が不正です');
+    S.actor=data.actor;
+    if(!isDuty()){$('matchHeader').textContent='当番チーム所属者・管理者専用です';return;}
+    const choices=data.practices;
+    const selector=$('matchPractice');selector.replaceChildren(...choices.map(p=>new Option(`${p.date} ${p.place}`,p.practiceId)));
+    if(choices.length){
+      const selected=data.selectedPracticeId;
+      if(!choices.some(p=>p.practiceId===selected)||!data.view||data.view.practiceId!==selected){
+        throw Error('一括取得した対戦表の内容が不正です');
+      }
+      S.practiceId=selected;
+      selector.value=selected;
+      S.view=data.view;
+      render();
+    }else $('matchHeader').textContent='練習日程がありません';
+  }else{
   const parallelStart=performance.now();
   const [actor,choices]=await Promise.all([
    timedStartup('member',()=>request('/api/session')),
@@ -163,6 +190,7 @@ async function init(){
    $('matchHeader').textContent='対戦表を読み込んでいます…';
    await timedStartup('match',()=>load());
   }else $('matchHeader').textContent='練習日程がありません';
+  }
   setInterval(()=>{if(!S.busy&&!SMMatchConfirm.isOpen()&&!document.hidden&&!$('courtSettings').open&&!$('participantSettings').open)load().catch(()=>{});},9000);
  }catch(e){$('matchHeader').textContent='対戦表を読み込めませんでした';showStartupTimings();await SMMatchConfirm.showError(e,label);}
  finally{if(!$('startupTimingDetails')?.textContent)showStartupTimings();}
