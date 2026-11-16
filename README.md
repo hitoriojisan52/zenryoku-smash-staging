@@ -51,7 +51,17 @@
 ## v0.16.2 一般メンバー権限の明確化と管理画面移設準備
 - 一般メンバーは対戦表閲覧・更新・閲覧QR発行だけ。対戦表の作成・進行・再生成・各種設定は画面非表示、フロント側でも更新操作を拒否。
 - GAS v0.16.0の`matchApiDispatch_`は、参照以外の更新操作で`requireDuty_`を要求。一般メンバーではサーバーが403相当のFORBIDDENを返す。
-- 運用管理`live.html`に管理者専用「メンバー・権限管理」UIを配置したが、`liveLiffId`は未設定。実機確認まで対戦表画面の管理画面も残している。
+- 運用管理`live.html`に管理者専用「メンバー・権限管理」UIを配置。`liveLiffId`は`2012602642-XBSkXduO`で設定済み。**実機確認までは**対戦表画面の暫定管理画面を残す。
 - 運用管理LIFFが準備できたら実機検証し、権限管理UIを対戦表から撤去する。
 - リッチメニューの役割別切替、現金確認、参加者編集、練習日程CRUDはまだ未完成。
 - 詳細：[`docs/implementation-status-v162.md`](docs/implementation-status-v162.md)
+
+## 本番構築開始時の最優先チェック（ユーザーから明示依頼・2026-11-17）
+
+**検証中はURLを変更しない。** 本番移行着手時には、まず GitHub Organization `zensuma`（または利用可能な類似名）の取得を案内し、アカウント名を含まないブランドURL（例：`https://zensuma.github.io/` または `https://zensuma.github.io/<repository>/`）への公開移行を提案する。取得可能性は未確認であり、文字列だけの変更は不可。
+
+本番用のGitHub組織を決めてから、公開リポジトリ、LIFFの各エンドポイント、GASの`SMA16.site`（ビジターQR発行先）、`runtime-config.js`の`guestViewUrl`、Cloudflare Workerの`FRONTEND_ORIGIN`とCORS、CSPや必要なアクセス権を一斉に見直す。検証版のトークン/データを本番へ持ち込まない。変更後はLINE認証、操作権限、QRの閲覧と失効を再検証する。
+
+現行の運用管理LIFF：`2012602642-XBSkXduO`（設定済み、実機動作は未検証）。
+エンドポイント：`https://hitoriojisan52.github.io/zenryoku-smash-staging/live.html`
+接続確認用LIFF：`https://liff.line.me/2012602642-XBSkXduO?v=164a`
