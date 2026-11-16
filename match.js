@@ -147,6 +147,12 @@ function showStartupTimings(){
     '  参加者読み込み：'+seconds(d.gasAttendees),
     '  表示用データ生成：'+seconds(d.gasRender)
   ]),
+  ...(d.gasDispatch===undefined?['GAS入口計測：未提供（旧GAS）']:[
+    'GAS内全体（dispatch）：'+seconds(d.gasDispatch),
+    '  スプレッドシートを開く：'+seconds(d.gasSheetOpen),
+    '  LINE利用者・当番権限確認：'+seconds(d.gasMemberAuth),
+    '  GAS外の受付・通信等（差分）：'+(Number.isFinite(d.workerGasPost)&&d.workerGasPost>=d.gasDispatch?seconds(d.workerGasPost-d.gasDispatch):'算出不可')
+  ]),
   '起動API通信回数：1回',
   '※ページ表示前のLINE起動時間は含みません。'
  ]:[
@@ -184,7 +190,8 @@ async function init(){
     // v0.15.11: GAS-side breakdown is optional for compatibility with v0.15.8.
     if(data?.bootstrapTimings && typeof data.bootstrapTimings==='object'){
       const keys={practicesReadMs:'gasPractices',matchRevisionReadMs:'gasRevision',
-        attendeeReadMs:'gasAttendees',lineupRenderMs:'gasRender',bootstrapTotalMs:'gasTotal'};
+        attendeeReadMs:'gasAttendees',lineupRenderMs:'gasRender',bootstrapTotalMs:'gasTotal',
+        sheetOpenMs:'gasSheetOpen',memberAuthMs:'gasMemberAuth',dispatchTotalMs:'gasDispatch'};
       for(const [source,target] of Object.entries(keys)){
         const ms=data.bootstrapTimings[source];
         if(typeof ms==='number'&&Number.isFinite(ms)&&ms>=0&&ms<=300000)
