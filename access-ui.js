@@ -32,34 +32,12 @@ async function share(){const practiceId=getPracticeId();
  else say('QR画像を生成できません。URLをコピーしてください。');
  $('accessShareExpiry').textContent='有効期限：'+window.SMDate.dateTimeJst(r.expiresAt);
  say('閲覧QRを表示しました');}
-async function manage(){const d=await api('/api/member/manage/list');
- const pending=$('accessPending');pending.replaceChildren();
- if(!d.pending.length)pending.textContent='申請待ちはありません。';
- for(const p of d.pending){
-  const row=document.createElement('div');row.className='access-row';const name=document.createElement('span');name.textContent=p.name;
-  row.append(name,btn('承認',async()=>{await api('/api/member/manage/decide',{requestId:p.requestId,approve:true,operationId:crypto.randomUUID()});say('承認しました');await manage();}),
-   btn('却下',async()=>{if(!confirm(p.name+'さんの申請を却下しますか？'))return;await api('/api/member/manage/decide',{requestId:p.requestId,approve:false,operationId:crypto.randomUUID()});say('却下しました');await manage();}));
-  pending.append(row);
- }
- const members=$('accessMembers');members.replaceChildren();
- for(const m of d.members){const row=document.createElement('div');row.className='access-row',name=document.createElement('span'),sel=document.createElement('select');
-  name.textContent=m.name+(m.active?'':'（停止中）');
-  sel.setAttribute('aria-label',m.name+'の権限');
-  for(const [id,label] of [['admin','管理者'],['duty','当番担当'],['member','一般メンバー']])sel.add(new Option(label,id));
-  sel.value=m.role;sel.disabled=!m.active;
-  row.append(name,sel,btn('変更',async()=>{if(sel.value===m.role)return;if(!confirm(m.name+'さんの権限を変更しますか？'))return;
-    await api('/api/member/manage/role',{memberId:m.memberId,role:sel.value,operationId:crypto.randomUUID()});say('権限を変更しました');await manage();
-  }));members.append(row);
- }
-}
 $('accessApply').onclick=()=>apply().catch(e=>say(e.message||String(e)));
 $('accessQrButton').onclick=()=>window.SMMatchBusy.run(()=>share()).catch(e=>say(e.message||String(e)));
 $('accessQrCopy').onclick=async()=>{const url=$('accessShareUrl').value;if(!url)return;try{await navigator.clipboard.writeText(url);say('URLをコピーしました');}catch(_){$('accessShareUrl').select();say('URLを選択しました。長押しでコピーしてください');}};
 $('accessShareClose').onclick=()=>{$('accessShare').hidden=true;};
-$('accessAdminButton').onclick=()=>{const open=$('accessManagement').hidden;$('accessManagement').hidden=!open;if(open)manage().catch(e=>say(e.message||String(e)));};
-$('accessAdminClose').onclick=()=>{$('accessManagement').hidden=true;};
 window.SMAccess={
- showRegistration(o){api=o.api;$('accessRegistration').hidden=false;$('accessQrHeader').hidden=true;$('accessToolbar').hidden=true;status();},
- setup(o){api=o.api;getPracticeId=o.getPracticeId;role=o.role;$('accessQrHeader').hidden=false;$('accessRegistration').hidden=true;$('accessAdminButton').hidden=role!=='admin';$('accessToolbar').hidden=role!=='admin';}
+ showRegistration(o){api=o.api;$('accessRegistration').hidden=false;$('accessQrHeader').hidden=true;status();},
+ setup(o){api=o.api;getPracticeId=o.getPracticeId;role=o.role;$('accessQrHeader').hidden=false;$('accessRegistration').hidden=true;}
 };
 })();
