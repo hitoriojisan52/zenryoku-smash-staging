@@ -81,7 +81,7 @@ function draftEdit(fn){if(!isDuty())throw Error('対戦表の設定変更は当�
 function selectOptions(id,people,placeholder,finished){const sel=$(id);sel.replaceChildren(new Option(placeholder,''));people.forEach(p=>sel.add(new Option(p.number+' '+p.displayName,p.participationId)));sel.disabled=finished;}
 function render(){const v=S.view,s=v?.session,editable=isDuty();const body=$('matchBody');body.replaceChildren();$('matchControls').hidden=!editable;for(const b of $('matchControls').querySelectorAll('button, input, select')){if(!editable)b.disabled=true;}
  if(!v){$('matchHeader').textContent='読み込み中…';return;}
- if(!s){$('matchHeader').textContent='対戦表未作成';body.append(el('p','','対戦表を作成してください。'));}
+ if(!s){$('matchHeader').textContent='対戦表未作成';body.append(el('p','',editable?'対戦表を作成してください。':'対戦表の作成をお待ちください。'));}
  else{const finished=s.sessionState==='finished';$('matchHeader').textContent=finished?'対戦表の進行は終了しました':s.sessionState==='ready'?'試合開始前':`第${s.currentRound}試合`;
    const rounds=v.visibleRounds||[];if(!rounds.length)body.append(el('p','','対戦予定はありません。'));rounds.forEach((r,i)=>body.append(renderRound(r,i===0)));}
  if(!editable)return;
