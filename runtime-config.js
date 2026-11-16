@@ -8,5 +8,5 @@ window.SMASH_CONFIG = {
   liveLiffId: "REPLACE_WITH_LIVE_LIFF_ID",
   apiBaseUrl: "https://zenryoku-smash-staging-api.hitori-ojisan-52.workers.dev",
   // Enable only AFTER the new GAS and Worker versions are deployed.
-  useMatchBootstrap: true
+  useMatchBootstrap: false
 };
