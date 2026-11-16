@@ -4,8 +4,8 @@ window.SMASH_CONFIG = {
   liffId: "2012602642-3FKiOTVx",
   // LIFF for member view screen (endpoint: match-view.html)
   viewLiffId: "REPLACE_WITH_VIEW_LIFF_ID",
-  // LIFF for duty collection screen (endpoint: live.html, later stage)
-  liveLiffId: "REPLACE_WITH_LIVE_LIFF_ID",
+  // LIFF for operation management screen (endpoint: live.html)
+  liveLiffId: "2012602642-XBSkXduO",
   apiBaseUrl: "https://zenryoku-smash-staging-api.hitori-ojisan-52.workers.dev",
   // Public page for QR links; GAS SMA16.site MUST match this exactly on deployment.
   // Change only when production host + GAS + LIFF endpoint + CORS are ready.
