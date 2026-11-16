@@ -4,7 +4,7 @@
  */
 (function(){'use strict';
  const $=id=>document.getElementById(id);
- let api=null,authenticatedRole='',busy=false;
+ let api=null,authenticatedRole='',authenticatedMemberId='',busy=false;
  function node(tag,cls,label){const e=document.createElement(tag);if(cls)e.className=cls;if(label!==undefined)e.textContent=label;return e;}
  function status(message){$('memberAccessStatus').textContent=message||'';}
  function button(label,handler,cls='btn-blue'){
@@ -42,7 +42,7 @@
        await api('/api/member/manage/role',{memberId:m.memberId,role:select.value,operationId:crypto.randomUUID()});
        status('権限を変更しました。');await load();
      }));
-     if(m.active){
+     if(m.active&&m.memberId!==authenticatedMemberId){
        row.append(button('退会',async()=>{
          ensureAdmin();
          if(!confirm(m.name+'さんの登録情報を削除します。過去の試合・収支履歴は保持されます。続行しますか？'))return;
@@ -53,6 +53,18 @@
      }
      members.append(row);
    }
+   const archive=$('memberAccessWithdrawn');
+   if(archive){
+     archive.replaceChildren();
+     if(!Array.isArray(data.withdrawn)||!data.withdrawn.length)
+       archive.append(node('p','access-help','退会履歴はありません。'));
+     else for(const w of data.withdrawn){
+       const row=node('div','live-access-row');
+       const suffix=w.state==='completed'?'（退会済み）':'（処理中・管理者による確認が必要）';
+       row.append(node('span','live-access-name',w.name+suffix),node('span','access-help',w.withdrawnAt||''));
+       archive.append(row);
+     }
+   }
  }
  async function open(){
    ensureAdmin();const parent=$('manageDialog');if(parent?.open)parent.close();const dialog=$('memberAccessDialog');if(!dialog.open)dialog.showModal();
@@ -60,7 +72,7 @@
    try{await load();status('');}catch(e){status(e.message||String(e));}
  }
  function setup(args){
-   api=args.api;authenticatedRole=args.actor?.role||'';
+   api=args.api;authenticatedRole=args.actor?.role||'';authenticatedMemberId=args.actor?.memberId||'';
    $('manageAccess').hidden=authenticatedRole!=='admin';
    $('manageSchedules').hidden=authenticatedRole!=='admin'; // schedule CRUD will be wired separately
    if(authenticatedRole!=='admin'&&$('memberAccessDialog').open)$('memberAccessDialog').close();
