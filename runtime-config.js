@@ -7,6 +7,9 @@ window.SMASH_CONFIG = {
   // LIFF for duty collection screen (endpoint: live.html, later stage)
   liveLiffId: "REPLACE_WITH_LIVE_LIFF_ID",
   apiBaseUrl: "https://zenryoku-smash-staging-api.hitori-ojisan-52.workers.dev",
+  // Public page for QR links; GAS SMA16.site MUST match this exactly on deployment.
+  // Change only when production host + GAS + LIFF endpoint + CORS are ready.
+  guestViewUrl: "https://hitoriojisan52.github.io/zenryoku-smash-staging/guest.html",
   // Enable only AFTER the new GAS and Worker versions are deployed.
   useMatchBootstrap: true,
   // v0.16 feature gate: keep OFF until GAS add-on and Worker are deployed.
