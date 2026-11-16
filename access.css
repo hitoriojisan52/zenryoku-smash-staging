@@ -14,3 +14,11 @@
 #accessMessage{min-height:1.5em;font-size:12px;color:#155d9e;flex-shrink:0}
 /* Author-level display must respect the hidden attribute. */
 #accessToolbar[hidden],.access-panel[hidden],#accessAdminButton[hidden]{display:none!important}
+
+/* v0.16.1: QR button on the title row, right aligned, without horizontal scroll. */
+.match-app-titlebar{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0}
+.match-app-titlebar h1{min-width:0;flex:1 1 auto;line-height:1.25}
+#accessQrHeader{flex:0 0 auto;margin-left:auto}
+#accessQrHeader[hidden]{display:none!important}
+#accessQrHeader button{font-size:12px;padding:7px 8px;white-space:nowrap;min-height:38px}
+@media(max-width:370px){.match-app-titlebar h1{font-size:12px}#accessQrHeader button{font-size:11px;padding:7px 5px}}
