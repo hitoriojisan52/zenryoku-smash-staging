@@ -90,3 +90,10 @@ button:disabled{opacity:.45!important;background:#d6d6d6!important;color:#777!im
 .match-modal-is-error .match-modal-ok{flex:0 1 180px;min-width:120px;background:#1976d2}
 .match-modal-cancel[hidden]{display:none!important}
 .match-modal-box{max-height:calc(100dvh - 28px);overflow-y:auto}
+
+/* Staging LINE user ID display, collapsed and visible only after login */
+.line-id-panel{flex-shrink:0;border:1px solid #bbdefb;background:#f5faff;border-radius:6px;margin:0 0 4px;padding:5px 8px;font-size:12px;}
+.line-id-panel summary{font-size:12px;color:#1565c0;font-weight:650;cursor:pointer;padding:3px 0;}
+.line-id-panel p{margin:5px 0;line-height:1.45;color:#555;}
+.line-id-panel input{width:100%;box-sizing:border-box;padding:8px 7px;margin:3px 0 6px;border:1px solid #b0bec5;border-radius:4px;font-size:12px;user-select:text;-webkit-user-select:text;background:#fff;}
+.line-id-panel button{font-size:12px;padding:7px 10px;min-height:34px;}
