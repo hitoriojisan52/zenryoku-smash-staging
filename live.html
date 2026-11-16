@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>全力☆スマッシュ 運用管理（接続試験版）</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<main class="container">
+  <header class="app-header"><h1>全力☆スマッシュ 運用管理 <small class="demo-label" title="新システム用接続試験画面">接続試験</small></h1><div class="header-btns"><button id="reimbursementBtn" class="btn-green" type="button">💴 立替精算</button><button id="manageBtn" class="btn-gray" type="button">⚙ 運用管理</button></div></header>
+  
+  <div class="date-selector"><label for="date">開催日</label><select id="date"><option value="">日程を読み込んでいます…</option></select><button id="refresh" type="button">更新</button></div>
+  <div class="info-summary"><span id="place">場所：--</span><span id="hours">時間：--</span></div>
+  <div class="summary-info"><span id="count">参加者：0名</span><span id="completedCount">集金完了：0名</span></div>
+  <div class="list" id="list"></div>
+  <div class="adjustment-box"><label for="adjustment">当日補正</label><span><input id="adjustment" type="number" value="0" step="1" inputmode="numeric"> 円</span></div>
+  <div class="expense-box"><label for="expense">当日支出</label><div class="expense-actions"><button id="receiptBtn" type="button" class="btn-blue receipt-btn">🧾 領収書</button><span><input id="expense" type="number" value="0" min="0" step="1" inputmode="numeric"> 円</span></div></div>
+  <div class="home-footer-bar"><div class="home-footer-row"><div class="income-block"><span id="income">集金額：0円 / 0円</span><span id="adjustmentDisplay">当日補正：(+0円)</span></div><span id="expenseDisplay">支出：0円</span></div><div class="home-footer-action"><strong id="balance">残金：0円</strong><button id="confirm" class="btn-green" type="button">収支を確定</button></div></div>
+</main>
+<!-- すべての処理メッセージは画面下部のトースト -->
+<div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+<dialog id="modal"><h2 id="modalTitle"></h2><p id="modalText"></p><div class="modal-actions"><button id="closeModal" class="btn-blue" type="button">閉じる</button></div></dialog>
+<dialog id="categoryDialog"><h2>参加区分の変更</h2><p id="categoryPerson" class="modal-subtitle"></p><label class="dialog-label" for="categorySelect">参加区分</label><select id="categorySelect" class="dialog-select"><option value="member">メンバー</option><option value="student">学生</option><option value="visitor">ビジター</option><option value="duty">当番担当</option><option value="shuttle">シャトル担当</option></select><div class="modal-actions"><button id="cancelCategory" class="btn-outline" type="button">キャンセル</button><button id="saveCategory" class="btn-blue" type="button">変更する</button></div></dialog>
+<dialog id="reimbursementDialog"><h2>💴 立替精算</h2><form id="reimbursementForm"><label class="dialog-label" for="payoutDate">精算日（現金を渡した日）</label><input class="dialog-input" id="payoutDate" type="date" required><label class="dialog-label" for="reimbursementItem">費目</label><input class="dialog-input" id="reimbursementItem" maxlength="80" type="text" placeholder="例：シャトル購入代" required><label class="dialog-label" for="reimbursementPayee">立替者</label><input class="dialog-input" id="reimbursementPayee" maxlength="60" type="text" placeholder="例：全力太郎" required><label class="dialog-label" for="reimbursementAmount">精算額（円）</label><input class="dialog-input" id="reimbursementAmount" type="number" min="1" step="1" required inputmode="numeric"><label class="dialog-label" for="reimbursementReceipt">領収書</label><input class="dialog-input" id="reimbursementReceipt" type="file" accept="image/*,.pdf,application/pdf"><div class="modal-actions"><button id="cancelReimbursement" type="button" class="btn-outline">キャンセル</button><button type="submit" class="btn-green">精算を登録</button></div></form></dialog>
+<dialog id="manageDialog"><h2>⚙ 運用管理</h2><div class="manage-grid"><button id="cashCounter" type="button" class="btn-outline">💰 現金確認</button><button id="openLedger" type="button" class="btn-blue">📊 収支表</button><button id="manageSchedules" type="button" class="btn-outline">📅 練習日程</button><button id="managePeople" type="button" class="btn-outline">👥 参加者管理</button><button id="matchManage" type="button" class="btn-blue">🏸 対戦表</button></div><div class="modal-actions"><button id="closeManage" class="btn-outline" type="button">閉じる</button></div></dialog>
+<dialog id="ledgerDialog" class="ledger-dialog"><h2>📊 全体収支管理表</h2><div class="ledger-controls"><label for="ledgerMonth">対象月</label><input id="ledgerMonth" type="month"><button id="prevMonth" class="btn-outline" type="button">前月</button><button id="nextMonth" class="btn-outline" type="button">翌月</button><button id="newLedgerRow" class="btn-green" type="button">＋追加</button></div><div class="role-controls"><label for="demoRole">権限（デモ）</label><select id="demoRole"><option value="duty">当番チーム所属</option><option value="admin">システム管理者</option></select></div><div class="ledger-scroll"><table class="ledger-table"><thead><tr><th>日付</th><th>開催場所・費目名</th><th>集金額</th><th>支出</th><th>残金</th><th>確認者</th><th>操作</th></tr></thead><tbody id="ledgerBody"></tbody></table></div><div class="ledger-total" id="ledgerTotal"></div><div class="modal-actions"><button id="closeLedger" class="btn-blue" type="button">閉じる</button></div></dialog>
+<dialog id="ledgerEditDialog"><h2 id="ledgerEditTitle">収支を追加</h2>
+<form id="ledgerEditForm">
+<label class="dialog-label" for="ledgerKind">登録区分</label>
+<select id="ledgerKind" class="dialog-select"><option value="reimbursement">立替精算</option><option value="practice">練習日（削除行を再登録）</option><option value="other">その他の収支</option></select>
+<div id="ledgerReimbursementFields">
+  <label class="dialog-label" for="ledgerPayoutDate">精算日（現金を渡した日）</label><input class="dialog-input" id="ledgerPayoutDate" type="date" required>
+  <label class="dialog-label" for="ledgerReimbursementItem">費目</label><input class="dialog-input" id="ledgerReimbursementItem" maxlength="80" type="text" placeholder="例：シャトル購入代" required>
+  <label class="dialog-label" for="ledgerReimbursementPayee">立替者</label><input class="dialog-input" id="ledgerReimbursementPayee" maxlength="60" type="text" placeholder="例：全力太郎" required>
+  <label class="dialog-label" for="ledgerReimbursementAmount">精算額（円）</label><input class="dialog-input" id="ledgerReimbursementAmount" type="number" min="1" step="1" required inputmode="numeric">
+  <label class="dialog-label" for="ledgerReimbursementReceipt">領収書</label><input class="dialog-input" id="ledgerReimbursementReceipt" type="file" accept="image/*,.pdf,application/pdf">
+  <small id="ledgerCurrentReceipt" class="receipt-existing"></small>
+</div>
+<div id="ledgerGeneralFields" hidden>
+  <div id="practiceChoice" hidden><label class="dialog-label" for="ledgerPractice">練習日</label><select id="ledgerPractice" class="dialog-select"></select></div>
+  <label class="dialog-label" for="ledgerEditDate">日付</label><input id="ledgerEditDate" type="date" class="dialog-input">
+  <label class="dialog-label" for="ledgerEditLabel">開催場所・費目名</label><input id="ledgerEditLabel" type="text" maxlength="100" class="dialog-input">
+  <label class="dialog-label" for="ledgerEditIncome">集金額（円）</label><input id="ledgerEditIncome" type="number" step="1" min="0" class="dialog-input">
+  <label class="dialog-label" for="ledgerEditExpense">支出（円）</label><input id="ledgerEditExpense" type="number" step="1" min="0" class="dialog-input">
+</div>
+<div class="modal-actions"><button id="cancelLedgerEdit" type="button" class="btn-outline">キャンセル</button><button id="submitLedgerEdit" class="btn-green" type="submit">精算を登録</button></div>
+</form></dialog>
+<dialog id="confirmActionDialog"><h2 id="confirmActionTitle">確認</h2><p id="confirmActionText"></p><div class="modal-actions"><button id="cancelConfirmAction" class="btn-outline" type="button">キャンセル</button><button id="doConfirmAction" class="btn-green" type="button">実行する</button></div></dialog>
+<script src="model.js"></script><script src="runtime-config.js"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script type="module" src="live.js"></script>
+</body></html>

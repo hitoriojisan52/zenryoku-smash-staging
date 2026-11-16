@@ -1,0 +1,67 @@
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#333;background:#f4f6f8}
+button,input,select{font:inherit}button{cursor:pointer;border:0;border-radius:5px;padding:7px 9px;font-weight:700}
+.container{max-width:500px;margin:0 auto;background:white;min-height:100dvh;padding:10px;display:flex;flex-direction:column;gap:6px}
+.app-header{display:flex;align-items:center;justify-content:space-between;gap:6px}.app-header h1{font-size:15px;color:#1976d2;margin:0;min-width:0}
+.header-btns{display:flex;gap:4px;flex-shrink:0}.header-btns button{font-size:11px;white-space:nowrap;padding:7px 6px}
+.btn-blue{background:#1976d2;color:#fff}.btn-gray{background:#546e7a;color:#fff}.btn-green{background:#2e7d32;color:#fff}.btn-outline{background:#eee;color:#333}
+.demo{font-size:11px;background:#fff3cd;color:#765500;border:1px solid #ffe69c;border-radius:5px;padding:6px}
+.date-selector{display:flex;align-items:center;gap:5px;background:#eef2f7;padding:7px;border-radius:6px;font-size:12px}.date-selector select{flex:1;min-width:0;padding:6px;border:1px solid #ccc;border-radius:5px}.date-selector button{background:#1976d2;color:#fff}
+.info-summary{background:#e3f2fd;color:#0d47a1;padding:7px;display:flex;justify-content:space-between;border-radius:6px;font-weight:700;font-size:12px}
+.summary-info{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;font-weight:700;gap:4px}
+.list{flex:1;min-height:180px;overflow:auto}
+.participant-card{display:flex;align-items:center;gap:8px;padding:8px;margin:0 0 4px;background:#fafafa;border:1px solid #eee;border-radius:6px}
+.participant-card.checked{background:#e8f5e9;border-color:#c8e6c9}.participant-card .info{flex:1;min-width:0}.name-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.name{font-size:14px;font-weight:700}.type{font-size:10px;background:#e0e0e0;border-radius:3px;padding:2px 4px;color:#333}
+.category-edit{cursor:default;touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;border:1px solid #cfd8dc}
+.category-edit:focus-visible{outline:2px solid #1976d2;outline-offset:2px}
+.amount{font-size:12px;color:#1565c0;font-weight:700;margin-top:2px}
+.participant-card input[type=checkbox]{width:23px;height:23px;accent-color:#2e7d32;cursor:pointer}
+.adjustment-box,.expense-box{display:flex;justify-content:space-between;align-items:center;gap:5px;padding:7px;border-radius:6px;font-size:13px;font-weight:700}
+.adjustment-box{background:#fff9c4;border:1px solid #ffe082;color:#5d4037}
+.expense-box{background:#e1f5fe;border:1px solid #b3e5fc}
+.adjustment-box>span,.expense-actions span{white-space:nowrap}
+.adjustment-box input,.expense-box input{width:75px;padding:5px;border:1px solid #ccc;border-radius:5px;text-align:right}
+.expense-actions{display:flex;align-items:center;gap:6px}.receipt-btn{padding:5px 7px;font-size:11px;white-space:nowrap}
+.home-footer-bar{background:#eef2f7;border:1px solid #cfd8dc;border-radius:6px;padding:8px}.home-footer-row,.home-footer-action{display:flex;align-items:center;justify-content:space-between;gap:4px;font-size:12px}.home-footer-action{margin-top:5px;padding-top:5px;border-top:1px dashed #b0bec5}.home-footer-action strong{font-size:14px}.home-footer-action small{font-size:10px}
+.status{font-size:11px;color:#666;margin:0;min-height:1em;line-height:1.4}
+dialog{border:1px solid #ddd;border-radius:10px;max-width:370px;width:calc(100% - 24px);padding:16px;box-shadow:0 6px 30px #0002}dialog::backdrop{background:#0007}dialog h2{font-size:16px;margin:0 0 8px}dialog p{font-size:12px;line-height:1.6}
+.dialog-label{display:block;font-size:12px;font-weight:700;margin-top:10px;margin-bottom:4px}.dialog-select,.dialog-input{display:block;width:100%;border:1px solid #ccc;border-radius:6px;background:white;padding:9px;font-size:14px}.modal-subtitle{color:#555}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.manage-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.manage-grid button{min-height:52px;font-size:13px}
+.ledger-dialog{max-width:900px;width:calc(100% - 20px)}.ledger-scroll{max-height:60dvh;overflow:auto;border:1px solid #d7dfe4;border-radius:5px}
+.ledger-table{border-collapse:collapse;font-size:12px;min-width:680px;width:100%}.ledger-table th,.ledger-table td{border-bottom:1px solid #e5ebef;padding:8px 6px;white-space:nowrap;text-align:left}.ledger-table thead{position:sticky;top:0;background:#e3f2fd;z-index:1}.ledger-table tr:nth-child(even){background:#f8fafc}.ledger-table tr.opening-row{background:#fff9e5}.ledger-table .money-cell{text-align:right;font-variant-numeric:tabular-nums}.ledger-table .balance-cell{font-weight:700;color:#0d47a1}.ledger-total{text-align:right;font-weight:700;font-size:12px;margin-top:10px}
+@media(max-width:370px){.container{padding:7px}.app-header h1{font-size:12.7px}.header-btns button{font-size:10px;padding:6px 4px}.expense-box,.adjustment-box{font-size:12px}.expense-box input,.adjustment-box input{width:64px}.receipt-btn{padding:5px;font-size:10px}.home-footer-bar{padding:6px}.home-footer-action strong{font-size:12px}}
+@media(min-width:650px){.container{box-shadow:0 2px 12px #0002;border-radius:10px;margin:15px auto;min-height:calc(100dvh - 30px)}}
+/* v0.5 monthly editable ledger and toast; keeps the v7-inspired home palette/spacing. */
+.toast{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translate(-50%,12px);background:#2b3740;color:#fff;border-radius:8px;padding:10px 16px;font-size:12.5px;box-shadow:0 5px 20px #0004;opacity:0;pointer-events:none;z-index:99999;max-width:min(92vw,480px);text-align:center;transition:opacity .2s,transform .2s}
+.toast.show{opacity:1;transform:translate(-50%,0)}.toast.error{background:#b42318}
+.ledger-controls{display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:#eef2f7;padding:7px;border-radius:6px;font-size:12px}
+.ledger-controls input{padding:6px;font-size:13px;border:1px solid #cfd8dc;border-radius:4px;max-width:155px}
+.ledger-controls button{padding:6px 7px;font-size:11px}.ledger-controls #newLedgerRow{margin-left:auto}
+.role-controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px;color:#555;margin:8px 0}.role-controls select{font-size:12px;padding:5px;border:1px solid #cfd8dc;border-radius:4px}.role-controls small{color:#9a5000}
+.ledger-table{min-width:880px}.ledger-table .actions{white-space:nowrap}.ledger-table .actions button{font-size:10px;padding:4px 6px;margin-right:3px}.ledger-table .confirmed{background:#f1f4f5}.ledger-table .carry-row{background:#fff9e5}.ledger-table .status-caption{font-size:10px;color:#666}
+.ledger-table .confirm-actor{font-weight:600}.ledger-table .receipt-mark{font-size:10px;color:#1565c0}
+.form-hint{font-size:11px;background:#eef2f7;padding:8px;border-radius:5px;line-height:1.5}
+#ledgerReceiptGroup small{display:block;font-size:11px;color:#666;word-break:break-all;margin-top:5px}
+#ledgerEditDialog{max-height:90dvh;overflow:auto}
+#ledgerEditDialog [hidden]{display:none!important}
+#confirmActionDialog{max-width:350px}
+#confirmActionText{white-space:pre-line}
+@media(max-width:400px){.ledger-dialog{padding:11px}.ledger-controls{gap:4px}.ledger-controls input{max-width:130px;font-size:12px}.ledger-controls button{font-size:10px;padding:6px 5px}}
+
+/* v0.6: large-text friendly, compact UI and clearly disabled controls. */
+.demo-label{font-size:10px;color:#666;background:#e8ebee;border-radius:3px;padding:2px 3px;white-space:nowrap;vertical-align:middle}
+.home-footer-row{align-items:flex-start}.income-block{display:flex;flex-direction:column;gap:2px;min-width:0}.income-block span{white-space:normal}
+#adjustmentDisplay{font-size:10.5px;color:#555;font-weight:500}
+button:disabled,button[disabled]{background:#d4d8dc!important;color:#777f87!important;opacity:1!important;cursor:not-allowed!important;box-shadow:none!important}
+.dialog-input:disabled,.dialog-select:disabled{background:#e9ecef!important;color:#777f87!important;border-color:#d3d9dd!important;opacity:1!important;cursor:not-allowed!important}
+.ledger-table button:disabled{border:1px solid #cbd1d5!important}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+
+/* v0.7: compact shared reimbursement fields in the ledger editor. */
+#ledgerEditDialog #ledgerReimbursementFields[hidden],#ledgerEditDialog #ledgerGeneralFields[hidden]{display:none!important}
+.receipt-existing{display:block;color:#666;font-size:11px;margin-top:4px;overflow-wrap:anywhere}
+#ledgerReimbursementFields{margin-top:2px}
+/* Connection-test page: retain v0.7 layout, no extra instruction paragraphs. */
+.long-press-type{touch-action:manipulation;user-select:none;-webkit-user-select:none;cursor:default}
+.ledger-table .muted{color:#777;white-space:nowrap}
