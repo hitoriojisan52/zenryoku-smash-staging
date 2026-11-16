@@ -1,25 +1,31 @@
-# 全力☆スマッシュ｜GitHub Pages 検証用フロントエンド v0.15.2
+# 全力☆スマッシュ｜検証用GitHub Pages
+公開先: https://hitoriojisan52.github.io/zenryoku-smash-staging/
 
-## 目的と取り扱い
+## 接続状況（2026-11-16）
+- GAS: 検証用Google Sheetsへの読込・書込・試合5ラウンド保存をGASエディタ上で確認済み
+- Worker: https://zenryoku-smash-staging-api.hitori-ojisan-52.workers.dev/health で `configured:true` をユーザー確認済み
+- GitHub Pages: 公開確認済み。Worker公開URLは `runtime-config.js` に反映済み
+- LINEログインとWorker→GASの本人認証付きPOSTは**未検証**
+- 本番のLINE公式アカウント、GAS、スプレッドシートは未変更
 
-このリポジトリは**検証用の公開Web画面のみ**です。`gas/`、`worker/`、本番データや秘密キーを含めないでください。**Publicリポジトリでは全ファイルの内容が閲覧可能**です。画面URLを知らなくてもアクセス可能ですが、更新操作はサーバー側のLINE認証＋権限検証が必要です。
+## LIFF設定（LINE Developers）
+`https://developers.line.biz/console/` で **Workerの `LINE_LOGIN_CHANNEL_ID` と一致する既存のLINEログインチャネル** を選択し、そのチャネルの LIFF タブから追加する。同じLINEプロバイダーを用いること（プロバイダーが異なるとユーザーIDも異なる）。各アプリのスコープは `openid`、画面サイズは `Full`、検証中は友だち追加オプション `Off` を推奨する。
 
-## 設定手順
+| アプリ | エンドポイントURL | 公開設定項目 | 検証順 |
+|---|---|---|---|
+| 対戦表操作（当番・管理者） | https://hitoriojisan52.github.io/zenryoku-smash-staging/match.html | `liffId` | 1 |
+| 対戦表閲覧（一般メンバー） | https://hitoriojisan52.github.io/zenryoku-smash-staging/match-view.html | `viewLiffId` | 2 |
+| 運用管理（当番・管理者） | https://hitoriojisan52.github.io/zenryoku-smash-staging/live.html | `liveLiffId` | 3 |
 
-1. GitHubで空の `zenryoku-smash-staging` リポジトリをPublicで作成します。
-2. このZIPの内容（ZIPファイル自体ではなく、各ファイル）をリポジトリのルートへ登録します。
-3. GitHubのSettings → Pages → Build and deployment → Deploy from a branch、`main` / `/(root)` を選択して保存します。
-4. 公開URLの例：`https://GITHUB_USER.github.io/zenryoku-smash-staging/`。トップページの「検証環境」が表示されれば静的配信は正常です。
-5. Cloudflare Workerの `FRONTEND_ORIGIN` には **`https://GITHUB_USER.github.io`** のみを設定します（リポジトリ名や末尾の`/`は含めない）。
-6. LINE Developersで検証用LIFFを用意します。`openid` scopeを有効にし、エンドポイントと表示対象ページのパスの整合を確認します。
-7. `runtime-config.js` の **公開してよい設定** `liffId` と `apiBaseUrl` を検証用の値に変更します。秘密キーは絶対に入力しません。
-8. Cloudflare Workerに `GAS_WEB_APP_URL` と `GAS_SHARED_SECRET` を **Secrets** として設定します。前者には今回の検証用GASの `/exec` URL、後者にはGAS `BACKEND_SECRET` と同じ秘密値を登録します。
-9. `match.html` が当番担当者／管理者用、`match-view.html` が一般メンバー閲覧用、`live.html` が運用管理試験用です。URLを知っているだけでは更新権限を得られないよう、GAS側でも必ず認可します。
+1. まず操作用LIFFを1件追加し、発行されたLIFF ID（例: `1234567890-AbcDefGh`）を `runtime-config.js` の `liffId` に設定する。
+2. LIFF URL `https://liff.line.me/<LIFF_ID>` でLINEアプリ内から開く（GitHub URLを直接開いての認証試験よりLIFF URLを優先）。
+3. 検証用シート `メンバー` の `lineUserId` 列に利用者本人の、`U`から始まるLINEユーザーIDを設定する。未登録ならログイン成功後も `利用登録が確認できません` が返る。
+4. `/api/session`（利用者と権限）→`/api/match/practices`（日程）→`/api/match/get`（対戦表）の順に確認する。
+5. その後、閲覧用LIFF・運用管理用LIFFのIDを同様に登録する。**それぞれのページと同じURLをLIFFのエンドポイントに設定すること。**
 
-## 未接続・未検証事項
-
-- LINE LoginのIDトークン検証、Cloudflare Worker→GASへの認証付きPOST、メンバーへの実権限の割り当て、LINEリッチメニューへの登録は未実施です。
-- `runtime-config.js` のプレースホルダーを置換するまでは画面はAPIへ接続できません。
-- 本番のGASや元のスプレッドシートを変更しないでください。
-
-> 本ZIPにはGASとCloudflare Workerのソースコードを含めていません。それらは検証用パッケージの別ファイルで管理します。
+## 公開リポジトリの取り扱い
+- `runtime-config.js` には公開可能なLIFF ID・WorkerのURLのみ記載する。
+- `BACKEND_SECRET`、`GAS_SHARED_SECRET`、LINEチャネルシークレット、IDトークン、アクセストークン、実利用者のLINEユーザーIDを登録・コミットしない。
+- 更新操作の許可はGAS側のLINEユーザーID・当番チーム／管理者ロールで判断する。
+- `/health` はWorkerの公開と設定値の存在を示すのみ。GAS通信やLINE認証の成功を意味しない。
+- 本番のLINE公式アカウントのリッチメニューは、検証完了まで変更しない。
