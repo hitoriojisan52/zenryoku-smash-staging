@@ -90,9 +90,31 @@ function render(){const v=S.view,s=v?.session,editable=isDuty();const body=$('ma
 }
 async function load(){if(!S.practiceId)return;S.view=await request('/api/match/get',{practiceId:S.practiceId});if(S.view.session){S.drafts.delete(S.practiceId);S.draftUndo.delete(S.practiceId);}render();}
 async function change(action,payload={}){const s=S.view?.session;if(!s)throw Error('対戦表がありません');S.view=await mutation('/api/match/change',{practiceId:S.practiceId,action,expectedSessionVersion:s.sessionVersion,expectedSettingsVersion:s.settingsVersion,operationId:operationId(),...payload});render();}
+// Staging: display the current user's ID locally, never send the decoded profile to the backend.
+function showOwnLineId(){
+ try{
+   const id=window.liff?.getDecodedIDToken?.()?.sub;
+   if(typeof id!=='string'||!/^U[0-9a-f]{32}$/i.test(id))return;
+   $('lineIdValue').value=id;
+   $('lineIdPanel').hidden=false;
+ }catch(_){ /* No impact on existing login flow. */ }
+}
+async function copyOwnLineId(){
+ const input=$('lineIdValue');if(!input.value)return;
+ let copied=false;
+ if(navigator.clipboard?.writeText){
+   try{await navigator.clipboard.writeText(input.value);copied=true;}catch(_){}
+ }
+ if(!copied){
+   input.focus();input.select();
+   try{copied=Boolean(document.execCommand('copy'));}catch(_){}
+ }
+ notice(copied?'LINEユーザーIDをコピーしました':'IDを選択しました。長押ししてコピーしてください');
+}
 async function init(){
  try{if(!CFG.liffId||CFG.liffId.includes('REPLACE_')||!CFG.apiBaseUrl||CFG.apiBaseUrl.includes('REPLACE_'))throw Error('runtime-config.js を設定してください');
   if(!window.liff)throw Error('LINE SDKを読み込めません');await liff.init({liffId:CFG.liffId});if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return;}
+  showOwnLineId();
   S.token=liff.getIDToken();if(!S.token)throw Error('LINE認証を取得できません');S.actor=await request('/api/session');
   if(!isDuty()){ $('matchHeader').textContent='当番チーム所属者・管理者専用です';return;}
   const choices=await request('/api/match/practices');const selector=$('matchPractice');selector.replaceChildren(...choices.practices.map(p=>new Option(`${p.date} ${p.place}`,p.practiceId)));
@@ -124,4 +146,5 @@ $('addFixedGroup').addEventListener('click',()=>guard(async()=>{
  if(safeState()){await change('groups',{fixedGroups});notice('固定グループを追加しました');}else draftEdit(d=>{d.fixedGroups=fixedGroups;});
 }));
 const safeState=()=>Boolean(S.view?.session);
+$('copyLineId').addEventListener('click', copyOwnLineId);
 init();
