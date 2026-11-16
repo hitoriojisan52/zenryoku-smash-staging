@@ -7,6 +7,11 @@
    <input id="lineIdValue" type="text" readonly aria-label="ログイン中のLINEユーザーID">
    <button id="copyLineId" type="button" class="btn-blue">IDをコピー</button>
  </details>
+ <details id="startupTimingPanel" class="line-id-panel" hidden>
+   <summary>⏱ 起動時間を確認</summary>
+   <div id="startupTimingDetails" class="startup-timing-text"></div>
+   <button id="copyStartupTiming" type="button" class="btn-blue">診断結果をコピー</button>
+ </details>
  <div class="date-selector"><label class="visually-hidden" for="matchPractice">開催日</label><select id="matchPractice"><option value="">読み込み中…</option></select><button id="refreshMatch" type="button" class="btn-blue">更新</button></div>
  <div id="matchHeader" class="match-header">対戦表を読み込んでいます…</div>
  <div id="matchBody" class="match-body"></div>
