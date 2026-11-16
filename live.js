@@ -26,9 +26,9 @@ async function guard(action){try{await action();}catch(e){toast(e.message||Strin
 async function boot(){
  for(const id of ['confirm','reimbursementBtn','manageBtn','refresh','adjustment','expense','newLedgerRow'])$(id).disabled=true;
  try{
-  if(!CONFIG.liffId||CONFIG.liffId.includes('REPLACE_')||!CONFIG.apiBaseUrl||CONFIG.apiBaseUrl.includes('REPLACE_'))throw new Error('runtime-config.js の設定が必要です');
+  if(!CONFIG.liveLiffId||CONFIG.liveLiffId.includes('REPLACE_')||!CONFIG.apiBaseUrl||CONFIG.apiBaseUrl.includes('REPLACE_'))throw new Error('runtime-config.js の設定が必要です');
   if(!window.liff)throw new Error('LINE SDKを読み込めませんでした');
-  await liff.init({liffId:CONFIG.liffId});
+  await liff.init({liffId:CONFIG.liveLiffId});
   if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return;}
   S.token=liff.getIDToken();if(!S.token)throw new Error('LINE IDトークンを取得できません');
   S.actor=await call('/api/session');gateEdit();
