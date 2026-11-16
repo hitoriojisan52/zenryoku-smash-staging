@@ -17,12 +17,20 @@ async function apply(){const name=$('accessRegName').value.trim();
 async function share(){const practiceId=getPracticeId();
  if(!practiceId){say('開催日を選択してください');return;}
  const r=await api('/api/match/share',{practiceId,operationId:crypto.randomUUID()});
- if(typeof r.url!=='string'||!/^https:\/\/hitoriojisan52\.github\.io\/zenryoku-smash-staging\/guest\.html#t=[0-9a-f]{64}$/.test(r.url))throw Error('共有リンクの応答形式が不正です');
+ // Issued URL must match the configured public visitor page exactly.
+ // Keep this allowlist in sync with SMA16.site on the GAS side.
+ const destination=window.SMASH_CONFIG?.guestViewUrl;
+ if(typeof r.url!=='string'||typeof destination!=='string')throw Error('閲覧ページの設定がありません');
+ let publicUrl,expected;
+ try{publicUrl=new URL(r.url);expected=new URL(destination);}catch(_){throw Error('共有リンクの形式が不正です');}
+ if(publicUrl.protocol!=='https:'||expected.protocol!=='https:'||publicUrl.origin!==expected.origin||
+    publicUrl.pathname!==expected.pathname||publicUrl.search!==''||!/^#t=[0-9a-f]{64}$/.test(publicUrl.hash))
+   throw Error('共有リンクの発行先が設定と一致しません');
  $('accessShareUrl').value=r.url;$('accessShare').hidden=false;
  const box=$('accessQr');box.replaceChildren();
  if(typeof QRCode==='function')new QRCode(box,{text:r.url,width:236,height:236,colorDark:'#111111',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
  else say('QR画像を生成できません。URLをコピーしてください。');
- $('accessShareExpiry').textContent='有効期限：'+new Date(r.expiresAt).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'});
+ $('accessShareExpiry').textContent='有効期限：'+window.SMDate.dateTimeJst(r.expiresAt);
  say('閲覧QRを表示しました');}
 async function manage(){const d=await api('/api/member/manage/list');
  const pending=$('accessPending');pending.replaceChildren();
@@ -45,7 +53,7 @@ async function manage(){const d=await api('/api/member/manage/list');
  }
 }
 $('accessApply').onclick=()=>apply().catch(e=>say(e.message||String(e)));
-$('accessQrButton').onclick=()=>share().catch(e=>say(e.message||String(e)));
+$('accessQrButton').onclick=()=>window.SMMatchBusy.run(()=>share()).catch(e=>say(e.message||String(e)));
 $('accessQrCopy').onclick=async()=>{const url=$('accessShareUrl').value;if(!url)return;try{await navigator.clipboard.writeText(url);say('URLをコピーしました');}catch(_){$('accessShareUrl').select();say('URLを選択しました。長押しでコピーしてください');}};
 $('accessShareClose').onclick=()=>{$('accessShare').hidden=true;};
 $('accessAdminButton').onclick=()=>{const open=$('accessManagement').hidden;$('accessManagement').hidden=!open;if(open)manage().catch(e=>say(e.message||String(e)));};
