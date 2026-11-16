@@ -6,5 +6,7 @@ window.SMASH_CONFIG = {
   viewLiffId: "REPLACE_WITH_VIEW_LIFF_ID",
   // LIFF for duty collection screen (endpoint: live.html, later stage)
   liveLiffId: "REPLACE_WITH_LIVE_LIFF_ID",
-  apiBaseUrl: "https://zenryoku-smash-staging-api.hitori-ojisan-52.workers.dev"
+  apiBaseUrl: "https://zenryoku-smash-staging-api.hitori-ojisan-52.workers.dev",
+  // Enable only AFTER the new GAS and Worker versions are deployed.
+  useMatchBootstrap: false
 };
