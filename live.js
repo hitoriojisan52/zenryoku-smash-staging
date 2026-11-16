@@ -194,4 +194,4 @@ function shiftMonth(amount){const [year,month]=$('ledgerMonth').value.split('-')
 bind();boot();
 
 // Match screen launch: current selected practice, same LINE login context.
-if(document.getElementById("matchManage")){document.getElementById("matchManage").addEventListener("click",()=>{window.location.href="match.html?practiceId="+encodeURIComponent(S.practiceId||"");});}
+if(document.getElementById("matchManage")){document.getElementById("matchManage").addEventListener("click",()=>{if(!CONFIG.liffId||CONFIG.liffId.includes("REPLACE_")){toast("対戦表LIFFが設定されていません");return;}window.location.href="https://liff.line.me/"+encodeURIComponent(CONFIG.liffId)+"?practiceId="+encodeURIComponent(S.practiceId||"");});}
