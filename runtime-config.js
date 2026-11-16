@@ -10,5 +10,5 @@ window.SMASH_CONFIG = {
   // Enable only AFTER the new GAS and Worker versions are deployed.
   useMatchBootstrap: true,
   // v0.16 feature gate: keep OFF until GAS add-on and Worker are deployed.
-  accessFeaturesEnabled: false
+  accessFeaturesEnabled: true
 };
