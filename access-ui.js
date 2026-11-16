@@ -4,11 +4,18 @@
 const $=id=>document.getElementById(id),say=s=>{$('accessMessage').textContent=s;};
 let api=null,getPracticeId=()=>'',role='';
 function btn(label,fn){const b=document.createElement('button');b.type='button';b.className='btn-blue';b.textContent=label;b.onclick=async()=>{b.disabled=true;try{await fn();}catch(e){say(e.message||String(e));}finally{b.disabled=false;}};return b;}
-async function status(){try{const r=await api('/api/member/status');
- if(r.status==='pending'){$('accessApply').disabled=true;say('登録申請済みです。管理者の承認をお待ちください。');}
- else if(r.status==='approved')say('登録済みです。画面を開き直してください。');
- else if(r.status==='rejected')say('前の申請は承認されていません。再申請できます。');
- }catch(e){say(e.message||String(e));}}
+async function status(){
+ $('accessApply').disabled=true;
+ try{
+   const r=await api('/api/member/status');
+   if(r.status==='pending')say('申請済みです。管理者の承認をお待ちください。');
+   else if(r.status==='approved')say('登録済みです。LINEのメニューから利用する機能を開いてください。');
+   else if(r.status==='withdrawal_processing'||r.status==='inactive')say('アカウントの処理中です。管理者にお問い合わせください。');
+   else if(r.status==='rejected'){$('accessApply').disabled=false;say('以前の申請は却下されています。再申請できます。');}
+   else if(r.status==='not_requested'){$('accessApply').disabled=false;say('表示名を入力して登録を申請してください。');}
+   else say('登録状態を確認できません。管理者にお問い合わせください。');
+ }catch(e){say(e.message||String(e));}
+}
 async function apply(){const name=$('accessRegName').value.trim();
  if(!name){say('表示名を入力してください');return;}
  const r=await api('/api/member/apply',{displayName:name});
@@ -37,7 +44,7 @@ $('accessQrButton').onclick=()=>window.SMMatchBusy.run(()=>share()).catch(e=>say
 $('accessQrCopy').onclick=async()=>{const url=$('accessShareUrl').value;if(!url)return;try{await navigator.clipboard.writeText(url);say('URLをコピーしました');}catch(_){$('accessShareUrl').select();say('URLを選択しました。長押しでコピーしてください');}};
 $('accessShareClose').onclick=()=>{$('accessShare').hidden=true;};
 window.SMAccess={
- showRegistration(o){api=o.api;$('accessRegistration').hidden=false;$('accessQrHeader').hidden=true;status();},
+ showRegistration(o){api=o.api;$('accessRegistration').hidden=false;$('accessQrHeader').hidden=true;$('accessApply').disabled=true;status();},
  setup(o){api=o.api;getPracticeId=o.getPracticeId;role=o.role;$('accessQrHeader').hidden=false;$('accessRegistration').hidden=true;}
 };
 })();
