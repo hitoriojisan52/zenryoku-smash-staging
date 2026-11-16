@@ -213,6 +213,12 @@ async function init(){
   if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return;}
   showOwnLineId();
   S.token=liff.getIDToken();if(!S.token)throw Error('LINE認証を取得できません');
+  // Registration uses the SAME verified LIFF endpoint; read query only after liff.init().
+  if(new URLSearchParams(location.search).get('mode')==='register'){
+    $('matchHeader').textContent='メンバー登録申請';
+    window.SMAccess?.showRegistration({api:request});
+    return;
+  }
   $('matchHeader').textContent='利用者情報・練習日程を読み込んでいます…';
   if(CFG.useMatchBootstrap===true){
     $('matchHeader').textContent='利用者情報・日程・対戦表をまとめて読み込んでいます…';
