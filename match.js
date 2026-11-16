@@ -10,6 +10,7 @@ function notice(msg){const el=$('matchToast');el.textContent=msg;el.classList.ad
 function errText(e){return e?.message||String(e);}
 function ambiguousMutationFailure(e){return !e.status||e.status>=500;}
 async function mutation(path,payload){
+ if(!isDuty())throw Error('対戦表の操作は当番担当・管理者のみ利用できます');
  try{return await request(path,payload);}
  catch(e){
    if(!ambiguousMutationFailure(e)||!payload.operationId)throw e;
@@ -74,11 +75,11 @@ function validateDraft(d){
  const allowed=new Set((S.view?.participants||[]).map(p=>p.participationId)),used=new Set();
  d.fixedGroups.forEach(g=>{if(![2,3].includes(g.participationIds.length))throw Error('固定グループは2～3名です');g.participationIds.forEach(id=>{if(!allowed.has(id)||used.has(id))throw Error('固定グループに重複があります');used.add(id);});});
 }
-function draftEdit(fn){const old=clone(draft()),next=clone(old);fn(next);validateDraft(next);
+function draftEdit(fn){if(!isDuty())throw Error('対戦表の設定変更は当番担当・管理者のみ利用できます');const old=clone(draft()),next=clone(old);fn(next);validateDraft(next);
  const stack=S.draftUndo.get(S.practiceId)||[];stack.push(old);S.draftUndo.set(S.practiceId,stack);
  S.drafts.set(S.practiceId,next);render();notice('設定を変更しました');}
 function selectOptions(id,people,placeholder,finished){const sel=$(id);sel.replaceChildren(new Option(placeholder,''));people.forEach(p=>sel.add(new Option(p.number+' '+p.displayName,p.participationId)));sel.disabled=finished;}
-function render(){const v=S.view,s=v?.session,editable=isDuty();const body=$('matchBody');body.replaceChildren();$('matchControls').hidden=!editable;
+function render(){const v=S.view,s=v?.session,editable=isDuty();const body=$('matchBody');body.replaceChildren();$('matchControls').hidden=!editable;for(const b of $('matchControls').querySelectorAll('button, input, select')){if(!editable)b.disabled=true;}
  if(!v){$('matchHeader').textContent='読み込み中…';return;}
  if(!s){$('matchHeader').textContent='対戦表未作成';body.append(el('p','','対戦表を作成してください。'));}
  else{const finished=s.sessionState==='finished';$('matchHeader').textContent=finished?'対戦表の進行は終了しました':s.sessionState==='ready'?'試合開始前':`第${s.currentRound}試合`;
@@ -101,7 +102,7 @@ function render(){const v=S.view,s=v?.session,editable=isDuty();const body=$('ma
  ['groupMember1','groupMember2','groupMember3'].forEach((id,i)=>selectOptions(id,roster,`${i+1}人目${i===2?'（任意）':''}`,finished));
 }
 async function load(){if(!S.practiceId)return;S.view=await request('/api/match/get',{practiceId:S.practiceId});if(S.view.session){S.drafts.delete(S.practiceId);S.draftUndo.delete(S.practiceId);}render();}
-async function change(action,payload={}){const s=S.view?.session;if(!s)throw Error('対戦表がありません');S.view=await mutation('/api/match/change',{practiceId:S.practiceId,action,expectedSessionVersion:s.sessionVersion,expectedSettingsVersion:s.settingsVersion,operationId:operationId(),...payload});render();}
+async function change(action,payload={}){if(!isDuty())throw Error('対戦表の操作は当番担当・管理者のみ利用できます');const s=S.view?.session;if(!s)throw Error('対戦表がありません');S.view=await mutation('/api/match/change',{practiceId:S.practiceId,action,expectedSessionVersion:s.sessionVersion,expectedSettingsVersion:s.settingsVersion,operationId:operationId(),...payload});render();}
 // Staging: display the current user's ID locally, never send the decoded profile to the backend.
 function showOwnLineId(){
  try{
