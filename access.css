@@ -12,3 +12,5 @@
 #accessQr{display:flex;justify-content:center;margin:10px auto}
 #accessQr img,#accessQr canvas{max-width:100%;height:auto}
 #accessMessage{min-height:1.5em;font-size:12px;color:#155d9e;flex-shrink:0}
+/* Author-level display must respect the hidden attribute. */
+#accessToolbar[hidden],.access-panel[hidden],#accessAdminButton[hidden]{display:none!important}
