@@ -103,3 +103,14 @@ button:disabled{opacity:.45!important;background:#d6d6d6!important;color:#777!im
 
 /* Never show operator controls while the member role has not been verified. */
 #matchControls[hidden]{display:none!important}
+
+/* v0.16.3: block all match UI actions during a network-backed operation. */
+.match-busy-overlay[hidden]{display:none!important}
+.match-busy-overlay{position:fixed;inset:0;z-index:2400;background:rgba(15,28,45,.38);display:flex;align-items:center;justify-content:center;padding:16px;touch-action:none}
+.match-busy-card{background:#fff;border-radius:12px;box-shadow:0 5px 25px rgba(0,0,0,.25);padding:22px 24px;display:flex;flex-direction:column;align-items:center;gap:9px;width:min(290px,88vw);color:#154b7d;text-align:center}
+.match-busy-card strong{font-size:17px}
+.match-busy-card span{font-size:12px;color:#586878}
+.match-busy-spinner{height:31px;width:31px;border:3px solid #d8e9fa;border-top-color:#1976d2;border-radius:50%;animation:match-spin .75s linear infinite}
+@keyframes match-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.match-busy-spinner{animation:none;border-top-color:#1976d2}}
+body.match-is-processing .match-container{opacity:.76;pointer-events:none}
