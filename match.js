@@ -173,6 +173,20 @@ async function copyStartupTimings(){
  try{await navigator.clipboard.writeText(value);notice('診断結果をコピーしました');}
  catch(_){notice('コピーできませんでした。スクリーンショットで確認してください');}
 }
+// v0.16 staging: members share one LIFF; read-only members use existing safe APIs.
+async function openGeneralMemberView16_(){
+ const list=await request('/api/match/practices');
+ const selector=$('matchPractice');
+ selector.replaceChildren(...list.practices.map(p=>new Option(p.date+' '+p.place,p.practiceId)));
+ if(list.practices.length){
+   const requested=new URLSearchParams(location.search).get('practiceId');
+   S.practiceId=list.practices.some(p=>p.practiceId===requested)?requested:list.practices.at(-1).practiceId;
+   selector.value=S.practiceId;
+   await load();
+ }else $('matchHeader').textContent='練習日程がありません';
+ window.SMAccess?.setup({api:request,role:S.actor.role,getPracticeId:()=>S.practiceId});
+ setInterval(()=>{if(!S.busy&&!document.hidden)load().catch(()=>{});},12000);
+}
 async function init(){
  try{
   if(!CFG.liffId||CFG.liffId.includes('REPLACE_')||!CFG.apiBaseUrl||CFG.apiBaseUrl.includes('REPLACE_'))throw Error('runtime-config.js を設定してください');
@@ -200,7 +214,7 @@ async function init(){
     }
     if(!data||!data.actor||!Array.isArray(data.practices))throw Error('一括取得の応答形式が不正です');
     S.actor=data.actor;
-    if(!isDuty()){$('matchHeader').textContent='当番チーム所属者・管理者専用です';return;}
+    if(!isDuty()){if(CFG.accessFeaturesEnabled===true){await openGeneralMemberView16_();return;} $('matchHeader').textContent='当番チーム所属者・管理者専用です';return;}
     const choices=data.practices;
     const selector=$('matchPractice');selector.replaceChildren(...choices.map(p=>new Option(`${p.date} ${p.place}`,p.practiceId)));
     if(choices.length){
@@ -221,7 +235,7 @@ async function init(){
   ]);
   Startup.timings.parallel=Math.round(performance.now()-parallelStart);
   S.actor=actor;
-  if(!isDuty()){$('matchHeader').textContent='当番チーム所属者・管理者専用です';return;}
+  if(!isDuty()){if(CFG.accessFeaturesEnabled===true){await openGeneralMemberView16_();return;} $('matchHeader').textContent='当番チーム所属者・管理者専用です';return;}
   const selector=$('matchPractice');selector.replaceChildren(...choices.practices.map(p=>new Option(`${p.date} ${p.place}`,p.practiceId)));
   if(choices.practices.length){
    const requested=new URLSearchParams(location.search).get('practiceId');
@@ -231,8 +245,9 @@ async function init(){
    await timedStartup('match',()=>load());
   }else $('matchHeader').textContent='練習日程がありません';
   }
+  if(CFG.accessFeaturesEnabled===true)window.SMAccess?.setup({api:request,role:S.actor.role,getPracticeId:()=>S.practiceId});
   setInterval(()=>{if(!S.busy&&!SMMatchConfirm.isOpen()&&!document.hidden&&!$('courtSettings').open&&!$('participantSettings').open)load().catch(()=>{});},9000);
- }catch(e){$('matchHeader').textContent='対戦表を読み込めませんでした';showStartupTimings();await SMMatchConfirm.showError(e,label);}
+ }catch(e){if(CFG.accessFeaturesEnabled===true&&(e.code==='UNAUTHORIZED'||e.message==='利用登録が確認できません')){ $('matchHeader').textContent='初回利用の登録申請';window.SMAccess?.showRegistration({api:request});return; } $('matchHeader').textContent='対戦表を読み込めませんでした';showStartupTimings();await SMMatchConfirm.showError(e,label);}
  finally{if(!$('startupTimingDetails')?.textContent)showStartupTimings();}
 }
 $('copyStartupTiming')?.addEventListener('click',copyStartupTimings);
