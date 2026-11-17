@@ -1,0 +1,8 @@
+# Existing Cloudflare Worker. Only connect to this exact Worker.
+name = "zenryoku-smash-staging-api"
+main = "worker.js"
+compatibility_date = "2026-11-18"
+
+# Preserve dashboard-managed nonsecret environment variables on Wrangler deploy.
+# Cloudflare secrets must remain stored as Worker Secrets, not in this repository.
+keep_vars = true
