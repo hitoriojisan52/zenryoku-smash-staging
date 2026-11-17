@@ -1,4 +1,4 @@
-/* v0.16.31 sandbox preview-only withdrawal checks for synthetic 1630 member. No withdrawal mutation. */
+/* v0.16.34 sandbox default preview with explicit synthetic withdrawal test for synthetic 1630 member. No withdrawal mutation. */
 (function(){
  'use strict';
  const $=id=>document.getElementById(id),UI=window.SMSandboxUI;
@@ -41,13 +41,18 @@
      select.addEventListener('change',()=>{change.disabled=immutable||select.value===m.role;});
      change.addEventListener('click',()=>setRole(m,select));
      row.append(name,select,change);
-     // A single synthetic member receives the display-only two-step preview.
+     // Default is read-only preview. The special execution query is never an authorization boundary.
      if(isWithdrawalPreviewTarget(m)){
-       const action=node('button','sb-withdraw-action','退会確認（画面テスト）');
+       const exec=window.SMWithdrawSandbox?.withdrawUiEnabled===true;
+       const action=node('button','sb-withdraw-action',
+         exec?'架空1630を退会させる（実行テスト）':'退会確認（画面テスト）');
        action.type='button';
-       action.setAttribute('aria-label',m.name+' さんの退会確認画面を試す（データ変更なし）');
-       action.addEventListener('click',()=>previewWithdrawalV1631(m).catch(e=>UI.showError(e)));
-       const note=node('span','sb-preview-hint','画面テストのみ・退会処理は無効');
+       action.setAttribute('aria-label',m.name+(exec?' の架空データ削除テスト':' の確認画面テスト'));
+       action.addEventListener('click',()=>(
+         exec?executeWithdrawalV1634(m):previewWithdrawalV1631(m)
+       ).catch(e=>UI.showError(e)));
+       const note=node('span','sb-preview-hint',
+         exec?'架空メンバー1名限定・登録情報を削除':'画面テストのみ・退会処理は無効');
        row.append(action,note);
      }
      members.append(row);
@@ -146,6 +151,59 @@
      }
      status('');
    },{success:'確認できました。実際の退会処理は行っていません。'});
+ }
+ async function executeWithdrawalV1634(member){
+   if(UI.isBusy()||!isWithdrawalPreviewTarget(member)||
+      window.SMWithdrawSandbox?.withdrawUiEnabled!==true)return;
+   const first=await UI.confirm({
+     title:'退会の確認（1/2）',
+     message:member.name+' さんを退会させます。\n検証専用シートから登録情報を削除します。',
+     confirmLabel:'次へ'
+   });
+   if(!first)return;
+   const second=await UI.confirm({
+     title:'最後の確認（2/2）',
+     message:member.name+' さんの登録行を削除します。\nこの操作は取り消せません。',
+     confirmLabel:'退会を実行（架空1630）',danger:true
+   });
+   if(!second)return;
+   const operationId=crypto.randomUUID();
+   await UI.run('退会処理中です…',async()=>{
+     const before=await api('/api/member/manage/list');
+     if(!Array.isArray(before?.members)||!Array.isArray(before?.withdrawn))
+       throw new Error('退会対象の状態を確認できません。更新してください。');
+     const selected=before.members.filter(m=>m.memberId===WITHDRAW_PREVIEW_MEMBER_ID);
+     if(selected.length!==1||!isWithdrawalPreviewTarget(selected[0])||
+        before.withdrawn.some(w=>w.memberId===WITHDRAW_PREVIEW_MEMBER_ID)){
+       await load();
+       throw new Error('退会対象の状態が変わりました。更新してから確認してください。');
+     }
+     let response;
+     try{
+       response=await api('/api/member/manage/withdraw',{
+         memberId:WITHDRAW_PREVIEW_MEMBER_ID,
+         confirmMemberId:WITHDRAW_PREVIEW_MEMBER_ID,
+         operationId
+       });
+     }catch(error){
+       if(UI.isUncertain(error)||error?.status===409){
+         error.mutationUncertain=UI.isUncertain(error);
+         try{await load();status('最新状態を再取得しました。退会結果を確認してください。');}
+         catch(_){status('「更新」で最新状態を確認してください。');}
+       }
+       throw error;
+     }
+     try{
+       const after=await load();
+       const completed=(after?.withdrawn||[]).some(w=>w.memberId===WITHDRAW_PREVIEW_MEMBER_ID&&w.state==='completed');
+       const exists=(after?.members||[]).some(m=>m.memberId===WITHDRAW_PREVIEW_MEMBER_ID);
+       if(response?.status!=='withdrawn'||response?.memberId!==WITHDRAW_PREVIEW_MEMBER_ID||exists||!completed)
+         throw new Error('退会結果を確認できません。最新の一覧を確認してください。');
+     }catch(error){
+       error.appliedButRefreshFailed=true;throw error;
+     }
+     status('');
+   },{success:'架空メンバー1630の退会を確認しました。'});
  }
  async function start(){
    // This runs inside the initial UI.run() lock. Never skip loading because UI is busy.
