@@ -2,6 +2,11 @@
 (function(){
  'use strict';
  const UI=window.SMSandboxUI;
+  // Explicit execution mode is indicated only after the API layer validates the URL.
+  if(window.SMWithdrawSandbox?.withdrawUiEnabled===true){
+    const label=document.querySelector('.sb-test-label');
+    if(label)label.textContent='架空1630の退会実行テスト（データ削除あり）';
+  }
  const status=document.getElementById('connectionStatus'),retry=document.getElementById('retryConnection');
  async function boot(){
    retry.hidden=true;
