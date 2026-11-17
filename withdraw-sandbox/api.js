@@ -1,4 +1,4 @@
-/* Isolated LINE LIFF authentication and allowlisted sandbox APIs. Do not persist tokens. */
+/* Isolated LINE LIFF authentication and allowlisted sandbox APIs. v0.16.31: withdrawal POST disabled. */
 (function () {
   'use strict';
   const C = window.SMASH_WITHDRAW_SANDBOX_CONFIG || {};
@@ -11,8 +11,7 @@
     '/api/member/apply',
     '/api/member/manage/list',
     '/api/member/manage/decide',
-    '/api/member/manage/role',
-    '/api/member/manage/withdraw'
+    '/api/member/manage/role'
   ]);
   let idToken = '';
   async function begin(page) {
@@ -53,14 +52,10 @@
     if (!endpoints.has(path)) {
       throw new Error('この検証画面では許可されていないAPIです。退会APIは無効です。');
     }
-    // Strong browser-side guard in addition to Worker and GAS test-only guards.
-    if(path==='/api/member/manage/withdraw'){
-      const only='M-TEST-WITHDRAW-1618';
-      if(payload?.memberId!==only||payload?.confirmMemberId!==only||
-         typeof payload?.operationId!=='string'||
-         !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(payload.operationId))
-        throw new Error('指定した検証用メンバー以外は退会できません。');
-    }
+    // Fail closed even if a caller bypasses or alters the management UI.
+    // This stage validates only the confirmation UX, not destructive operations.
+    if(path==='/api/member/manage/withdraw')
+      throw new Error('この画面は退会の確認専用です。退会APIは利用できません。');
     if (!idToken) throw new Error('LINE認証が未完了です。');
     const controller = new AbortController();
     const deadline = setTimeout(() => controller.abort(), 30000);
@@ -102,6 +97,6 @@
   window.SMWithdrawSandbox = Object.freeze({
     begin: begin,
     api: api,
-    withdrawUiEnabled: true // Worker & GAS WITHDRAW_ENABLED remain the actual server gates
+    withdrawUiEnabled: false // Preview-only; Worker/GAS remain separately gated
   });
 })();
