@@ -137,12 +137,30 @@ function setupLongPress(element,p){let timer=null,started=false;
  for(const ev of ['pointerup','pointercancel','pointerleave'])element.addEventListener(ev,()=>{started=false;stop();});
  element.addEventListener('contextmenu',event=>event.preventDefault());
 }
-async function saveCategory(){await guard(async()=>{gateEdit();const p=S.modalTarget;if(!p)return;
- const category=$('categorySelect').value;close('categoryDialog');
- S.pending.add('category:'+p.participantId);
- try{await call('/api/category',{operationId:uuid(),practiceId:S.practiceId,participantId:p.participantId,category,expectedVersion:p.categoryVersion});toast('参加区分を更新しました');}
- finally{S.pending.delete('category:'+p.participantId);await reload(false);}
-});}
+async function saveCategory(){
+ await guard(async()=>{
+   gateEdit();const p=S.modalTarget;if(!p)return;
+   const category=$('categorySelect').value;close('categoryDialog');
+   const key='category:'+p.participantId;
+   S.pending.add(key);
+   try{
+     const oldFee=p.fee;
+     const saved=await call('/api/category',{operationId:uuid(),practiceId:S.practiceId,participantId:p.participantId,category,expectedVersion:p.categoryVersion});
+     if(saved?.participantId!==p.participantId||saved.category!==category||
+       !Number.isSafeInteger(saved.categoryVersion)||!Number.isSafeInteger(saved.fee)||
+       !Number.isSafeInteger(saved.ledgerVersion)||!Number.isSafeInteger(saved.balance)){
+       const e=new Error('保存結果を確認できませんでした。「更新」で最新状態をご確認ください。');e.appliedButRefreshFailed=true;throw e;
+     }
+     p.category=category;p.fee=saved.fee;p.categoryVersion=saved.categoryVersion;
+     const ledger=S.overview?.ledger;
+     if(ledger){
+       if(p.collectionCompleted)ledger.income+=saved.fee-oldFee;
+       ledger.balance=saved.balance;ledger.version=saved.ledgerVersion;
+     }
+     renderHome();toast('参加区分を更新しました');
+   }finally{S.pending.delete(key);}
+ });
+}
 async function saveAmount(kind){await guard(async()=>{
  const v=S.overview,ledger=v?.ledger;if(!ledger)throw new Error('収支行がありません');gateEdit();
  const el=$(kind==='adjustment'?'adjustment':'expense'),value=Number(el.value),old=ledger[kind];
