@@ -6,7 +6,7 @@
 'use strict';
 const M=window.SmashModel,$=id=>document.getElementById(id),yen=n=>Number(n).toLocaleString('ja-JP')+'円';
 const CONFIG=window.SMASH_CONFIG||{};
-const S={token:'',actor:null,overview:null,practiceId:'',loading:false,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null};
+const S={token:'',actor:null,overview:null,practiceId:'',loading:false,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0};
 const today=()=>{const a=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(x=>[x.type,x.value]));return `${a.year}-${a.month}-${a.day}`;};
 const uuid=()=>crypto.randomUUID();
 const safeText=s=>String(s??'');
@@ -17,7 +17,12 @@ function gateEdit(){if(!S.actor||!['duty','admin'].includes(S.actor.role))throw 
 async function call(path,payload={}){
  if(!S.token||!CONFIG.apiBaseUrl)throw new Error('LINE認証またはAPI設定がありません');
  const url=CONFIG.apiBaseUrl.replace(/\/$/,'')+path;
+ // Invalidate responses from reads that started before a write.
+ if(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change'].includes(path))S.updateEpoch++;
+ const startedAt=performance.now();
  const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},body:JSON.stringify(payload),cache:'no-store'});
+ if(new URLSearchParams(location.search).get('perf')==='1')
+   console.info('[STAGE PERF]',path,Math.round(performance.now()-startedAt)+'ms',response.headers.get('Server-Timing')||'');
  let value;try{value=await response.json();}catch{throw new Error('サーバーからの応答を読み取れません');}
  if(!response.ok||!value.ok){const err=new Error(value.error||'処理を完了できませんでした');err.status=response.status;throw err;}
  return value.data;
@@ -40,7 +45,7 @@ async function boot(){
   S.actor=await call('/api/session');gateEdit();
   window.SMLiveAccess?.setup({api:call,actor:S.actor});
   for(const id of ['reimbursementBtn','manageBtn','refresh','adjustment','expense'])$(id).disabled=false;
-  await reload(true);setInterval(()=>{if(!document.hidden&&S.pending.size===0&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
+  await reload(true);setInterval(()=>{if(!document.hidden&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
   toast('接続しました');
  }catch(e){
   $('list').textContent=e.message;throw e;
@@ -48,8 +53,10 @@ async function boot(){
 }
 async function reload(refreshDates){
  if(S.loading||S.pending.size)return;S.loading=true;
+ const epoch=S.updateEpoch,selected=S.practiceId;
  try{
    const d=await call('/api/overview',{practiceId:S.practiceId});
+   if(epoch!==S.updateEpoch||S.pending.size||selected!==S.practiceId)return;
    if(refreshDates||!S.practiceId){$('date').replaceChildren(...d.practices.map(p=>new Option(`${window.SMDate.date(p.date)} ${p.startTime}～${p.endTime}`,p.practiceId)));}
    S.practiceId=d.practice.practiceId;$('date').value=S.practiceId;S.overview=d;
    renderHome();
