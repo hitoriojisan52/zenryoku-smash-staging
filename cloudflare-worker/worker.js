@@ -4,6 +4,7 @@
  * The client cannot select its own LINE user ID or administrative role.
  * GAS remains the authorization and ledger source of truth.
  */
+// v0.16.36: first Git-connected staging build trigger (no functional changes).
 const VALID_PATHS = Object.freeze({
   '/api/session':'session',
   '/api/member/status':'member.status',
