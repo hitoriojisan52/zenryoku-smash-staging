@@ -55,5 +55,8 @@ assert(accessV2.includes('openFromCheckLink(){'),'check-specific deep link handl
 assert(accessV2.includes("window.SM_STAGE_WITHDRAW_CHECK!==true||actorRole!=='admin'"),'deep link must require exact flag and admin');
 assert(accessV2.includes('return open();'),'check deep link must open member management');
 assert(liveJs.includes(".then(()=>window.SMLiveAccess?.openFromCheckLink?.())"),'manager opens only after initial busy loading');
+assert(accessV2.includes("checkButton.scrollIntoView?.({block:'center'})"),'check button should be visible on deep-linked modal');
+assert(stagingLive.includes('live-access-v2.js?v=1636a'),'management script cache must refresh');
+assert(stagingLive.includes('live.js?v=1636a'),'startup script cache must refresh');
 assert(v2Mode.includes("direct.get('withdrawCheck')==='1'"),'check deep link flag missing');
 console.log('PASS: '+checked+' UI standard checks');
