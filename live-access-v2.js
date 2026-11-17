@@ -239,9 +239,12 @@
  $('memberAccessClose').addEventListener('click',()=>{if(!busy&&!prompt&&dialog.open)dialog.close();});
  window.SMLiveAccess=Object.freeze({
    // Check-only LIFF link: open the admin panel after initial load releases its lock.
-   openFromCheckLink(){
-     if(window.SM_STAGE_WITHDRAW_CHECK!==true||actorRole!=='admin')return Promise.resolve(false);
-     return open();
+   async openFromCheckLink(){
+     if(window.SM_STAGE_WITHDRAW_CHECK!==true||actorRole!=='admin')return false;
+     await open();
+     const checkButton=$('memberAccessWithdrawCheckButtonV1627');
+     if(checkButton&&!checkButton.hidden)checkButton.scrollIntoView?.({block:'center'});
+     return true;
    },
    setup(o){
      api=o?.api;actorRole=o?.actor?.role||'';actorMemberId=o?.actor?.memberId||'';
