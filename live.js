@@ -22,7 +22,13 @@ async function call(path,payload={}){
  if(!response.ok||!value.ok){const err=new Error(value.error||'処理を完了できませんでした');err.status=response.status;throw err;}
  return value.data;
 }
-async function guard(action){try{await action();}catch(e){toast(e.message||String(e));if(e.status===409)await reload(false).catch(()=>{});}}
+async function guard(action,label='処理中です…'){
+ try{await window.SMStageUX.run(label,action);}
+ catch(e){
+   await window.SMStageUX.showError(e);
+   if(e.status===409)await reload(false).catch(()=>{});
+ }
+}
 async function boot(){
  for(const id of ['confirm','reimbursementBtn','manageBtn','refresh','adjustment','expense','newLedgerRow'])$(id).disabled=true;
  try{
@@ -37,7 +43,7 @@ async function boot(){
   await reload(true);setInterval(()=>{if(!document.hidden&&S.pending.size===0)reload(false).catch(()=>{});},8000);
   toast('接続しました');
  }catch(e){
-  $('list').textContent=e.message;toast(e.message);
+  $('list').textContent=e.message;throw e;
  }
 }
 async function reload(refreshDates){
@@ -196,7 +202,8 @@ function bind(){
  $('closeModal').addEventListener('click',()=>close('modal'));
 }
 function shiftMonth(amount){const [year,month]=$('ledgerMonth').value.split('-').map(Number);const dt=new Date(Date.UTC(year,month-1+amount,1));const next=dt.toISOString().slice(0,7);if(next>today().slice(0,7))return;$('ledgerMonth').value=next;guard(loadLedger);}
-bind();boot();
+bind();
+window.SMStageUX.run('読み込み中です…',boot).catch(e=>window.SMStageUX.showError(e));
 
 // Match screen launch: current selected practice, same LINE login context.
 if(document.getElementById("matchManage")){document.getElementById("matchManage").addEventListener("click",()=>{if(!CONFIG.liffId||CONFIG.liffId.includes("REPLACE_")){toast("対戦表LIFFが設定されていません");return;}window.location.href="https://liff.line.me/"+encodeURIComponent(CONFIG.liffId)+"?practiceId="+encodeURIComponent(S.practiceId||"");});}

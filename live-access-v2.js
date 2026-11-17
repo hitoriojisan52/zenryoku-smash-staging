@@ -6,7 +6,7 @@
  'use strict';
  if(window.SM_STAGE_ACCESS_V2!==true)return;
  const $=id=>document.getElementById(id);
- const dialog=$('memberAccessDialog'),confirmDialog=$('accessConfirmV2'),busyDialog=$('accessBusyV2');
+ const dialog=$('memberAccessDialog'),confirmDialog=$('accessConfirmV2');
  const cancel=$('accessConfirmCancelV2'),okay=$('accessConfirmOkayV2'),toastEl=$('toast');
  let api=null,actorRole='',actorMemberId='',busy=false,prompt=null,toastTimer=null;
  const status=s=>{$('memberAccessStatus').textContent=String(s||'');};
@@ -30,8 +30,6 @@
  confirmDialog.addEventListener('cancel',event=>{if(prompt?.error)event.preventDefault();});
  cancel.addEventListener('click',()=>confirmDialog.close('no'));
  okay.addEventListener('click',()=>confirmDialog.close('yes'));
- busyDialog.addEventListener('cancel',event=>event.preventDefault());
- busyDialog.addEventListener('close',()=>{if(busy&&!busyDialog.open)busyDialog.showModal();});
  dialog.addEventListener('cancel',event=>{if(busy||prompt)event.preventDefault();});
  function ask(o,error){
    if(busy||prompt)return Promise.resolve(false);
@@ -63,23 +61,12 @@
    toastEl.classList.add('show');clearTimeout(toastTimer);
    toastTimer=setTimeout(()=>toastEl.classList.remove('show'),3500);
  }
- function setBusy(active,label){
-   busy=active;
-   const main=document.querySelector('main');
-   if(main){main.inert=active;main.setAttribute('aria-busy',String(active));}
-   dialog.inert=active;
-   if(active){
-     $('accessBusyLabelV2').textContent=String(label||'処理中です…');
-     if(!busyDialog.open)busyDialog.showModal();
-   }else{
-     if(busyDialog.open)busyDialog.close();
-     dialog.inert=false;
-   }
- }
  async function run(label,fn,success){
    if(busy||prompt)return false;
-   setBusy(true,label);let failure=null;
-   try{await fn();}catch(e){failure=e;}finally{setBusy(false);}
+   busy=true;let failure=null;
+   try{await window.SMStageUX.run(label,fn);}
+   catch(e){failure=e;}
+   finally{busy=false;}
    if(failure){await showError(failure);return false;}
    if(success)toast(success);
    return true;
@@ -93,6 +80,41 @@
    for(const m of list){
      const row=item('div','live-access-row');
      row.append(item('span','live-access-name',String(m.name||'名前なし')+(m.state==='completed'?'（退会済み）':'（確認中）')));
+     if(m.withdrawnAt)row.append(item('span','access-help',window.SMDate?.dateTimeJst?.(m.withdrawnAt)||String(m.withdrawnAt)));
+     history.append(row);
+   }
+ }
+ function render(snapshot){
+   const pending=$('memberAccessPending'),members=$('memberAccessMembers');
+   pending.replaceChildren();members.replaceChildren();
+   if(!snapshot.pending.length)pending.append(item('p','access-help','申し込みはありません。'));
+   for(const p of snapshot.pending){
+     const row=item('div','live-access-row');
+     row.append(item('span','live-access-name',p.name));
+     const accept=item('button','btn-blue','承認');
+     accept.type='button';accept.addEventListener('click',()=>decide(p,true));
+     const reject=item('button','btn-outline','却下');
+     reject.type='button';reject.addEventListener('click',()=>decide(p,false));
+     row.append(accept,reject);pending.append(row);
+   }
+   for(const m of snapshot.members){
+     const row=item('div','live-access-row'),label=item('span','live-access-name',m.name+(m.active?'':'（停止中）'));
+     const select=item('select','live-access-select');
+     select.setAttribute('aria-label',m.name+' さんの役割');
+     for(const [v,t] of [['member','一般メンバー'],['duty','当番担当'],['admin','管理者']])select.add(new Option(t,v));
+     select.value=m.role;
+     const isSelf=m.memberId===actorMemberId;
+     if(isSelf||!m.active){
+       const current=item('span','stage-role-readonly',select.options[select.selectedIndex]?.text||'現在の役割');
+       const help=item('small','stage-role-note',isSelf?'自分の権限は変更できません。':'停止中のため変更できません。');
+       row.append(label,current,help);
+       members.append(row);
+       continue;
+     }
+     const change=item('button','btn-blue','変更');change.type='button';change.disabled=true;
+     select.addEventListener('change',()=>{change.disabled=select.value===m.role;});
+     change.addEventListener('click',()=>setRole(m,select));
+row.append(item('span','live-access-name',String(m.name||'名前なし')+(m.state==='completed'?'（退会済み）':'（確認中）')));
      if(m.withdrawnAt)row.append(item('span','access-help',window.SMDate?.dateTimeJst?.(m.withdrawnAt)||String(m.withdrawnAt)));
      history.append(row);
    }
