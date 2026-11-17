@@ -3,8 +3,9 @@
  'use strict';
  const $=id=>document.getElementById(id),UI=window.SMSandboxUI;
  let api=null,actorRole='',actorMemberId='';
- // This is an inert UI rehearsal. The API module continues to block actual withdrawal.
- const WITHDRAW_PREVIEW_MEMBER_ID='M-TEST-WITHDRAW-1618';
+ // Explicitly restricted to the one synthetic test member on the isolated sheet.
+ const WITHDRAW_TEST_MEMBER_ID='M-TEST-WITHDRAW-1618';
+ const WITHDRAW_TEST_NAME='退会実行テスト用（架空）';
  function node(tag,cls,value){
    const e=document.createElement(tag);if(cls)e.className=cls;
    if(value!==undefined)e.textContent=String(value);
@@ -40,14 +41,14 @@
      select.addEventListener('change',()=>{change.disabled=immutable||select.value===m.role;});
      change.addEventListener('click',()=>setRole(m,select));
      row.append(name,select,change);
-     // Show a rehearsal only for the exact synthetic target. No withdrawal API is called.
-     if(m.memberId===WITHDRAW_PREVIEW_MEMBER_ID&&m.active&&m.role!=='admin'&&m.memberId!==actorMemberId){
-       const practice=node('button','btn-outline sb-withdraw-preview','退会の確認テスト');
-       practice.type='button';
-       practice.setAttribute('aria-label',m.name+' さんの退会確認テスト');
-       practice.addEventListener('click',()=>previewWithdrawal(m).catch(e=>UI.showError(e)));
-       const note=node('span','sb-preview-hint','※ 退会は行いません');
-       row.append(practice,note);
+     // A single protected, fake member can be withdrawn only after two confirmations.
+     if(isWithdrawalTarget(m)){
+       const action=node('button','sb-withdraw-action','退会する（テスト）');
+       action.type='button';
+       action.setAttribute('aria-label',m.name+' さんを退会させる（検証用）');
+       action.addEventListener('click',()=>withdrawTestMember(m).catch(e=>UI.showError(e)));
+       const note=node('span','sb-preview-hint','対象：架空メンバー1名のみ');
+       row.append(action,note);
      }
      members.append(row);
    }
@@ -114,24 +115,65 @@
      memberId:m.memberId,role,operationId:crypto.randomUUID()
    },'権限変更');
  }
- async function previewWithdrawal(member){
-   // Never accept an arbitrary member ID, even for the rehearsal.
-   if(UI.isBusy()||actorRole!=='admin'||member?.memberId!==WITHDRAW_PREVIEW_MEMBER_ID||
-      member?.role==='admin'||!member?.active||member.memberId===actorMemberId)return;
-   const step1=await UI.confirm({
+ function isWithdrawalTarget(m){
+   return actorRole==='admin'&&m?.memberId===WITHDRAW_TEST_MEMBER_ID&&
+     m?.name===WITHDRAW_TEST_NAME&&m?.role==='member'&&m?.active===true&&
+     m.memberId!==actorMemberId;
+ }
+ async function withdrawTestMember(member){
+   if(UI.isBusy()||!isWithdrawalTarget(member))return;
+   const first=await UI.confirm({
      title:'退会の確認（1/2）',
-     message:member.name+' さんの退会手順を試します。\n今回は確認だけです。',
+     message:member.name+' さんを退会させます。\\n検証用の登録情報を削除します。',
      confirmLabel:'次へ'
    });
-   if(!step1)return;
-   const step2=await UI.confirm({
+   if(!first)return;
+   const second=await UI.confirm({
      title:'最後の確認（2/2）',
-     message:member.name+' さん\nまだ退会は実行しません。',
-     confirmLabel:'確認を終える'
+     message:member.name+' さんを退会させます。\\n取り消しできません。',
+     confirmLabel:'退会を実行',danger:true
    });
-   if(!step2)return;
-   // No fetch/POST/worker/GAS mutation, under any outcome.
-   UI.toast('確認できました。退会はしていません。');
+   if(!second)return;
+   // One operation ID per human-confirmed request. Never retry the mutation automatically.
+   const operationId=crypto.randomUUID();
+   await UI.run('退会処理中です…',async()=>{
+     // Reload immediately before the write; never trust an old rendered row alone.
+     const latest=await api('/api/member/manage/list');
+     const selected=(latest?.members||[]).filter(m=>m.memberId===WITHDRAW_TEST_MEMBER_ID);
+     if(selected.length!==1||!isWithdrawalTarget(selected[0])||
+        (latest?.withdrawn||[]).some(m=>m.memberId===WITHDRAW_TEST_MEMBER_ID)){
+       await load();
+       throw new Error('対象者の状態が変わりました。更新してから確認してください。');
+     }
+     let response;
+     try{
+       response=await api('/api/member/manage/withdraw',{
+         memberId:WITHDRAW_TEST_MEMBER_ID,
+         confirmMemberId:WITHDRAW_TEST_MEMBER_ID,
+         operationId
+       });
+     }catch(error){
+       if(UI.isUncertain(error)||error?.status===409){
+         error.mutationUncertain=UI.isUncertain(error);
+         try{await load();}catch(_){status('「更新」で最新の状態を確認してください。');}
+       }
+       throw error;
+     }
+     // Only show completion after the server response AND authoritative readback agree.
+     try{
+       const reread=await load();
+       const withdrawn=(reread?.withdrawn||[]).some(m=>
+         m.memberId===WITHDRAW_TEST_MEMBER_ID&&m.state==='completed');
+       if(response?.status!=='withdrawn'||response?.memberId!==WITHDRAW_TEST_MEMBER_ID||
+          (reread?.members||[]).some(m=>m.memberId===WITHDRAW_TEST_MEMBER_ID)||!withdrawn){
+         throw new Error('退会結果を確認できません。最新の一覧を確認してください。');
+       }
+     }catch(error){
+       error.appliedButRefreshFailed=true;
+       throw error;
+     }
+     status('');
+   },{success:'退会が完了しました。'});
  }
  async function start(){
    // This runs inside the initial UI.run() lock. Never skip loading because UI is busy.

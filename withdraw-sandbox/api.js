@@ -11,7 +11,8 @@
     '/api/member/apply',
     '/api/member/manage/list',
     '/api/member/manage/decide',
-    '/api/member/manage/role'
+    '/api/member/manage/role',
+    '/api/member/manage/withdraw'
   ]);
   let idToken = '';
   async function begin(page) {
@@ -51,6 +52,14 @@
   async function api(path, payload) {
     if (!endpoints.has(path)) {
       throw new Error('この検証画面では許可されていないAPIです。退会APIは無効です。');
+    }
+    // Strong browser-side guard in addition to Worker and GAS test-only guards.
+    if(path==='/api/member/manage/withdraw'){
+      const only='M-TEST-WITHDRAW-1618';
+      if(payload?.memberId!==only||payload?.confirmMemberId!==only||
+         typeof payload?.operationId!=='string'||
+         !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(payload.operationId))
+        throw new Error('指定した検証用メンバー以外は退会できません。');
     }
     if (!idToken) throw new Error('LINE認証が未完了です。');
     const controller = new AbortController();
@@ -93,6 +102,6 @@
   window.SMWithdrawSandbox = Object.freeze({
     begin: begin,
     api: api,
-    withdrawUiEnabled: false
+    withdrawUiEnabled: true // Worker & GAS WITHDRAW_ENABLED remain the actual server gates
   });
 })();

@@ -116,3 +116,16 @@ body { background: #f7f9fc; }
 #memberAccessMembers .sb-preview-hint{
   grid-column:1/-1;text-align:center;font-size:12px;color:#5f6b71;
 }
+
+/* v0.16.18 execution gate: ONLY for the one named synthetic withdrawal target. */
+#memberAccessMembers .sb-withdraw-action{
+ grid-column:1/-1;justify-self:stretch;min-height:48px;width:100%;
+ background:#b42318;color:#fff;border-radius:6px;
+ font-size:16px;font-weight:700;cursor:pointer;
+}
+#memberAccessMembers .sb-withdraw-action:disabled{
+ background:#d4d8dc!important;color:#777!important;cursor:not-allowed!important;
+}
+#memberAccessMembers .sb-withdraw-action:focus-visible{
+ outline:3px solid #7c1d13;outline-offset:2px;
+}
