@@ -33,3 +33,30 @@
 - ステージングのWorker退会エンドポイントは現行ソース未照合で、実退会のステージングE2Eは未実施
 - 既存管理者以外の一般/当番ユーザーの実機権限変更・承認は今回実行しない
 - ユーザー別LINEリッチメニュー同期も無効のまま
+
+## v0.16.26 現行Workerソース照合・安全ゲート統合候補（2026-11-17）
+- ユーザーからCloudflare `zenryoku-smash-staging-api` の現行Worker全文を受領
+- 貼付中のMarkdown装飾により先頭コメントやLINEの `https://` URLがリンク構文に変形していたため、保存済みの **同じv0.16.0元ソース**を基準に復元し、元コードを保持したまま差分を作成
+- 現行Worker `VALID_PATHS` に退会APIは未登録（現状は404拒否）
+- 新候補 `worker_v1626_WITHDRAW_DISABLED.mjs` の差分は3か所：
+  1. `/api/member/manage/withdraw` をAPIルートとして識別
+  2. LINE IDトークン検証の直後に **無条件403 `WITHDRAW_DISABLED`** を返し、GASへのPOSTを一切行わない
+  3. `/health` に返す公開バージョンだけ `0.16.26` に更新
+- `WITHDRAW_ENABLED=true` と誤設定されても Worker が常に拒否。GAS v0.16.25候補も同様に常時拒否。実退会は未実装
+- 現行Workerの認証、CORS、ContentServiceのリダイレクト、既存試合/集金/QR/管理APIは変更しない
+- ローカル模擬通信テスト **25/25 PASS**（有効LINEトークン相当の認証→403かつGAS未転送、誤った有効フラグ、CORS、既存セッション・ゲストAPI、バージョン確認）
+- 前回GAS候補も再テスト **20/20 PASS**
+- 追加ファイル一式は会話添付 `zenryoku_smash_v1626_backend_safe_integration.zip`（Worker完成版、差分、模擬テスト、GAS v0.16.25候補、GAS差分とテスト）
+- まだGAS・Cloudflareへの**実デプロイなし**。GitHub Pagesのアプリ画面も変更なし
+
+### 安全な手動デプロイ順序
+1. 現行のステージングGAS `AccessAndGuest` と Cloudflare Worker のコードを別途保存
+2. 先にGASの v0.16.25 無条件拒否版を既存の `AccessAndGuest` へ適用し、既存ウェブアプリのデプロイを更新。既存の履歴表示・試合/集金表示を回帰確認
+3. 次にWorkerの v0.16.26 無条件拒否版を既存 `zenryoku-smash-staging-api` へデプロイ（URL・環境変数を維持）
+4. `https://zenryoku-smash-staging-api.hitori-ojisan-52.workers.dev/health` の `version:0.16.26` を確認。ヘルスチェックは実際の退会可否・GAS連携までは証明しない
+5. 既存LINE管理者LIFFで運用管理のメンバー管理・退会履歴（0件）、対戦表、集金画面、QRの表示のみを確認
+6. **最後の管理者への退会要求や実メンバーIDを用いた破壊的テストは行わない**。両環境の `WITHDRAW_ENABLED` は false のまま
+
+### 残る工程
+- 新規架空メンバーを分離された検証コピーで作成し、Worker/GASの実退会有効版は新たなレビューとユーザーの明示的承認後に作成・検証
+- 元ステージングに実退会コードを直接流用しない。現在の安全ゲートを維持する
