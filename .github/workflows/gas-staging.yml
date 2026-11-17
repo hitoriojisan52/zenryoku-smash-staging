@@ -1,0 +1,59 @@
+name: Staging GAS - GitHub / clasp
+run-name: Staging GAS ${{ github.event_name == 'push' && 'auto-deploy' || inputs.mode }}
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'First run preflight (read only); deploy updates the existing GAS web app'
+        type: choice
+        required: true
+        default: preflight
+        options:
+          - preflight
+          - deploy
+      confirmation:
+        description: 'For deploy only: type UPDATE_EXISTING_STAGING_GAS'
+        type: string
+        required: false
+  push:
+    branches:
+      - main
+    paths:
+      - 'gas-staging/**'
+      - 'scripts/gas-staging-guard.cjs'
+      - 'scripts/gas-staging-deploy.sh'
+permissions:
+  contents: read
+concurrency:
+  group: connected-staging-gas-deploy
+  cancel-in-progress: false
+jobs:
+  update-existing-staging-gas:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'push' && vars.GAS_STAGE_AUTODEPLOY == 'enabled'))
+    runs-on: ubuntu-latest
+    environment: staging-gas
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate candidate GAS sources without Google access
+        run: node tests/check-gas-staging-ci.cjs
+      - name: Test remote drift and manifest safety guards
+        run: node tests/check-gas-staging-guard.cjs
+      - name: Install pinned official Google clasp
+        run: npm install --global --no-fund --no-audit --ignore-scripts @google/clasp@3.4.1
+      - name: Preflight or update EXISTING staging GAS deployment
+        env:
+          GAS_ACTION_MODE: ${{ github.event_name == 'push' && 'deploy' || inputs.mode }}
+          GAS_ACTION_CONFIRMATION: ${{ github.event_name == 'push' && 'UPDATE_EXISTING_STAGING_GAS' || inputs.confirmation }}
+          GAS_STAGE_SCRIPT_ID: ${{ secrets.GAS_STAGE_SCRIPT_ID }}
+          GAS_STAGE_DEPLOYMENT_ID: ${{ secrets.GAS_STAGE_DEPLOYMENT_ID }}
+          GAS_STAGE_CLASPRC_JSON: ${{ secrets.GAS_STAGE_CLASPRC_JSON }}
+        run: bash scripts/gas-staging-deploy.sh
