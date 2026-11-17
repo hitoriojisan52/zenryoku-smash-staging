@@ -95,7 +95,7 @@ GitHub **Actions → Staging GAS - GitHub / clasp → Run workflow**
 - Name: `GAS_STAGE_AUTODEPLOY`
 - Value: `enabled`
 
-有効時だけ、`main` の `gas-staging/**` またはデプロイスクリプトの変更がGitHubに入ると、GASデプロイが自動で走ります。通常のフロントエンド、対戦表、Workerのみの変更ではGASデプロイしません。GitHubのレビューを通したコードだけが反映されます。
+有効時だけ、`main` の `gas-staging/*.gs`（GASソース）またはデプロイスクリプトの変更がGitHubに入ると、GASデプロイが自動で走ります。通常のフロントエンド、対戦表、Workerのみの変更ではGASデプロイしません。GitHubのレビューを通したコードだけが反映されます。
 
 ## 保護・注意点
 
@@ -105,3 +105,5 @@ GitHub **Actions → Staging GAS - GitHub / clasp → Run workflow**
 - Google Apps Scriptの**プロジェクト版数**と**既存デプロイ**は異なります。既存WebアプリのURL維持には `update-deployment` が必要
 - GitHub Actionsが失敗した場合、既存Webアプリデプロイの版数は更新されないことがあります。更新直後は必ず `/health`、LIFF、GASの整合性を確認
 - 回復時はApps Script「デプロイを管理」で以前の**正常版数**へ戻すか、GitHubの前バージョンを復元して同じ既存デプロイを更新する
+
+※ `gas-staging/README.md` の説明文だけの修正ではGASは自動デプロイされません。
