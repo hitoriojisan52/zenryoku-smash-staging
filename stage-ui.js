@@ -37,7 +37,8 @@
  }
  function errorDetails(e){
    if(e?.status===409)return {title:'内容が変わりました',message:'ほかの人が先に変更しました。\n最新の内容を確認してください。'};
-   if(!e?.status ||e?.status>=500||['NETWORK_ERROR','REQUEST_TIMEOUT'].includes(e?.code))
+   if(Number(e?.status)>=500||['NETWORK_ERROR','REQUEST_TIMEOUT','OPERATION_UNCONFIRMED'].includes(e?.code)||
+      /Failed to fetch|NetworkError|通信に失敗|Load failed/i.test(String(e?.message||'')))
      return {title:'通信エラー',message:'通信できませんでした。\n最新の情報を確認してください。'};
    return {title:'操作できませんでした',message:String(e?.message||'再度確認してください。')};
  }

@@ -40,7 +40,7 @@ async function boot(){
   S.actor=await call('/api/session');gateEdit();
   window.SMLiveAccess?.setup({api:call,actor:S.actor});
   for(const id of ['reimbursementBtn','manageBtn','refresh','adjustment','expense'])$(id).disabled=false;
-  await reload(true);setInterval(()=>{if(!document.hidden&&S.pending.size===0)reload(false).catch(()=>{});},8000);
+  await reload(true);setInterval(()=>{if(!document.hidden&&S.pending.size===0&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
   toast('接続しました');
  }catch(e){
   $('list').textContent=e.message;throw e;
