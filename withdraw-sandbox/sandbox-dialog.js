@@ -44,16 +44,16 @@
    const raw=e?.message||String(e||'不明なエラーが発生しました。');
    const code=String(e?.code||'');
    if(e?.appliedButRefreshFailed){
-     return {title:'【更新後の表示を確認してください】',message:'サーバーは更新を受け付けましたが、最新の情報を表示できませんでした。\n\n同じ操作を繰り返さず、「更新」で最新状態を確認してください。\n\n詳細：'+raw};
+     return {title:'【更新内容を確認してください】',message:'更新は受け付けましたが、最新の一覧を表示できません。\n「更新」で確認してください。\n'+raw};
    }
    if(e?.mutationUncertain){
-     return {title:'【操作結果の確認が必要です】',message:'通信が途切れたため、更新が保存されたか確認できません。\n\n同じ更新を自動で再送していません。「更新」で最新状態を確認してから操作してください。\n\n詳細：'+raw};
+     return {title:'【変更内容を確認してください】',message:'通信が切れました。更新されたか確認できません。\n「更新」で確認してください。\n'+raw};
    }
    if(code==='NETWORK_ERROR'||code==='REQUEST_TIMEOUT'||e?.status>=500){
-     return {title:'【通信エラー】',message:'最新情報を取得できませんでした。通信状態を確認し、「更新」または「再接続」でやり直してください。\n\n詳細：'+raw};
+     return {title:'【通信エラー】',message:'通信できませんでした。\n通信状況を確認し、「更新」してください。\n'+raw};
    }
    if(e?.status===409||code==='VERSION_CONFLICT'){
-     return {title:'【他の担当者による更新】',message:'別の操作によって状態が変わりました。\n最新情報を確認してから操作してください。\n\n詳細：'+raw};
+     return {title:'【内容が変わりました】',message:'ほかの人が先に変更しました。\n「更新」してからやり直してください。\n'+raw};
    }
    return {title:'【操作できませんでした】',message:raw};
  }
