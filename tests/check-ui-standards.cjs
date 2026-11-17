@@ -42,5 +42,11 @@ const stagingLive=read('live.html'),stagingMatch=read('match.html');
 assert(stagingLive.includes('id="stageBusyLabel"'),'live processing label missing');
 assert(stagingMatch.includes('id="matchBusyLabel"'),'match processing label missing');
 const api=read('withdraw-sandbox/api.js');
-assert(api.includes('withdrawUiEnabled: false'),'preview-only withdrawal API gate must remain disabled');
+// v0.16.34+: the sandbox is preview-only by default; explicit, target-locked tests are allowed.
+assert(api.includes('const EXECUTION_REQUESTED=executionRequested();'),'withdrawal execution must be explicitly requested');
+assert(api.includes("location.pathname!==EXACT_PATH+'manage.html'"),'withdrawal execution must only be requested from the sandbox management page');
+assert(api.includes("q.get('withdrawExec')==='1630'"),'withdrawal mode must require the exact synthetic opt-in');
+assert(api.includes('withdrawUiEnabled: EXECUTION_REQUESTED'),'normal sandbox UI must default to preview-only');
+assert(api.includes('if(!EXECUTION_REQUESTED)'),'withdrawal API must fail closed without opt-in');
+assert(api.includes('payload?.memberId!==TARGET||payload?.confirmMemberId!==TARGET'),'withdrawal API must validate both matching synthetic IDs');
 console.log('PASS: '+checked+' UI standard checks');
