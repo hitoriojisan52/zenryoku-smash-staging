@@ -1,0 +1,22 @@
+name: Staging GAS source checks
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'gas-staging/**'
+      - 'scripts/gas-staging-guard.cjs'
+      - 'scripts/gas-staging-deploy.sh'
+      - 'tests/check-gas-staging-ci.cjs'
+      - '.github/workflows/gas-staging*.yml'
+permissions:
+  contents: read
+jobs:
+  safety-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node tests/check-gas-staging-ci.cjs
+      - run: bash -n scripts/gas-staging-deploy.sh
