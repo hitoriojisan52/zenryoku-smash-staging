@@ -45,6 +45,8 @@ jobs:
           node-version: '22'
       - name: Validate candidate GAS sources without Google access
         run: node tests/check-gas-staging-ci.cjs
+      - name: Test remote drift and manifest safety guards
+        run: node tests/check-gas-staging-guard.cjs
       - name: Install pinned official Google clasp
         run: npm install --global --no-fund --no-audit --ignore-scripts @google/clasp@3.4.1
       - name: Preflight or update EXISTING staging GAS deployment
