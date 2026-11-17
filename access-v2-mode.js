@@ -18,4 +18,7 @@
  w.SM_STAGE_WITHDRAW_PREVIEW=enabled&&(
    direct.get('withdrawPreview')==='1'||new URLSearchParams(statePreview).get('withdrawPreview')==='1'
  );
+ w.SM_STAGE_WITHDRAW_CHECK=w.SM_STAGE_WITHDRAW_PREVIEW&&(
+   direct.get('withdrawCheck')==='1'||new URLSearchParams(statePreview).get('withdrawCheck')==='1'
+ );
 })(window);

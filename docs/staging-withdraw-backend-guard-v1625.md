@@ -60,3 +60,16 @@
 ### 残る工程
 - 新規架空メンバーを分離された検証コピーで作成し、Worker/GASの実退会有効版は新たなレビューとユーザーの明示的承認後に作成・検証
 - 元ステージングに実退会コードを直接流用しない。現在の安全ゲートを維持する
+
+## v0.16.27：サーバー側の退会条件・読み取り専用点検
+- ユーザーがGAS v0.16.25 / Worker v0.16.26 と通常運用UI・退会履歴・対戦表を実機で確認し、すべて期待値どおりと報告
+- 新API `POST /api/member/manage/withdraw/check` はLINE IDトークン検証（Worker）→GASで管理者権限と検証シートIDを確認したのち、集計数のみ返す。書き込みゼロ
+- 元の退会API `POST /api/member/manage/withdraw` は引き続きWorker側で無条件403（GAS未転送）。GASも無条件拒否。設定フラグtrueで有効にならない
+- GAS差分：読取関数 `accessWithdrawCheckV1627_` と管理APIルートの追加のみ。Worker差分：読取ルート追加とヘルスバージョン0.16.27。既存LINE認証・集金・試合処理は維持
+- ステージングは有効管理者1名だけなので候補者0名が期待値。検証用の退会対象者を追加しない
+- 通常画面と既存 `?accessUi=v2&withdrawPreview=1` 画面は変更しない。**`?accessUi=v2&withdrawPreview=1&withdrawCheck=1` の試験モードだけ**「サーバー側の退会条件を確認」ボタンを表示
+- ボタンはREAD-ONLY APIだけを呼び、削除APIは呼ばない。初回・手動更新は共通の全画面ロック、成功時は3行の結果を表示
+- ローカル模擬テストGAS **21/21**、Worker **29/29** 成功。GitHub Pagesの実機テスト、GAS・Workerのv0.16.27適用は未実施
+- GAS/Worker候補一式 `zenryoku_smash_v1627_readonly_check.zip` を会話添付。公開GitHubには秘密値やバックエンドソースを置かない
+- 適用は **GAS → Worker** の順。既存デプロイ・設定値を保持する。実機は最後にデータ閲覧だけで検査する
+- `WITHDRAW_ENABLED=false`、`RICH_MENU_SYNC_ENABLED=false` 維持。運用データや本番LINEメニューは変更しない

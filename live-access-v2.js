@@ -125,10 +125,32 @@
    if(!section)return;
    section.hidden=window.SM_STAGE_WITHDRAW_PREVIEW!==true||actorRole!=='admin';
    if(section.hidden)return;
+   const checkButton=$('memberAccessWithdrawCheckButtonV1627');
+   checkButton.hidden=window.SM_STAGE_WITHDRAW_CHECK!==true;
+   const result=$('memberAccessWithdrawCheckResultV1627');
+   result.hidden=true;result.textContent='';
    const count=members.filter(m=>m.active&&m.role!=='admin'&&m.memberId!==actorMemberId).length;
    $('memberAccessWithdrawPreviewStatusV1624').textContent=count
      ?'確認対象になり得る一般メンバー・当番担当は'+count+'名です。今回は退会しません。'
      :'現在、確認対象となる一般メンバー・当番担当はいません。管理者本人は対象外です。';
+ }
+ async function checkWithdrawConditionsV1627(){
+   if(busy||prompt||actorRole!=='admin'||window.SM_STAGE_WITHDRAW_CHECK!==true)return;
+   await run('退会条件を確認しています…',async()=>{
+     const data=await api('/api/member/manage/withdraw/check',{});
+     if(data?.readOnly!==true||data?.withdrawEnabled!==false||
+       !Number.isInteger(data?.adminCount)||!Number.isInteger(data?.eligibleCandidateCount)||
+       data.eligibleCandidateCount<0)throw Error('退会条件の確認結果が不正です。');
+     const lines=[
+       '登録管理者：'+data.adminCount+'名',
+       '退会候補：'+data.eligibleCandidateCount+'名',
+       '退会処理：無効（今回実行しません）'
+     ];
+     if(data.eligibleCandidateCount===0)lines.push('現在、退会可能な対象者はいません。');
+     const result=$('memberAccessWithdrawCheckResultV1627');
+     result.textContent=lines.join('\n');
+     result.hidden=false;
+   });
  }
  async function previewWithdrawV1624(){
    if(busy||prompt||actorRole!=='admin'||window.SM_STAGE_WITHDRAW_PREVIEW!==true)return;
@@ -210,6 +232,7 @@
  $('memberAccessRefresh').className='btn-blue';
  $('memberAccessRefresh').textContent='🔄 更新';
  $('memberAccessWithdrawPreviewButtonV1624').addEventListener('click',()=>previewWithdrawV1624());
+ $('memberAccessWithdrawCheckButtonV1627').addEventListener('click',()=>checkWithdrawConditionsV1627());
  document.body.classList.add('access-v2-active');
  $('manageAccess').addEventListener('click',()=>open().catch(e=>showError(e)));
  $('memberAccessRefresh').addEventListener('click',()=>refresh(false));

@@ -46,3 +46,12 @@ body.access-v2-active .stage-withdraw-preview-v1624{border-top:1px solid #d7e1e9
 body.access-v2-active .stage-withdraw-preview-v1624[hidden]{display:none!important}
 body.access-v2-active .stage-withdraw-preview-note-v1624{font-size:14px;line-height:1.55;color:#526477;margin:6px 0 10px}
 body.access-v2-active .stage-withdraw-preview-v1624 button{min-height:44px;width:100%;font-size:14px}
+
+/* v0.16.27: read-only server readiness panel (opt-in). */
+body.access-v2-active .stage-withdraw-check-result-v1627{
+ white-space:pre-line;padding:11px 12px;border:1px solid #d7e1e9;
+ border-radius:8px;background:#f8fbff;font-size:14px;line-height:1.6;
+ color:#2b4659;margin:10px 0 0;
+}
+body.access-v2-active .stage-withdraw-check-result-v1627[hidden],
+body.access-v2-active #memberAccessWithdrawCheckButtonV1627[hidden]{display:none!important}
