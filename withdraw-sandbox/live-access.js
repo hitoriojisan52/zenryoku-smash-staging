@@ -103,20 +103,31 @@
      memberId:m.memberId,role,operationId:crypto.randomUUID()
    },'権限変更');
  }
- async function open(){
-   if(UI.isBusy())return;
+ async function start(){
+   // This runs inside the initial UI.run() lock. Never skip loading because UI is busy.
    ensureAdmin();
+   $('memberAccessDialog').hidden=true;
+   $('memberAccessRefresh').disabled=true;
    status('読み込み中…');
-   await load();
-   status('');
+   try {
+     await load();
+     status('');
+     $('memberAccessDialog').hidden=false;
+     $('memberAccessRefresh').disabled=false;
+   } catch (error) {
+     status('読み込めませんでした。');
+     // Keep the list hidden until a successful retry finishes.
+     throw error;
+   }
  }
  $('memberAccessRefresh').addEventListener('click',()=>refresh().catch(e=>UI.showError(e)));
  window.SMLiveAccess=Object.freeze({
-   start:open,
+   start:start,
    setup(o){
      api=o?.api;actorRole=o?.actor?.role||'';actorMemberId=o?.actor?.memberId||'';
-     $('memberAccessDialog').hidden=actorRole!=='admin';
-     $('memberAccessRefresh').disabled=actorRole!=='admin';
+     // Wait for the first successful data fetch before showing the management list.
+     $('memberAccessDialog').hidden=true;
+     $('memberAccessRefresh').disabled=true;
    }
  });
 })();

@@ -98,3 +98,8 @@ body { background: #f7f9fc; }
   min-height:44px;padding:9px 14px;font-size:14px;
 }
 .sb-shell .sb-card:focus-within{scroll-margin-top:12px}
+
+/* v0.16.17: available actions blue; disabled actions neutral grey. */
+.sb-shell #memberAccessRefresh:not(:disabled),.sb-shell #accessRefresh:not(:disabled){background:#1976d2;color:#fff}
+.sb-shell #memberAccessRefresh:disabled,.sb-shell #accessRefresh:disabled{background:#d4d8dc!important;color:#777f87!important;cursor:not-allowed!important}
+.sb-shell #memberAccessRefresh:focus-visible,.sb-shell #accessRefresh:focus-visible{outline:3px solid #0d47a1;outline-offset:2px}
