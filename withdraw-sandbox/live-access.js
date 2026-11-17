@@ -120,13 +120,13 @@
       member?.role==='admin'||!member?.active||member.memberId===actorMemberId)return;
    const step1=await UI.confirm({
      title:'退会の確認（1/2）',
-     message:member.name+' さんの退会手順を試します。\\n今回は確認だけです。',
+     message:member.name+' さんの退会手順を試します。\n今回は確認だけです。',
      confirmLabel:'次へ'
    });
    if(!step1)return;
    const step2=await UI.confirm({
      title:'最後の確認（2/2）',
-     message:member.name+' さん\\nまだ退会は実行しません。',
+     message:member.name+' さん\nまだ退会は実行しません。',
      confirmLabel:'確認を終える'
    });
    if(!step2)return;
