@@ -135,3 +135,11 @@ body { background: #f7f9fc; }
   outline:none!important;
   border:0!important;
 }
+
+/* v0.16.33: align the role change button with its adjacent select.
+   The generic .sb-card button margin-top:10px was shifting only the button down.
+   Keep preview/withdrawal buttons and other cards unchanged. */
+#memberAccessMembers .live-access-row button.btn-blue{
+  margin-top:0;
+  align-self:center;
+}
