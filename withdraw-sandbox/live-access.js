@@ -3,6 +3,8 @@
  'use strict';
  const $=id=>document.getElementById(id),UI=window.SMSandboxUI;
  let api=null,actorRole='',actorMemberId='';
+ // This is an inert UI rehearsal. The API module continues to block actual withdrawal.
+ const WITHDRAW_PREVIEW_MEMBER_ID='M-TEST-WITHDRAW-1618';
  function node(tag,cls,value){
    const e=document.createElement(tag);if(cls)e.className=cls;
    if(value!==undefined)e.textContent=String(value);
@@ -37,8 +39,17 @@
      const change=node('button','btn-blue','変更');change.type='button';change.disabled=true;
      select.addEventListener('change',()=>{change.disabled=immutable||select.value===m.role;});
      change.addEventListener('click',()=>setRole(m,select));
-     row.append(name,select,change);members.append(row);
-     // Withdrawal buttons are intentionally never rendered. The API allowlist also rejects withdrawal.
+     row.append(name,select,change);
+     // Show a rehearsal only for the exact synthetic target. No withdrawal API is called.
+     if(m.memberId===WITHDRAW_PREVIEW_MEMBER_ID&&m.active&&m.role!=='admin'&&m.memberId!==actorMemberId){
+       const practice=node('button','btn-outline sb-withdraw-preview','退会の確認テスト');
+       practice.type='button';
+       practice.setAttribute('aria-label',m.name+' さんの退会確認テスト');
+       practice.addEventListener('click',()=>previewWithdrawal(m).catch(e=>UI.showError(e)));
+       const note=node('span','sb-preview-hint','※ 退会は行いません');
+       row.append(practice,note);
+     }
+     members.append(row);
    }
    if(!Array.isArray(data.withdrawn)||!data.withdrawn.length)history.append(node('p','access-help','退会履歴はありません。'));
    else for(const w of data.withdrawn){
@@ -102,6 +113,25 @@
    await mutate('/api/member/manage/role',{
      memberId:m.memberId,role,operationId:crypto.randomUUID()
    },'権限変更');
+ }
+ async function previewWithdrawal(member){
+   // Never accept an arbitrary member ID, even for the rehearsal.
+   if(UI.isBusy()||actorRole!=='admin'||member?.memberId!==WITHDRAW_PREVIEW_MEMBER_ID||
+      member?.role==='admin'||!member?.active||member.memberId===actorMemberId)return;
+   const step1=await UI.confirm({
+     title:'退会の確認（1/2）',
+     message:member.name+' さんの退会手順を試します。\\n今回は確認だけです。',
+     confirmLabel:'次へ'
+   });
+   if(!step1)return;
+   const step2=await UI.confirm({
+     title:'最後の確認（2/2）',
+     message:member.name+' さん\\nまだ退会は実行しません。',
+     confirmLabel:'確認を終える'
+   });
+   if(!step2)return;
+   // No fetch/POST/worker/GAS mutation, under any outcome.
+   UI.toast('確認できました。退会はしていません。');
  }
  async function start(){
    // This runs inside the initial UI.run() lock. Never skip loading because UI is busy.

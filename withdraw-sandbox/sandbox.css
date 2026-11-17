@@ -103,3 +103,16 @@ body { background: #f7f9fc; }
 .sb-shell #memberAccessRefresh:not(:disabled),.sb-shell #accessRefresh:not(:disabled){background:#1976d2;color:#fff}
 .sb-shell #memberAccessRefresh:disabled,.sb-shell #accessRefresh:disabled{background:#d4d8dc!important;color:#777f87!important;cursor:not-allowed!important}
 .sb-shell #memberAccessRefresh:focus-visible,.sb-shell #accessRefresh:focus-visible{outline:3px solid #0d47a1;outline-offset:2px}
+
+/* v0.16.18: withdrawal confirmation REHEARSAL only (no API action). */
+#memberAccessMembers .sb-withdraw-preview{
+  grid-column:1/-1;justify-self:stretch;min-height:46px;
+  border:1px solid #aebdca;background:#f1f5f8;color:#244c69;
+  font-size:15px;font-weight:700;
+}
+#memberAccessMembers .sb-withdraw-preview:focus-visible{
+  outline:3px solid #1976d2;outline-offset:2px;
+}
+#memberAccessMembers .sb-preview-hint{
+  grid-column:1/-1;text-align:center;font-size:12px;color:#5f6b71;
+}
