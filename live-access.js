@@ -3,6 +3,8 @@
  * No LINE user ID or channel secret is persisted in the browser.
  */
 (function(){'use strict';
+ // Opt-in staging UI only; keep the existing manager unchanged by default.
+ if(new URLSearchParams(window.location.search).get('accessUi')==='v2')return;
  const $=id=>document.getElementById(id);
  let api=null,authenticatedRole='',busy=false;
  function node(tag,cls,label){const e=document.createElement(tag);if(cls)e.className=cls;if(label!==undefined)e.textContent=label;return e;}

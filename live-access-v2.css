@@ -1,0 +1,42 @@
+/* v0.16.19 opt-in layout, scoped to the staging admin dialog only. */
+body.access-v2-active #memberAccessDialog{
+ width:min(96vw,510px);max-width:510px;max-height:85dvh;
+ padding:15px;overflow:auto;
+}
+body.access-v2-active #memberAccessDialog h2{font-size:17px;color:#1976d2}
+body.access-v2-active #memberAccessDialog h3{font-size:15px;color:#1976d2;margin:16px 0 7px}
+body.access-v2-active #memberAccessPending,
+body.access-v2-active #memberAccessMembers{display:grid;gap:4px}
+body.access-v2-active #memberAccessDialog .live-access-row{
+ display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;
+ gap:8px;padding:10px 0;border-bottom:1px solid #e2eaf0;
+}
+body.access-v2-active #memberAccessDialog .live-access-name{
+ grid-column:1/-1;font-size:15px;font-weight:600;min-width:0;overflow-wrap:anywhere;
+}
+body.access-v2-active #memberAccessPending .live-access-row{grid-template-columns:1fr 1fr}
+body.access-v2-active #memberAccessPending .live-access-name{grid-column:1/-1}
+body.access-v2-active #memberAccessPending .live-access-row button{width:100%;min-height:44px;font-size:14px}
+body.access-v2-active #memberAccessMembers .live-access-row button{min-width:96px;min-height:44px;font-size:14px}
+body.access-v2-active #memberAccessMembers .live-access-select{
+ min-height:44px;width:100%;max-width:none;font-size:15px;padding:7px;
+}
+body.access-v2-active #memberAccessDialog .access-help{font-size:13px;color:#607384}
+body.access-v2-active #memberAccessDialog .modal-actions button{min-height:44px;min-width:90px}
+body.access-v2-active .access-history-v2{margin-top:15px;border-top:1px solid #e1e8f0;padding:12px 0}
+body.access-v2-active .access-history-v2 summary{font-size:15px;color:#0d47a1;min-height:40px;cursor:pointer;font-weight:700}
+body.access-v2-active .access-history-v2 .live-access-row{grid-template-columns:1fr;gap:4px}
+#accessConfirmV2{max-width:350px}
+#accessConfirmMessageV2{font-size:14px;white-space:pre-line;line-height:1.6}
+#accessConfirmV2 .modal-actions button{min-height:44px;min-width:90px}
+#accessConfirmV2[role="alertdialog"] h2{color:#b42318}
+#accessConfirmV2[role="alertdialog"] #accessConfirmCancelV2{display:none!important}
+.access-danger-v2{background:#b42318;color:#fff}
+.access-busy-v2{box-sizing:border-box;border:0;border-radius:12px;max-width:340px;width:calc(100% - 36px);box-shadow:0 5px 25px #0004}
+.access-busy-v2::backdrop{background:rgba(15,28,45,.45)}
+.access-busy-inner-v2{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.access-busy-inner-v2 strong{color:#243746;font-size:16px}
+.access-busy-inner-v2 small{color:#617384;font-size:13px}
+.access-spinner-v2{width:34px;height:34px;border:4px solid #d6e6f3;border-top-color:#1976d2;border-radius:50%;animation:access-spin-v2 .8s linear infinite}
+@keyframes access-spin-v2{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.access-spinner-v2{animation:none}}
