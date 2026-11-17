@@ -16,7 +16,7 @@
    if(!Array.isArray(data?.pending)||!Array.isArray(data?.members))throw Error('管理情報の応答が不正です。');
    const pending=$('memberAccessPending'),members=$('memberAccessMembers'),history=$('memberAccessWithdrawn');
    pending.replaceChildren();members.replaceChildren();history.replaceChildren();
-   if(!data.pending.length)pending.append(node('p','access-help','承認待ちの申請はありません。'));
+   if(!data.pending.length)pending.append(node('p','access-help','申し込みはありません。'));
    for(const p of data.pending){
      const row=node('div','live-access-row'),name=node('span','live-access-name',p.name);
      const accept=node('button','btn-blue','承認'),reject=node('button','btn-outline','却下');
