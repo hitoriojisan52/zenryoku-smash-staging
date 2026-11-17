@@ -1,0 +1,12 @@
+# Local and CI credentials must never be committed
+.clasprc.json
+.clasp.json
+**/.clasprc.json
+**/.clasp.json
+.env
+.env.*
+**/.env
+**/.env.*
+node_modules/
+**/node_modules/
+gas-staging/appsscript.json
