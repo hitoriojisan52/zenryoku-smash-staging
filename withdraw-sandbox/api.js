@@ -1,17 +1,32 @@
-/* Isolated LINE LIFF authentication and allowlisted sandbox APIs. v0.16.31: withdrawal POST disabled. */
+/* Isolated LINE LIFF authentication and allowlisted sandbox APIs. v0.16.34: special test opt-in; the server remains the permission boundary. */
 (function () {
   'use strict';
   const C = window.SMASH_WITHDRAW_SANDBOX_CONFIG || {};
   const EXACT_WORKER = 'https://zenryoku-smash-withdraw-sandbox-api.hitori-ojisan-52.workers.dev';
   const EXACT_ORIGIN = 'https://hitoriojisan52.github.io';
   const EXACT_PATH = '/zenryoku-smash-staging/withdraw-sandbox/';
+  const TARGET='M-TEST-WITHDRAW-1630';
+  function executionRequested(){
+    if(location.origin!==EXACT_ORIGIN||location.pathname!==EXACT_PATH+'manage.html')return false;
+    const q=new URLSearchParams(String(location.search||''));
+    if(q.get('withdrawExec')==='1630')return true;
+    const state=q.get('liff.state');
+    if(!state)return false;
+    try{
+      const nested=new URL(state,EXACT_ORIGIN);
+      return nested.origin===EXACT_ORIGIN&&nested.pathname===EXACT_PATH+'manage.html'&&
+        nested.searchParams.get('withdrawExec')==='1630';
+    }catch(_){return false;}
+  }
+  const EXECUTION_REQUESTED=executionRequested();
   const endpoints = new Set([
     '/api/session',
     '/api/member/status',
     '/api/member/apply',
     '/api/member/manage/list',
     '/api/member/manage/decide',
-    '/api/member/manage/role'
+    '/api/member/manage/role',
+    '/api/member/manage/withdraw'
   ]);
   let idToken = '';
   async function begin(page) {
@@ -49,10 +64,14 @@
     return true;
   }
   async function api(path, payload) {
-    // Deny destructive withdrawal explicitly, before any token or network processing.
-    // Also keep this endpoint out of the allowlist; two browser-side checks fail closed.
-    if(path==='/api/member/manage/withdraw')
-      throw new Error('この画面は退会の確認専用です。退会APIは利用できません。');
+    // Browser-side opt-in and exact synthetic target. Worker+GAS must still authorize.
+    if(path==='/api/member/manage/withdraw'){
+      if(!EXECUTION_REQUESTED)throw new Error('退会実行テストは無効です。');
+      if(payload?.memberId!==TARGET||payload?.confirmMemberId!==TARGET||
+         typeof payload?.operationId!=='string'||
+         !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.operationId))
+        throw new Error('架空メンバー1630以外は退会できません。');
+    }
     if (!endpoints.has(path)) {
       throw new Error('この検証画面では許可されていないAPIです。');
     }
@@ -97,6 +116,6 @@
   window.SMWithdrawSandbox = Object.freeze({
     begin: begin,
     api: api,
-    withdrawUiEnabled: false // Preview-only; Worker/GAS remain separately gated
+    withdrawUiEnabled: EXECUTION_REQUESTED // Client intent, NOT authorization
   });
 })();
