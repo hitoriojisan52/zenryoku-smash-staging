@@ -19,8 +19,8 @@
 - Worker/GASにおける`WITHDRAW_ENABLED=false`、`RICH_MENU_SYNC_ENABLED=false`は維持し、元ステージングの退会実行は引き続き不可能。
 
 ## オフラインテスト
-- 架空管理者・架空一般メンバーだけを持つ純粋なNode.jsシミュレーターで**44/44 PASS**。
-- 項目：管理者/本人拒否、重複ID/LINE ID、履歴残存、二重実行、書込途中8段階の障害、QR無効化、旧出欠・集金・試合保持、再申請・新メンバーID。
+- 架空管理者・架空一般メンバーだけを持つ純粋なNode.jsシミュレーターで**46/46 PASS**。
+- 項目：管理者/本人拒否、重複ID/LINE ID、履歴残存、UUID形式検証、二重実行、書込途中8段階の障害、QR無効化、旧出欠・集金・試合保持、再申請・新メンバーID。
 - これは**実際のGAS・Google Sheets・Cloudflareの結合テストではない**。実際のLockService並列制御も未検証。
 - 版一式`zenryoku_smash_v1628_design_tests.zip`は今回のチャットへ添付。デプロイ可能なGAS/Worker置換コードは含めていない。
 
