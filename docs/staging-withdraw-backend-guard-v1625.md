@@ -73,3 +73,18 @@
 - GAS/Worker候補一式 `zenryoku_smash_v1627_readonly_check.zip` を会話添付。公開GitHubには秘密値やバックエンドソースを置かない
 - 適用は **GAS → Worker** の順。既存デプロイ・設定値を保持する。実機は最後にデータ閲覧だけで検査する
 - `WITHDRAW_ENABLED=false`、`RICH_MENU_SYNC_ENABLED=false` 維持。運用データや本番LINEメニューは変更しない
+
+### v0.16.27 模擬テストと表示確認
+- GASの管理者権限、検証用シートID、重複LINE ID、停止中・管理者本人・履歴残存、書き込み0の模擬テスト：**21/21 PASS**
+- WorkerでのLINE IDトークン検証、既存API、退会403/GAS未転送、読取新APIのルーティング：**29/29 PASS**
+- GitHub Pagesの試験モード表示、`liff.state`、ポップアップと共通処理中ロック、読み取りAPI呼び出し：**14/14 PASS**
+- ステージングの管理者1名と退会履歴0件を追加確認。コード適用前の既存データを変更していない
+- 総計 **64/64 PASS** はオフライン・コード検査によるもの。新規APIのLINE/GAS実機E2Eはまだ未実施
+- デプロイ前には既存GAS/Workerバックアップを保存。ステージングだけに適用、退会フラグはfalseのままにする
+
+### 次の実機検証（読取のみ）
+1. `AccessAndGuest_v1627_DRYRUN_ONLY.gs` をステージング既存GASへ反映し同じWebアプリの新バージョンを発行
+2. `worker_v1627_READONLY_CHECK.mjs` をステージング既存Workerへ反映し、`GET /health` で `version:0.16.27` を確認
+3. `https://liff.line.me/2012602642-XBSkXduO?accessUi=v2&withdrawPreview=1&withdrawCheck=1&v=1627a` を開く
+4. 「メンバー・権限管理」→「サーバー側の退会条件を確認」を押し、**登録管理者1名、退会候補0名、退会処理は無効**と表示されることを確認
+5. 旧画面・退会履歴・対戦表・集金管理の表示を確認し、**退会実行はしない**
