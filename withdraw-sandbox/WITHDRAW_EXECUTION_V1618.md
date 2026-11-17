@@ -26,7 +26,7 @@
 5. LINE管理者LIFFで対象者だけに赤い「退会する（テスト）」があることを確認
 6. 2回の確認の後、赤い「退会を実行」を1回だけ押す
 7. 成功通知またはエラー画面の内容を確認し、**もう一度押さない**
-8. GAS・Worker両方の `WITHDRAW_ENABLED=false` に戻して保存・デプロイ
+8. **先にWorkerの `WITHDRAW_ENABLED=false` を保存・デプロイ**し、その後GASの `WITHDRAW_ENABLED=false` を保存。両方の値を確認
 9. 管理者LIFFを「更新」し、退会対象が消え退会履歴に完了記録が出ることを確認
 10. ChatGPTに実行結果を知らせる。秘密値・LINEトークンは不要
 

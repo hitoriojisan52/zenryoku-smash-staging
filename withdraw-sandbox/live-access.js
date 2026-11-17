@@ -124,13 +124,13 @@
    if(UI.isBusy()||!isWithdrawalTarget(member))return;
    const first=await UI.confirm({
      title:'退会の確認（1/2）',
-     message:member.name+' さんを退会させます。\\n検証用の登録情報を削除します。',
+     message:member.name+' さんを退会させます。\n検証用の登録情報を削除します。',
      confirmLabel:'次へ'
    });
    if(!first)return;
    const second=await UI.confirm({
      title:'最後の確認（2/2）',
-     message:member.name+' さんを退会させます。\\n取り消しできません。',
+     message:member.name+' さんを退会させます。\n取り消しできません。',
      confirmLabel:'退会を実行',danger:true
    });
    if(!second)return;
