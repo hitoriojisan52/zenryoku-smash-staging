@@ -1,0 +1,36 @@
+#!/usr/bin/env node
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const ui=read('live.js'),worker=read('cloudflare-worker/worker.js'),html=read('live.html');
+let n=0;
+const ok=(x,m)=>{assert.ok(x,m);n++};
+function span(a,b){const i=ui.indexOf(a),j=ui.indexOf(b,i);assert.ok(i>=0&&j>i);return ui.slice(i,j)}
+ok(html.includes('live.js?v=1636c'),'latest finance client version');
+ok(worker.includes("version:'0.16.36c-stage-gated'"),'expected Worker version');
+ok(worker.includes("env.WITHDRAW_ENABLED==='true'"),'withdraw mutation remains closed by default');
+ok(worker.includes("env.WORKER_PURPOSE==='staging-withdraw-test-v1636'"),'purpose guard intact');
+ok(worker.includes("const timing=['line;dur='+lineMs"),'safe duration metrics for all authenticated APIs');
+ok(ui.includes("epoch!==S.updateEpoch||S.pending.size||selected!==S.practiceId"),'discard automatic read started before save');
+ok(ui.includes("!S.loading&&!window.SMStageUX.isBusy()"),'avoid parallel automatic refresh');
+ok(ui.includes("S.updateEpoch++"),'writes invalidate pending reads');
+ok(ui.includes("get('perf')==='1'"),'diagnostic data opt-in only');
+const payment=span('async function setPayment(','\nfunction setupLongPress(');
+ok(!payment.includes('reload('),'no forced overview round trip after payment');
+ok(payment.includes("saved.version!==version+1"),'optimistic concurrency result validated');
+ok(payment.includes("Number(checked)-Number(before)"),'safe delta when backend omits income');
+ok(payment.includes("saved.ledgerVersion"),'server ledger version used');
+ok(payment.includes("S.pending.delete(id)"),'pending cleaned up');
+ok(payment.includes("if(!e.appliedButRefreshFailed)"),'unknown outcome is not blindly reverted');
+ok(!payment.includes('await call(\'/api/overview'), 'only payment API call');
+const category=span('async function saveCategory(','\nasync function saveAmount(');
+ok(!category.includes('reload('),'no second blocking fetch after category');
+ok(category.includes('saved.categoryVersion'),'category version update');
+const amount=span('async function saveAmount(','\nasync function openLedger(');
+ok(!amount.includes('reload('),'no second blocking fetch after amount');
+ok(amount.includes('saved.ledgerVersion'),'ledger version update');
+new Function(ui);
+new Function(worker.replace('export async function handleRequest','async function handleRequest')
+ .replace('export default {fetch:handleRequest};',''));
+n+=2;
+console.log('PASS '+n+'/'+n+' v0.16.36c finance latency, stale-read and withdrawal isolation assertions');
