@@ -49,13 +49,13 @@
     return true;
   }
   async function api(path, payload) {
-    if (!endpoints.has(path)) {
-      throw new Error('この検証画面では許可されていないAPIです。退会APIは無効です。');
-    }
-    // Fail closed even if a caller bypasses or alters the management UI.
-    // This stage validates only the confirmation UX, not destructive operations.
+    // Deny destructive withdrawal explicitly, before any token or network processing.
+    // Also keep this endpoint out of the allowlist; two browser-side checks fail closed.
     if(path==='/api/member/manage/withdraw')
       throw new Error('この画面は退会の確認専用です。退会APIは利用できません。');
+    if (!endpoints.has(path)) {
+      throw new Error('この検証画面では許可されていないAPIです。');
+    }
     if (!idToken) throw new Error('LINE認証が未完了です。');
     const controller = new AbortController();
     const deadline = setTimeout(() => controller.abort(), 30000);
