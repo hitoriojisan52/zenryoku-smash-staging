@@ -62,3 +62,14 @@
  .stage-ui .ledger-controls button{font-size:13px}
 }
 @media(prefers-reduced-motion:reduce){.stage-ui .stage-busy-spinner{animation:none}}
+
+/* v0.16.20b - complete the same readable hierarchy in cards and secondary labels. */
+.stage-ui .match-header,.stage-ui .guest-practice{font-size:14px}
+.stage-ui .match-round h2{font-size:15px}
+.stage-ui .match-court strong{font-size:13px}
+.stage-ui .match-versus{font-size:12px}
+.stage-ui .home-footer-row,.stage-ui .home-footer-action{font-size:13px}
+.stage-ui .home-footer-action strong{font-size:16px}
+.stage-ui .dialog-label{font-size:14px}
+.stage-ui .form-hint{font-size:13px}
+.stage-ui #memberAccessStatus{font-size:14px}
