@@ -88,3 +88,13 @@ body { background: #f7f9fc; }
 .sb-history #memberAccessWithdrawn{margin-top:8px}
 .sb-shell .sb-status{font-size:13px;line-height:1.5}
 #confirmActionText{font-size:14px;line-height:1.6}
+
+/* v0.16.16a: prevent the former dialog's fixed dimensions from constraining the inline admin list. */
+#memberAccessDialog.sb-manager{
+  box-sizing:border-box;width:100%;max-width:none;max-height:none;
+  overflow:visible;padding:0;border:0;box-shadow:none;
+}
+.sb-shell #accessRefresh,.sb-shell #retryConnection{
+  min-height:44px;padding:9px 14px;font-size:14px;
+}
+.sb-shell .sb-card:focus-within{scroll-margin-top:12px}
