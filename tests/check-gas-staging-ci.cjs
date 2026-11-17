@@ -28,6 +28,7 @@ ok(!/clasp create-deployment|clasp create-script|clasp delete-deployment/.test(a
 ok(apply.includes('UPDATE_EXISTING_STAGING_GAS'),'explicit confirmation before write');
 ok(action.includes("vars.GAS_STAGE_AUTODEPLOY == 'enabled'"),'auto deploy gated OFF by default');
 ok(action.includes('workflow_dispatch:'),'explicit manual run mode');
+ok(action.includes("'gas-staging/*.gs'"),'auto deployment limited to GAS source code changes');
 ok(action.includes('GAS_STAGE_CLASPRC_JSON: ${{ secrets.GAS_STAGE_CLASPRC_JSON }}'),'OAuth credentials only from GitHub Secrets');
 ok(!fs.existsSync(path.join(root,'gas-staging','.clasp.json')),'Script ID not committed as .clasp.json');
 ok(!fs.existsSync(path.join(root,'gas-staging','appsscript.json')),'unknown remote manifest must remain remote-only');
