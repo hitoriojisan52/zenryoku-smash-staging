@@ -44,16 +44,16 @@
    const raw=e?.message||String(e||'不明なエラーが発生しました。');
    const code=String(e?.code||'');
    if(e?.appliedButRefreshFailed){
-     return {title:'【更新内容を確認してください】',message:'更新は受け付けましたが、最新の一覧を表示できません。\n「更新」で確認してください。\n'+raw};
+     return {title:'【更新内容を確認してください】',message:'更新は受け付けましたが、最新の一覧を表示できません。\n「更新」で確認してください。'};
    }
    if(e?.mutationUncertain){
-     return {title:'【変更内容を確認してください】',message:'通信が切れました。更新されたか確認できません。\n「更新」で確認してください。\n'+raw};
+     return {title:'【変更内容を確認してください】',message:'通信が切れました。更新されたか確認できません。\n「更新」で確認してください。'};
    }
    if(code==='NETWORK_ERROR'||code==='REQUEST_TIMEOUT'||e?.status>=500){
-     return {title:'【通信エラー】',message:'通信できませんでした。\n通信状況を確認し、「更新」してください。\n'+raw};
+     return {title:'【通信エラー】',message:'通信できませんでした。\n通信状況を確認し、「更新」してください。'};
    }
    if(e?.status===409||code==='VERSION_CONFLICT'){
-     return {title:'【内容が変わりました】',message:'ほかの人が先に変更しました。\n「更新」してからやり直してください。\n'+raw};
+     return {title:'【内容が変わりました】',message:'ほかの人が先に変更しました。\n「更新」してからやり直してください。'};
    }
    return {title:'【操作できませんでした】',message:raw};
  }
