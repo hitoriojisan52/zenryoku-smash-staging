@@ -1,27 +1,20 @@
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><title>全力☆スマッシュ｜メンバー・権限管理検証</title>
-<link rel="stylesheet" href="../style.css"><link rel="stylesheet" href="../live-access.css"><link rel="stylesheet" href="./sandbox.css?v=1614"></head>
+<link rel="stylesheet" href="../style.css"><link rel="stylesheet" href="../live-access.css"><link rel="stylesheet" href="./sandbox.css?v=1616"></head>
 <body><main class="container sb-shell">
  
- <header class="app-header"><h1>🏸 メンバー・権限管理</h1> <small class="demo-label">接続試験</small></header>
- <div class="sb-notice">検証専用コピー上の登録申請・権限・退会履歴を表示します。<strong>退会ボタンと退会APIは無効</strong>です。既存の収支・対戦表には影響しません。</div>
- <p id="connectionStatus" class="sb-status" role="status">LINEログインを準備しています…</p>
- <button id="retryConnection" type="button" class="btn-outline" hidden>再接続する</button>
- <button id="manageAccess" type="button" class="btn-blue" hidden>🔐 メンバー・権限管理を開く</button>
- 
- <dialog id="manageDialog"></dialog>
- <dialog id="memberAccessDialog" aria-labelledby="memberAccessTitle">
-  <h2 id="memberAccessTitle">メンバー・権限管理（検証用）</h2>
-  <p class="access-help">登録申請の承認・却下、権限変更は検証専用コピーにのみ反映されます。退会ボタンはこの段階では表示しません。</p>
+ <header class="app-header"><h1>🏸 メンバー管理</h1><button id="memberAccessRefresh" class="btn-outline" type="button" disabled>🔄 更新</button></header>
+ <p class="sb-test-label">テスト用の画面です</p>
+ <p id="connectionStatus" class="sb-status" role="status">準備中です…</p>
+ <button id="retryConnection" type="button" class="btn-outline" hidden>やり直す</button>
+ <section id="memberAccessDialog" class="sb-manager" aria-label="メンバー管理" hidden>
   <p id="memberAccessStatus" role="status" aria-live="polite"></p>
-  <h3>登録申請</h3><div id="memberAccessPending"></div>
-  <h3>メンバーの権限</h3><div id="memberAccessMembers"></div>
-  <h3>退会履歴</h3><div id="memberAccessWithdrawn"></div>
-  <div class="modal-actions"><button id="memberAccessRefresh" type="button" class="btn-outline">更新</button>
-    <button id="memberAccessClose" type="button" class="btn-blue">閉じる</button></div>
- </dialog>
- <p class="sb-meta"><a href="./">検証用トップページ</a></p>
+  <section class="sb-card"><h2>登録の申し込み</h2><div id="memberAccessPending"></div></section>
+  <section class="sb-card"><h2>メンバーの役割</h2><div id="memberAccessMembers"></div></section>
+  <details class="sb-card sb-history"><summary>退会履歴を見る</summary><div id="memberAccessWithdrawn"></div></details>
+ </section>
+ 
 </main><dialog id="confirmActionDialog" aria-labelledby="confirmActionTitle" aria-describedby="confirmActionText">
 <h2 id="confirmActionTitle">確認</h2><p id="confirmActionText"></p>
 <div class="modal-actions"><button type="button" id="cancelConfirmAction" class="btn-outline">キャンセル</button><button type="button" id="doConfirmAction" class="btn-blue">実行する</button></div>
@@ -33,5 +26,5 @@
   </div>
 </dialog>
 <script src="./config.js"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<script src="./api.js?v=1614a"></script><script src="./sandbox-dialog.js?v=1614a"></script><script src="./live-access.js?v=1615"></script><script src="./manage.js?v=1614"></script>
+<script src="./api.js?v=1614a"></script><script src="./sandbox-dialog.js?v=1614a"></script><script src="./live-access.js?v=1616"></script><script src="./manage.js?v=1616"></script>
 </body></html>

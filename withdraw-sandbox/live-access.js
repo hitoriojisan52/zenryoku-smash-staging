@@ -50,7 +50,7 @@
    return data;
  }
  async function refresh(){
-   return UI.run('メンバー情報を読み込んでいます…',async()=>{await load();status('');},{success:'メンバー情報を更新しました。'});
+   return UI.run('一覧を更新しています…',async()=>{await load();status('');},{success:'更新しました。'});
  }
  async function mutate(path,payload,description){
    return UI.run(description+'を処理しています…',async()=>{
@@ -69,15 +69,15 @@
        status('更新は受け付けられましたが、一覧を再取得できません。「更新」で確認してください。');
        throw error;
      }
-     status(description+'が完了しました。');
+     status('');
    },{success:description+'しました。'});
  }
  async function decide(p,approve){
    if(UI.isBusy())return;
-   const title=approve?'登録申請の承認':'登録申請の却下';
+   const title=approve?'申し込みの承認':'申し込みの却下';
    const confirmed=await UI.confirm({
      title,
-     message:p.name+' さんの登録申請を'+(approve?'承認':'却下')+'しますか？',
+     message:p.name+' さんの申し込みを'+(approve?'承認':'却下')+'しますか？',
      confirmLabel:approve?'承認する':'却下する',danger:!approve
    });
    if(!confirmed)return;
@@ -91,7 +91,7 @@
    const label=select.options[select.selectedIndex]?.text||role;
    const confirmed=await UI.confirm({
      title:'メンバー権限の変更',
-     message:m.name+' さんの権限を「'+label+'」に変更しますか？',
+     message:m.name+' さんを「'+label+'」に変更しますか？',
      confirmLabel:'変更する'
    });
    if(!confirmed){
@@ -106,19 +106,17 @@
  async function open(){
    if(UI.isBusy())return;
    ensureAdmin();
-   const dlg=$('memberAccessDialog');
-   if(!dlg.open)dlg.showModal();
-   status('メンバー情報を読み込んでいます…');
-   await refresh();
+   status('読み込み中…');
+   await load();
+   status('');
  }
- $('manageAccess').addEventListener('click',()=>open().catch(e=>UI.showError(e)));
  $('memberAccessRefresh').addEventListener('click',()=>refresh().catch(e=>UI.showError(e)));
- $('memberAccessClose').addEventListener('click',()=>{if(!UI.isBusy()&&$('memberAccessDialog').open)$('memberAccessDialog').close();});
  window.SMLiveAccess=Object.freeze({
+   start:open,
    setup(o){
      api=o?.api;actorRole=o?.actor?.role||'';actorMemberId=o?.actor?.memberId||'';
-     $('manageAccess').hidden=actorRole!=='admin';
-     $('manageAccess').disabled=actorRole!=='admin';
+     $('memberAccessDialog').hidden=actorRole!=='admin';
+     $('memberAccessRefresh').disabled=actorRole!=='admin';
    }
  });
 })();

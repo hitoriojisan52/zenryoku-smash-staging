@@ -5,13 +5,13 @@
  const status=document.getElementById('connectionStatus'),retry=document.getElementById('retryConnection');
  async function boot(){
    retry.hidden=true;
-   const result=await UI.run('LINE認証と登録状態を確認しています…',async()=>{
+   const result=await UI.run('読み込み中です…',async()=>{
      if(!await window.SMWithdrawSandbox.begin('register'))return false;
      await window.SMAccess.start({api:window.SMWithdrawSandbox.api});
-     status.textContent='LINE認証と登録状態を確認しました。';
+     status.textContent='';status.hidden=true;
      return true;
    });
-   if(!result.ok){status.textContent='接続を完了できませんでした。';retry.hidden=false;}
+   if(!result.ok){status.textContent='読み込めませんでした。';retry.hidden=false;}
  }
  retry.addEventListener('click',boot);
  boot();

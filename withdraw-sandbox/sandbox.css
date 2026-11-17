@@ -58,3 +58,33 @@ body { background: #f7f9fc; }
 .sb-shell[aria-busy="true"]{opacity:.8}
 .sb-shell button:disabled,.sb-shell input:disabled,.sb-shell select:disabled{cursor:not-allowed!important}
 @media(prefers-reduced-motion:reduce){.sb-spinner{animation:none}}
+
+/* v0.16.16: concise large-tap UI in the existing management color theme. */
+.sb-shell{max-width:500px;min-height:100dvh;padding:12px;gap:10px}
+.sb-shell .app-header{gap:8px;min-height:44px}
+.sb-shell .app-header h1{font-size:17px;line-height:1.5}
+.sb-shell .app-header button{min-height:44px;min-width:88px;padding:9px 12px;font-size:14px}
+.sb-test-label{font-size:11px;margin:0;color:#705516;background:#fff7e1;padding:6px 9px;border-radius:5px}
+.sb-shell .sb-card{padding:13px;margin:4px 0}
+.sb-shell .sb-card h2{font-size:16px;margin:0 0 12px}
+.sb-shell #accessMessage{font-size:16px;font-weight:600;line-height:1.6;padding:12px;margin:0;color:#18517a}
+#accessEntry{margin-top:12px}
+#accessEntry input{width:100%;min-height:46px;font-size:16px}
+#accessApply{margin-top:14px;width:100%;min-height:48px;font-size:16px}
+.sb-manager{display:grid;gap:10px}
+.sb-manager[hidden]{display:none!important}
+#memberAccessStatus:empty{display:none}
+#memberAccessPending,#memberAccessMembers,#memberAccessWithdrawn{display:grid;gap:6px}
+#memberAccessPending .live-access-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 0;align-items:center}
+#memberAccessPending .live-access-name{grid-column:1/-1;font-size:15px;font-weight:600}
+#memberAccessPending .live-access-row button{min-height:44px;width:100%;font-size:14px}
+#memberAccessMembers .live-access-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:10px 0;align-items:center}
+#memberAccessMembers .live-access-name{grid-column:1/-1;font-size:15px;font-weight:600;overflow-wrap:anywhere}
+#memberAccessMembers .live-access-select{max-width:none;width:100%;font-size:15px;min-height:44px;padding:7px}
+#memberAccessMembers .live-access-row button{min-width:100px;min-height:44px;font-size:14px}
+#memberAccessWithdrawn .live-access-row{display:flex;flex-wrap:wrap;gap:6px}
+.sb-history summary{cursor:pointer;min-height:36px;font-size:15px;color:#0d47a1;font-weight:700}
+.sb-history[open] summary{margin-bottom:10px}
+.sb-history #memberAccessWithdrawn{margin-top:8px}
+.sb-shell .sb-status{font-size:13px;line-height:1.5}
+#confirmActionText{font-size:14px;line-height:1.6}

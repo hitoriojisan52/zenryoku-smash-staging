@@ -8,14 +8,15 @@
    accountState=s||'';
    let message;
    switch(accountState){
-     case 'approved': message='登録済みです。LINEのメニューから利用する機能を開いてください。';break;
-     case 'pending': message='申請済みです。管理者の承認をお待ちください。';break;
-     case 'not_requested': message='表示名を入力して登録を申請してください。';break;
-     case 'rejected': message='以前の申請は却下されています。再申請できます。';break;
-     case 'inactive': case 'withdrawal_processing': message='アカウントの処理中です。管理者にお問い合わせください。';break;
-     default: message='現在の登録状態を確認できません。再読込してください。';
+     case 'approved': message='登録済みです';break;
+     case 'pending': message='申請済みです。承認をお待ちください。';break;
+     case 'not_requested': message='お名前を入力して申し込んでください。';break;
+     case 'rejected': message='もう一度申し込めます。';break;
+     case 'inactive': case 'withdrawal_processing': message='利用できません。管理者にご確認ください。';break;
+     default: message='登録状況を確認できません。更新してください。';
    }
    notice(message);
+   $('accessEntry').hidden=!loaded||!['not_requested','rejected'].includes(accountState);
    $('accessApply').disabled=!loaded||!['not_requested','rejected'].includes(accountState);
  }
  async function refresh(){
@@ -30,12 +31,13 @@
    $('accessRegistration').hidden=false;
    $('accessApply').disabled=true;
    await refresh();
+   $('accessRefresh').disabled=false;
  }
  async function submit(){
    if(UI.isBusy()||!loaded||!['not_requested','rejected'].includes(accountState))return;
    const name=$('accessRegName').value.trim();
    if(!name){await UI.showError(new Error('表示名を入力してください。'));return;}
-   const confirmed=await UI.confirm({title:'登録申請の確認',message:name+' さんで登録を申請しますか？',confirmLabel:'申請する'});
+   const confirmed=await UI.confirm({title:'登録の確認',message:name+' さんで申し込みますか？',confirmLabel:'申し込む'});
    if(!confirmed)return;
    await UI.run('登録申請を送信しています…',async()=>{
      let accepted=false;
@@ -54,9 +56,9 @@
        }
        throw error;
      }
-   },{success:'登録申請を受け付けました。'});
+   },{success:'申し込みました。'});
  }
  $('accessApply').addEventListener('click',()=>submit().catch(e=>UI.showError(e)));
- $('accessRefresh').addEventListener('click',()=>UI.run('登録状態を再取得しています…',refresh,{success:'最新の登録状態に更新しました。'}));
+ $('accessRefresh').addEventListener('click',()=>UI.run('登録状況を確認しています…',refresh,{success:'更新しました。'}));
  window.SMAccess=Object.freeze({start});
 })();
