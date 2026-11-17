@@ -12,4 +12,10 @@
    enabled=new URLSearchParams(state).get('accessUi')==='v2';
  }
  w.SM_STAGE_ACCESS_V2=enabled;
+ let statePreview=direct.get('liff.state')||'';
+ if(statePreview.includes('?'))statePreview=statePreview.slice(statePreview.indexOf('?')+1);
+ if(statePreview.includes('#'))statePreview=statePreview.split('#')[0];
+ w.SM_STAGE_WITHDRAW_PREVIEW=enabled&&(
+   direct.get('withdrawPreview')==='1'||new URLSearchParams(statePreview).get('withdrawPreview')==='1'
+ );
 })(window);

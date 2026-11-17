@@ -40,3 +40,9 @@ body.access-v2-active .access-history-v2 .live-access-row{grid-template-columns:
 .access-spinner-v2{width:34px;height:34px;border:4px solid #d6e6f3;border-top-color:#1976d2;border-radius:50%;animation:access-spin-v2 .8s linear infinite}
 @keyframes access-spin-v2{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.access-spinner-v2{animation:none}}
+
+/* v0.16.24 opt-in display-only withdrawal rehearsal. */
+body.access-v2-active .stage-withdraw-preview-v1624{border-top:1px solid #d7e1e9;padding:12px 0;margin-top:14px}
+body.access-v2-active .stage-withdraw-preview-v1624[hidden]{display:none!important}
+body.access-v2-active .stage-withdraw-preview-note-v1624{font-size:14px;line-height:1.55;color:#526477;margin:6px 0 10px}
+body.access-v2-active .stage-withdraw-preview-v1624 button{min-height:44px;width:100%;font-size:14px}

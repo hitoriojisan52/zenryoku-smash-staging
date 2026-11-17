@@ -116,6 +116,31 @@
      row.append(label,select,change);members.append(row);
    }
    renderHistory(snapshot.withdrawn);
+   renderWithdrawPreviewV1624(snapshot.members);
+ }
+
+ // v0.16.24: Display-only example. This function never calls a mutation API.
+ function renderWithdrawPreviewV1624(members){
+   const section=$('memberAccessWithdrawPreviewV1624');
+   if(!section)return;
+   section.hidden=window.SM_STAGE_WITHDRAW_PREVIEW!==true||actorRole!=='admin';
+   if(section.hidden)return;
+   const count=members.filter(m=>m.active&&m.role!=='admin'&&m.memberId!==actorMemberId).length;
+   $('memberAccessWithdrawPreviewStatusV1624').textContent=count
+     ?'確認対象になり得る一般メンバー・当番担当は'+count+'名です。今回は退会しません。'
+     :'現在、確認対象となる一般メンバー・当番担当はいません。管理者本人は対象外です。';
+ }
+ async function previewWithdrawV1624(){
+   if(busy||prompt||actorRole!=='admin'||window.SM_STAGE_WITHDRAW_PREVIEW!==true)return;
+   const first=await ask({title:'退会の確認（1/2）',
+     message:'表示例のメンバーを使って確認します。\n実際の登録情報は変更しません。',
+     label:'次へ'});
+   if(!first)return;
+   const second=await ask({title:'最後の確認（2/2）',
+     message:'これは確認画面のテストです。\n退会処理・データ削除は行いません。',
+     label:'確認を終える'});
+   if(!second)return;
+   toast('確認できました。退会はしていません。');
  }
  async function load(){
    ensureAdmin();
@@ -184,6 +209,7 @@
  dialog.insertBefore(detail,actions);
  $('memberAccessRefresh').className='btn-blue';
  $('memberAccessRefresh').textContent='🔄 更新';
+ $('memberAccessWithdrawPreviewButtonV1624').addEventListener('click',()=>previewWithdrawV1624());
  document.body.classList.add('access-v2-active');
  $('manageAccess').addEventListener('click',()=>open().catch(e=>showError(e)));
  $('memberAccessRefresh').addEventListener('click',()=>refresh(false));
