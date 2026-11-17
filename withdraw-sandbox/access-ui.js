@@ -38,13 +38,17 @@
    const confirmed=await UI.confirm({title:'登録申請の確認',message:name+' さんで登録を申請しますか？',confirmLabel:'申請する'});
    if(!confirmed)return;
    await UI.run('登録申請を送信しています…',async()=>{
+     let accepted=false;
      try{
        const result=await api('/api/member/apply',{displayName:name});
+       accepted=true;
        await refresh();
        if(!['pending','approved'].includes(accountState))throw Error('申請後の登録状態を確認できません。');
        return result;
      }catch(error){
-       if(UI.isUncertain(error)){
+       if(accepted){
+         error.appliedButRefreshFailed=true;
+       }else if(UI.isUncertain(error)){
          error.mutationUncertain=true;
          try{await refresh();}catch(_){loaded=false;renderStatus('');}
        }

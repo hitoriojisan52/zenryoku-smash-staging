@@ -26,7 +26,20 @@
       throw new Error('新しい検証専用LIFF IDが未設定です。LINE DevelopersでLIFFを追加してください。');
     }
     if (!window.liff) throw new Error('LINE LIFF SDKが読み込めませんでした。');
-    await liff.init({liffId: liffId});
+    let startTimer;
+    try {
+      await Promise.race([
+        liff.init({liffId: liffId}),
+        new Promise((_,reject) => {
+          startTimer=setTimeout(() => {
+            const e=new Error('LINE認証の初期化が時間内に完了しませんでした。画面を開き直してください。');
+            e.code='LIFF_INIT_TIMEOUT';reject(e);
+          },25000);
+        })
+      ]);
+    } finally {
+      clearTimeout(startTimer);
+    }
     if (!liff.isLoggedIn()) {
       liff.login({redirectUri: location.href});
       return false;
@@ -42,7 +55,7 @@
     if (!idToken) throw new Error('LINE認証が未完了です。');
     const controller = new AbortController();
     const deadline = setTimeout(() => controller.abort(), 30000);
-    let res;
+    let res, result;
     try {
       res = await fetch(EXACT_WORKER + path, {
         method: 'POST',
@@ -51,19 +64,24 @@
         cache: 'no-store',
         signal: controller.signal
       });
+      result = await res.json();
     } catch (error) {
-      const expired = error?.name === 'AbortError';
-      const issue = new Error(expired
-        ? '通信が時間内に完了しませんでした。'
-        : 'サーバーとの通信に失敗しました。');
-      issue.code = expired ? 'REQUEST_TIMEOUT' : 'NETWORK_ERROR';
+      if (error?.name === 'AbortError') {
+        const issue = new Error('通信が時間内に完了しませんでした。');
+        issue.code = 'REQUEST_TIMEOUT';
+        throw issue;
+      }
+      if (error instanceof SyntaxError) {
+        const issue = new Error('サーバーから正しいJSON応答を取得できませんでした。');
+        issue.code = 'INVALID_RESPONSE';
+        throw issue;
+      }
+      const issue = new Error('サーバーとの通信に失敗しました。');
+      issue.code = 'NETWORK_ERROR';
       throw issue;
     } finally {
       clearTimeout(deadline);
     }
-    let result;
-    try { result = await res.json(); }
-    catch (_) { throw new Error('APIからJSON応答を取得できませんでした。HTTP ' + res.status); }
     if (!res.ok || !result?.ok) {
       const error = new Error(result?.error || result?.message || 'APIエラー HTTP ' + res.status);
       error.status = res.status;

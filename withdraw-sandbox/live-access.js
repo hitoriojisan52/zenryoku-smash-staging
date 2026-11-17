@@ -65,7 +65,7 @@
      }
      try{await load();}
      catch(error){
-       error.mutationUncertain=true;
+       error.appliedButRefreshFailed=true;
        status('更新は受け付けられましたが、一覧を再取得できません。「更新」で確認してください。');
        throw error;
      }

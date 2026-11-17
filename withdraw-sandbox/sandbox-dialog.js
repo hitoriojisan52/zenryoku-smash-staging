@@ -43,8 +43,14 @@
  function formatError(e){
    const raw=e?.message||String(e||'不明なエラーが発生しました。');
    const code=String(e?.code||'');
-   if(e?.mutationUncertain||code==='NETWORK_ERROR'||code==='REQUEST_TIMEOUT'||e?.status>=500){
-     return {title:'【操作結果の確認が必要です】',message:'通信が途切れたため、操作が保存されたか確認できません。\n\n同じ操作を自動で再実行していません。画面の「更新」で最新状態を確認してください。\n\n詳細：'+raw};
+   if(e?.appliedButRefreshFailed){
+     return {title:'【更新後の表示を確認してください】',message:'サーバーは更新を受け付けましたが、最新の情報を表示できませんでした。\n\n同じ操作を繰り返さず、「更新」で最新状態を確認してください。\n\n詳細：'+raw};
+   }
+   if(e?.mutationUncertain){
+     return {title:'【操作結果の確認が必要です】',message:'通信が途切れたため、更新が保存されたか確認できません。\n\n同じ更新を自動で再送していません。「更新」で最新状態を確認してから操作してください。\n\n詳細：'+raw};
+   }
+   if(code==='NETWORK_ERROR'||code==='REQUEST_TIMEOUT'||e?.status>=500){
+     return {title:'【通信エラー】',message:'最新情報を取得できませんでした。通信状態を確認し、「更新」または「再接続」でやり直してください。\n\n詳細：'+raw};
    }
    if(e?.status===409||code==='VERSION_CONFLICT'){
      return {title:'【他の担当者による更新】',message:'別の操作によって状態が変わりました。\n最新情報を確認してから操作してください。\n\n詳細：'+raw};
@@ -83,9 +89,22 @@
  function formatDate(value){
    const s=String(value||'');
    if(!s)return '';
+   const zoned=/(?:Z|[+-]\d\d:\d\d)$/i.test(s);
+   if(zoned){
+     const date=new Date(s);
+     if(Number.isFinite(date.getTime())){
+       const parts=new Intl.DateTimeFormat('ja-JP',{
+         timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit',
+         weekday:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'
+       }).formatToParts(date);
+       const p=Object.fromEntries(parts.map(x=>[x.type,x.value]));
+       return p.year+'/'+p.month+'/'+p.day+'（'+p.weekday+'） '+p.hour+':'+p.minute;
+     }
+   }
    const match=/^(\d{4})-(\d\d)-(\d\d)(?:[T ](\d\d):(\d\d))?/.exec(s);
    if(!match)return s;
-   return match[1]+'/'+match[2]+'/'+match[3]+(match[4]?' '+match[4]+':'+match[5]:'');
+   const weekday=['日','月','火','水','木','金','土'][new Date(Date.UTC(+match[1],+match[2]-1,+match[3])).getUTCDay()];
+   return match[1]+'/'+match[2]+'/'+match[3]+'（'+weekday+'）'+(match[4]?' '+match[4]+':'+match[5]:'');
  }
  global.SMSandboxUI=Object.freeze({
    confirm:o=>modal(o,false),showError,run,toast,isBusy:()=>processing,
