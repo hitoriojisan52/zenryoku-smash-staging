@@ -106,42 +106,12 @@
      const isSelf=m.memberId===actorMemberId;
      if(isSelf||!m.active){
        const current=item('span','stage-role-readonly',select.options[select.selectedIndex]?.text||'現在の役割');
-       const help=item('small','stage-role-note',isSelf?'自分の権限は変更できません。':'停止中のため変更できません。');
-       row.append(label,current,help);
-       members.append(row);
+       const note=item('small','stage-role-note',isSelf?'自分の権限は変更できません。':'停止中のため変更できません。');
+       row.append(label,current,note);members.append(row);
        continue;
      }
      const change=item('button','btn-blue','変更');change.type='button';change.disabled=true;
      select.addEventListener('change',()=>{change.disabled=select.value===m.role;});
-     change.addEventListener('click',()=>setRole(m,select));
-row.append(item('span','live-access-name',String(m.name||'名前なし')+(m.state==='completed'?'（退会済み）':'（確認中）')));
-     if(m.withdrawnAt)row.append(item('span','access-help',window.SMDate?.dateTimeJst?.(m.withdrawnAt)||String(m.withdrawnAt)));
-     history.append(row);
-   }
- }
- function render(snapshot){
-   const pending=$('memberAccessPending'),members=$('memberAccessMembers');
-   pending.replaceChildren();members.replaceChildren();
-   if(!snapshot.pending.length)pending.append(item('p','access-help','申し込みはありません。'));
-   for(const p of snapshot.pending){
-     const row=item('div','live-access-row');
-     row.append(item('span','live-access-name',p.name));
-     const accept=item('button','btn-blue','承認');
-     accept.type='button';accept.addEventListener('click',()=>decide(p,true));
-     const reject=item('button','btn-outline','却下');
-     reject.type='button';reject.addEventListener('click',()=>decide(p,false));
-     row.append(accept,reject);pending.append(row);
-   }
-   for(const m of snapshot.members){
-     const row=item('div','live-access-row'),label=item('span','live-access-name',m.name+(m.active?'':'（停止中）'));
-     const select=item('select','live-access-select');
-     select.setAttribute('aria-label',m.name+' さんの役割');
-     for(const [v,t] of [['member','一般メンバー'],['duty','当番担当'],['admin','管理者']])select.add(new Option(t,v));
-     select.value=m.role;
-     const locked=!m.active||m.memberId===actorMemberId;
-     select.disabled=locked;
-     const change=item('button','btn-blue','変更');change.type='button';change.disabled=true;
-     select.addEventListener('change',()=>{change.disabled=locked||select.value===m.role;});
      change.addEventListener('click',()=>setRole(m,select));
      row.append(label,select,change);members.append(row);
    }
