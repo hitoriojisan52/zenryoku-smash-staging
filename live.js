@@ -24,7 +24,7 @@ function toast(message){
    label+='（通信 '+seconds(S.lastPerf.totalMs)+' / LINE '+seconds(phase('line'))+' / GAS '+seconds(phase('gas'))+'）';
  }
  e.textContent=label;e.classList.add('show');
- clearTimeout(S.timer);S.timer=setTimeout(()=>e.classList.remove('show'),4200);
+ clearTimeout(S.timer);S.timer=setTimeout(()=>e.classList.remove('show'),PERF_MODE?4200:2500);
 }
 function dialog(id){const e=$(id);if(e&&!e.open)e.showModal();}
 function close(id){if($(id)?.open)$(id).close();}
