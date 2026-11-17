@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><title>全力☆スマッシュ｜登録申請・退会検証</title>
-<link rel="stylesheet" href="../style.css"><link rel="stylesheet" href="../access.css"><link rel="stylesheet" href="./sandbox.css"></head>
-<body><main class="sb-shell">
- <p class="sb-eyebrow">ISOLATED TEST / REGISTRATION</p>
- <h1>🏸 メンバー登録申請</h1>
+<link rel="stylesheet" href="../style.css"><link rel="stylesheet" href="../access.css"><link rel="stylesheet" href="./sandbox.css?v=1613"></head>
+<body><main class="container sb-shell">
+ 
+ <header class="app-header"><h1>🏸 メンバー登録申請</h1> <small class="demo-label">接続試験</small></header>
  <div class="sb-notice">これは退会検証専用コピーに接続する画面です。本番の申請には使用しないでください。</div>
  <p id="connectionStatus" class="sb-status" role="status">LINEログインを準備しています…</p>
  <section id="accessRegistration" class="sb-card access-panel" hidden>
@@ -17,7 +17,10 @@
  <div id="accessQrHeader" hidden><button id="accessQrButton" type="button" hidden>使用しない</button></div>
  <section id="accessShare" hidden><div id="accessQr"></div><input id="accessShareUrl"><span id="accessShareExpiry"></span><button id="accessQrCopy">コピー</button><button id="accessShareClose">閉じる</button></section>
  <p class="sb-meta"><a href="./">検証用トップページ</a></p>
-</main>
+</main><dialog id="confirmActionDialog" aria-labelledby="confirmActionTitle" aria-describedby="confirmActionText">
+<h2 id="confirmActionTitle">確認</h2><p id="confirmActionText"></p>
+<div class="modal-actions"><button type="button" id="cancelConfirmAction" class="btn-outline">キャンセル</button><button type="button" id="doConfirmAction" class="btn-blue">実行する</button></div>
+</dialog><div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 <script src="./config.js"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<script src="./api.js"></script><script src="./access-ui.js"></script><script src="./register.js"></script>
+<script src="./api.js"></script><script src="./sandbox-dialog.js?v=1613"></script><script src="./access-ui.js?v=1613"></script><script src="./register.js?v=1613"></script>
 </body></html>

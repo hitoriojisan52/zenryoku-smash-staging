@@ -18,9 +18,13 @@ async function status(){
 }
 async function apply(){const name=$('accessRegName').value.trim();
  if(!name){say('表示名を入力してください');return;}
+ const ok=await window.SMSandboxUI.confirm({title:'登録申請の確認',message:name+' さんでメンバー登録を申請しますか？',confirmLabel:'申請する'});
+ if(!ok)return;
+ $('accessApply').disabled=true;
  const r=await api('/api/member/apply',{displayName:name});
+ window.SMSandboxUI.toast('登録申請を送信しました。');
  say(r.status==='pending'?'登録申請を受け付けました。承認をお待ちください。':'登録済みです。画面を開き直してください。');
- $('accessApply').disabled=r.status==='pending';}
+ $('accessApply').disabled=r.status==='pending';await status();}
 async function share(){const practiceId=getPracticeId();
  if(!practiceId){say('開催日を選択してください');return;}
  const r=await api('/api/match/share',{practiceId,operationId:crypto.randomUUID()});
@@ -39,7 +43,7 @@ async function share(){const practiceId=getPracticeId();
  else say('QR画像を生成できません。URLをコピーしてください。');
  $('accessShareExpiry').textContent='有効期限：'+window.SMDate.dateTimeJst(r.expiresAt);
  say('閲覧QRを表示しました');}
-$('accessApply').onclick=()=>apply().catch(e=>say(e.message||String(e)));
+$('accessApply').onclick=()=>apply().catch(e=>{say(e.message||String(e));window.SMSandboxUI.toast('申請処理に失敗しました。',true);status();});
 $('accessQrButton').onclick=()=>window.SMMatchBusy.run(()=>share()).catch(e=>say(e.message||String(e)));
 $('accessQrCopy').onclick=async()=>{const url=$('accessShareUrl').value;if(!url)return;try{await navigator.clipboard.writeText(url);say('URLをコピーしました');}catch(_){$('accessShareUrl').select();say('URLを選択しました。長押しでコピーしてください');}};
 $('accessShareClose').onclick=()=>{$('accessShare').hidden=true;};

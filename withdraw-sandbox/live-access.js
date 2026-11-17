@@ -9,7 +9,7 @@
  function status(message){$('memberAccessStatus').textContent=message||'';}
  function button(label,handler,cls='btn-blue'){
    const e=node('button',cls,label);e.type='button';
-   e.addEventListener('click',async()=>{if(busy)return;busy=true;e.disabled=true;try{await handler();}catch(err){status(err.message||String(err));}finally{busy=false;e.disabled=false;}});
+   e.addEventListener('click',async()=>{if(busy)return;busy=true;e.disabled=true;try{await handler();}catch(err){status(err.message||String(err));window.SMSandboxUI.toast('操作に失敗しました。',true);}finally{busy=false;e.disabled=false;}});
    return e;
  }
  function ensureAdmin(){if(authenticatedRole!=='admin'||!api)throw Error('管理者以外は権限管理を利用できません');}
@@ -23,12 +23,12 @@
    for(const p of data.pending){
      const row=node('div','live-access-row'),name=node('span','live-access-name',p.name);
      row.append(name,
-       button('承認',async()=>{if(!confirm(p.name+'さんを一般メンバーとして承認しますか？'))return;
+       button('承認',async()=>{if(!await window.SMSandboxUI.confirm({title:'登録申請の承認',message:p.name+' さんを一般メンバーとして承認しますか？',confirmLabel:'承認する'}))return;
          await api('/api/member/manage/decide',{requestId:p.requestId,approve:true,operationId:crypto.randomUUID()});
-         status('承認しました。');await load();}),
-       button('却下',async()=>{if(!confirm(p.name+'さんの申請を却下しますか？'))return;
+         status('承認しました。');window.SMSandboxUI.toast('承認しました。');await load();}),
+       button('却下',async()=>{if(!await window.SMSandboxUI.confirm({title:'登録申請の却下',message:p.name+' さんの申請を却下しますか？',confirmLabel:'却下する',danger:true}))return;
          await api('/api/member/manage/decide',{requestId:p.requestId,approve:false,operationId:crypto.randomUUID()});
-         status('却下しました。');await load();},'btn-outline'));
+         status('却下しました。');window.SMSandboxUI.toast('却下しました。');await load();},'btn-outline'));
      pending.append(row);
    }
    for(const m of data.members){
@@ -38,20 +38,11 @@
      select.value=m.role;select.disabled=!m.active;
      row.append(name,select,button('変更',async()=>{
        ensureAdmin();if(!m.active||select.value===m.role)return;
-       if(!confirm(m.name+'さんの権限を変更しますか？'))return;
+       if(!await window.SMSandboxUI.confirm({title:'メンバー権限の変更',message:m.name+' さんを '+select.options[select.selectedIndex].text+' に変更しますか？',confirmLabel:'変更する'})){select.value=m.role;return;}
        await api('/api/member/manage/role',{memberId:m.memberId,role:select.value,operationId:crypto.randomUUID()});
-       status('権限を変更しました。');await load();
+       status('権限を変更しました。');window.SMSandboxUI.toast('権限を変更しました。');await load();
      }));
-     // In the isolated UI, withdrawal is disabled until a separately approved test.
-     if(window.SMWithdrawSandbox?.withdrawUiEnabled===true && m.active&&m.memberId!==authenticatedMemberId){
-       row.append(button('退会',async()=>{
-         ensureAdmin();
-         if(!confirm(m.name+'さんの登録情報を削除します。過去の試合・収支履歴は保持されます。続行しますか？'))return;
-         if(prompt('誤操作防止のため「退会」と入力してください')!=='退会')return;
-         await api('/api/member/manage/withdraw',{memberId:m.memberId,confirmMemberId:m.memberId,operationId:crypto.randomUUID()});
-         status('退会処理が完了しました。');await load();
-       },'btn-danger'));
-     }
+     // Withdrawal button and action deliberately excluded from sandbox.
      members.append(row);
    }
    const archive=$('memberAccessWithdrawn');

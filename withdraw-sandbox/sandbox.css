@@ -23,3 +23,22 @@ body { background: #f7f9fc; }
 #memberAccessDialog .access-help { font-size: 13px; color: #607384; }
 #memberAccessDialog .btn-outline { padding: 8px 12px; }
 [hidden] { display: none !important; }
+/* v0.16.13: preserve the main operation management tool's compact palette. */
+.sb-shell{max-width:500px;margin:0 auto;min-height:100dvh;padding:10px;gap:8px;background:white}
+.sb-shell .app-header{padding:3px 0 8px;border-bottom:1px solid #dde5ec}
+.sb-shell .app-header h1{font-size:15px;color:#1976d2;margin:0}
+.sb-shell .app-header .demo-label{margin-left:auto}
+.sb-shell .sb-card{border:1px solid #d7dfe4;border-radius:6px;padding:12px;margin:6px 0}
+.sb-shell .sb-card h2{font-size:15px;color:#1976d2;margin:0 0 8px}
+.sb-shell .sb-notice{font-size:12px;line-height:1.6;border:1px solid #e6d19c;border-left:3px solid #e6d19c;border-radius:5px;background:#fff8df;color:#745217;padding:9px;margin:5px 0}
+.sb-shell .sb-status{font-size:12px;color:#155d9e}
+.sb-shell .sb-card input[type=text]{font-size:14px;border:1px solid #c0cbd4;border-radius:6px;padding:9px}
+.sb-shell #accessMessage{font-size:12px;line-height:1.6;color:#155d9e;background:#eef2f7;padding:8px;border-radius:5px}
+.sb-shell #accessApply,.sb-shell #manageAccess{min-height:43px;padding:10px 15px}
+#memberAccessDialog{width:min(96vw,510px);max-width:510px;max-height:85dvh;overflow:auto;padding:16px}
+#memberAccessDialog .live-access-row{padding:8px 0;gap:5px}
+#memberAccessDialog .live-access-select{max-width:145px}
+#confirmActionDialog{width:calc(100% - 24px);max-width:350px}
+#confirmActionText{white-space:pre-line;overflow-wrap:anywhere}
+.sb-danger{background:#b42318;color:white}
+[hidden]{display:none!important}
