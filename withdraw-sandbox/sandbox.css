@@ -1,0 +1,25 @@
+/* Isolated verification UI; keeps normal club site assets unchanged. */
+body { background: #f7f9fc; }
+.sb-shell { max-width: 760px; margin: 0 auto; padding: 20px 16px 48px; }
+.sb-eyebrow { font-size: 12px; font-weight: bold; letter-spacing: .04em; color: #49627b; }
+.sb-card { background: white; border: 1px solid #d5dde6; border-radius: 12px; padding: 18px; margin: 16px 0; }
+.sb-notice { background: #fff8e7; border-left: 4px solid #d5a14c; border-radius: 5px; padding: 12px; margin: 12px 0; font-size: 14px; }
+.sb-status { min-height: 26px; margin-top: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.sb-links { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+.sb-links a { display: inline-block; border-radius: 7px; padding: 10px 14px; background: #e8f0f9; color: #184c81; text-decoration: none; }
+.sb-meta { font-size: 12px; color: #5c6e7f; overflow-wrap: anywhere; }
+.sb-shell h1 { font-size: 24px; }
+.sb-shell h2 { font-size: 19px; }
+.sb-card label { display: block; margin: 10px 0 6px; }
+.sb-card input[type=text] { box-sizing: border-box; max-width: 100%; width: 100%; padding: 10px; }
+.sb-card button { cursor: pointer; margin-top: 10px; }
+.sb-card button:disabled { cursor: not-allowed; opacity: .55; }
+#memberAccessDialog { width: min(95vw, 710px); max-height: 88vh; padding: 18px; border-radius: 12px; border: 1px solid #b8c9d7; }
+#memberAccessDialog::backdrop { background: rgba(0,0,0,.35); }
+#memberAccessDialog h3 { margin-top: 20px; }
+#memberAccessDialog .live-access-row { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; padding: 10px 0; border-bottom: 1px solid #e5e9ed; }
+#memberAccessDialog .live-access-name { flex: 1 1 140px; overflow-wrap: anywhere; }
+#memberAccessDialog .live-access-select { max-width: 190px; padding: 8px; }
+#memberAccessDialog .access-help { font-size: 13px; color: #607384; }
+#memberAccessDialog .btn-outline { padding: 8px 12px; }
+[hidden] { display: none !important; }

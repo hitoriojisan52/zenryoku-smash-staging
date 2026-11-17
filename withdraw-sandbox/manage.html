@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow"><title>全力☆スマッシュ｜メンバー・権限管理検証</title>
+<link rel="stylesheet" href="../style.css"><link rel="stylesheet" href="../live-access.css"><link rel="stylesheet" href="./sandbox.css"></head>
+<body><main class="sb-shell">
+ <p class="sb-eyebrow">ISOLATED TEST / ADMINISTRATION</p>
+ <h1>🏸 メンバー・権限管理</h1>
+ <div class="sb-notice">検証専用コピー上の登録申請・権限・退会履歴を表示します。<strong>退会ボタンと退会APIは無効</strong>です。既存の収支・対戦表には影響しません。</div>
+ <p id="connectionStatus" class="sb-status" role="status">LINEログインを準備しています…</p>
+ <button id="manageAccess" type="button" class="btn-blue" hidden>🔐 メンバー・権限管理を開く</button>
+ <button id="manageSchedules" type="button" hidden disabled>未使用</button>
+ <dialog id="manageDialog"></dialog>
+ <dialog id="memberAccessDialog" aria-labelledby="memberAccessTitle">
+  <h2 id="memberAccessTitle">メンバー・権限管理（検証用）</h2>
+  <p class="access-help">登録申請の承認・却下、権限変更は検証専用コピーにのみ反映されます。退会ボタンはこの段階では表示しません。</p>
+  <p id="memberAccessStatus" role="status" aria-live="polite"></p>
+  <h3>登録申請</h3><div id="memberAccessPending"></div>
+  <h3>メンバーの権限</h3><div id="memberAccessMembers"></div>
+  <h3>退会履歴</h3><div id="memberAccessWithdrawn"></div>
+  <div class="modal-actions"><button id="memberAccessRefresh" type="button" class="btn-outline">更新</button>
+    <button id="memberAccessClose" type="button" class="btn-blue">閉じる</button></div>
+ </dialog>
+ <p class="sb-meta"><a href="./">検証用トップページ</a></p>
+</main>
+<script src="./config.js"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="./api.js"></script><script src="./live-access.js"></script><script src="./manage.js"></script>
+</body></html>
