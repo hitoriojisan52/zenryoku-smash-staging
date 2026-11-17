@@ -1,8 +1,19 @@
-# Existing Cloudflare Worker. Only connect to this exact Worker.
+# Cloudflare staging Worker. Preserve existing dashboard runtime configuration.
+# Match the last deployed date to avoid introducing runtime behavior changes.
 name = "zenryoku-smash-staging-api"
 main = "worker.js"
-compatibility_date = "2026-11-18"
+compatibility_date = "2026-11-16"
 
-# Preserve dashboard-managed nonsecret environment variables on Wrangler deploy.
-# Cloudflare secrets must remain stored as Worker Secrets, not in this repository.
+# Keep the existing workers.dev endpoint, but do not enable Preview URLs.
+workers_dev = true
+preview_urls = false
+
+# Preserve Dashboard-managed text variables; never commit credentials/secrets.
 keep_vars = true
+
+# Preserve the current Dashboard observability settings.
+[observability]
+enabled = true
+
+[observability.logs]
+enabled = true
