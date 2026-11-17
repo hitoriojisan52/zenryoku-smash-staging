@@ -37,3 +37,10 @@
 3. ポップアップはスピナー＋短い状態表示のみで、補足説明・黄色い外枠がないことを確認。
 4. 退会検証専用GASとWorkerの `WITHDRAW_ENABLED=false`、`RICH_MENU_SYNC_ENABLED=false` を維持。
 5. 架空1630メンバーが残り、退会履歴に1630がないことを読み取り専用で確認。
+
+
+## v0.16.33：役割変更行の高さ位置を統一
+- 退会検証専用画面のメンバー管理では、プルダウンと隣の「変更」ボタンは同じ行の中央に揃える。
+- 汎用カードの `margin-top:10px` が役割変更ボタンに継承されていたため、`#memberAccessMembers .live-access-row button.btn-blue` の上余白だけゼロにする。タッチ領域44px以上を維持。
+- 実退会プレビュー・登録申請・運用管理・対戦表・API・LINE認証への影響は与えない。未接続v0.16.29の共通スタイルにも同じ修正のみ反映。
+- GitHub確認は `node tests/check-ui-standards.cjs` を再実行する。
