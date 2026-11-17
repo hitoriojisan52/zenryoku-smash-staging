@@ -7,10 +7,25 @@
 const M=window.SmashModel,$=id=>document.getElementById(id),yen=n=>Number(n).toLocaleString('ja-JP')+'円';
 const CONFIG=window.SMASH_CONFIG||{};
 const S={token:'',actor:null,overview:null,practiceId:'',loading:false,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0};
+const PERF_MODE=(()=>{
+ const q=new URLSearchParams(location.search||'');let state=q.get('liff.state')||'';
+ if(state.includes('?'))state=state.slice(state.indexOf('?')+1);
+ return q.get('perf')==='1'||new URLSearchParams(state).get('perf')==='1';
+})();
 const today=()=>{const a=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(x=>[x.type,x.value]));return `${a.year}-${a.month}-${a.day}`;};
 const uuid=()=>crypto.randomUUID();
 const safeText=s=>String(s??'');
-function toast(message){const e=$('toast');if(!e)return;e.textContent=message;e.classList.add('show');clearTimeout(S.timer);S.timer=setTimeout(()=>e.classList.remove('show'),2500);}
+function toast(message){
+ const e=$('toast');if(!e)return;
+ let label=message;
+ if(PERF_MODE&&/更新しました|保存しました/.test(message)&&S.lastPerf){
+   const phase=name=>Number(new RegExp(name+';dur=([0-9]+)').exec(S.lastPerf.serverTiming)?.[1]||0);
+   const seconds=ms=>(ms/1000).toFixed(1)+'秒';
+   label+='（通信 '+seconds(S.lastPerf.totalMs)+' / LINE '+seconds(phase('line'))+' / GAS '+seconds(phase('gas'))+'）';
+ }
+ e.textContent=label;e.classList.add('show');
+ clearTimeout(S.timer);S.timer=setTimeout(()=>e.classList.remove('show'),4200);
+}
 function dialog(id){const e=$(id);if(e&&!e.open)e.showModal();}
 function close(id){if($(id)?.open)$(id).close();}
 function gateEdit(){if(!S.actor||!['duty','admin'].includes(S.actor.role))throw new Error('当番チームの権限がありません');}
@@ -21,8 +36,11 @@ async function call(path,payload={}){
  if(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change'].includes(path))S.updateEpoch++;
  const startedAt=performance.now();
  const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},body:JSON.stringify(payload),cache:'no-store'});
- if(new URLSearchParams(location.search).get('perf')==='1')
-   console.info('[STAGE PERF]',path,Math.round(performance.now()-startedAt)+'ms',response.headers.get('Server-Timing')||'');
+ if(PERF_MODE){
+   S.lastPerf={path,totalMs:Math.round(performance.now()-startedAt),
+     serverTiming:response.headers.get('Server-Timing')||''};
+   console.info('[STAGE PERF]',S.lastPerf.path,S.lastPerf.totalMs+'ms',S.lastPerf.serverTiming);
+ }
  let value;try{value=await response.json();}catch{throw new Error('サーバーからの応答を読み取れません');}
  if(!response.ok||!value.ok){const err=new Error(value.error||'処理を完了できませんでした');err.status=response.status;throw err;}
  return value.data;
