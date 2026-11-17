@@ -49,4 +49,11 @@ assert(api.includes("q.get('withdrawExec')==='1630'"),'withdrawal mode must requ
 assert(api.includes('withdrawUiEnabled: EXECUTION_REQUESTED'),'normal sandbox UI must default to preview-only');
 assert(api.includes('if(!EXECUTION_REQUESTED)'),'withdrawal API must fail closed without opt-in');
 assert(api.includes('payload?.memberId!==TARGET||payload?.confirmMemberId!==TARGET'),'withdrawal API must validate both matching synthetic IDs');
+// Check-only LIFF deep-link must open the manager after bootstrap, without auto-opening on normal URLs.
+const accessV2=read('live-access-v2.js'),liveJs=read('live.js'),v2Mode=read('access-v2-mode.js');
+assert(accessV2.includes('openFromCheckLink(){'),'check-specific deep link handler missing');
+assert(accessV2.includes("window.SM_STAGE_WITHDRAW_CHECK!==true||actorRole!=='admin'"),'deep link must require exact flag and admin');
+assert(accessV2.includes('return open();'),'check deep link must open member management');
+assert(liveJs.includes(".then(()=>window.SMLiveAccess?.openFromCheckLink?.())"),'manager opens only after initial busy loading');
+assert(v2Mode.includes("direct.get('withdrawCheck')==='1'"),'check deep link flag missing');
 console.log('PASS: '+checked+' UI standard checks');
