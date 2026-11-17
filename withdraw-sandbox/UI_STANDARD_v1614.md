@@ -13,3 +13,11 @@
 - URLs: register https://liff.line.me/2012602642-zr2JOGHa?v=1614 ; manage https://liff.line.me/2012602642-jUN8W2eA?v=1614
 
 All edits under withdraw-sandbox only. No GAS, Worker, shared official menu or original match/live files changed.
+## Canceling a role-change confirmation (clarified in v0.16.15)
+
+Selecting a different role in the dropdown is a local, unsaved choice. Pressing Change opens a confirmation dialog. Cancel:
+- does NOT send a role-change API request;
+- keeps the chosen dropdown value in place;
+- keeps Change available when the selected value differs from the server's current role;
+- does not alter the server's stored role.
+Confirm sends exactly one mutation and reloads the authoritative server state before showing success. Manual Refresh or reopening the management dialog reloads server values and discards the unsaved local selection. A failed mutation is not treated as successful.

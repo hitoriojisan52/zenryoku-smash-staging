@@ -94,7 +94,11 @@
      message:m.name+' さんの権限を「'+label+'」に変更しますか？',
      confirmLabel:'変更する'
    });
-   if(!confirmed){select.value=m.role;select.dispatchEvent(new Event('change'));return;}
+   if(!confirmed){
+     // Cancellation does not commit to GAS, nor does it discard the user's pending selection.
+     // The original 'change' button state is retained so the user can retry confirmation.
+     return;
+   }
    await mutate('/api/member/manage/role',{
      memberId:m.memberId,role,operationId:crypto.randomUUID()
    },'権限変更');
