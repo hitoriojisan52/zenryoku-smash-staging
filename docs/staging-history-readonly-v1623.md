@@ -1,0 +1,43 @@
+# 全力☆スマッシュ v0.16.23｜ステージングの退会履歴（読み取り専用）連携準備
+
+## 作業状況（2026-11-17）
+- 運用管理画面と対戦表の表示改善 v0.16.22 はユーザーのLINE実機確認を通過済み
+- 退会・再入会は専用コピーと専用Workerで正常終了を確認済み。ただし、元のステージングでの実削除は禁止
+- 元のステージングスプレッドシート `1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac` には `退会履歴` がなかった
+- **事前バックアップ作成済み**: `1Ykfu0PhIkjJCMyCEAphiPTk8LUsHMQpvEWBp8yRxtaQ`（14シートがコピーされたことを確認）
+- **新規シート `退会履歴` 作成済み**。ヘッダー: `memberId, displayName, withdrawnAt, withdrawnBy, state, operationId`。現時点で記録行0
+- 既存14シートのデータ、登録メンバーの権限、Worker、LINEリッチメニュー、GASデプロイは変更していない
+- `live-access-v2.js` は既に `member.manage.list` 応答に `withdrawn` 配列がある場合だけ「退会履歴を見る」を表示する（新しいUI変更不要）
+
+## この工程で追加準備したもの
+- 過去に保存された `AccessAndGuestV160.gs` を基準にした **履歴読取だけ** のGAS候補 `AccessAndGuestV1623_READ_ONLY_CANDIDATE.gs`
+- `ONLY_CHANGES.diff`（追加した履歴読取の差分）
+- `AccessAndGuestV160_ORIGINAL_REFERENCE.gs`（比較用の元コード）
+- `test_history_readonly_v1623.cjs`（オフライン安全性テスト）
+- `README_FIRST.md`（適用前条件と実機確認）
+- **オフライン模擬テスト 12/12 PASS**。管理者権限、API応答、履歴にLINE IDが含まれないこと、現在登録中のメンバーは退会完了と表示しないこと、ヘッダー不一致時の拒否、書き込みゼロなどを確認
+- `member.manage.withdraw` ルートはこの候補に存在しない。Worker変更も必要ない
+
+## 重要：デプロイはまだ行わない
+この候補は保存済みの旧ソースを基準としたため、**ユーザーの現在のGASエディタ内 `AccessAndGuest` ファイルと一致することを確認できていない**。
+実際に今使われているGASは、途中でユーザーが変更した版の可能性がある。
+
+したがって、ソースを全文上書きしない。
+- 現行 `AccessAndGuest` を取得・照合し、履歴読み取りの差分だけを統合した新しい完全版を準備する
+- 変更前のGASバージョンを保存
+- テスト段階では `WITHDRAW_ENABLED=false` および `RICH_MENU_SYNC_ENABLED=false` を維持
+- 既存Workerと元の本番GAS・本番スプレッドシートを変更しない
+
+## GAS反映後の期待結果
+1. ステージングLIFF `https://liff.line.me/2012602642-XBSkXduO?accessUi=v2` の「メンバー・権限管理」を開く
+2. 承認待ち／役割一覧は以前のまま表示される
+3. 新たに「退会履歴を見る」の欄が表示され、現在は「退会履歴はありません。」と表示される
+4. 履歴の確認だけで、退会ボタンや削除処理は出ない
+5. 操作権限のないアカウントからは管理履歴を取得できない（APIで判定）
+6. 通信・権限・データのエラー時も既存の共通UIを使う
+
+## 次の後続
+- 現行デプロイ中GASの `AccessAndGuest` 全文と候補との差分照合
+- 照合結果に合わせて差分だけを適用し、GASの新しいバージョンを発行（作業はユーザー側）
+- 退会履歴の読み取り実機検証（既存実メンバー退会は行わない）
+- その後で、退会API本体の安全な移植を別工程で検討。架空テスト用固定IDを本番相当のロジックにコピーしない
