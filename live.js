@@ -6,18 +6,41 @@
 'use strict';
 const M=window.SmashModel,$=id=>document.getElementById(id),yen=n=>Number(n).toLocaleString('ja-JP')+'円';
 const CONFIG=window.SMASH_CONFIG||{};
-const S={token:'',actor:null,overview:null,practiceId:'',loading:false,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null};
+const S={token:'',actor:null,overview:null,practiceId:'',loading:false,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0};
+const PERF_MODE=(()=>{
+ const q=new URLSearchParams(location.search||'');let state=q.get('liff.state')||'';
+ if(state.includes('?'))state=state.slice(state.indexOf('?')+1);
+ return q.get('perf')==='1'||new URLSearchParams(state).get('perf')==='1';
+})();
 const today=()=>{const a=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(x=>[x.type,x.value]));return `${a.year}-${a.month}-${a.day}`;};
 const uuid=()=>crypto.randomUUID();
 const safeText=s=>String(s??'');
-function toast(message){const e=$('toast');if(!e)return;e.textContent=message;e.classList.add('show');clearTimeout(S.timer);S.timer=setTimeout(()=>e.classList.remove('show'),2500);}
+function toast(message){
+ const e=$('toast');if(!e)return;
+ let label=message;
+ if(PERF_MODE&&/更新しました|保存しました/.test(message)&&S.lastPerf){
+   const phase=name=>Number(new RegExp(name+';dur=([0-9]+)').exec(S.lastPerf.serverTiming)?.[1]||0);
+   const seconds=ms=>(ms/1000).toFixed(1)+'秒';
+   label+='（通信 '+seconds(S.lastPerf.totalMs)+' / LINE '+seconds(phase('line'))+' / GAS '+seconds(phase('gas'))+'）';
+ }
+ e.textContent=label;e.classList.add('show');
+ clearTimeout(S.timer);S.timer=setTimeout(()=>e.classList.remove('show'),PERF_MODE?4200:2500);
+}
 function dialog(id){const e=$(id);if(e&&!e.open)e.showModal();}
 function close(id){if($(id)?.open)$(id).close();}
 function gateEdit(){if(!S.actor||!['duty','admin'].includes(S.actor.role))throw new Error('当番チームの権限がありません');}
 async function call(path,payload={}){
  if(!S.token||!CONFIG.apiBaseUrl)throw new Error('LINE認証またはAPI設定がありません');
  const url=CONFIG.apiBaseUrl.replace(/\/$/,'')+path;
+ // Invalidate responses from reads that started before a write.
+ if(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change'].includes(path))S.updateEpoch++;
+ const startedAt=performance.now();
  const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},body:JSON.stringify(payload),cache:'no-store'});
+ if(PERF_MODE){
+   S.lastPerf={path,totalMs:Math.round(performance.now()-startedAt),
+     serverTiming:response.headers.get('Server-Timing')||''};
+   console.info('[STAGE PERF]',S.lastPerf.path,S.lastPerf.totalMs+'ms',S.lastPerf.serverTiming);
+ }
  let value;try{value=await response.json();}catch{throw new Error('サーバーからの応答を読み取れません');}
  if(!response.ok||!value.ok){const err=new Error(value.error||'処理を完了できませんでした');err.status=response.status;throw err;}
  return value.data;
@@ -40,7 +63,7 @@ async function boot(){
   S.actor=await call('/api/session');gateEdit();
   window.SMLiveAccess?.setup({api:call,actor:S.actor});
   for(const id of ['reimbursementBtn','manageBtn','refresh','adjustment','expense'])$(id).disabled=false;
-  await reload(true);setInterval(()=>{if(!document.hidden&&S.pending.size===0&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
+  await reload(true);setInterval(()=>{if(!document.hidden&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
   toast('接続しました');
  }catch(e){
   $('list').textContent=e.message;throw e;
@@ -48,8 +71,10 @@ async function boot(){
 }
 async function reload(refreshDates){
  if(S.loading||S.pending.size)return;S.loading=true;
+ const epoch=S.updateEpoch,selected=S.practiceId;
  try{
    const d=await call('/api/overview',{practiceId:S.practiceId});
+   if(epoch!==S.updateEpoch||S.pending.size||selected!==S.practiceId)return;
    if(refreshDates||!S.practiceId){$('date').replaceChildren(...d.practices.map(p=>new Option(`${window.SMDate.date(p.date)} ${p.startTime}～${p.endTime}`,p.practiceId)));}
    S.practiceId=d.practice.practiceId;$('date').value=S.practiceId;S.overview=d;
    renderHome();
@@ -92,13 +117,37 @@ function updateFooter(){const v=S.overview;if(!v)return;const rows=v.participant
  $('balance').textContent=posting?'残金：'+yen(provisional):'残金：—';
  $('completedCount').textContent='集金完了：'+complete.length+'名';
 }
-async function setPayment(p,cb,card){gateEdit();const id=p.participantId;if(S.pending.has(id))return;
- S.pending.add(id);cb.disabled=true;const before=p.collectionCompleted;p.collectionCompleted=cb.checked;card.classList.toggle('checked',cb.checked);updateFooter();
+async function setPayment(p,cb,card){
+ gateEdit();const id=p.participantId;if(S.pending.has(id))return;
+ const before=p.collectionCompleted,checked=cb.checked,version=p.paymentVersion;
+ S.pending.add(id);cb.disabled=true;
+ p.collectionCompleted=checked;card.classList.toggle('checked',checked);updateFooter();
  try{
-   await call('/api/payment',{operationId:uuid(),practiceId:S.practiceId,participantId:id,completed:cb.checked,expectedVersion:p.paymentVersion});
-   toast('集金処理を更新しました');
- }catch(e){p.collectionCompleted=before;cb.checked=before;card.classList.toggle('checked',before);updateFooter();throw e;
- }finally{S.pending.delete(id);cb.disabled=S.overview?.ledger?.status==='confirmed';await reload(false).catch(()=>{});}
+   // Saving must not wait for another full overview. Backend returns authoritative versions and balance.
+   const saved=await call('/api/payment',{operationId:uuid(),practiceId:S.practiceId,participantId:id,completed:checked,expectedVersion:version});
+   if(saved?.practiceId!==S.practiceId||saved?.participantId!==id||saved.completed!==checked||
+     saved.version!==version+1||!Number.isSafeInteger(saved.ledgerVersion)||!Number.isSafeInteger(saved.balance)){
+     const e=new Error('保存結果を確認できませんでした。「更新」で最新状態をご確認ください。');
+     e.appliedButRefreshFailed=true;throw e;
+   }
+   p.paymentVersion=saved.version;
+   const ledger=S.overview?.ledger;
+   if(ledger){
+     ledger.version=saved.ledgerVersion;
+     ledger.income=Number.isSafeInteger(saved.income)?saved.income:ledger.income+(Number(checked)-Number(before))*p.fee;
+     ledger.balance=saved.balance;
+   }
+   updateFooter();toast('集金処理を更新しました');
+ }catch(e){
+   // Unknown outcome: do not automatically replay a financial write.
+   if(!e.appliedButRefreshFailed){
+     p.collectionCompleted=before;cb.checked=before;card.classList.toggle('checked',before);updateFooter();
+   }
+   throw e;
+ }finally{
+   S.pending.delete(id);
+   cb.disabled=S.overview?.ledger?.status==='confirmed';
+ }
 }
 function setupLongPress(element,p){let timer=null,started=false;
  const stop=()=>{if(timer)clearTimeout(timer);timer=null;};
@@ -106,22 +155,52 @@ function setupLongPress(element,p){let timer=null,started=false;
  for(const ev of ['pointerup','pointercancel','pointerleave'])element.addEventListener(ev,()=>{started=false;stop();});
  element.addEventListener('contextmenu',event=>event.preventDefault());
 }
-async function saveCategory(){await guard(async()=>{gateEdit();const p=S.modalTarget;if(!p)return;
- const category=$('categorySelect').value;close('categoryDialog');
- S.pending.add('category:'+p.participantId);
- try{await call('/api/category',{operationId:uuid(),practiceId:S.practiceId,participantId:p.participantId,category,expectedVersion:p.categoryVersion});toast('参加区分を更新しました');}
- finally{S.pending.delete('category:'+p.participantId);await reload(false);}
-});}
-async function saveAmount(kind){await guard(async()=>{
- const v=S.overview,ledger=v?.ledger;if(!ledger)throw new Error('収支行がありません');gateEdit();
- const el=$(kind==='adjustment'?'adjustment':'expense'),value=Number(el.value),old=ledger[kind];
- if(!Number.isSafeInteger(value)||kind==='expense'&&value<0){el.value=old;throw new Error('金額を確認してください');}
- S.pending.add('amount');el.disabled=true;updateFooter();
- try{
-   await call(kind==='adjustment'?'/api/adjustment':'/api/expense',{operationId:uuid(),practiceId:S.practiceId,value,expectedVersion:ledger.version});toast((kind==='adjustment'?'当日補正':'当日支出')+'を更新しました');
- }catch(e){el.value=old;updateFooter();throw e;
- }finally{S.pending.delete('amount');el.disabled=false;await reload(false).catch(()=>{});}
-});}
+async function saveCategory(){
+ await guard(async()=>{
+   gateEdit();const p=S.modalTarget;if(!p)return;
+   const category=$('categorySelect').value;close('categoryDialog');
+   const key='category:'+p.participantId;
+   S.pending.add(key);
+   try{
+     const oldFee=p.fee;
+     const saved=await call('/api/category',{operationId:uuid(),practiceId:S.practiceId,participantId:p.participantId,category,expectedVersion:p.categoryVersion});
+     if(saved?.participantId!==p.participantId||saved.category!==category||
+       !Number.isSafeInteger(saved.categoryVersion)||!Number.isSafeInteger(saved.fee)||
+       !Number.isSafeInteger(saved.ledgerVersion)||!Number.isSafeInteger(saved.balance)){
+       const e=new Error('保存結果を確認できませんでした。「更新」で最新状態をご確認ください。');e.appliedButRefreshFailed=true;throw e;
+     }
+     p.category=category;p.fee=saved.fee;p.categoryVersion=saved.categoryVersion;
+     const ledger=S.overview?.ledger;
+     if(ledger){
+       if(p.collectionCompleted)ledger.income+=saved.fee-oldFee;
+       ledger.balance=saved.balance;ledger.version=saved.ledgerVersion;
+     }
+     renderHome();toast('参加区分を更新しました');
+   }finally{S.pending.delete(key);}
+ });
+}
+async function saveAmount(kind){
+ await guard(async()=>{
+   const v=S.overview,ledger=v?.ledger;if(!ledger)throw new Error('収支行がありません');gateEdit();
+   const el=$(kind==='adjustment'?'adjustment':'expense'),value=Number(el.value),old=ledger[kind];
+   if(!Number.isSafeInteger(value)||kind==='expense'&&value<0){el.value=old;throw new Error('金額を確認してください');}
+   S.pending.add('amount');el.disabled=true;updateFooter();
+   try{
+     const saved=await call(kind==='adjustment'?'/api/adjustment':'/api/expense',
+       {operationId:uuid(),practiceId:S.practiceId,value,expectedVersion:ledger.version});
+     if(saved?.practiceId!==S.practiceId||!Number.isSafeInteger(saved.ledgerVersion)||
+       !Number.isSafeInteger(saved.income)||!Number.isSafeInteger(saved.expense)||
+       !Number.isSafeInteger(saved.adjustment)||!Number.isSafeInteger(saved.balance)){
+       const e=new Error('保存結果を確認できませんでした。「更新」で最新状態をご確認ください。');e.appliedButRefreshFailed=true;throw e;
+     }
+     Object.assign(ledger,{version:saved.ledgerVersion,income:saved.income,expense:saved.expense,
+       adjustment:saved.adjustment,balance:saved.balance});
+     el.value=ledger[kind];updateFooter();
+     toast((kind==='adjustment'?'当日補正':'当日支出')+'を更新しました');
+   }catch(e){if(!e.appliedButRefreshFailed){el.value=old;updateFooter();}throw e;
+   }finally{S.pending.delete('amount');el.disabled=false;}
+ });
+}
 async function openLedger(){await guard(async()=>{gateEdit();close('manageDialog');$('demoRole').closest('.role-controls').hidden=true;
  $('ledgerMonth').value=today().slice(0,7);await loadLedger();dialog('ledgerDialog');});}
 async function loadLedger(){const month=$('ledgerMonth').value,ledger=await call('/api/ledger',{month});S.ledger=ledger;const b=$('ledgerBody');b.replaceChildren();
