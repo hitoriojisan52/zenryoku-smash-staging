@@ -19,4 +19,5 @@ jobs:
         with:
           node-version: '22'
       - run: node tests/check-gas-staging-ci.cjs
+      - run: node tests/check-gas-staging-guard.cjs
       - run: bash -n scripts/gas-staging-deploy.sh
