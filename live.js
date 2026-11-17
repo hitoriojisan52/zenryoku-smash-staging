@@ -161,16 +161,28 @@ async function saveCategory(){
    }finally{S.pending.delete(key);}
  });
 }
-async function saveAmount(kind){await guard(async()=>{
- const v=S.overview,ledger=v?.ledger;if(!ledger)throw new Error('収支行がありません');gateEdit();
- const el=$(kind==='adjustment'?'adjustment':'expense'),value=Number(el.value),old=ledger[kind];
- if(!Number.isSafeInteger(value)||kind==='expense'&&value<0){el.value=old;throw new Error('金額を確認してください');}
- S.pending.add('amount');el.disabled=true;updateFooter();
- try{
-   await call(kind==='adjustment'?'/api/adjustment':'/api/expense',{operationId:uuid(),practiceId:S.practiceId,value,expectedVersion:ledger.version});toast((kind==='adjustment'?'当日補正':'当日支出')+'を更新しました');
- }catch(e){el.value=old;updateFooter();throw e;
- }finally{S.pending.delete('amount');el.disabled=false;await reload(false).catch(()=>{});}
-});}
+async function saveAmount(kind){
+ await guard(async()=>{
+   const v=S.overview,ledger=v?.ledger;if(!ledger)throw new Error('収支行がありません');gateEdit();
+   const el=$(kind==='adjustment'?'adjustment':'expense'),value=Number(el.value),old=ledger[kind];
+   if(!Number.isSafeInteger(value)||kind==='expense'&&value<0){el.value=old;throw new Error('金額を確認してください');}
+   S.pending.add('amount');el.disabled=true;updateFooter();
+   try{
+     const saved=await call(kind==='adjustment'?'/api/adjustment':'/api/expense',
+       {operationId:uuid(),practiceId:S.practiceId,value,expectedVersion:ledger.version});
+     if(saved?.practiceId!==S.practiceId||!Number.isSafeInteger(saved.ledgerVersion)||
+       !Number.isSafeInteger(saved.income)||!Number.isSafeInteger(saved.expense)||
+       !Number.isSafeInteger(saved.adjustment)||!Number.isSafeInteger(saved.balance)){
+       const e=new Error('保存結果を確認できませんでした。「更新」で最新状態をご確認ください。');e.appliedButRefreshFailed=true;throw e;
+     }
+     Object.assign(ledger,{version:saved.ledgerVersion,income:saved.income,expense:saved.expense,
+       adjustment:saved.adjustment,balance:saved.balance});
+     el.value=ledger[kind];updateFooter();
+     toast((kind==='adjustment'?'当日補正':'当日支出')+'を更新しました');
+   }catch(e){if(!e.appliedButRefreshFailed){el.value=old;updateFooter();}throw e;
+   }finally{S.pending.delete('amount');el.disabled=false;}
+ });
+}
 async function openLedger(){await guard(async()=>{gateEdit();close('manageDialog');$('demoRole').closest('.role-controls').hidden=true;
  $('ledgerMonth').value=today().slice(0,7);await loadLedger();dialog('ledgerDialog');});}
 async function loadLedger(){const month=$('ledgerMonth').value,ledger=await call('/api/ledger',{month});S.ledger=ledger;const b=$('ledgerBody');b.replaceChildren();
