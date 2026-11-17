@@ -141,7 +141,7 @@ export async function handleRequest(request,env){
   // It does NOT prove LINE authentication or GAS connectivity.
   if(url.pathname==='/health' && request.method==='GET'){
     const configured=Boolean(env.FRONTEND_ORIGIN&&env.LINE_LOGIN_CHANNEL_ID&&env.GAS_WEB_APP_URL&&env.GAS_SHARED_SECRET);
-    return json({ok:true,status:'deployed',version:'0.16.36-stage-gated',configured});
+    return json({ok:true,status:'deployed',version:'0.16.36c-stage-gated',configured});
   }
   const origin=request.headers.get('Origin')||'';
   // Reject any browser origin other than the one approved GitHub Pages site.
