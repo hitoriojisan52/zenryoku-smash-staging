@@ -203,7 +203,9 @@ function bind(){
 }
 function shiftMonth(amount){const [year,month]=$('ledgerMonth').value.split('-').map(Number);const dt=new Date(Date.UTC(year,month-1+amount,1));const next=dt.toISOString().slice(0,7);if(next>today().slice(0,7))return;$('ledgerMonth').value=next;guard(loadLedger);}
 bind();
-window.SMStageUX.run('読み込み中です…',boot).catch(e=>window.SMStageUX.showError(e));
+window.SMStageUX.run('読み込み中です…',boot)
+ .then(()=>window.SMLiveAccess?.openFromCheckLink?.())
+ .catch(e=>window.SMStageUX.showError(e));
 
 // Match screen launch: current selected practice, same LINE login context.
 if(document.getElementById("matchManage")){document.getElementById("matchManage").addEventListener("click",()=>{if(!CONFIG.liffId||CONFIG.liffId.includes("REPLACE_")){toast("対戦表LIFFが設定されていません");return;}window.location.href="https://liff.line.me/"+encodeURIComponent(CONFIG.liffId)+"?practiceId="+encodeURIComponent(S.practiceId||"");});}
