@@ -1,17 +1,20 @@
-/* Isolated membership administration only; no payment or match operations. */
-(async function () {
-  'use strict';
-  const message = document.getElementById('connectionStatus');
-  try {
-    if (!await window.SMWithdrawSandbox.begin('manage')) return;
-    const actor = await window.SMWithdrawSandbox.api('/api/session');
-    if (actor?.role !== 'admin') {
-      message.textContent = 'この画面は検証用の管理者アカウント専用です。';
-      return;
-    }
-    window.SMLiveAccess.setup({api: window.SMWithdrawSandbox.api, actor: actor});
-    message.textContent = 'LINE認証と管理者権限を確認しました。下のボタンから一覧を表示してください。';
-  } catch (error) {
-    message.textContent = error.message || String(error);
-  }
+/* Isolated administration boot: initial LIFF and session read are blocking. */
+(function(){
+ 'use strict';
+ const UI=window.SMSandboxUI;
+ const status=document.getElementById('connectionStatus'),retry=document.getElementById('retryConnection');
+ async function boot(){
+   retry.hidden=true;
+   const result=await UI.run('LINE認証と管理者権限を確認しています…',async()=>{
+     if(!await window.SMWithdrawSandbox.begin('manage'))return false;
+     const actor=await window.SMWithdrawSandbox.api('/api/session');
+     if(actor?.role!=='admin')throw Error('この画面は検証用の管理者アカウント専用です。');
+     window.SMLiveAccess.setup({api:window.SMWithdrawSandbox.api,actor});
+     status.textContent='管理者権限を確認しました。メンバー・権限管理を開いてください。';
+     return true;
+   });
+   if(!result.ok){status.textContent='接続を完了できませんでした。';retry.hidden=false;}
+ }
+ retry.addEventListener('click',boot);
+ boot();
 })();

@@ -40,12 +40,27 @@
       throw new Error('この検証画面では許可されていないAPIです。退会APIは無効です。');
     }
     if (!idToken) throw new Error('LINE認証が未完了です。');
-    const res = await fetch(EXACT_WORKER + path, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken},
-      body: JSON.stringify(payload || {}),
-      cache: 'no-store'
-    });
+    const controller = new AbortController();
+    const deadline = setTimeout(() => controller.abort(), 30000);
+    let res;
+    try {
+      res = await fetch(EXACT_WORKER + path, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken},
+        body: JSON.stringify(payload || {}),
+        cache: 'no-store',
+        signal: controller.signal
+      });
+    } catch (error) {
+      const expired = error?.name === 'AbortError';
+      const issue = new Error(expired
+        ? '通信が時間内に完了しませんでした。'
+        : 'サーバーとの通信に失敗しました。');
+      issue.code = expired ? 'REQUEST_TIMEOUT' : 'NETWORK_ERROR';
+      throw issue;
+    } finally {
+      clearTimeout(deadline);
+    }
     let result;
     try { result = await res.json(); }
     catch (_) { throw new Error('APIからJSON応答を取得できませんでした。HTTP ' + res.status); }

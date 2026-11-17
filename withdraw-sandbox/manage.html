@@ -1,14 +1,15 @@
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><title>全力☆スマッシュ｜メンバー・権限管理検証</title>
-<link rel="stylesheet" href="../style.css"><link rel="stylesheet" href="../live-access.css"><link rel="stylesheet" href="./sandbox.css?v=1613"></head>
+<link rel="stylesheet" href="../style.css"><link rel="stylesheet" href="../live-access.css"><link rel="stylesheet" href="./sandbox.css?v=1614"></head>
 <body><main class="container sb-shell">
  
  <header class="app-header"><h1>🏸 メンバー・権限管理</h1> <small class="demo-label">接続試験</small></header>
  <div class="sb-notice">検証専用コピー上の登録申請・権限・退会履歴を表示します。<strong>退会ボタンと退会APIは無効</strong>です。既存の収支・対戦表には影響しません。</div>
  <p id="connectionStatus" class="sb-status" role="status">LINEログインを準備しています…</p>
+ <button id="retryConnection" type="button" class="btn-outline" hidden>再接続する</button>
  <button id="manageAccess" type="button" class="btn-blue" hidden>🔐 メンバー・権限管理を開く</button>
- <button id="manageSchedules" type="button" hidden disabled>未使用</button>
+ 
  <dialog id="manageDialog"></dialog>
  <dialog id="memberAccessDialog" aria-labelledby="memberAccessTitle">
   <h2 id="memberAccessTitle">メンバー・権限管理（検証用）</h2>
@@ -24,7 +25,13 @@
 </main><dialog id="confirmActionDialog" aria-labelledby="confirmActionTitle" aria-describedby="confirmActionText">
 <h2 id="confirmActionTitle">確認</h2><p id="confirmActionText"></p>
 <div class="modal-actions"><button type="button" id="cancelConfirmAction" class="btn-outline">キャンセル</button><button type="button" id="doConfirmAction" class="btn-blue">実行する</button></div>
-</dialog><div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+</dialog><div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div><dialog id="sandboxBusyDialog" class="sb-busy-dialog" aria-modal="true" aria-labelledby="sandboxBusyText" aria-describedby="sandboxBusyHelp">
+  <div class="sb-busy-content">
+    <div class="sb-spinner" aria-hidden="true"></div>
+    <strong id="sandboxBusyText">処理中です…</strong>
+    <span id="sandboxBusyHelp">処理が完了するまで操作できません</span>
+  </div>
+</dialog>
 <script src="./config.js"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<script src="./api.js"></script><script src="./sandbox-dialog.js?v=1613"></script><script src="./live-access.js?v=1613a"></script><script src="./manage.js?v=1613"></script>
+<script src="./api.js?v=1614"></script><script src="./sandbox-dialog.js?v=1614"></script><script src="./live-access.js?v=1614"></script><script src="./manage.js?v=1614"></script>
 </body></html>

@@ -1,12 +1,18 @@
-/* Isolated registration screen; reuses feature-branch access-ui.js. */
-(async function () {
-  'use strict';
-  const message = document.getElementById('connectionStatus');
-  try {
-    if (!await window.SMWithdrawSandbox.begin('register')) return;
-    message.textContent = '検証専用WorkerにLINE認証で接続しました。';
-    window.SMAccess.showRegistration({api: window.SMWithdrawSandbox.api});
-  } catch (error) {
-    message.textContent = error.message || String(error);
-  }
+/* Isolated registration boot: initial LIFF and status read use screen-wide loading state. */
+(function(){
+ 'use strict';
+ const UI=window.SMSandboxUI;
+ const status=document.getElementById('connectionStatus'),retry=document.getElementById('retryConnection');
+ async function boot(){
+   retry.hidden=true;
+   const result=await UI.run('LINE認証と登録状態を確認しています…',async()=>{
+     if(!await window.SMWithdrawSandbox.begin('register'))return false;
+     await window.SMAccess.start({api:window.SMWithdrawSandbox.api});
+     status.textContent='LINE認証と登録状態を確認しました。';
+     return true;
+   });
+   if(!result.ok){status.textContent='接続を完了できませんでした。';retry.hidden=false;}
+ }
+ retry.addEventListener('click',boot);
+ boot();
 })();
