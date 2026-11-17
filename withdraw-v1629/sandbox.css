@@ -1,0 +1,131 @@
+/* Isolated verification UI; keeps normal club site assets unchanged. */
+body { background: #f7f9fc; }
+.sb-shell { max-width: 760px; margin: 0 auto; padding: 20px 16px 48px; }
+.sb-eyebrow { font-size: 12px; font-weight: bold; letter-spacing: .04em; color: #49627b; }
+.sb-card { background: white; border: 1px solid #d5dde6; border-radius: 12px; padding: 18px; margin: 16px 0; }
+.sb-notice { background: #fff8e7; border-left: 4px solid #d5a14c; border-radius: 5px; padding: 12px; margin: 12px 0; font-size: 14px; }
+.sb-status { min-height: 26px; margin-top: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.sb-links { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+.sb-links a { display: inline-block; border-radius: 7px; padding: 10px 14px; background: #e8f0f9; color: #184c81; text-decoration: none; }
+.sb-meta { font-size: 12px; color: #5c6e7f; overflow-wrap: anywhere; }
+.sb-shell h1 { font-size: 24px; }
+.sb-shell h2 { font-size: 19px; }
+.sb-card label { display: block; margin: 10px 0 6px; }
+.sb-card input[type=text] { box-sizing: border-box; max-width: 100%; width: 100%; padding: 10px; }
+.sb-card button { cursor: pointer; margin-top: 10px; }
+.sb-card button:disabled { cursor: not-allowed; opacity: .55; }
+#memberAccessDialog { width: min(95vw, 710px); max-height: 88vh; padding: 18px; border-radius: 12px; border: 1px solid #b8c9d7; }
+#memberAccessDialog::backdrop { background: rgba(0,0,0,.35); }
+#memberAccessDialog h3 { margin-top: 20px; }
+#memberAccessDialog .live-access-row { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; padding: 10px 0; border-bottom: 1px solid #e5e9ed; }
+#memberAccessDialog .live-access-name { flex: 1 1 140px; overflow-wrap: anywhere; }
+#memberAccessDialog .live-access-select { max-width: 190px; padding: 8px; }
+#memberAccessDialog .access-help { font-size: 13px; color: #607384; }
+#memberAccessDialog .btn-outline { padding: 8px 12px; }
+[hidden] { display: none !important; }
+/* v0.16.13: preserve the main operation management tool's compact palette. */
+.sb-shell{max-width:500px;margin:0 auto;min-height:100dvh;padding:10px;gap:8px;background:white}
+.sb-shell .app-header{padding:3px 0 8px;border-bottom:1px solid #dde5ec}
+.sb-shell .app-header h1{font-size:15px;color:#1976d2;margin:0}
+.sb-shell .app-header .demo-label{margin-left:auto}
+.sb-shell .sb-card{border:1px solid #d7dfe4;border-radius:6px;padding:12px;margin:6px 0}
+.sb-shell .sb-card h2{font-size:15px;color:#1976d2;margin:0 0 8px}
+.sb-shell .sb-notice{font-size:12px;line-height:1.6;border:1px solid #e6d19c;border-left:3px solid #e6d19c;border-radius:5px;background:#fff8df;color:#745217;padding:9px;margin:5px 0}
+.sb-shell .sb-status{font-size:12px;color:#155d9e}
+.sb-shell .sb-card input[type=text]{font-size:14px;border:1px solid #c0cbd4;border-radius:6px;padding:9px}
+.sb-shell #accessMessage{font-size:12px;line-height:1.6;color:#155d9e;background:#eef2f7;padding:8px;border-radius:5px}
+.sb-shell #accessApply,.sb-shell #manageAccess{min-height:43px;padding:10px 15px}
+#memberAccessDialog{width:min(96vw,510px);max-width:510px;max-height:85dvh;overflow:auto;padding:16px}
+#memberAccessDialog .live-access-row{padding:8px 0;gap:5px}
+#memberAccessDialog .live-access-select{max-width:145px}
+#confirmActionDialog{width:calc(100% - 24px);max-width:350px}
+#confirmActionText{white-space:pre-line;overflow-wrap:anywhere}
+.sb-danger{background:#b42318;color:white}
+[hidden]{display:none!important}
+
+/* v0.16.14 shared blocking modal, based on match busy overlay / operation management. */
+.sb-busy-dialog{box-sizing:border-box;max-width:340px;width:calc(100% - 36px);border:0;border-radius:12px;padding:22px 20px;box-shadow:0 5px 25px #0004;user-select:none;-webkit-user-select:none}
+.sb-busy-dialog::backdrop{background:rgba(15,28,45,.45)}
+.sb-busy-content{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.sb-busy-content strong{font-size:15px;color:#22374a}
+.sb-busy-content span{font-size:12px;color:#647585}
+.sb-spinner{width:34px;height:34px;border:4px solid #d6e6f3;border-top-color:#1976d2;border-radius:50%;animation:sb-spin .8s linear infinite}
+@keyframes sb-spin{to{transform:rotate(360deg)}}
+#confirmActionDialog[role="alertdialog"]{border-color:#e8c1bb}
+#confirmActionDialog[role="alertdialog"] h2{color:#b42318}
+#confirmActionDialog[role="alertdialog"] #cancelConfirmAction{display:none!important}
+#confirmActionText{white-space:pre-line;line-height:1.7}
+.sb-shell[aria-busy="true"]{opacity:.8}
+.sb-shell button:disabled,.sb-shell input:disabled,.sb-shell select:disabled{cursor:not-allowed!important}
+@media(prefers-reduced-motion:reduce){.sb-spinner{animation:none}}
+
+/* v0.16.16: concise large-tap UI in the existing management color theme. */
+.sb-shell{max-width:500px;min-height:100dvh;padding:12px;gap:10px}
+.sb-shell .app-header{gap:8px;min-height:44px}
+.sb-shell .app-header h1{font-size:17px;line-height:1.5}
+.sb-shell .app-header button{min-height:44px;min-width:88px;padding:9px 12px;font-size:14px}
+.sb-test-label{font-size:11px;margin:0;color:#705516;background:#fff7e1;padding:6px 9px;border-radius:5px}
+.sb-shell .sb-card{padding:13px;margin:4px 0}
+.sb-shell .sb-card h2{font-size:16px;margin:0 0 12px}
+.sb-shell #accessMessage{font-size:16px;font-weight:600;line-height:1.6;padding:12px;margin:0;color:#18517a}
+#accessEntry{margin-top:12px}
+#accessEntry input{width:100%;min-height:46px;font-size:16px}
+#accessApply{margin-top:14px;width:100%;min-height:48px;font-size:16px}
+.sb-manager{display:grid;gap:10px}
+.sb-manager[hidden]{display:none!important}
+#memberAccessStatus:empty{display:none}
+#memberAccessPending,#memberAccessMembers,#memberAccessWithdrawn{display:grid;gap:6px}
+#memberAccessPending .live-access-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 0;align-items:center}
+#memberAccessPending .live-access-name{grid-column:1/-1;font-size:15px;font-weight:600}
+#memberAccessPending .live-access-row button{min-height:44px;width:100%;font-size:14px}
+#memberAccessMembers .live-access-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:10px 0;align-items:center}
+#memberAccessMembers .live-access-name{grid-column:1/-1;font-size:15px;font-weight:600;overflow-wrap:anywhere}
+#memberAccessMembers .live-access-select{max-width:none;width:100%;font-size:15px;min-height:44px;padding:7px}
+#memberAccessMembers .live-access-row button{min-width:100px;min-height:44px;font-size:14px}
+#memberAccessWithdrawn .live-access-row{display:flex;flex-wrap:wrap;gap:6px}
+.sb-history summary{cursor:pointer;min-height:36px;font-size:15px;color:#0d47a1;font-weight:700}
+.sb-history[open] summary{margin-bottom:10px}
+.sb-history #memberAccessWithdrawn{margin-top:8px}
+.sb-shell .sb-status{font-size:13px;line-height:1.5}
+#confirmActionText{font-size:14px;line-height:1.6}
+
+/* v0.16.16a: prevent the former dialog's fixed dimensions from constraining the inline admin list. */
+#memberAccessDialog.sb-manager{
+  box-sizing:border-box;width:100%;max-width:none;max-height:none;
+  overflow:visible;padding:0;border:0;box-shadow:none;
+}
+.sb-shell #accessRefresh,.sb-shell #retryConnection{
+  min-height:44px;padding:9px 14px;font-size:14px;
+}
+.sb-shell .sb-card:focus-within{scroll-margin-top:12px}
+
+/* v0.16.17: available actions blue; disabled actions neutral grey. */
+.sb-shell #memberAccessRefresh:not(:disabled),.sb-shell #accessRefresh:not(:disabled){background:#1976d2;color:#fff}
+.sb-shell #memberAccessRefresh:disabled,.sb-shell #accessRefresh:disabled{background:#d4d8dc!important;color:#777f87!important;cursor:not-allowed!important}
+.sb-shell #memberAccessRefresh:focus-visible,.sb-shell #accessRefresh:focus-visible{outline:3px solid #0d47a1;outline-offset:2px}
+
+/* v0.16.18: withdrawal confirmation REHEARSAL only (no API action). */
+#memberAccessMembers .sb-withdraw-preview{
+  grid-column:1/-1;justify-self:stretch;min-height:46px;
+  border:1px solid #aebdca;background:#f1f5f8;color:#244c69;
+  font-size:15px;font-weight:700;
+}
+#memberAccessMembers .sb-withdraw-preview:focus-visible{
+  outline:3px solid #1976d2;outline-offset:2px;
+}
+#memberAccessMembers .sb-preview-hint{
+  grid-column:1/-1;text-align:center;font-size:12px;color:#5f6b71;
+}
+
+/* v0.16.18 execution gate: ONLY for the one named synthetic withdrawal target. */
+#memberAccessMembers .sb-withdraw-action{
+ grid-column:1/-1;justify-self:stretch;min-height:48px;width:100%;
+ background:#b42318;color:#fff;border-radius:6px;
+ font-size:16px;font-weight:700;cursor:pointer;
+}
+#memberAccessMembers .sb-withdraw-action:disabled{
+ background:#d4d8dc!important;color:#777!important;cursor:not-allowed!important;
+}
+#memberAccessMembers .sb-withdraw-action:focus-visible{
+ outline:3px solid #7c1d13;outline-offset:2px;
+}

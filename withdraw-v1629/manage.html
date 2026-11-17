@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow"><title>全力☆スマッシュ｜メンバー・権限管理検証</title>
+<link rel="stylesheet" href="../style.css"><link rel="stylesheet" href="../live-access.css"><link rel="stylesheet" href="./sandbox.css?v=1618execute"></head>
+<body><main class="container sb-shell">
+ 
+ <header class="app-header"><h1>🏸 メンバー管理</h1><button id="memberAccessRefresh" class="btn-blue" type="button" disabled>🔄 更新</button></header>
+ <p class="sb-test-label">v0.16.29 独立検証専用：退会機能は初期状態で無効です</p>
+ <p id="connectionStatus" class="sb-status" role="status">準備中です…</p>
+ <button id="retryConnection" type="button" class="btn-outline" hidden>やり直す</button>
+ <section id="memberAccessDialog" class="sb-manager" aria-label="メンバー管理" hidden>
+  <p id="memberAccessStatus" role="status" aria-live="polite"></p>
+  <section class="sb-card"><h2>登録の申し込み</h2><div id="memberAccessPending"></div></section>
+  <section class="sb-card"><h2>メンバーの役割</h2><div id="memberAccessMembers"></div></section>
+  <details class="sb-card sb-history"><summary>退会履歴を見る</summary><div id="memberAccessWithdrawn"></div></details>
+ </section>
+ 
+</main><dialog id="confirmActionDialog" aria-labelledby="confirmActionTitle" aria-describedby="confirmActionText">
+<h2 id="confirmActionTitle">確認</h2><p id="confirmActionText"></p>
+<div class="modal-actions"><button type="button" id="cancelConfirmAction" class="btn-outline">キャンセル</button><button type="button" id="doConfirmAction" class="btn-blue">実行する</button></div>
+</dialog><div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div><dialog id="sandboxBusyDialog" class="sb-busy-dialog" aria-modal="true" aria-labelledby="sandboxBusyText" aria-describedby="sandboxBusyHelp">
+  <div class="sb-busy-content">
+    <div class="sb-spinner" aria-hidden="true"></div>
+    <strong id="sandboxBusyText">処理中です…</strong>
+    <span id="sandboxBusyHelp">処理が完了するまで操作できません</span>
+  </div>
+</dialog>
+<script src="./config.js"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="./api.js?v=1618execute"></script><script src="./sandbox-dialog.js?v=1616b"></script><script src="./live-access.js?v=1618execute2"></script><script src="./manage.js?v=1616"></script>
+</body></html>
