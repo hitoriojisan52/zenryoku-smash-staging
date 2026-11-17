@@ -52,11 +52,13 @@ async function request(path,payload={}){
 }
 const isDuty=()=>['duty','admin'].includes(S.actor?.role);
 const operationId=()=>crypto.randomUUID();
-function matchProcessingUi_(active){
+function matchProcessingUi_(active,label='処理中です…'){
  const main=document.querySelector('main.match-container'),layer=$('matchBusyOverlay');
  if(!main||!layer)return;
  main.inert=active; main.setAttribute('aria-busy',String(active));
  document.body.classList.toggle('match-is-processing',active);
+ const labelEl=$('matchBusyLabel');
+ if(labelEl)labelEl.textContent=active?label:'処理中です…';
  layer.hidden=!active;
 }
 async function runMatchProcessing_(fn){
@@ -205,6 +207,10 @@ async function openGeneralMemberView16_(){
  setInterval(()=>{if(!S.busy&&!document.hidden)load().catch(()=>{});},12000);
 }
 async function init(){
+ // The initial LINE login + schedule + match read is a foreground operation.
+ // Passive polling remains non-blocking; save actions use runMatchProcessing_.
+ S.busy=true;
+ matchProcessingUi_(true,'読み込み中です…');
  try{
   if(!CFG.liffId||CFG.liffId.includes('REPLACE_')||!CFG.apiBaseUrl||CFG.apiBaseUrl.includes('REPLACE_'))throw Error('runtime-config.js を設定してください');
   if(!window.liff)throw Error('LINE SDKを読み込めません');
@@ -264,8 +270,19 @@ async function init(){
   }
   if(CFG.accessFeaturesEnabled===true)window.SMAccess?.setup({api:request,role:S.actor.role,getPracticeId:()=>S.practiceId});
   setInterval(()=>{if(!S.busy&&!SMMatchConfirm.isOpen()&&!document.hidden&&!$('courtSettings').open&&!$('participantSettings').open)load().catch(()=>{});},9000);
- }catch(e){if(CFG.accessFeaturesEnabled===true&&(e.code==='UNAUTHORIZED'||e.message==='利用登録が確認できません')){ $('matchHeader').textContent='初回利用の登録申請';window.SMAccess?.showRegistration({api:request});return; } $('matchHeader').textContent='対戦表を読み込めませんでした';showStartupTimings();await SMMatchConfirm.showError(e,label);}
- finally{if(!$('startupTimingDetails')?.textContent)showStartupTimings();}
+ }catch(e){if(CFG.accessFeaturesEnabled===true&&(e.code==='UNAUTHORIZED'||e.message==='利用登録が確認できません')){ $('matchHeader').textContent='初回利用の登録申請';window.SMAccess?.showRegistration({api:request});return; }
+  $('matchHeader').textContent='対戦表を読み込めませんでした';
+  showStartupTimings();
+  // Close the blocking layer BEFORE the error modal, so the error is operable.
+  S.busy=false;
+  matchProcessingUi_(false);
+  await SMMatchConfirm.showError(e,label);
+ }
+ finally{
+  S.busy=false;
+  matchProcessingUi_(false);
+  if(!$('startupTimingDetails')?.textContent)showStartupTimings();
+ }
 }
 $('copyStartupTiming')?.addEventListener('click',copyStartupTimings);
 
