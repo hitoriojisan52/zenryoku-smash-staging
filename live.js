@@ -99,13 +99,37 @@ function updateFooter(){const v=S.overview;if(!v)return;const rows=v.participant
  $('balance').textContent=posting?'残金：'+yen(provisional):'残金：—';
  $('completedCount').textContent='集金完了：'+complete.length+'名';
 }
-async function setPayment(p,cb,card){gateEdit();const id=p.participantId;if(S.pending.has(id))return;
- S.pending.add(id);cb.disabled=true;const before=p.collectionCompleted;p.collectionCompleted=cb.checked;card.classList.toggle('checked',cb.checked);updateFooter();
+async function setPayment(p,cb,card){
+ gateEdit();const id=p.participantId;if(S.pending.has(id))return;
+ const before=p.collectionCompleted,checked=cb.checked,version=p.paymentVersion;
+ S.pending.add(id);cb.disabled=true;
+ p.collectionCompleted=checked;card.classList.toggle('checked',checked);updateFooter();
  try{
-   await call('/api/payment',{operationId:uuid(),practiceId:S.practiceId,participantId:id,completed:cb.checked,expectedVersion:p.paymentVersion});
-   toast('集金処理を更新しました');
- }catch(e){p.collectionCompleted=before;cb.checked=before;card.classList.toggle('checked',before);updateFooter();throw e;
- }finally{S.pending.delete(id);cb.disabled=S.overview?.ledger?.status==='confirmed';await reload(false).catch(()=>{});}
+   // Saving must not wait for another full overview. Backend returns authoritative versions and balance.
+   const saved=await call('/api/payment',{operationId:uuid(),practiceId:S.practiceId,participantId:id,completed:checked,expectedVersion:version});
+   if(saved?.practiceId!==S.practiceId||saved?.participantId!==id||saved.completed!==checked||
+     saved.version!==version+1||!Number.isSafeInteger(saved.ledgerVersion)||!Number.isSafeInteger(saved.balance)){
+     const e=new Error('保存結果を確認できませんでした。「更新」で最新状態をご確認ください。');
+     e.appliedButRefreshFailed=true;throw e;
+   }
+   p.paymentVersion=saved.version;
+   const ledger=S.overview?.ledger;
+   if(ledger){
+     ledger.version=saved.ledgerVersion;
+     ledger.income=Number.isSafeInteger(saved.income)?saved.income:ledger.income+(Number(checked)-Number(before))*p.fee;
+     ledger.balance=saved.balance;
+   }
+   updateFooter();toast('集金処理を更新しました');
+ }catch(e){
+   // Unknown outcome: do not automatically replay a financial write.
+   if(!e.appliedButRefreshFailed){
+     p.collectionCompleted=before;cb.checked=before;card.classList.toggle('checked',before);updateFooter();
+   }
+   throw e;
+ }finally{
+   S.pending.delete(id);
+   cb.disabled=S.overview?.ledger?.status==='confirmed';
+ }
 }
 function setupLongPress(element,p){let timer=null,started=false;
  const stop=()=>{if(timer)clearTimeout(timer);timer=null;};
