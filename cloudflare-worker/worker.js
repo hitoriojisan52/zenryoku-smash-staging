@@ -208,10 +208,11 @@ export async function handleRequest(request,env){
     phase='reply';
     // Only the authenticated bootstrap response exposes static timing labels +
     // integer milliseconds. No ID tokens, LINE IDs, URLs or secret values.
-    const timing=op==='match.bootstrap'?
-      ['line;dur='+lineMs,'gas;dur='+gasMs,
-        'gas_post;dur='+Math.max(0,gasMetrics.postMs||0),
-        'gas_content;dur='+Math.max(0,gasMetrics.contentMs||0)].join(', '):'';
+    // Safe per-request latency phases, for all authenticated API calls.
+    // Does not reveal LINE identifiers, tokens, spreadsheet URLs, or secrets.
+    const timing=['line;dur='+lineMs,'gas;dur='+gasMs,
+      'gas_post;dur='+Math.max(0,gasMetrics.postMs||0),
+      'gas_content;dur='+Math.max(0,gasMetrics.contentMs||0)].join(', ');
     return json(result,result.ok?200:(['FORBIDDEN','WITHDRAW_DISABLED','STAGING_ONLY','TEST_TARGET_ONLY'].includes(result.code)?403:['CONFLICT','VERSION_CONFLICT','INVALID_LINEUP','UNDO_NOT_ALLOWED','OP_ID_REUSE'].includes(result.code)?409:result.code==='UNAUTHORIZED'?401:400),origin,timing);
   }catch(err){
     // All logs/browser error codes are static or sanitized. Never log original
