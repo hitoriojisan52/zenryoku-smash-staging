@@ -73,3 +73,13 @@
 .stage-ui .dialog-label{font-size:14px}
 .stage-ui .form-hint{font-size:13px}
 .stage-ui #memberAccessStatus{font-size:14px}
+
+/* v0.16.21 busy dialog focus ring: informational, non-interactive surface.
+   Browser auto-focus on showModal() can draw a high-contrast/yellow outline. */
+.stage-ui dialog#stageBusyDialog,
+.stage-ui dialog#stageBusyDialog:focus,
+.stage-ui dialog#stageBusyDialog:focus-visible{
+ outline:none!important;
+ border:0!important;
+ box-shadow:0 5px 25px rgba(0,0,0,.22)!important;
+}

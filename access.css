@@ -20,3 +20,6 @@
 #accessQrHeader[hidden]{display:none!important}
 #accessQrHeader button{font-size:12px;padding:7px 8px;white-space:nowrap;min-height:38px}
 @media(max-width:370px){.match-app-titlebar h1{font-size:12px}#accessQrHeader button{font-size:11px;padding:7px 5px}}
+
+/* v0.16.21: do not reserve an empty message row above a QR. */
+#accessMessage:empty{display:none}

@@ -28,10 +28,11 @@ async function share(){const practiceId=getPracticeId();
    throw Error('共有リンクの発行先が設定と一致しません');
  $('accessShareUrl').value=r.url;$('accessShare').hidden=false;
  const box=$('accessQr');box.replaceChildren();
- if(typeof QRCode==='function')new QRCode(box,{text:r.url,width:236,height:236,colorDark:'#111111',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
- else say('QR画像を生成できません。URLをコピーしてください。');
- $('accessShareExpiry').textContent='有効期限：'+window.SMDate.dateTimeJst(r.expiresAt);
- say('閲覧QRを表示しました');}
+ if(typeof QRCode==='function'){
+   new QRCode(box,{text:r.url,width:236,height:236,colorDark:'#111111',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+   say(''); // The visible QR already communicates success; clear previous notices.
+ }else say('QR画像を生成できません。URLをコピーしてください。');
+ $('accessShareExpiry').textContent='有効期限：'+window.SMDate.dateTimeJst(r.expiresAt);}
 $('accessApply').onclick=()=>apply().catch(e=>say(e.message||String(e)));
 $('accessQrButton').onclick=()=>window.SMMatchBusy.run(()=>share()).catch(e=>say(e.message||String(e)));
 $('accessQrCopy').onclick=async()=>{const url=$('accessShareUrl').value;if(!url)return;try{await navigator.clipboard.writeText(url);say('URLをコピーしました');}catch(_){$('accessShareUrl').select();say('URLを選択しました。長押しでコピーしてください');}};
