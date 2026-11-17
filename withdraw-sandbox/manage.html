@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><title>全力☆スマッシュ｜メンバー・権限管理検証</title>
-<link rel="stylesheet" href="../style.css"><link rel="stylesheet" href="../live-access.css"><link rel="stylesheet" href="./sandbox.css?v=1618execute"></head>
+<link rel="stylesheet" href="../style.css"><link rel="stylesheet" href="../live-access.css"><link rel="stylesheet" href="./sandbox.css?v=1632busy"></head>
 <body><main class="container sb-shell">
  
  <header class="app-header"><h1>🏸 メンバー管理</h1><button id="memberAccessRefresh" class="btn-blue" type="button" disabled>🔄 更新</button></header>
@@ -18,11 +18,10 @@
 </main><dialog id="confirmActionDialog" aria-labelledby="confirmActionTitle" aria-describedby="confirmActionText">
 <h2 id="confirmActionTitle">確認</h2><p id="confirmActionText"></p>
 <div class="modal-actions"><button type="button" id="cancelConfirmAction" class="btn-outline">キャンセル</button><button type="button" id="doConfirmAction" class="btn-blue">実行する</button></div>
-</dialog><div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div><dialog id="sandboxBusyDialog" class="sb-busy-dialog" aria-modal="true" aria-labelledby="sandboxBusyText" aria-describedby="sandboxBusyHelp">
+</dialog><div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div><dialog id="sandboxBusyDialog" class="sb-busy-dialog" aria-modal="true" aria-labelledby="sandboxBusyText">
   <div class="sb-busy-content">
     <div class="sb-spinner" aria-hidden="true"></div>
     <strong id="sandboxBusyText">処理中です…</strong>
-    <span id="sandboxBusyHelp">処理が完了するまで操作できません</span>
   </div>
 </dialog>
 <script src="./config.js"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
