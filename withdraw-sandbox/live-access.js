@@ -35,9 +35,9 @@
      const row=node('div','live-access-row'),name=node('span','live-access-name',m.name+(m.active?'':'（停止中）')),
        select=node('select','live-access-select');select.setAttribute('aria-label',m.name+'さんの権限');
      for(const [value,label] of [['member','一般メンバー'],['duty','当番担当'],['admin','管理者']])select.add(new Option(label,value));
-     select.value=m.role;select.disabled=!m.active;
+     select.value=m.role;select.disabled=!m.active||m.memberId===authenticatedMemberId;
      row.append(name,select,button('変更',async()=>{
-       ensureAdmin();if(!m.active||select.value===m.role)return;
+       ensureAdmin();if(!m.active||m.memberId===authenticatedMemberId||select.value===m.role)return;
        if(!await window.SMSandboxUI.confirm({title:'メンバー権限の変更',message:m.name+' さんを '+select.options[select.selectedIndex].text+' に変更しますか？',confirmLabel:'変更する'})){select.value=m.role;return;}
        await api('/api/member/manage/role',{memberId:m.memberId,role:select.value,operationId:crypto.randomUUID()});
        status('権限を変更しました。');window.SMSandboxUI.toast('権限を変更しました。');await load();
