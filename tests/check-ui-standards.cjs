@@ -25,12 +25,15 @@ for(const file of htmlPages){
 for(const folder of ['withdraw-sandbox','withdraw-v1629']){
   const css=read(folder+'/sandbox.css');
   assert(css.includes('.sb-busy-dialog:focus-visible'),folder+' focus-only-on-busy rule missing');
+  assert(css.includes('#memberAccessMembers .live-access-row button.btn-blue{'),'role change alignment override missing: '+folder);
+  assert(/#memberAccessMembers \.live-access-row button\.btn-blue\s*\{[^}]*margin-top\s*:\s*0\s*;/m.test(css),'role change margin-top reset missing: '+folder);
   for(const file of ['manage.html','register.html']){
     const html=read(folder+'/'+file);
     assert(html.includes('id="sandboxBusyText"'),folder+'/'+file+' busy label missing');
     assert(html.includes('class="sb-spinner"'),folder+'/'+file+' spinner missing');
     assert(!html.includes('sandboxBusyHelp'),folder+'/'+file+' stale aria reference');
-    assert(html.includes('./sandbox.css?v=1632busy'),folder+'/'+file+' CSS cache not refreshed');
+    const cssVer=file==='manage.html'?'1633align':'1632busy';
+    assert(html.includes('./sandbox.css?v='+cssVer),folder+'/'+file+' CSS cache not refreshed');
   }
 }
 const stage=read('stage-ui.css');
