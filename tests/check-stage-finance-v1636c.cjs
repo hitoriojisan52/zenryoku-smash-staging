@@ -14,7 +14,11 @@ ok(worker.includes("const timing=['line;dur='+lineMs"),'safe duration metrics fo
 ok(ui.includes("epoch!==S.updateEpoch||S.pending.size||selected!==S.practiceId"),'discard automatic read started before save');
 ok(ui.includes("!S.loading&&!window.SMStageUX.isBusy()"),'avoid parallel automatic refresh');
 ok(ui.includes("S.updateEpoch++"),'writes invalidate pending reads');
-ok(ui.includes("get('perf')==='1'"),'diagnostic data opt-in only');
+ok(ui.includes("const PERF_MODE=(()=>"),'diagnostic mode isolated');
+ok(ui.includes("q.get('perf')==='1'"),'diagnostic data opt-in only');
+ok(ui.includes("LINE '+seconds(phase('line'))"),'visible diagnosis includes LINE time');
+ok(ui.includes("GAS '+seconds(phase('gas'))"),'visible diagnosis includes GAS time');
+ok(ui.includes("PERF_MODE?4200:2500"),'normal toast duration unchanged');
 const payment=span('async function setPayment(','\nfunction setupLongPress(');
 ok(!payment.includes('reload('),'no forced overview round trip after payment');
 ok(payment.includes("saved.version!==version+1"),'optimistic concurrency result validated');
