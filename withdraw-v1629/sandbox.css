@@ -129,3 +129,9 @@ body { background: #f7f9fc; }
 #memberAccessMembers .sb-withdraw-action:focus-visible{
  outline:3px solid #7c1d13;outline-offset:2px;
 }
+
+/* v0.16.32: display-only busy dialog has no browser focus outline; retain controls' keyboard focus rings. */
+.sb-busy-dialog,.sb-busy-dialog:focus,.sb-busy-dialog:focus-visible{
+  outline:none!important;
+  border:0!important;
+}

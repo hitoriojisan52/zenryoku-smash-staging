@@ -1,6 +1,8 @@
 # 全力☆スマッシュ｜検証用GitHub Pages
 公開先: https://hitoriojisan52.github.io/zenryoku-smash-staging/
 
+**画面共通仕様（最優先）**：[`docs/ui-standard-v1632.md`](docs/ui-standard-v1632.md) を参照。変更前に `node tests/check-ui-standards.cjs` で不要な処理中文言の再混入等を検査する。
+
 ## 接続状況（2026-11-16）
 - GAS: 検証用Google Sheetsへの読込・書込・試合5ラウンド保存をGASエディタ上で確認済み
 - Worker: https://zenryoku-smash-staging-api.hitori-ojisan-52.workers.dev/health で `configured:true` をユーザー確認済み
