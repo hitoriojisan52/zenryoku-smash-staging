@@ -4,7 +4,7 @@
  */
 (function () {
  'use strict';
- if(new URLSearchParams(window.location.search).get('accessUi')!=='v2')return;
+ if(window.SM_STAGE_ACCESS_V2!==true)return;
  const $=id=>document.getElementById(id);
  const dialog=$('memberAccessDialog'),confirmDialog=$('accessConfirmV2'),busyDialog=$('accessBusyV2');
  const cancel=$('accessConfirmCancelV2'),okay=$('accessConfirmOkayV2'),toastEl=$('toast');

@@ -26,3 +26,10 @@
 - 既存ステージング GAS/Worker へ、検証済みの安全な退会・履歴APIを移植して接続
 - 未登録LINEユーザーからの申請E2E、ユーザー別リッチメニューの段階検証
 - 本番に移す前に専用組織（zensuma.github.io 等）のURL候補を確認し、LIFF/Worker/CORS/QR URLを一括整合
+
+## LIFFの初期リダイレクトに対する保護（v0.16.19b）
+- LINE公式ドキュメントによると、LIFF URLに追加したクエリは初期化完了まで `liff.state` に格納される場合がある
+- そのため画面選択用 `access-v2-mode.js` は直指定の `accessUi=v2` と `liff.state` 内の同じキーを確認する
+- `liff.state` やURLの書換えは行わない。実際のLINE認証・API通信は従来通り `live.js` が初期化後に行う
+- リンク: `https://liff.line.me/2012602642-XBSkXduO?accessUi=v2`
+- 旧画面を開くには、パラメータなしの同LIFF URLを使う
