@@ -37,7 +37,7 @@ node -e "JSON.parse(require('node:fs').readFileSync(process.argv[1],'utf8'))" "$
 unset GAS_STAGE_CLASPRC_JSON
 node -e "
  const fs=require('node:fs');
- fs.writeFileSync(process.argv[1], JSON.stringify({scriptId:process.env.GAS_STAGE_SCRIPT_ID})+'\\n', {mode:0o600});
+ fs.writeFileSync(process.argv[1], JSON.stringify({scriptId:process.env.GAS_STAGE_SCRIPT_ID}), {mode:0o600});
 " "$WORK/.clasp.json"
 cd "$WORK"
 echo "Pulling existing connected staging GAS (read-only)..."
