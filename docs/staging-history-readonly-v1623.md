@@ -63,3 +63,11 @@
 - 本番・元のステージングGAS/Worker/LINEリッチメニューは変更しない。退会APIは接続しない
 - GAS/Workerの`WITHDRAW_ENABLED=false`、`RICH_MENU_SYNC_ENABLED=false`を維持
 - 実退会の統合は、最新のWorkerコードの照合と専用コピーでの許可対象1名に限定した再検証の後、別途承認を得る
+
+## v0.16.24 模擬テスト結果
+- LIFF URLの直接指定、`liff.state`、試験用パラメータの欠落時に試験UIを非表示にする検査: **6/6 PASS**
+- JS構文、退会API未接続、HTMLの試験用表示、キャッシュ更新などの静的検査: **8/8 PASS**
+- 管理者本人は対象外の説明表示、1段目キャンセル、2段目キャンセル、完了通知、通信が読取APIだけであることの模擬操作: **8/8 PASS**
+- 計 **22/22 PASS**（LINE実機での試験画面操作は未実施）
+- GitHubの変更ファイルは `access-v2-mode.js`、`live-access-v2.js`、`live-access-v2.css`、`live.html`、このドキュメントのみ
+- 実サーバーやスプレッドシートへの書き込みはない。退会APIのエンドポイント追加もない
