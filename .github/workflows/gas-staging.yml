@@ -19,7 +19,7 @@ on:
     branches:
       - main
     paths:
-      - 'gas-staging/**'
+      - 'gas-staging/*.gs'
       - 'scripts/gas-staging-guard.cjs'
       - 'scripts/gas-staging-deploy.sh'
 permissions:
