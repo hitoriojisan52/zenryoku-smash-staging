@@ -418,7 +418,21 @@ function member_(ss,lineUserId){var rows=sheetRows_(ss,'メンバー');var found
 }
 function requireDuty_(m){if(m.role!=='duty'&&m.role!=='admin')fail_('FORBIDDEN','当番チームの権限が必要です');}
 function checkOpId_(payload){var s=str_(payload.operationId);if(!/^[\w-]{8,100}$/.test(s))fail_('BAD_REQUEST','操作IDが必要です');return s;}
-function auditExisting_(ss,opId,op,member){var rows=sheetRows_(ss,'操作履歴');for(var i=rows.length-1;i>=0;i--)if(rows[i][0]===opId){if(rows[i][1]!==op||rows[i][2]!==member.memberId)fail_('CONFLICT','操作IDは別の処理で使用されています');try{return JSON.parse(rows[i][5]);}catch(_){fail_('SETUP','操作履歴が壊れています');}}return null;}
+function auditExisting_(ss,opId,op,member){
+ // Fast path: scan the operation-ID column only. Read the six audit fields
+ // ONLY for an actual duplicate. Keep the newest matching row as before.
+ // The caller holds LockService's script lock for the entire check + write.
+ var sh=sheet_(ss,'操作履歴'),last=sh.getLastRow();
+ if(last<2)return null;
+ var ids=sh.getRange(2,1,last-1,1).getValues();
+ for(var i=ids.length-1;i>=0;i--)if(ids[i][0]===opId){
+  var row=sh.getRange(i+2,1,1,6).getValues()[0];
+  if(row[0]!==opId)fail_('CONFLICT','操作履歴の内容が変更されています。再確認してください');
+  if(row[1]!==op||row[2]!==member.memberId)fail_('CONFLICT','操作IDは別の処理で使用されています');
+  try{return JSON.parse(row[5]);}catch(_){fail_('SETUP','操作履歴が壊れています');}
+ }
+ return null;
+}
 function audit_(ss,opId,op,member,target,result){sheet_(ss,'操作履歴').appendRow([opId,op,member.memberId,now_(),target,JSON.stringify(result)]);}
 function entries_(ss){return sheetRows_(ss,'全体収支管理表').filter(function(r){return str_(r[6]);}).map(function(r){return {
  date:ledgerDate_(r[0]),label:str_(r[1]),income:Number(r[2])||0,expense:Number(r[3])||0,balance:Number(r[4])||0,
