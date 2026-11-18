@@ -184,7 +184,9 @@
    if(m.active&&m.role!=='admin'&&!isSelf){
     const withdraw=item('button','btn-danger','退会');
     withdraw.type='button';
-    withdraw.disabled=snapshot.withdrawMemberEnabled!==true;
+    withdraw.disabled=snapshot.withdrawMemberEnabled!==true||
+      (snapshot.withdrawMemberScope==='single'&&
+       snapshot.withdrawMemberTargetId!==m.memberId);
     if(withdraw.disabled)withdraw.title='退会機能は検証環境で無効です';
     withdraw.addEventListener('click',()=>{
      if(!withdraw.disabled)withdrawMember(m);
@@ -304,7 +306,9 @@
    // already-archived subject. Never retry after uncertain network status.
    const latest=await api('/api/member/manage/list');
    const matches=(latest.members||[]).filter(x=>x.memberId===m.memberId);
-   if(latest.withdrawMemberEnabled!==true||matches.length!==1||
+   if(latest.withdrawMemberEnabled!==true||
+      (latest.withdrawMemberScope==='single'&&latest.withdrawMemberTargetId!==m.memberId)||
+      matches.length!==1||
       !matches[0].active||matches[0].role==='admin'||
       matches[0].name!==m.name||
       (latest.withdrawn||[]).some(x=>x.memberId===m.memberId))
