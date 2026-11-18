@@ -170,6 +170,9 @@ ok(finance.includes("actionButton('修正','btn-blue',r.kind==='practice'||futur
  finance.includes("actionButton('削除','btn-outline',future")&&
  finance.includes("actionButton('確定','btn-green',future"),
  'practice edit is disabled, not removed; full v15 action trio stays visible');
+ok(finance.includes("month.slice(0,4)+'年'")&&
+ finance.includes("'月の残金：'+yen(ledger.closingBalance)"),
+ 'v15 footer shows target month and closing balance');
 ok(finance.includes("const badge=document.createElement('button')")&&
  finance.includes("badge.textContent='確定済み';badge.disabled=true"),
  'confirmed row shows gray disabled v15 button');
