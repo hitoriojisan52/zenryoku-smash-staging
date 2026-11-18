@@ -52,7 +52,7 @@ const env=['sheet_','sheetRows_','str_','norm_','bool_','safeCell_','now_','toda
  'expectVersion_','participantMatchLocked_','participantArchivePending_','fee_','SpreadsheetApp','audit_','SM'];
 const values=[sheet_,sheetRows_,str_,norm_,bool_,safeCell_,now_,()=> '2026-11-18',fail_,checkOpId_,
  practice_,practices_,entries_,paymentRows_,balanceRecalc_,writeLedger_,
- expectVersion_,participantMatchLocked_,participantArchivePending_,fee_,SpreadsheetApp,audit_,{fees:{visitor:1000}}];
+ expectVersion_,participantMatchLocked_,participantArchivePending_,fee_,SpreadsheetApp,audit_,{fees:{visitor:1000,member:800}}];
 const actual=new Function(...env,part+'\n'+visitor+
  '\nreturn {visitorRequests_,visitorMine_,visitorAdminList_,visitorRequest_,visitorDecision_,participantChange_,visitorHasApproved_}')(...values);
 const A={memberId:'M-ADMIN',role:'admin'},M={memberId:'M-ONE',role:'member'},OTHER={memberId:'M-OTHER',role:'member'};
@@ -81,7 +81,12 @@ const duplicate=actual.visitorDecision_({},A,{requestId:base.requestId,action:'a
 ok(duplicate.data.status==='approved'&&rows['出欠回答'].length===1,'same operationId replay does not duplicate attendee');
 expect(()=>actual.visitorDecision_({},A,{requestId:base.requestId,action:'approve',expectedVersion:1,operationId:'OP-APPROVE-002'}),'LOCKED');
 expect(()=>actual.participantChange_({}, {memberId:'M-DUTY',role:'duty'},{practiceId:base.practiceId,participantId:base.participantId,action:'delete',expectedVersion:0,operationId:'OP-DELETE-001'}),'FORBIDDEN');
-ok(rows['出欠回答'].length===1,'direct delete blocked to prevent approved request mismatch');
+ok(rows['出欠回答'].length===1,'non-admin direct delete blocked to prevent status mismatch');
+expect(()=>actual.participantChange_({},A,{practiceId:base.practiceId,participantId:base.participantId,
+ action:'edit',expectedVersion:0,name:'テスト花子',nameKana:'',category:'member',attending:true,memo:''}),'LOCKED');
+ok(rows['出欠回答'][0][4]==='visitor','approval-linked visitor cannot become member via edit');
+ok(gas.includes("if(cat!=='visitor'&&/^PV-/.test(person)&&visitorHasApproved_(ss,id,person))"),
+ 'payment category change also guards approval-linked visitor type');
 rows['集金記録'].push([base.practiceId,base.participantId,true,1,'M-ADMIN',now_()]);
 ledgerIncome=1000;ledgerStatus='confirmed';
 expect(()=>actual.visitorDecision_({},A,{requestId:base.requestId,action:'reject',expectedVersion:1,operationId:'OP-REJECT-001'}),'LOCKED');
