@@ -7,6 +7,11 @@
  const $=id=>document.getElementById(id);
  let api=null,actor=null,selected=null,refreshAfterDecision=null;
  const STATUS={pending:'承認待ち',approved:'承認済み',rejected:'却下済み'};
+ const formatRequestedAt_=(value)=>{
+  const text=w.SMDate.dateTimeJst(value,false);
+  return /^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}$/.test(text)
+   ?text:'日時を確認できません';
+ };
  const node=(tag,cls,txt)=>{
   const e=document.createElement(tag);if(cls)e.className=cls;
   if(txt!==undefined)e.textContent=String(txt);
@@ -30,7 +35,7 @@
   el.append(header);
   const details=[
    data.date?(w.SMDate.date(data.date)+' '+(data.place||'')):'開催日：登録がありません',
-   data.requestedAt?'申請日時：'+data.requestedAt:'',
+   data.requestedAt?'申請日時：'+formatRequestedAt_(data.requestedAt):'',
    admin?'申請者：'+(data.requestedByName||'不明'):'',
    data.nameKana?'カナ：'+data.nameKana:'',
    data.memo?'備考：'+data.memo:''
@@ -39,7 +44,7 @@
   if(admin){
    const actions=node('div','visitor-review-actions');
    for(const [action,label] of [['approve','承認'],['reject','却下']]){
-    const button=node('button',action==='reject'?'btn-danger':'btn-blue',label);
+    const button=node('button',action==='reject'?'btn-danger':'btn-green',label);
     button.type='button';button.disabled=(data.status==='rejected')||
       (action==='approve'&&data.status!=='pending');
     if(!button.disabled)button.addEventListener('click',()=>openConfirm(data,action));
@@ -60,7 +65,6 @@
   if(!Array.isArray(result?.requests)||
     result.requests.some(r=>!r.requestId||!STATUS[r.status]))
    throw Error('ビジター申請状況の取得結果が不正です。');
-  render('visitorMineList',result.requests,false);
   render('visitorMineCards',result.requests,false);
   return result.requests;
  }
@@ -84,7 +88,7 @@
    (data.date?w.SMDate.date(data.date):'開催日未確認')+'）を'+decision+'しますか？'+
    (action==='reject'?'承認済みの場合は参加者一覧から除外します。却下後は再承認できません。':'承認後、参加者一覧に反映されます。');
   $('visitorDecisionConfirm').textContent=decision+'する';
-  $('visitorDecisionConfirm').className=action==='reject'?'btn-danger':'btn-blue';
+  $('visitorDecisionConfirm').className=action==='reject'?'btn-danger':'btn-green';
   $('visitorDecisionDialog').showModal();
  }
  async function decide(){
@@ -104,12 +108,7 @@
   });
  }
  function bind(){
-  $('visitorMineMenu').addEventListener('click',()=>busy('申請状況を取得しています…',async()=>{
-   await loadMine();$('manageDialog').close();$('visitorMineDialog').showModal();
-  }));
   $('visitorMineRefresh').addEventListener('click',()=>busy('申請状況を更新しています…',loadMine));
-  $('visitorMemberRefresh').addEventListener('click',()=>busy('申請状況を更新しています…',loadMine));
-  $('visitorMineClose').addEventListener('click',()=>$('visitorMineDialog').close());
   $('visitorAdminMenu').addEventListener('click',()=>busy('ビジター申請を読み込んでいます…',async()=>{
    await loadAdmin();$('manageDialog').close();$('visitorAdminDialog').showModal();
   }));

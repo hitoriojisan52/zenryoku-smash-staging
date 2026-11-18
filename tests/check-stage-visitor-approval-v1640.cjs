@@ -128,8 +128,9 @@ ok(worker.includes("'/api/visitor/decide':'visitor.decide'")&&worker.includes("'
 ok(gas.includes("if(op==='visitor.register'||op==='visitor.request')")&&
  !gas.includes("var result=visitorRegister_(ss,member,payload);"),
  'legacy direct-visitor endpoint cannot bypass approval by writing attendance');
-ok(html.includes('id="visitorAdminDialog"')&&html.includes('id="visitorMineDialog"')&&
- html.includes('visitor-approval.js?v=1640'), 'member and administrator UI connected');
+ok(html.includes('id="visitorAdminDialog"')&&html.includes('id="visitorMineCards"')&&
+ !html.includes('id="visitorMineDialog"')&&html.indexOf('id="visitorMineCards"')<html.indexOf('<form id="visitorForm"')&&
+ html.includes('visitor-approval.js?v=1641'), 'member and administrator UI connected');
 ok(ui.includes("data.status==='rejected'")&&ui.includes("data.status!=='pending'"),
  'rejected is terminal and approved cannot be approved a second time');
 ok(ui.includes("id")&&live.includes("window.SMVisitor?.setup({api:call,actor:S.actor"),
