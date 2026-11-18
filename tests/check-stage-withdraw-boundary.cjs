@@ -23,10 +23,10 @@ expect(management.includes("'/api/member/manage/withdraw/check'"),
 expect(management.includes('renderHistory('),'history rendering retained');
 expect((management.match(/mutate\('\/api\/member\/manage\/withdraw',/g)||[]).length===1,
  'exactly one admin UI mutation call: no duplicate send');
-expect(management.includes("const first=await ask({title:'【退会確認（1/2）】'")&&
- management.includes("const second=await ask({title:'【退会確認（2/2）】'"),
- 'two in-app confirmations required');
-expect(management.includes("withdraw.disabled=snapshot.withdrawEnabled!==true"),
+expect(management.includes("const confirmed=await ask({title:'【退会確認】'")&&
+ !management.includes('【退会確認（2/2）】'),
+ 'single concise withdrawal confirmation required');
+expect(management.includes("snapshot.withdrawEnabled!==true"),
  'withdraw action disabled until both server gates agree');
 expect(management.includes('withdrawMember(m)')&&
  management.includes('!data.members.some(x=>x.memberId===m.memberId)'),

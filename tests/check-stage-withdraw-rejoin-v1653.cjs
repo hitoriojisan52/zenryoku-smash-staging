@@ -170,8 +170,8 @@ for(const name of protectedSheets)
  ok(JSON.stringify(db[name])===JSON.stringify(beforeProtected[name]),
   name+' unchanged even after reentry approval');
 ok(status()==='approved','same LINE identity logs in as newly approved member');
-ok(front.includes("title:'【退会確認（1/2）】'")&&
- front.includes("title:'【退会確認（2/2）】'")&&
+ok(front.includes("title:'【退会確認】'")&&
+ !front.includes('【退会確認（2/2）】')&&
  front.includes("const operationId=crypto.randomUUID();"),
  'UI has two confirmations and unique operation identifier');
 ok(front.includes("data.withdrawn.some(x=>x.memberId===m.memberId&&x.state==='completed')"),

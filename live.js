@@ -381,30 +381,35 @@ async function loadLedger(){const month=$('ledgerMonth').value,ledger=await call
   const future=r.date>today(),carry=r.kind==='carry',confirmed=r.status==='confirmed';
   if(carry)tr.classList.add('carry-row');
   if(confirmed&&!carry)tr.classList.add('confirmed');
-  // v15: fixed left-aligned action slots. A disabled Edit button remains visible
-  // for practice rows, future rows, and other non-editable entries.
+  // v15: left-aligned fixed slots before confirmation. After confirmation,
+  // duty sees a single disabled state; only admin sees Unlock.
   if(!carry){
    const group=document.createElement('div');group.className='ledger-action-group';
-   const canEdit=!future&&!confirmed&&r.kind!=='practice';
-   const canDelete=!future&&!confirmed;
-   // Eligibility is determined by GAS against the full ledger, including
-   // prior months and earlier entries on the same date.
-   const canConfirm=!future&&!confirmed&&r.canConfirm===true;
-   const slots=[['修正','edit',canEdit],['削除','delete',canDelete],
-     [confirmed?'確定済み':'確定','confirm',canConfirm]];
-   for(const [label,act,enabled] of slots){
-    const btn=document.createElement('button');btn.type='button';
-    btn.className=act==='delete'?'btn-outline':act==='confirm'?'btn-green':'btn-blue';
-    btn.textContent=label;btn.disabled=!enabled;
-    if(enabled)btn.addEventListener('click',()=>ledgerAction(act,r));
-    group.append(btn);
-   }
-   // Confirmed rows are immutable, but administrators can unlock them.
-   if(confirmed&&S.actor.role==='admin'&&!future){
-    const unlock=document.createElement('button');unlock.type='button';
-    unlock.className='btn-outline';unlock.textContent='確定解除';
-    unlock.addEventListener('click',()=>ledgerAction('unlock',r));
-    group.append(unlock);
+   if(confirmed){
+    const button=document.createElement('button');button.type='button';
+    if(S.actor.role==='admin'){
+     button.className='btn-outline';button.textContent='確定解除';
+     button.disabled=future;
+     if(!future)button.addEventListener('click',()=>ledgerAction('unlock',r));
+    }else{
+     button.className='btn-green';button.textContent='確定済み';
+     button.disabled=true;
+    }
+    group.append(button);
+   }else{
+    const canEdit=!future&&r.kind!=='practice';
+    const canDelete=!future;
+    // GAS calculates canConfirm across all prior months and same-day lines.
+    const canConfirm=!future&&r.canConfirm===true;
+    const slots=[['修正','edit',canEdit],['削除','delete',canDelete],
+      ['確定','confirm',canConfirm]];
+    for(const [label,act,enabled] of slots){
+     const btn=document.createElement('button');btn.type='button';
+     btn.className=act==='delete'?'btn-danger':act==='confirm'?'btn-green':'btn-blue';
+     btn.textContent=label;btn.disabled=!enabled;
+     if(enabled)btn.addEventListener('click',()=>ledgerAction(act,r));
+     group.append(btn);
+    }
    }
    actions.append(group);
   }else{

@@ -16,6 +16,7 @@ const VALID_PATHS = Object.freeze({
   '/api/member/manage/list':'member.manage.list',
   '/api/member/manage/decide':'member.manage.decide',
   '/api/member/manage/role':'member.manage.role',
+  '/api/member/manage/edit':'member.manage.edit', // v0.16.56: name only, administrator validated by GAS
   '/api/member/manage/withdraw':'member.manage.withdraw', // v0.16.53: admin-only, strictly staging-bound, opt-in
   '/api/member/manage/withdraw/check':'member.manage.withdraw.check', // v0.16.27: read-only and admin-checked by GAS
   '/api/match/share':'match.share.issue',
@@ -163,8 +164,8 @@ export async function handleRequest(request,env){
     // Public LIFF channel prefix (not a secret); disclose only a boolean,
     // never the configured environment value or any LINE token.
     const channelMatchesLiveLiff=env.LINE_LOGIN_CHANNEL_ID==='2012602642';
-    return json({ok:true,status:'deployed',version:'0.16.53-stage-withdrawal',
-      codeRevision:'stage-v1653-github-sync-20261119',
+    return json({ok:true,status:'deployed',version:'0.16.56-stage-member-edit',
+      codeRevision:'stage-v1656-member-editor-20261119',
       configured,channelMatchesLiveLiff});
   }
   const origin=request.headers.get('Origin')||'';
@@ -214,6 +215,16 @@ export async function handleRequest(request,env){
     const withdrawAtEdge=env.WITHDRAW_ENABLED==='true' &&
       env.WITHDRAW_STAGE_SPREADSHEET_ID==='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac' &&
       env.WORKER_PURPOSE==='staging-member-withdraw-v1653';
+    if(op==='member.manage.edit'){
+      if(typeof payload.memberId!=='string'||!/^M-[A-Z0-9-]{2,90}$/i.test(payload.memberId)||
+         typeof payload.displayName!=='string'||!payload.displayName.trim()||
+         payload.displayName.length>30||
+         typeof payload.expectedName!=='string'||!payload.expectedName.trim()||
+         payload.expectedName.length>30||
+         typeof payload.operationId!=='string'||
+         !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.operationId))
+        return failure('利用者情報の修正内容が不正です',400,origin,'BAD_REQUEST');
+    }
     if(op==='member.manage.withdraw'){
       if(!withdrawAtEdge)
         return failure('退会機能は現在無効です。データは変更されません。',403,origin,'WITHDRAW_DISABLED');

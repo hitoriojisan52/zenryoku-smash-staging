@@ -48,6 +48,7 @@ const popups={
  visitorMineEditDialog:{cancel:'visitorMineEditCancel'},
  attendanceDialog:{cancel:'attendanceCancel',topInSection:'attendanceReload'},
  accessConfirmV2:{cancel:'accessConfirmCancelV2'},
+ memberAccessEditV1656:{cancel:'memberAccessEditCancelV1656',save:'memberAccessEditSaveV1656'},
  stageErrorDialog:{close:'stageErrorOkay'},
  confirmActionDialog:{cancel:'cancelConfirmAction'}
 };
