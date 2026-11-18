@@ -24,6 +24,8 @@ const VALID_PATHS = Object.freeze({
   '/api/expense':'expense.set',
   '/api/ledger':'ledger.list',
   '/api/ledger/change':'ledger.change',
+  '/api/cash/get':'cash.get',
+  '/api/cash/save':'cash.save',
   '/api/roster/line':'roster.line',
   '/api/match/bootstrap':'match.bootstrap',
   '/api/match/practices':'match.practices',
