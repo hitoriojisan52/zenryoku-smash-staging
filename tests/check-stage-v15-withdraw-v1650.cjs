@@ -114,7 +114,8 @@ ok(auditEntries.length===1&&auditEntries[0][2]==='member.manage.withdraw.member'
 ok(preserved===JSON.stringify(Object.fromEntries(
  ['出欠回答','集金記録','全体収支管理表','試合セッション'].map(k=>[k,db[k]]))),
  'historical attendance, cash, finance and match records remain byte-identical');
-errorCode(()=>call(),'NOT_FOUND');
+errorCode(()=>call(),'CONFLICT');
+errorCode(()=>call({...payload,operationId:'42345678-1234-4123-8123-123456789abc'}),'NOT_FOUND');
 ok(auditEntries.length===1,'repeat/destructive replay never runs twice');
 // Simulate crash after processing history and member deactivation.
 db['メンバー'].push([memberId,'一般メンバー',targetLine,true,false]);
