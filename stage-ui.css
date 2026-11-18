@@ -200,41 +200,86 @@
  .stage-ui .participant-card-buttons button{padding:6px 7px;min-width:44px}
 }
 
-/* v0.16.44 - all app dialogs put Close at the upper-right, even while scrolling.
-   The busy overlay deliberately has no Close button. Cancel remains in the
-   footer for confirmations and executes the identical cancellation handler. */
-.stage-ui dialog.stage-has-top-close .stage-close-row{
- position:sticky;top:0;z-index:12;display:flex;justify-content:flex-end;
- height:44px;margin:0 0 -43px;pointer-events:none;
+/* v0.16.46: single shared dialog action toolbar. Nothing overlaps.
+ * Policy: title left; context actions in one flex row; Close rightmost.
+ * Narrow devices wrap controls to a NEW line, never behind Close.
+ * Save/approve/delete/cancel stay in the footer; sub-section buttons stay in
+ * their own section, and date/month filters stay with their inputs. */
+.stage-ui dialog.stage-has-toolbar .stage-dialog-toolbar{
+ position:sticky;top:0;z-index:12;
+ display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;
+ gap:7px 10px;min-width:0;
+ margin:0 0 10px;padding:5px 0 9px;
+ border-bottom:1px solid #d7e1e9;background:#fff;
 }
-.stage-ui dialog.stage-has-top-close .stage-close-row .stage-dialog-top-close{
- pointer-events:auto;min-height:44px;min-width:86px;font-size:12px;
- padding:8px 10px;border:1px solid #cfd8df;
- background:#eef2f7;color:#334e65;border-radius:6px;
- font-weight:700;white-space:nowrap;
+.stage-ui dialog.stage-has-toolbar .stage-dialog-toolbar > h2{
+ flex:1 1 140px;min-width:0;margin:0!important;
+ font-size:16px;line-height:1.4;white-space:normal;
+ overflow-wrap:anywhere;
 }
-.stage-ui dialog.stage-has-top-close > h2:first-of-type{
- padding-right:92px;min-height:44px;display:flex;align-items:center;
- box-sizing:border-box;
+.stage-ui dialog.stage-has-toolbar .stage-dialog-toolbar-actions{
+ display:flex;justify-content:flex-end;align-items:center;
+ flex:0 1 auto;min-width:0;max-width:100%;
+ flex-wrap:wrap;gap:6px;
+ margin-left:auto;
 }
-.stage-ui dialog#participantDialog .stage-header-close{
+.stage-ui dialog.stage-has-toolbar .stage-dialog-toolbar-actions button{
+ position:static!important;float:none!important;
+ width:auto!important;flex:0 0 auto;
+ min-height:44px!important;min-width:72px;
+ box-sizing:border-box;margin:0!important;padding:7px 9px!important;
+ border-radius:6px;font-size:12px!important;
+ line-height:1.3;white-space:nowrap;
+}
+.stage-ui dialog.stage-has-toolbar .stage-dialog-toolbar-actions .stage-dialog-top-close{
+ min-width:86px;
+ background:#eef2f7;color:#334e65;border:1px solid #cfd8df;
+}
+/* Empty old action rows have no visible border or vertical space.
+ * Keep their DOM nodes for other scripts (memberAccess details anchor). */
+.stage-ui dialog.stage-has-toolbar .modal-actions:not(:has(button)){display:none}
+.stage-ui #participantDialog .stage-dialog-toolbar{flex:none}
+.stage-ui #participantDialog .stage-dialog-toolbar > h2{color:#37474f}
+/* The QR panel uses the exact same non-overlapping header pattern. */
+.stage-ui #accessShare .stage-panel-toolbar{
+ display:flex;align-items:center;justify-content:space-between;
+ flex-wrap:wrap;gap:8px 10px;padding-bottom:8px;margin-bottom:6px;
+ border-bottom:1px solid #d7e1e9;
+}
+.stage-ui #accessShare .stage-panel-toolbar h2{
+ flex:1 1 140px;min-width:0;white-space:normal;
+ overflow-wrap:anywhere;margin:0;
+}
+.stage-ui #accessShare .stage-panel-toolbar #accessShareClose{
+ position:static!important;float:none!important;margin:0;
  min-height:44px;min-width:86px;flex:none;white-space:nowrap;
 }
-.stage-ui #accessShare{position:relative}
-.stage-ui #accessShareClose{
- position:absolute;right:10px;top:8px;z-index:3;
- min-height:44px;min-width:86px;
+/* The match confirmation and its Close are also one flex header row. */
+.stage-ui .match-modal-box .stage-match-dialog-toolbar{
+ position:sticky;top:0;z-index:3;
+ display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;
+ gap:7px 10px;background:#fff;padding-bottom:8px;margin-bottom:8px;
 }
-.stage-ui #accessShare > h2{padding-right:95px;min-height:44px;display:flex;align-items:center}
-.stage-ui .match-modal-box{position:relative}
-.stage-ui .match-modal-box .stage-match-top-close{
- display:none;position:sticky;top:0;margin:-8px -8px -36px auto;
- min-height:44px;min-width:86px;z-index:3;float:right;
+.stage-ui .match-modal-box .stage-match-dialog-toolbar strong{
+ flex:1 1 135px;min-width:0;overflow-wrap:anywhere;
+}
+.stage-ui .match-modal-box .stage-match-dialog-toolbar .stage-match-top-close{
+ display:inline-flex!important;position:static!important;float:none!important;
+ align-items:center;justify-content:center;flex:none;
+ min-height:44px;min-width:86px;padding:8px 10px;margin:0;
  background:#eef2f7;color:#334e65;border:1px solid #cfd8df;border-radius:6px;
- padding:8px;font-weight:700;font-size:12px;
+ font-weight:700;font-size:12px;
 }
-.stage-ui .match-modal-overlay .stage-match-top-close{display:block}
-.stage-ui .match-modal-msg{padding-top:42px}
-@media(max-width:350px){
- .stage-ui dialog.stage-has-top-close >h2:first-of-type{padding-right:86px}
+.stage-ui .match-modal-msg{padding-top:0!important}
+.stage-ui .match-modal-is-error .stage-match-dialog-toolbar strong{color:#b71c1c}
+@media(max-width:380px){
+ .stage-ui dialog.stage-has-toolbar .stage-dialog-toolbar{
+  align-items:stretch;gap:6px;
+ }
+ .stage-ui dialog.stage-has-toolbar .stage-dialog-toolbar-actions{
+  flex:1 1 100%;justify-content:flex-end;
+ }
+ .stage-ui dialog.stage-has-toolbar .stage-dialog-toolbar > h2{
+  flex:1 1 100%;
+ }
 }

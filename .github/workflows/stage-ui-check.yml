@@ -27,6 +27,7 @@ on:
       - 'dialog-close.js'
       - 'match-confirm.js'
       - 'tests/check-stage-dialog-close-v1644.cjs'
+      - 'tests/check-stage-dialog-inventory-v1646.cjs'
       - 'tests/check-stage-line-attendance-v1645.cjs'
       - 'match.js'
       - 'match.html'
@@ -83,8 +84,10 @@ jobs:
         run: node tests/check-ui-standards.cjs
       - name: Verify member-only LINE attendance timestamp and auth recovery
         run: node tests/check-stage-line-attendance-v1645.cjs
-      - name: Verify top-right Close controls and safe confirmation cancellation
+      - name: Verify top-right toolbar layout and original Cancel behavior
         run: node tests/check-stage-dialog-close-v1644.cjs
+      - name: Verify all 27 dialogs retain every original button and action route
+        run: node tests/check-stage-dialog-inventory-v1646.cjs
       - name: Verify staging withdrawal remains isolated
         run: node tests/check-stage-withdraw-boundary.cjs
       - name: Verify GAS payment timing without extra sheet writes
