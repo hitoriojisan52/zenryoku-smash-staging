@@ -55,7 +55,6 @@ for(const term of ['既存アプリ','GitHub','CI','本番','未確認','退会'
 // copy-paste GAS/Worker deployment or repeatedly asking for completed setup.
 const playbook=read('docs/DEPLOYMENT_AND_USER_ACTIONS.md');
 const handoff=read('docs/SESSION_HANDOFF.md');
-const prompt=read('docs/NEW_CHAT_START_PROMPT.md');
 const readme=read('README.md');
 for(const [file,s] of [
  ['docs/DEPLOYMENT_AND_USER_ACTIONS.md',playbook],
