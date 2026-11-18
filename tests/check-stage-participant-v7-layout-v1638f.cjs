@@ -62,7 +62,7 @@ const pm={people:[
   lineUserId:null,registeredAt:'2026-11-18 13:20:00',memo:'',collectionCompleted:false}
 ],matchLocked:false,financeLocked:false,uncertain:false};
 let edited=0,deleted=0;
-const render=new Function('PM','
+const render=new Function('PM','$','document','PM_CATEGORIES','window',
  'openParticipantEditor_','confirmParticipantDelete_',code+'\nreturn renderParticipantManager_;')(
  pm,$,document,{member:'メンバー',visitor:'ビジター'},
  {SMDate:{dateTimeJst:s=>s.startsWith('2026-11-17')?'2026/11/17 12:30':'2026/11/18 13:20'}},
