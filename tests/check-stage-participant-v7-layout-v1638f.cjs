@@ -45,6 +45,7 @@ class Element {
  constructor(tag){this.tag=tag;this.children=[];this.className='';this.textContent='';this.disabled=false;this.hidden=false;this.style={};this.listeners={};}
  append(...children){this.children.push(...children);}
  replaceChildren(...children){this.children=[...children];}
+ setAttribute(name,value){this[name]=String(value);}
  addEventListener(name,fn){this.listeners[name]=fn;}
 }
 const node={participantCards:new Element('div'),participantNotice:new Element('p')};
