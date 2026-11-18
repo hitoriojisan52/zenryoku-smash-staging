@@ -16,7 +16,7 @@ ok(CASH.cashTotal({10000:'2',500:1})===20500,'partial amounts and blank are calc
 for(const value of ['1.5','-1','10000','1e2','1,000','a'])fails(()=>CASH.parseCount(value));
 ok(!CASH.validDate('2026-02-29')&&CASH.validDate('2024-02-29'),'calendar validation preserved');
 
-const start=gas.indexOf('var SM_CASH_DENOMINATIONS_='),end=gas.indexOf('function overview_(',start);
+const start=gas.indexOf('var SM_CASH_DENOMINATIONS_='),end=gas.indexOf('/* v0.16.38a:',start);
 ok(start>=0&&end>start,'cash audit routines are present in staged GAS');
 const cashSource=gas.slice(start,end);
 // Exercise the actual GAS date-normalizer against the Date objects returned
