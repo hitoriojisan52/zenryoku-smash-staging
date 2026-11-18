@@ -137,11 +137,7 @@ ok(node.participantCategoryVisitor.hidden&&node.participantCategoryVisitor.disab
 const dataStart=ui.indexOf('function participantEditData_(){');
 const dataEnd=ui.indexOf('async function saveParticipantEdit_(',dataStart);
 ok(dataStart>=0&&dataEnd>dataStart,'participant editor payload is available');
-const getData=new Function('PM','
-ok(node.participantCards.children[0].textContent==='この開催日の回答データはありません。',
- 'empty state matches original v7');
-console.log('PASS '+n+'/'+n+' original v7 participant layout and no visitor-add regression');
-,'PM_CATEGORIES',ui.slice(dataStart,dataEnd)+
+const getData=new Function('PM','$','PM_CATEGORIES',ui.slice(dataStart,dataEnd)+
  '\nreturn participantEditData_;')(pm,$,{member:'メンバー',visitor:'ビジター',student:'学生'});
 node.participantName.value='別人';node.participantKana.value='ニセモノ';
 node.participantCategory.value='member';node.participantMemo.value='既存の備考';
