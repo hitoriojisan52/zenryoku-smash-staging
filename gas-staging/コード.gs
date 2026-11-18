@@ -1418,9 +1418,28 @@ function matchApiDispatch_(ss,member,op,payload){
           return matchView_(ss,member,payload);
         }
         fail_('CONFLICT','既に対戦表が作成されています');}
-      var state=SMMatchCore.create({practiceId:p,people:roster,enabledCourts:payload.enabledCourts||[1,2,3],
-        lookaheadCount:payload.lookaheadCount||5,excludedIds:payload.excludedIds||[],
-        fixedGroups:payload.fixedGroups||[],seed:payload.seed||17,candidateCount:payload.candidateCount||120});
+      // A newly confirmed schedule may have zero registrations. MatchEngine
+      // raises {code:'NO_FEASIBLE_MATCH'} (not smCode), which doPost previously
+      // masked as a generic server failure. Reject expected business conditions
+      // explicitly; preserve the generic envelope for unexpected exceptions.
+      var players=SMMatchCore.numbered(roster);
+      if(players.length<4)
+        fail_('NO_FEASIBLE_MATCH',
+          players.length===0
+            ?'この開催日の参加者はまだ登録されていません。4名以上の参加登録後に対戦表を作成してください。'
+            :'参加者は現在'+players.length+'名です。ダブルスの対戦表作成には4名以上必要です。');
+      var state;
+      try{
+        state=SMMatchCore.create({practiceId:p,people:roster,enabledCourts:payload.enabledCourts||[1,2,3],
+          lookaheadCount:payload.lookaheadCount||5,excludedIds:payload.excludedIds||[],
+          fixedGroups:payload.fixedGroups||[],seed:payload.seed||17,candidateCount:payload.candidateCount||120});
+      }catch(err){
+        if(err&&err.code==='NO_FEASIBLE_MATCH')
+          fail_('NO_FEASIBLE_MATCH','対戦可能な2チームを構成できません。参加者の除外、固定ペア・トリオ、使用コートの設定を確認してください。');
+        if(err&&['INVALID_ROSTER','INVALID_GROUP','INVALID_COURTS','INVALID_LOOKAHEAD','BAD_REQUEST'].indexOf(err.code)>=0)
+          fail_(err.code,err.message);
+        throw err; // never expose unexpected source detail to the frontend
+      }
       state.appliedOperations[operationId]=matchCreationFingerprint_(payload);
       matchCommit_(ss,p,state,operationId,member,'create');return matchView_(ss,member,payload);
     }
