@@ -66,6 +66,8 @@ jobs:
         run: node tests/check-stage-participant-v1638d.cjs
       - name: Verify match-session participant reads and manual refresh overlap
         run: node tests/check-stage-participant-refresh-v1638e.cjs
+      - name: Verify legacy-v7 participant layout without visitor-add shortcut
+        run: node tests/check-stage-participant-v7-layout-v1638f.cjs
       - name: Verify compact operation-history scan preserves idempotency
         run: node tests/check-gas-audit-ids-v1636h.cjs
       - name: Install pinned official Google clasp
