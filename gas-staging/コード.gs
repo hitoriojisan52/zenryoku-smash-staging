@@ -408,7 +408,7 @@ function iso_(s){s=String(s);if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;var 
 function jpy_(v,allowNegative){if(typeof v==='boolean'||v===null||v===undefined||v==='')fail_('BAD_REQUEST','金額が不正です');var n=Number(v);if(!Number.isSafeInteger(n)||(!allowNegative&&n<0))fail_('BAD_REQUEST','金額は整数で入力してください');return n;}
 function sheetRows_(ss,name){var sh=ss.getSheetByName(name);if(!sh)fail_('SETUP','必要なシートがありません: '+name);var max=SM.headers[name].length;return sh.getLastRow()<2?[]:sh.getRange(2,1,sh.getLastRow()-1,max).getValues();}
 function sheet_(ss,name){var sh=ss.getSheetByName(name);if(!sh)fail_('SETUP','必要なシートがありません: '+name);return sh;}
-function withLock_(fn){var lock=LockService.getScriptLock();if(!lock.tryLock(15000))fail_('BUSY','他の操作を処理中です。再試行してください');try{return fn();}finally{lock.releaseLock();}}
+function withLock_(fn,profile){var started=profile?Date.now():0,lock=LockService.getScriptLock();if(!lock.tryLock(15000))fail_('BUSY','他の操作を処理中です。再試行してください');if(profile)profile.lockWaitMs=Date.now()-started;try{return fn();}finally{lock.releaseLock();}}
 function member_(ss,lineUserId){var rows=sheetRows_(ss,'メンバー');var found=rows.filter(function(r){return str_(r[2])===lineUserId&&bool_(r[3]);});if(found.length!==1)fail_('UNAUTHORIZED','利用登録が確認できません');
  var m={memberId:str_(found[0][0]),name:norm_(found[0][1]),admin:bool_(found[0][4]),role:'member'};
  if(m.admin){m.role='admin';return m;}
@@ -497,19 +497,28 @@ function changeMoney_(ss,member,payload,kind){
  var result=balanceRecalc_(rows,entries_(ss));writeLedger_(ss,result);
  return {ok:true,data:{practiceId:id,ledgerVersion:row.version,income:row.income,expense:row.expense,adjustment:row.adjustment,balance:row.balance}};
 }
-function setPayment_(ss,member,payload){
- var id=str_(payload.practiceId),person=str_(payload.participantId),p=practice_(ss,id),original=entries_(ss),rows=original.map(function(r){return Object.assign({},r);}),ledger=row_(rows,'P-'+id);
+function setPayment_(ss,member,payload,profile){
+ var mark=profile?Date.now():0;
+ var id=str_(payload.practiceId),person=str_(payload.participantId),p=practice_(ss,id);
+ if(profile){profile.practiceReadMs=Date.now()-mark;mark=Date.now();}
+ var original=entries_(ss),rows=original.map(function(r){return Object.assign({},r);}),ledger=row_(rows,'P-'+id);
+ if(profile){profile.ledgerReadMs=Date.now()-mark;mark=Date.now();}
  unlockable_(ledger);var attending=attendees_(ss,id);if(!attending.some(function(a){return a.participantId===person;}))fail_('NOT_FOUND','出欠登録のある参加者が見つかりません');
+ if(profile){profile.attendeeReadMs=Date.now()-mark;mark=Date.now();}
  var sh=sheet_(ss,'集金記録'),all=sheetRows_(ss,'集金記録');var index=all.findIndex(function(r){return str_(r[0])===id&&str_(r[1])===person;});
+ if(profile){profile.paymentReadMs=Date.now()-mark;mark=Date.now();}
  var old=index>=0?all[index]:null,current=old?(Number(old[3])||0):0;
  expectVersion_(current,payload.expectedVersion);if(typeof payload.completed!=='boolean')fail_('BAD_REQUEST','完了状態が不正です');
  // Candidate income is computed in-memory before any write, to validate confirmed balances.
  var a=attending.find(function(x){return x.participantId===person;});var delta=(payload.completed?1:0)-(old&&bool_(old[2])?1:0);
  ledger.income+=delta*fee_(a.category,p.hours);ledger.version++;
  balanceRecalc_(rows,original);
+ if(profile){profile.validationMs=Date.now()-mark;mark=Date.now();}
  if(index>=0)sh.getRange(index+2,1,1,6).setValues([[id,person,payload.completed,current+1,member.memberId,now_()]]);
  else sh.appendRow([id,person,payload.completed,1,member.memberId,now_()]);
+ if(profile){profile.paymentWriteMs=Date.now()-mark;mark=Date.now();}
  writePaymentLedger_(ss,rows,original,'P-'+id);
+ if(profile)profile.ledgerWriteMs=Date.now()-mark;
  return {ok:true,data:{practiceId:id,participantId:person,completed:payload.completed,version:current+1,ledgerVersion:ledger.version,income:ledger.income,balance:ledger.balance}};
 }
 function setCategory_(ss,member,payload){
