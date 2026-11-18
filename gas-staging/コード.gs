@@ -591,10 +591,15 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
  if(body.op==='member.apply'||body.op==='member.status')
    return accessRegistration16_(ss_(),body.lineUserId,body.op,body.payload||{});
  // v0.15.12: measure only this read-only startup request (no IDs or secrets logged).
- var smProfile=body.op==='match.bootstrap',smT0=smProfile?Date.now():0;
- var ss=ss_(),smT1=smProfile?Date.now():0,
-     member=member_(ss,body.lineUserId),smT2=smProfile?Date.now():0,
+ var smProfile=body.op==='match.bootstrap',smT0=smProfile?Date.now():0,
+     paymentProfile=body.op==='payment.set'&&body.payload&&body.payload.profileTimings===true?{startedAt:Date.now()}:null;
+ var ss=ss_(),smT1=smProfile||paymentProfile?Date.now():0,
+     member=member_(ss,body.lineUserId),smT2=smProfile||paymentProfile?Date.now():0,
      op=str_(body.op),payload=body.payload||{};
+ if(paymentProfile){
+  paymentProfile.spreadsheetOpenMs=smT1-paymentProfile.startedAt;
+  paymentProfile.memberAuthMs=smT2-smT1;
+ }
  if(op==='session')return {ok:true,data:{memberId:member.memberId,name:member.name,role:member.role}};
  if(op.indexOf('member.manage.')===0)return accessManagement16_(ss,member,op,payload);
  if(op==='match.share.issue')return accessShareIssue16_(ss,member,payload);
@@ -618,16 +623,31 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
  if(['payment.set','category.set','adjustment.set','expense.set','ledger.change'].indexOf(op)<0)fail_('BAD_REQUEST','API操作が不正です');
  var opId=checkOpId_(payload);
  return withLock_(function(){
-   var done=auditExisting_(ss,opId,op,member);if(done)return done;
+   var mark=paymentProfile?Date.now():0;
+   var done=auditExisting_(ss,opId,op,member);
+   if(paymentProfile)paymentProfile.auditReadMs=Date.now()-mark;
+   if(done)return done;
    var result;
-   if(op==='payment.set')result=setPayment_(ss,member,payload);
+   if(op==='payment.set')result=setPayment_(ss,member,payload,paymentProfile);
    else if(op==='category.set')result=setCategory_(ss,member,payload);
    else if(op==='adjustment.set')result=changeMoney_(ss,member,payload,'adjustment');
    else if(op==='expense.set')result=changeMoney_(ss,member,payload,'expense');
    else result=mutateLedger_(ss,member,payload);
+   mark=paymentProfile?Date.now():0;
    audit_(ss,opId,op,member,str_(payload.rowId||payload.participantId||payload.practiceId),result);
+   if(paymentProfile&&result&&result.ok&&result.data){
+    paymentProfile.auditWriteMs=Date.now()-mark;
+    paymentProfile.handlerMs=Date.now()-paymentProfile.startedAt;
+    // Durations only: never send IDs/tokens/secrets or store timing metadata in the audit log.
+    var keys=['spreadsheetOpenMs','memberAuthMs','lockWaitMs','auditReadMs',
+      'practiceReadMs','ledgerReadMs','attendeeReadMs','paymentReadMs',
+      'validationMs','paymentWriteMs','ledgerWriteMs','auditWriteMs','handlerMs'];
+    var timings={};
+    keys.forEach(function(k){timings[k]=Math.max(0,Math.round(paymentProfile[k]||0));});
+    result.data.gasTimings=timings;
+   }
    return result;
- });
+ },paymentProfile);
 }
 function doPost(e){var response;try{if(!e||!e.postData||!e.postData.contents)fail_('BAD_REQUEST','要求がありません');response=dispatch_(JSON.parse(e.postData.contents));}catch(err){response={ok:false,code:err.smCode||'INTERNAL',error:err.smCode?err.message:'サーバー側で処理できませんでした'};console.error(err);}return ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON);}
 /** One-time setup only for a BLANK, NEW spreadsheet. Must be manually run in editor. */
