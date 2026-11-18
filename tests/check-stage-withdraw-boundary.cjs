@@ -22,7 +22,7 @@ expect(management.includes('renderHistory('),'history rendering missing');
 const worker=read('cloudflare-worker/worker.js');
 const gas=read('gas-staging/AccessAndGuestV160.gs');
 expect(worker.includes("env.WITHDRAW_MEMBER_ENABLED==='true'")&&
- worker.includes("env.WORKER_PURPOSE==='staging-member-withdraw-v1650'"),
+ worker.includes("env.WITHDRAW_MEMBER_PURPOSE==='staging-member-withdraw-v1650'"),
  'new real-member operation remains default-off and stage-purpose guarded at Worker');
 expect(gas.includes("conf_('WITHDRAW_MEMBER_ENABLED')==='true'")&&
  gas.includes("conf_('SPREADSHEET_ID')===SMA_STAGE_WITHDRAW_ID_V1636"),
