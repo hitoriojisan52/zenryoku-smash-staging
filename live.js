@@ -367,79 +367,131 @@ async function submitReimbursement(event){event.preventDefault();await guard(asy
  close('reimbursementDialog');$('reimbursementForm').reset();toast('立替精算を登録しました');await reload(false);
 });}
 
-// Optional cash count: read the existing month-ledger API, never write a sheet.
-// This dialog deliberately does NOT create an operation ID or a ledger entry.
+// v0.16.37b: legacy v7 surface, new ID-based cash audit backend.
+// This optional check stores denomination snapshots, NEVER mutates ledger money.
 const CASH=window.SMCashReconcile;
-let cashLedger=null;
+const CASH_LABELS={10000:'1万円札',5000:'5千円札',1000:'千円札',500:'500円玉',100:'100円玉',
+  50:'50円玉',10:'10円玉',5:'5円玉',1:'1円玉'};
+let cashSnapshot=null,cashCountsState=null;
+function blankCashCounts(){
+ return Object.fromEntries(CASH.DENOMINATIONS.map(n=>[n,0]));
+}
 function prepareCashDenominations(){
  const box=$('cashDenominations');if(!CASH){$('cashCounter').disabled=true;return;}
- box.replaceChildren();
+ cashCountsState=blankCashCounts();box.replaceChildren();
  for(const denom of CASH.DENOMINATIONS){
-  const cell=document.createElement('div');cell.className='cash-denom';
-  const label=document.createElement('label');label.htmlFor='cashDenom'+denom;
-  label.textContent=yen(denom);
-  const input=document.createElement('input');input.id='cashDenom'+denom;
-  input.type='number';input.min='0';input.max='9999';input.step='1';input.inputMode='numeric';
-  input.placeholder='0';input.setAttribute('aria-label',yen(denom)+'の枚数');
-  input.addEventListener('input',renderCash);
-  cell.append(label,input);box.append(cell);
+  const item=document.createElement('div');item.className='cash-denom';
+  const label=document.createElement('span');label.className='cash-denom-label';label.textContent=CASH_LABELS[denom];
+  const controls=document.createElement('div');controls.className='cash-controls';
+  const minus=document.createElement('button');minus.type='button';minus.className='cash-count-btn cash-count-minus';minus.textContent='−';
+  minus.setAttribute('aria-label',CASH_LABELS[denom]+'を1枚減らす');
+  const count=document.createElement('span');count.id='cashCount'+denom;count.className='cash-count-display';count.textContent='0';
+  const plus=document.createElement('button');plus.type='button';plus.className='cash-count-btn cash-count-plus';plus.textContent='+';
+  plus.setAttribute('aria-label',CASH_LABELS[denom]+'を1枚増やす');
+  const subtotal=document.createElement('span');subtotal.id='cashSubtotal'+denom;subtotal.className='cash-subtotal';subtotal.textContent='0円';
+  minus.addEventListener('click',()=>changeCashCount(denom,-1));
+  plus.addEventListener('click',()=>changeCashCount(denom,1));
+  controls.append(minus,count,plus,subtotal);item.append(label,controls);box.append(item);
  }
 }
-function cashCounts(){
- return Object.fromEntries(CASH.DENOMINATIONS.map(n=>[n,$('cashDenom'+n).value]));
-}
-function resetCashCounts(){
- for(const n of CASH.DENOMINATIONS)$('cashDenom'+n).value='';
+function changeCashCount(denom,delta){
+ if(!cashCountsState||!CASH||window.SMStageUX.isBusy())return;
+ const current=cashCountsState[denom]||0;
+ cashCountsState[denom]=Math.max(0,Math.min(9999,current+delta));
  renderCash();
 }
 function renderCash(){
- if(!CASH)return;
- const date=$('cashDate').value,bookEl=$('cashBook'),actualEl=$('cashActual'),diffEl=$('cashDifference'),status=$('cashStatus');
- bookEl.textContent='—';actualEl.textContent='—';diffEl.textContent='—';diffEl.className='';
- if(!CASH.validDate(date)||date>today()){status.textContent='確認対象日を正しく指定してください。';return;}
- try{
-  const counts=cashCounts(),hasInput=Object.values(counts).some(x=>String(x).trim()!=='');
-  const actual=CASH.cashTotal(counts);
-  if(hasInput)actualEl.textContent=yen(actual);
-  if(!cashLedger){status.textContent='帳簿残金を取得できていません。「再読込」を押してください。';return;}
-  const book=CASH.asOfDate(cashLedger,date);
-  if(!book.found){
-   status.textContent='指定日の収支行がありません。収支表を確認してください（差額は計算しません）。';
-   return;
-  }
-  bookEl.textContent=yen(book.balance);
-  status.textContent=book.provisional?'対象月のこの日付までに未確定の収支行があります。帳簿残金は暫定値です。':'';
-  if(!hasInput)return;
-  const difference=actual-book.balance;
-  if(!Number.isSafeInteger(difference))throw new Error('差額が計算可能な範囲を超えました');
-  diffEl.textContent=(difference>0?'+':'')+yen(difference)+(difference===0?'（一致）':'');
-  diffEl.className=difference===0?'cash-same':'cash-diff';
- }catch(e){status.textContent=e.message;actualEl.textContent='—';diffEl.textContent='—';}
+ if(!CASH||!cashCountsState)return;
+ const snap=cashSnapshot,status=$('cashStatus'),book=$('cashBook'),difference=$('cashDifference');
+ const valid=!!(snap&&snap.found&&Number.isSafeInteger(snap.bookBalance));
+ const actual=CASH.cashTotal(cashCountsState);
+ for(const denom of CASH.DENOMINATIONS){
+  $('cashCount'+denom).textContent=String(cashCountsState[denom]);
+  $('cashSubtotal'+denom).textContent=yen(cashCountsState[denom]*denom);
+ }
+ $('cashActual').textContent=yen(actual);
+ $('cashDateDisplay').textContent=snap?window.SMDate.date(snap.auditDate):'—';
+ book.textContent=valid?yen(snap.bookBalance):'—';
+ $('cashSave').disabled=!valid||snap.auditDate>today()||S.pending.size>0;
+ difference.textContent=valid?
+  (actual===snap.bookBalance?'0円 (一致！)':
+   actual>snap.bookBalance?'+'+yen(actual-snap.bookBalance)+' (超過)':
+    yen(actual-snap.bookBalance)+' (不足)'):'—';
+ difference.className=!valid?'':actual===snap.bookBalance?'cash-same':
+    actual>snap.bookBalance?'cash-surplus':'cash-shortage';
+ status.textContent=!snap?'帳簿残金を読み込んでいます…':
+  !snap.found?'⚠️ 指定された日付の行が「全体収支管理表」に見つかりません。':
+  snap.updatedBy&&snap.savedBookBalance!==null&&snap.savedBookBalance!==snap.bookBalance?
+  '前回の現金確認後に帳簿残金が変更されています。内容を確認してください。':'';
 }
-async function refreshCashLedger(){
- const date=$('cashDate').value;
- cashLedger=null;renderCash();
- if(!CASH.validDate(date)||date>today())throw new Error('確認対象日を正しく指定してください');
- const result=await call('/api/ledger',{month:date.slice(0,7)});
- if(result?.month!==date.slice(0,7)||!Array.isArray(result.rows))
-  throw new Error('帳簿データの取得結果が不正です');
- cashLedger=result;renderCash();
+function validateCashSnapshot_(result,practiceId){
+ if(!result||result.practiceId!==practiceId||result.auditDate!==S.overview?.practice?.date||
+    typeof result.found!=='boolean'||!Number.isSafeInteger(result.version)||result.version<0||
+    (result.found&&!Number.isSafeInteger(result.bookBalance))||!result.counts||
+    typeof result.counts!=='object')
+  throw new Error('現金確認データが一致しません。「更新」して再確認してください');
+ const counts={};
+ for(const denom of CASH.DENOMINATIONS){
+  if(!Number.isSafeInteger(result.counts[denom])||result.counts[denom]<0||result.counts[denom]>9999)
+   throw new Error('保存された枚数が不正です。管理者へご連絡ください');
+  counts[denom]=result.counts[denom];
+ }
+ if(Object.keys(result.counts).length!==CASH.DENOMINATIONS.length)
+  throw new Error('金種の種類が一致しません');
+ return {result,counts};
+}
+async function refreshCashSnapshot_(){
+ const practiceId=S.practiceId;
+ cashSnapshot=null;renderCash();
+ const response=await call('/api/cash/get',{practiceId});
+ if(practiceId!==S.practiceId)throw new Error('開催日が変更されました。もう一度現金確認を開いてください');
+ const validated=validateCashSnapshot_(response,practiceId);
+ cashSnapshot=response;cashCountsState=validated.counts;renderCash();
 }
 async function openCash(){
  let ready=false;
  await guard(async()=>{
-  gateEdit();
-  if(!CASH)throw new Error('現金確認機能の読み込みに失敗しました');
-  const selected=S.overview?.practice?.date;
-  $('cashDate').max=today();
-  $('cashDate').value=selected&&selected<=today()?selected:today();
-  cashLedger=null;
-  resetCashCounts();
-  await refreshCashLedger();
+  gateEdit();if(!CASH)throw new Error('現金確認機能の読み込みに失敗しました');
+  await refreshCashSnapshot_();
   ready=true;
  });
- // Open AFTER the full-screen busy overlay closes, avoiding stacked dialogs.
  if(ready){close('manageDialog');dialog('cashDialog');}
+}
+function resetCashCounts(){
+ cashCountsState=blankCashCounts();renderCash();toast('枚数をリセットしました');
+}
+function showCashSaveConfirm(){
+ if(!cashSnapshot?.found||cashSnapshot.auditDate>today())return;
+ $('cashSaveMessage').textContent=window.SMDate.date(cashSnapshot.auditDate)+
+  ' の金種枚数データを保存しますか？';
+ dialog('cashSaveDialog');
+}
+async function saveCashAudit(){
+ close('cashSaveDialog');
+ const original=cashSnapshot;
+ if(!original?.found)return;
+ await guard(async()=>{
+  gateEdit();
+  const counts={...cashCountsState},actual=CASH.cashTotal(counts);
+  let saved;
+  try{
+   saved=await call('/api/cash/save',{operationId:uuid(),practiceId:original.practiceId,
+    counts,expectedVersion:original.version});
+   if(saved?.practiceId!==original.practiceId||saved?.auditDate!==original.auditDate||
+      saved.version!==original.version+1||saved.actual!==actual||
+      !Number.isSafeInteger(saved.bookBalance)||saved.difference!==actual-saved.bookBalance||
+      CASH.DENOMINATIONS.some(n=>saved?.counts?.[n]!==counts[n]))
+    throw new Error('保存結果を確認できません。現金確認を閉じて開き直し、記録をご確認ください。');
+  }catch(error){
+   // The request may have committed even if the reply was lost. Block a
+   // second save until a fresh snapshot has been read from GAS.
+   cashSnapshot=null;renderCash();throw error;
+  }
+  cashSnapshot={...original,version:saved.version,bookBalance:saved.bookBalance,
+    counts:saved.counts,savedBookBalance:saved.bookBalance,updatedBy:saved.updatedBy,
+    updatedAt:saved.updatedAt};
+  renderCash();toast('現金確認を保存しました');
+ });
 }
 
 function bind(){
@@ -453,10 +505,13 @@ function bind(){
  $('manageBtn').addEventListener('click',()=>dialog('manageDialog'));$('closeManage').addEventListener('click',()=>close('manageDialog'));$('openLedger').addEventListener('click',openLedger);
  prepareCashDenominations();
  $('cashCounter').addEventListener('click',openCash);
- $('cashDate').addEventListener('change',()=>guard(refreshCashLedger));
- $('cashRefresh').addEventListener('click',()=>guard(refreshCashLedger));
- $('cashReset').addEventListener('click',resetCashCounts);
- $('cashClose').addEventListener('click',()=>{cashLedger=null;close('cashDialog');});
+ $('cashReset').addEventListener('click',()=>dialog('cashResetDialog'));
+ $('cashResetCancel').addEventListener('click',()=>close('cashResetDialog'));
+ $('cashResetConfirm').addEventListener('click',()=>{close('cashResetDialog');resetCashCounts();});
+ $('cashSave').addEventListener('click',showCashSaveConfirm);
+ $('cashSaveCancel').addEventListener('click',()=>close('cashSaveDialog'));
+ $('cashSaveConfirm').addEventListener('click',saveCashAudit);
+ $('cashClose').addEventListener('click',()=>{cashSnapshot=null;close('cashDialog');});
  for(const id of ['manageSchedules','managePeople'])$(id).disabled=true;
  $('ledgerMonth').addEventListener('change',()=>guard(loadLedger));$('prevMonth').addEventListener('click',()=>shiftMonth(-1));$('nextMonth').addEventListener('click',()=>shiftMonth(1));
  $('closeLedger').addEventListener('click',()=>close('ledgerDialog'));$('newLedgerRow').addEventListener('click',()=>openEditor());
