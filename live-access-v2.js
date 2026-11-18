@@ -288,7 +288,7 @@
    if(busy||prompt||!editingMember)return;
    const m=editingMember;
    const name=$('memberAccessEditNameV1656').value.normalize('NFKC').trim();
-   if(!name||name.length>30||/[\\r\\n<>]/.test(name)){
+   if(!name||name.length>30||/[\r\n<>]/.test(name)){
     $('memberAccessEditStatusV1656').textContent='氏名を1～30文字で入力してください。';
     return;
    }
