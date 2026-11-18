@@ -92,6 +92,6 @@ async function scenario(role){
     js.slice(submitStart,submitEnd).includes("'/api/ledger/change'"),
     'saving still requires duty/admin and uses versioned ledger API');
  ok(gas.includes('requireDuty_(member)')&&
-    gas.includes("op==='ledger.change'"),'server-side finance authorization remains');
+    gas.includes("mutateLedger_(ss,member,payload)"),'server-side finance authorization remains');
  console.log('PASS '+n+'/'+n+' stage ledger Add boot/permissions/editor regression');
 })().catch(e=>{console.error(e);process.exitCode=1});
