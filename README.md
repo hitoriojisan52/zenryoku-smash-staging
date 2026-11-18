@@ -1,4 +1,9 @@
 # 全力☆スマッシュ｜検証用GitHub Pages
+
+**新しいチャットで開発を再開する場合は、必ず先に [現行仕様優先・引継ぎ契約](docs/SESSION_HANDOFF.md) を読む。**
+既存運用管理ツールの業務仕様を基本踏襲し、明示変更がない条件を削除・緩和しない。
+特に収支の確定順序（先行未確定行があれば確定不可）は画面とGASの両方で守る。
+
 公開先: https://hitoriojisan52.github.io/zenryoku-smash-staging/
 
 **画面共通仕様（最優先）**：[`docs/ui-standard-v1632.md`](docs/ui-standard-v1632.md) を参照。変更前に `node tests/check-ui-standards.cjs` で不要な処理中文言の再混入等を検査する。
