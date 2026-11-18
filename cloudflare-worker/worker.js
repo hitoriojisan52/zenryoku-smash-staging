@@ -7,6 +7,8 @@
 // v0.16.36: first Git-connected staging build trigger (no functional changes).
 const VALID_PATHS = Object.freeze({
   '/api/session':'session',
+  '/api/attendance/mine':'attendance.mine',
+  '/api/attendance/submit':'attendance.submit',
   '/api/member/status':'member.status',
   '/api/member/apply':'member.apply',
   '/api/member/manage/list':'member.manage.list',
@@ -156,7 +158,11 @@ export async function handleRequest(request,env){
   // It does NOT prove LINE authentication or GAS connectivity.
   if(url.pathname==='/health' && request.method==='GET'){
     const configured=Boolean(env.FRONTEND_ORIGIN&&env.LINE_LOGIN_CHANNEL_ID&&env.GAS_WEB_APP_URL&&env.GAS_SHARED_SECRET);
-    return json({ok:true,status:'deployed',version:'0.16.40-stage-visitor-approval',configured});
+    // Public LIFF channel prefix (not a secret); disclose only a boolean,
+    // never the configured environment value or any LINE token.
+    const channelMatchesLiveLiff=env.LINE_LOGIN_CHANNEL_ID==='2012602642';
+    return json({ok:true,status:'deployed',version:'0.16.45-stage-attendance',
+      configured,channelMatchesLiveLiff});
   }
   const origin=request.headers.get('Origin')||'';
   // Reject any browser origin other than the one approved GitHub Pages site.

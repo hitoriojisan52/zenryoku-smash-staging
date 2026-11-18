@@ -58,7 +58,7 @@ async function call(path,payload={}){
  if(!S.token||!CONFIG.apiBaseUrl)throw new Error('LINE認証またはAPI設定がありません');
  const url=CONFIG.apiBaseUrl.replace(/\/$/,'')+path;
  // Invalidate responses from reads that started before a write.
- if(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change','/api/schedule/change','/api/visitor/register','/api/visitor/request','/api/visitor/decide','/api/visitor/modify','/api/participant/change'].includes(path))S.updateEpoch++;
+ if(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change','/api/schedule/change','/api/visitor/register','/api/visitor/request','/api/visitor/decide','/api/visitor/modify','/api/participant/change','/api/attendance/submit'].includes(path))S.updateEpoch++;
  const startedAt=performance.now();
  const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},body:JSON.stringify(payload),cache:'no-store'});
  if(PERF_MODE){
@@ -67,7 +67,7 @@ async function call(path,payload={}){
    console.info('[STAGE PERF]',S.lastPerf.path,S.lastPerf.totalMs+'ms',S.lastPerf.serverTiming);
  }
  let value;try{value=await response.json();}catch{throw new Error('サーバーからの応答を読み取れません');}
- if(!response.ok||!value.ok){const err=new Error(value.error||'処理を完了できませんでした');err.status=response.status;throw err;}
+ if(!response.ok||!value.ok){const err=new Error(value.error||'処理を完了できませんでした');err.status=response.status;err.code=String(value.code||'');throw err;}
  return value.data;
 }
 // Collection checkboxes are independent. Only up to two requests leave this page
@@ -137,7 +137,7 @@ async function boot(){
  try{
   if(!CONFIG.liveLiffId||CONFIG.liveLiffId.includes('REPLACE_')||!CONFIG.apiBaseUrl||CONFIG.apiBaseUrl.includes('REPLACE_'))throw new Error('runtime-config.js の設定が必要です');
   if(!window.liff)throw new Error('LINE SDKを読み込めませんでした');
-  await liff.init({liffId:CONFIG.liveLiffId});
+  await liff.init({liffId:CONFIG.liveLiffId,withLoginOnExternalBrowser:true});
   if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return;}
   S.token=liff.getIDToken();if(!S.token)throw new Error('LINE IDトークンを取得できません');
   S.actor=await call('/api/session');
@@ -786,6 +786,79 @@ async function registerVisitor_(){
 }
 
 
+// v0.16.45: authenticated personal LINE attendance, never visitor proxy.
+// Every successful send is dated on the GAS server via 操作履歴.
+const AT={practices:[],answers:[],selected:'',uncertain:false};
+function memberAttendanceSelected_(){
+ return AT.answers.find(a=>a.practiceId===AT.selected)||null;
+}
+function renderMemberAttendance_(){
+ const select=$('attendancePractice'),previous=AT.selected;
+ select.replaceChildren(...AT.practices.map(p=>new Option(
+  window.SMDate.date(p.date)+'　'+(p.place||'開催場所未登録')+
+  '　'+p.startTime+'～'+p.endTime,p.practiceId)));
+ AT.selected=AT.practices.some(p=>p.practiceId===previous)?previous:
+   (AT.practices[0]?.practiceId||'');
+ select.value=AT.selected;
+ const response=memberAttendanceSelected_();
+ $('attendanceAttending').value=response?.attending===false?'absent':'attend';
+ $('attendanceMemo').value=response?.memo||'';
+ const first=response?.reportedAt?window.SMDate.dateTimeJst(response.reportedAt,false):'未記録';
+ const latest=response?.lastReportedAt?window.SMDate.dateTimeJst(response.lastReportedAt,false):'未記録';
+ $('attendanceLastDate').textContent='初回参加連絡：'+first+
+   (first!==latest?'　最終連絡：'+latest:'');
+ const message=$('attendanceNotice');
+ message.textContent=AT.uncertain?'送信結果が不明です。「更新」で最新の連絡を確認してください':
+  !AT.practices.length?'受付中の練習日程がありません':
+  response?.locked?'この日程は対戦表作成済み、または収支確定済みです':'';
+ message.hidden=!message.textContent;
+ $('attendanceSave').disabled=AT.uncertain||!response||response.locked;
+}
+async function loadMemberAttendance_(){
+ const result=await call('/api/attendance/mine');
+ if(!result||!Array.isArray(result.practices)||!Array.isArray(result.answers))
+  throw new Error('参加連絡の取得結果を確認できません');
+ const unique=new Set();
+ for(const row of result.answers){
+  if(!row.practiceId||unique.has(row.practiceId)||typeof row.attending!=='boolean'||
+   typeof row.locked!=='boolean')
+   throw new Error('参加連絡の版番号または日程を確認できません');
+  unique.add(row.practiceId);
+ }
+ AT.practices=result.practices;AT.answers=result.answers;AT.uncertain=false;
+ renderMemberAttendance_();
+}
+async function openMemberAttendance_(){
+ let ready=false;
+ await guard(async()=>{await loadMemberAttendance_();ready=true;},'参加連絡を読み込んでいます…');
+ if(ready){close('manageDialog');dialog('attendanceDialog');}
+}
+async function saveMemberAttendance_(event){
+ event.preventDefault();
+ const selected=memberAttendanceSelected_();
+ if(!selected||selected.locked||AT.uncertain)return;
+ await guard(async()=>{
+  const request={operationId:uuid(),practiceId:AT.selected,
+   attending:$('attendanceAttending').value==='attend',
+   memo:$('attendanceMemo').value.trim(),expectedVersion:selected.version};
+  if(request.memo.length>200||/[\u0000-\u001f]/.test(request.memo))
+   throw new Error('備考を確認してください');
+  let result;
+  try{result=await call('/api/attendance/submit',request);}
+  catch(error){AT.uncertain=true;renderMemberAttendance_();throw error;}
+  if(result?.practiceId!==request.practiceId||
+   result?.participantId!==S.actor?.memberId||
+   typeof result.reportedAt!=='string'||!Number.isSafeInteger(result.version)){
+   AT.uncertain=true;renderMemberAttendance_();
+   throw new Error('保存結果が不明です。「更新」で確認してください');
+  }
+  try{await loadMemberAttendance_();}
+  catch(error){AT.uncertain=true;renderMemberAttendance_();throw error;}
+  if(S.overview&&S.practiceId===request.practiceId)await reload(true);
+  toast('参加連絡を送信しました');
+ },'参加連絡を保存しています…');
+}
+
 // v0.16.38d: legacy participant roster/edit/delete, keyed only by fixed IDs.
 // v0.16.43: stable member identity is read-only in participant edits.
 // Unlinked LINE subject is shown explicitly; visitor identities remain separately editable.
@@ -842,6 +915,18 @@ function renderParticipantManager_(){
   registered.textContent='📅 登録日：'+
     (/^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}$/.test(dateText)?dateText:'未記録');
   details.append(registered);
+  if(p.category!=='visitor'){
+   if(p.lastReportedAt&&p.lastReportedAt!==p.registeredAt){
+    const updated=document.createElement('span');
+    updated.textContent='🕒 最終連絡：'+window.SMDate.dateTimeJst(p.lastReportedAt,false);
+    details.append(updated);
+   }
+   if(p.memberRegisteredAt){
+    const memberDate=document.createElement('span');
+    memberDate.textContent='🪪 利用登録日：'+window.SMDate.dateTimeJst(p.memberRegisteredAt,false);
+    details.append(memberDate);
+   }
+  }
   info.append(details);
   if(p.memo){
    const note=document.createElement('div');note.className='participant-card-memo';
@@ -1007,6 +1092,14 @@ function bind(){
  $('scheduleActionCancel').addEventListener('click',()=>close('scheduleActionDialog'));
  $('scheduleActionSubmit').addEventListener('click',executeScheduleAction_);
  $('managePeople').addEventListener('click',openParticipantManager_);
+ $('memberAttendanceStart').addEventListener('click',openMemberAttendance_);
+ $('manageAttendance').addEventListener('click',openMemberAttendance_);
+ $('attendancePractice').addEventListener('change',()=>{
+  AT.selected=$('attendancePractice').value;renderMemberAttendance_();
+ });
+ $('attendanceReload').addEventListener('click',()=>guard(loadMemberAttendance_,'参加連絡を読み込んでいます…'));
+ $('attendanceForm').addEventListener('submit',saveMemberAttendance_);
+ $('attendanceCancel').addEventListener('click',()=>close('attendanceDialog'));
  $('participantPractice').addEventListener('change',switchParticipantDate_);
  $('participantReload').addEventListener('click',()=>guard(loadParticipants_,'参加者を読み込んでいます…'));
  $('participantClose').addEventListener('click',()=>close('participantDialog'));

@@ -34,6 +34,10 @@ let rows={
  ],
  '試合セッション':[],
  '参加者操作アーカイブ':[],
+ '操作履歴':[
+  ['OP-AT-1','attendance.submit','M-A','2026-11-18 20:10:00','P-TODAY|M-A','{}'],
+  ['OP-AT-2','attendance.submit','M-A','2026-11-18 20:40:00','P-TODAY|M-A','{}']
+ ],
  'メンバー':[
   ['M-A','全力太郎','U'+'a'.repeat(32),true,false],
   ['M-DUTY','当番','U'+'b'.repeat(32),true,false]
@@ -103,8 +107,10 @@ const baseline=list();
 ok(baseline.participants.length===2&&baseline.participants[0].collectionCompleted,
  'paid and unpaid participants listed by fixed IDs');
 ok(!('email' in baseline.participants[0])&&
- baseline.participants[0].registeredAt==='2026-11-17T03:30:00.000Z',
- 'member registration date uses the linked approved account request, never an invented practice date');
+ baseline.participants[0].registeredAt==='2026-11-18 20:10:00'&&
+ baseline.participants[0].lastReportedAt==='2026-11-18 20:40:00'&&
+ baseline.participants[0].memberRegisteredAt==='2026-11-17T03:30:00.000Z',
+ 'attendance card tracks first and latest LINE report, keeps account application separate');
 ok(baseline.participants[1].registeredAt==='2026-11-18 13:20:00',
  'approved visitor registration date equals approval timestamp, NOT request timestamp');
 ok(baseline.participants[0].lineUserId==='U'+'a'.repeat(32)&&
@@ -120,8 +126,9 @@ ok(list().participants[0].name==='利用申請に合わせた名前'&&
  'member display name tracks the member master on each read without mutating Sheets');
 rows['メンバー'][0][1]='全力太郎';
 rows['登録申請'][0][1]='U'+'e'.repeat(32);
-ok(list().participants[0].registeredAt===null,
- 'mismatched registration LINE subject cannot be mistaken for the attendee');
+ok(list().participants[0].memberRegisteredAt===null&&
+ list().participants[0].registeredAt==='2026-11-18 20:10:00',
+ 'mismatched registration token must not change the independent attendance report date');
 rows['登録申請'][0][1]='U'+'a'.repeat(32);
 const catStart=gas.indexOf('function setCategory_('),catEnd=gas.indexOf('function mutateLedger_(',catStart);
 ok(catStart>=0&&catEnd>catStart,'direct fee-category operation present');
