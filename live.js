@@ -93,6 +93,7 @@ function drainPaymentQueue_(){
        // Set the fault BEFORE freeing the slot; otherwise a queued third write
        // could start between an HTTP error and the caller's catch handler.
        S.paymentNeedsRefresh=true;
+       drainPaymentQueue_(); // cancel unsent requests before another slot is freed
        job.reject(error);
      }).finally(()=>{S.paymentActive--;drainPaymentQueue_();});
  }
