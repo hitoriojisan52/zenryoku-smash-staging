@@ -55,3 +55,45 @@ body.access-v2-active .stage-withdraw-check-result-v1627{
 }
 body.access-v2-active .stage-withdraw-check-result-v1627[hidden],
 body.access-v2-active #memberAccessWithdrawCheckButtonV1627[hidden]{display:none!important}
+
+/* v0.16.48: 利用者一覧 / 退会者一覧 use the shared participant card. */
+body.access-v2-active #memberAccessDialog .participant-card-item{
+ margin:0 0 7px;padding:9px 10px;
+}
+body.access-v2-active #memberAccessDialog .participant-card-title{
+ display:flex;align-items:center;justify-content:space-between;
+}
+body.access-v2-active #memberAccessDialog .participant-card-details{
+ line-height:1.5;word-break:break-word;
+}
+body.access-v2-active #memberAccessDialog .member-role-actions{
+ display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:flex-end;
+ gap:6px;max-width:min(56%,250px);margin-left:auto;
+}
+body.access-v2-active #memberAccessDialog .member-role-actions select{
+ width:auto;min-width:118px;max-width:200px;
+ min-height:44px;font-size:14px;padding:7px;
+ border:1px solid #b8c8d6;border-radius:6px;
+}
+body.access-v2-active #memberAccessDialog .member-role-actions button{
+ min-width:64px;min-height:44px;padding:7px 10px;font-size:13px;
+}
+body.access-v2-active #memberAccessDialog .member-role-actions .stage-role-readonly{
+ white-space:nowrap;font-size:12px;min-height:40px;
+ display:flex;align-items:center;
+}
+body.access-v2-active #memberAccessDialog .access-history-v2{
+ margin-top:15px;padding-top:12px;border-top:1px solid #e1e8f0;
+}
+body.access-v2-active #memberAccessDialog .access-history-v2 h3{
+ margin:2px 0 9px;font-size:15px;
+}
+body.access-v2-active #memberAccessHistoryV2[hidden]{display:none!important}
+@media(max-width:380px){
+ body.access-v2-active #memberAccessDialog .participant-card-content{
+  display:flex;flex-direction:column;gap:6px;
+ }
+ body.access-v2-active #memberAccessDialog .member-role-actions{
+  align-self:flex-end;max-width:100%;
+ }
+}

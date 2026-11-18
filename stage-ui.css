@@ -283,3 +283,18 @@
   flex:1 1 100%;
  }
 }
+
+/* v0.16.48: ledger action buttons follow the common palette and align right. */
+.stage-ui .ledger-table td.ledger-row-actions{
+ text-align:right;vertical-align:middle;min-width:175px;
+}
+.stage-ui .ledger-table .ledger-action-group{
+ display:flex;align-items:center;justify-content:flex-end;
+ flex-wrap:nowrap;gap:6px;
+}
+.stage-ui .ledger-table .ledger-action-group button{
+ width:auto;min-width:48px;min-height:44px;
+ margin:0;padding:7px 9px;border-radius:6px;
+ font-size:13px;white-space:nowrap;font-weight:700;
+}
+.stage-ui .ledger-table .ledger-row-actions .muted{display:block;text-align:right}

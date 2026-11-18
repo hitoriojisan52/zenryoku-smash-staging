@@ -1,4 +1,4 @@
-/* v0.16.46 — shared dialog toolbar. No absolute overlays or negative margins.
+/* v0.16.48 — screen-only shared action toolbar. No absolute overlays or negative margins.
  * Preserve the ORIGINAL button objects, IDs and listeners while relocating
  * their visible controls into the header. New Close controls delegate to the
  * original Cancel handler, so confirmation state and locks are unchanged.
@@ -6,16 +6,22 @@
 (function(){
  'use strict';
  const clean=s=>String(s||'').replace(/\s+/g,'').replace(/^[✕×]/,'');
+ // Navigation/management SCREENS only. Editing, confirmation and error
+ // POPUPS retain their existing bottom Cancel/Close/Execute controls; they
+ // must never acquire an extra synthetic top-right Close.
+ const screenIds=new Set([
+  'manageDialog','memberAccessDialog','cashDialog','visitorDialog',
+  'visitorAdminDialog','participantDialog','scheduleDialog','ledgerDialog'
+ ]);
  const topActions={
   memberAccessDialog:['memberAccessRefresh'],
   visitorAdminDialog:['visitorAdminRefresh'],
   participantDialog:['participantReload'],
   scheduleDialog:['scheduleAdd','scheduleReload'],
-  ledgerDialog:['newLedgerRow'],
-  attendanceDialog:['attendanceReload']
+  ledgerDialog:['newLedgerRow']
  };
  for(const dialog of document.querySelectorAll('dialog')){
-  if(dialog.id==='stageBusyDialog')continue; // saving must remain unblockable
+  if(!screenIds.has(dialog.id))continue; // no added Close on popups or busy overlay
   const buttons=Array.from(dialog.querySelectorAll('button'));
   const originalClose=buttons.find(b=>clean(b.textContent)==='閉じる');
   const cancel=buttons.find(b=>/^(キャンセル|いいえ)$/.test(clean(b.textContent)));

@@ -58,9 +58,27 @@ const Utilities={formatDate(d,tz,fmt){
  ok(tz==='Asia/Tokyo'&&fmt==='HH:mm','time canonicalization uses JST');
  return '09:00';
 }};
+let ledgerRecords=[{date:'2026-11-01',label:'引継',rowId:'OPENING',kind:'opening',
+ practiceId:'',status:'confirmed',income:0,expense:0,balance:10000,version:1}];
+const ledgerReads=()=>ledgerRecords.map(row=>({...row}));
+const balanceRecalc=(rows,old)=>{
+ rows.sort((a,b)=>a.date.localeCompare(b.date)||a.rowId.localeCompare(b.rowId));
+ let balance=0;
+ for(const row of rows){
+  if(row.kind==='opening'){balance=row.balance;continue;}
+  balance+=row.income-row.expense;row.balance=balance;
+ }
+ for(const previous of old.filter(row=>row.status==='confirmed')){
+  const matching=rows.find(r=>r.rowId===previous.rowId);
+  if(!matching||matching.balance!==previous.balance)fail_('CONFLICT','確定済み残高の変更');
+ }
+};
+const ledgerWrite=(_ss,rows)=>{ledgerRecords=rows.map(row=>({...row}));writes.push('ledger.write');};
 const funcs=new Function('str_','fail_','today_','bool_','iso_','ledgerDate_','safeCell_','expectVersion_',
- 'sheetRows_','sheet_','Utilities','entries_',text+'\nreturn {scheduleList_,scheduleChange_,scheduleRows_,scheduleData_,scheduleDeleteTargets_};')(
- str_,fail_,today_,bool_,iso_,ledgerDate_,safeCell_,expectVersion_,sheetRows_,sheet_,Utilities,()=>[]
+ 'sheetRows_','sheet_','Utilities','entries_','balanceRecalc_','writeLedger_',
+ text+'\nreturn {scheduleList_,scheduleChange_,scheduleRows_,scheduleData_,scheduleDeleteTargets_};')(
+ str_,fail_,today_,bool_,iso_,ledgerDate_,safeCell_,expectVersion_,sheetRows_,sheet_,Utilities,
+ ledgerReads,balanceRecalc,ledgerWrite
 );
 const member={role:'admin'},list=()=>funcs.scheduleList_(ss,member,{}).data.schedules;
 ok(list().length===0,'legacy master lists only today or later');
@@ -98,7 +116,12 @@ matchReferences=[id];
 ok(funcs.scheduleDeleteTargets_(ss,id)['試合セッション'].length===1,'match references are included in deletion plan');
 matchReferences=[];
 const confirmed=funcs.scheduleChange_(ss,member,{action:'confirm',practiceId:id,expectedVersion:2}).data;
-ok(confirmed.version===3&&list()[0].enabled===true,'confirmation publishes existing row');
+ok(confirmed.version===3&&list()[0].enabled===true&&confirmed.ledgerCreated===true,
+ 'confirmation publishes existing row and creates matching ledger');
+ok(ledgerRecords.filter(r=>r.rowId==='P-'+id).length===1&&
+ ledgerRecords.find(r=>r.rowId==='P-'+id).date==='2026-11-23'&&
+ ledgerRecords.find(r=>r.rowId==='P-'+id).status==='open',
+ 'published practice immediately creates one OPEN provisional future ledger row');
 ok(gas.includes("if(action==='delete')return scheduleDeleteExecute_(ss,member,payload,existing)"),'delete confirmed schedules via guarded cascade');
 fails(()=>funcs.scheduleChange_(ss,member,{action:'edit',practiceId:id,expectedVersion:3}),'FORBIDDEN');
 const id2='PR-test-create-00000003';
@@ -106,7 +129,10 @@ const created=add(id2,'2026-11-24',{place:'=HYPERLINK("unsafe")'});
 ok(scheduleRows[2][2].startsWith("'"),'spreadsheet formula injection prevented in place');
 ok(list().length===2,'unconfirmed date can be listed; deletion verified separately');
 ok(writes.filter(x=>x==='schedule.append').length===2,'two additions append only practice rows');
-ok(writes.every(x=>x.startsWith('schedule.')),'no ledger, payments or roster sheet written');
+ok(writes.filter(x=>x==='ledger.write').length===1,
+ 'only schedule confirmation creates the linked ledger row once');
+ok(!writes.some(x=>/payment|attendee/.test(x)),
+ 'publication does not change any attendance or payment record');
 for(const bad of ['setPayment_(','cashSave_(']){
  ok(!text.includes(bad),'schedule module cannot mutate finance: '+bad);
 }
