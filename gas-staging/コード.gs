@@ -1022,6 +1022,22 @@ function participantChange_(ss,member,payload,visitorDecisionInternal){
   if(cat!=='visitor'&&/^PV-/.test(person)&&visitorHasApproved_(ss,id,person))
    fail_('LOCKED','承認済みビジターの参加区分は変更できません');
  }
+ // Duty/admin edits in 参加者一覧 must also refresh the approved
+ // visitor application, or the original member will see stale data.
+ // Requester edits use visitorModify_ and perform their own sync.
+ var linkedApproved=null;
+ if(action==='edit'&&!visitorDecisionInternal&&/^PV-/.test(person)&&
+    visitorHasApproved_(ss,id,person)){
+  var linkedRows=visitorRequests_(ss).filter(function(r){
+   return r.practiceId===id&&r.participantId===person&&r.status==='approved';
+  });
+  if(linkedRows.length!==1)
+   fail_('STORAGE_INCOMPLETE','承認済みビジターの申請履歴を確認できません');
+  linkedApproved=linkedRows[0];
+  if(visitorDecisionArchiveCheck_(ss,linkedApproved.requestId,
+       str_(payload.operationId),member))
+   fail_('CONFLICT','審査の操作IDが既に使用されています');
+ }
  var oldFee=wasPaid?fee_(str_(old[4]),p.hours):0,
      newFee=action==='edit'&&attending&&wasPaid?fee_(cat,p.hours):0,
      delta=newFee-oldFee,ledgerResult=null;
@@ -1036,7 +1052,8 @@ function participantChange_(ss,member,payload,visitorDecisionInternal){
  var dropPayment=!!oldPayment&&(action==='delete'||!attending);
  var archive=sheet_(ss,'参加者操作アーカイブ'),snapshot=JSON.stringify({
   schema:1,practiceId:id,participantId:person,attendance:old,
-  payment:oldPayment,ledgerBefore:matched[0]||null,delta:delta
+  payment:oldPayment,ledgerBefore:matched[0]||null,delta:delta,
+  visitorRequest:linkedApproved
  });
  if(snapshot.length>38000)fail_('LIMIT','参加者の変更情報が大きすぎます');
  var ar=archive.getLastRow()+1;
@@ -1048,6 +1065,13 @@ function participantChange_(ss,member,payload,visitorDecisionInternal){
     safeCell_(kana),cat,attending,safeCell_(memo),version+1,str_(old[8])]]);
  if(dropPayment)paymentSh.deleteRow(paymentIx+2);
  if(ledgerResult)writeLedger_(ss,ledgerResult);
+ if(linkedApproved){
+  var requests=sheet_(ss,'ビジター申請');
+  requests.getRange(linkedApproved.row,4,1,3).setValues([[
+   safeCell_(name),safeCell_(kana),safeCell_(memo)]]);
+  requests.getRange(linkedApproved.row,9).setValue(linkedApproved.version+1);
+  requests.getRange(linkedApproved.row,13).setValue(str_(payload.operationId));
+ }
  archive.getRange(ar,8).setValue('completed');
  return {ok:true,data:{practiceId:id,participantId:person,action:action,
    version:version+1,attending:action==='edit'&&attending,category:cat,
@@ -1102,11 +1126,16 @@ function visitorPublic_(r,dates,admin,attendees){
   requestedByMemberId:admin?r.requestedByMemberId:undefined,
   reviewedBy:admin?r.reviewedBy:undefined};
 }
+function visitorPracticeOptions_(dates){
+ return dates.map(function(p){return {practiceId:p.practiceId,date:p.date,
+   place:p.place,startTime:p.startTime,endTime:p.endTime};});
+}
 function visitorMine_(ss,member){
  var rows=visitorRequests_(ss).filter(function(r){return r.requestedByMemberId===member.memberId&&r.status!=='withdrawn';});
  var dates=practices_(ss),attendees=sheetRows_(ss,'出欠回答');
  return {ok:true,data:{requests:rows.map(function(r){return visitorPublic_(r,dates,false,attendees);})
-  .sort(function(a,b){return b.requestedAt.localeCompare(a.requestedAt)||b.requestId.localeCompare(a.requestId);})}};
+  .sort(function(a,b){return b.requestedAt.localeCompare(a.requestedAt)||b.requestId.localeCompare(a.requestId);}),
+  practices:visitorPracticeOptions_(dates)}};
 }
 function visitorAdminList_(ss,member){
  if(member.role!=='admin')fail_('FORBIDDEN','ビジターの承認・却下は管理者だけが操作できます');
@@ -1116,7 +1145,7 @@ function visitorAdminList_(ss,member){
  members.forEach(function(r){nameById[str_(r[0])]=norm_(r[1]);});
  requests.forEach(function(r){r.requestedByName=nameById[r.requestedByMemberId]||'退会済みメンバー';});
  requests.sort(function(a,b){return b.requestedAt.localeCompare(a.requestedAt)||b.requestId.localeCompare(a.requestId);});
- return {ok:true,data:{requests:requests}};
+ return {ok:true,data:{requests:requests,practices:visitorPracticeOptions_(dates)}};
 }
 function visitorRequest_(ss,member,payload){
  var requestId=str_(payload.requestId),participantId=str_(payload.participantId),
