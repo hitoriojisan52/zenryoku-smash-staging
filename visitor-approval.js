@@ -12,7 +12,7 @@
   return /^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}$/.test(text)?text:'日時を確認できません';
  };
  let api=null,actor=null,selected=null,editTarget=null,deleteTarget=null;
- let refreshAfterDecision=null,mineRows=[],adminRows=[];
+ let refreshAfterDecision=null,mineRows=[],adminRows=[],mineDates=[],adminDates=[];
  const node=(tag,cls,text)=>{
   const el=document.createElement(tag);if(cls)el.className=cls;
   if(text!==undefined)el.textContent=String(text);
@@ -28,8 +28,14 @@
   return el;
  };
  const shortDate=r=>r.date?w.SMDate.date(r.date)+' '+(r.place||''):'開催日：登録がありません';
- function optionsFor(rows,id){
+ function optionsFor(rows,id,practices){
   const select=$(id),old=select.value,unique=new Map();
+  // Like 参加者一覧, include all practice-master dates (including those
+  // with no registrations); keep history whose schedule was later removed.
+  for(const p of practices){
+   if(p?.practiceId&&!unique.has(p.practiceId))
+    unique.set(p.practiceId,shortDate(p)+(p.startTime?' '+p.startTime+'～'+(p.endTime||''):''));
+  }
   rows.forEach(r=>{
    if(!unique.has(r.practiceId))unique.set(r.practiceId,shortDate(r));
   });
@@ -100,10 +106,10 @@
   rows.forEach(r=>target.append(card(r,admin)));
  }
  function renderMine(){
-  render('visitorMineCards',optionsFor(mineRows,'visitorMinePractice'),false);
+  render('visitorMineCards',optionsFor(mineRows,'visitorMinePractice',mineDates),false);
  }
  function renderAdmin(){
-  render('visitorAdminCards',optionsFor(adminRows,'visitorAdminPractice'),true);
+  render('visitorAdminCards',optionsFor(adminRows,'visitorAdminPractice',adminDates),true);
  }
  async function loadMine(){
   if(!api)return [];
@@ -111,6 +117,9 @@
   if(!Array.isArray(result?.requests)||result.requests.some(r=>!r.requestId||
      !STATUS[r.status]||!r.practiceId||!Number.isSafeInteger(r.version)))
    throw Error('ビジター申請状況の取得結果が不正です。');
+  if(result.practices!==undefined&&!Array.isArray(result.practices))
+   throw Error('開催日一覧を確認できません');
+  mineDates=result.practices||[];
   mineRows=result.requests;renderMine();return mineRows;
  }
  async function loadAdmin(){
@@ -119,6 +128,9 @@
   if(!Array.isArray(result?.requests)||result.requests.some(r=>!r.requestId||
      !STATUS[r.status]||!r.practiceId||!Number.isSafeInteger(r.version)))
    throw Error('ビジター管理情報の取得結果が不正です。');
+  if(result.practices!==undefined&&!Array.isArray(result.practices))
+   throw Error('開催日一覧を確認できません');
+  adminDates=result.practices||[];
   adminRows=result.requests;renderAdmin();return adminRows;
  }
  function openConfirm(data,action){
