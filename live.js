@@ -6,7 +6,7 @@
 'use strict';
 const M=window.SmashModel,$=id=>document.getElementById(id),yen=n=>Number(n).toLocaleString('ja-JP')+'円';
 const CONFIG=window.SMASH_CONFIG||{};
-const S={token:'',actor:null,overview:null,practiceId:'',loading:false,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0};
+const S={token:'',actor:null,overview:null,practiceId:'',loading:false,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false};
 const PERF_MODE=(()=>{
  const q=new URLSearchParams(location.search||'');let state=q.get('liff.state')||'';
  if(state.includes('?'))state=state.slice(state.indexOf('?')+1);
@@ -64,7 +64,46 @@ async function call(path,payload={}){
  if(!response.ok||!value.ok){const err=new Error(value.error||'処理を完了できませんでした');err.status=response.status;throw err;}
  return value.data;
 }
+// Collection checkboxes are independent. Only up to two requests leave this page
+// concurrently. Apps Script's lock remains the source of truth for the ledger.
+const MAX_PAYMENT_IN_FLIGHT=2;
+function syncPaymentControls(){
+ const pending=S.pending.size>0,ledger=S.overview?.ledger;
+ for(const id of ['date','refresh','reimbursementBtn','manageBtn']){
+   const el=$(id);if(el)el.disabled=pending;
+ }
+ if($('confirm'))$('confirm').disabled=pending||!ledger||ledger.status==='confirmed'||S.overview?.practice?.date>today();
+ for(const id of ['adjustment','expense']){
+   const el=$(id);if(el)el.disabled=pending||!ledger||ledger.status==='confirmed';
+ }
+}
+function drainPaymentQueue_(){
+ if(S.paymentNeedsRefresh){
+   while(S.paymentQueue.length){
+     const item=S.paymentQueue.shift(),error=new Error('未送信の集金変更は中断しました。更新で状態を確認してください。');
+     error.notSent=true;item.reject(error);
+   }
+   return;
+ }
+ while(S.paymentActive<MAX_PAYMENT_IN_FLIGHT&&S.paymentQueue.length){
+   const job=S.paymentQueue.shift();
+   S.paymentActive++;
+   Promise.resolve().then(()=>{job.onStart();return job.action();})
+     .then(job.resolve,job.reject).finally(()=>{S.paymentActive--;drainPaymentQueue_();});
+ }
+}
+function paymentCall_(action,onStart){
+ return new Promise((resolve,reject)=>{
+   S.paymentQueue.push({action,onStart,resolve,reject});
+   drainPaymentQueue_();
+ });
+}
+async function showPaymentError_(error){
+ if(error?.notSent)return;
+ await window.SMStageUX.showError(error);
+}
 async function guard(action,label='処理中です…'){
+ if(S.pending.size){toast('集金処理中です。完了後に操作してください。');return;}
  try{await window.SMStageUX.run(label,action);}
  catch(e){
    await window.SMStageUX.showError(e);
@@ -82,7 +121,7 @@ async function boot(){
   S.actor=await call('/api/session');gateEdit();
   window.SMLiveAccess?.setup({api:call,actor:S.actor});
   for(const id of ['reimbursementBtn','manageBtn','refresh','adjustment','expense'])$(id).disabled=false;
-  await reload(true);setInterval(()=>{if(!document.hidden&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
+  await reload(true);setInterval(()=>{if(!document.hidden&&!S.paymentNeedsRefresh&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
   toast('接続しました');
  }catch(e){
   $('list').textContent=e.message;throw e;
@@ -96,7 +135,8 @@ async function reload(refreshDates){
    if(epoch!==S.updateEpoch||S.pending.size||selected!==S.practiceId)return;
    if(refreshDates||!S.practiceId){$('date').replaceChildren(...d.practices.map(p=>new Option(`${window.SMDate.date(p.date)} ${p.startTime}～${p.endTime}`,p.practiceId)));}
    S.practiceId=d.practice.practiceId;$('date').value=S.practiceId;S.overview=d;
-   renderHome();
+   S.paymentNeedsRefresh=false;
+   renderHome();syncPaymentControls();
  }finally{S.loading=false;}
 }
 function renderHome(){const v=S.overview;if(!v)return;const {practice,ledger,participants}=v;
@@ -121,9 +161,14 @@ function renderHome(){const v=S.overview;if(!v)return;const {practice,ledger,par
    const amt=document.createElement('span');amt.className='amount';amt.textContent='('+yen(p.fee)+')';
    nameRow.append(name,cat,amt);info.append(nameRow);
    if(p.memo){const memo=document.createElement('div');memo.className='meta';memo.textContent='📝 '+p.memo;info.append(memo);}
-   const wrapper=document.createElement('div');wrapper.className='checkbox-container';const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!p.collectionCompleted;cb.disabled=homeLocked;
-   cb.addEventListener('change',()=>guard(async()=>setPayment(p,cb,card)));
-   wrapper.append(cb);card.append(info,wrapper);list.append(card);setupLongPress(cat,p);
+   const wrapper=document.createElement('div');wrapper.className='checkbox-container';
+   const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!p.collectionCompleted;
+   cb.disabled=homeLocked||S.paymentNeedsRefresh||S.pending.has(p.participantId);
+   cb.setAttribute('aria-label',M.normalizeName(p.name)+' 集金');
+   const state=document.createElement('span');state.className='payment-checkbox-state';state.hidden=true;
+   state.setAttribute('role','status');state.setAttribute('aria-live','polite');
+   cb.addEventListener('change',()=>setPayment(p,cb,card).catch(showPaymentError_));
+   wrapper.append(state,cb);card.append(info,wrapper);list.append(card);setupLongPress(cat,p);
  }list.scrollTop=pos;updateFooter();
 }
 function updateFooter(){const v=S.overview;if(!v)return;const rows=v.participants.filter(p=>p.attending);const complete=rows.filter(p=>p.collectionCompleted);
@@ -170,7 +215,7 @@ async function setPayment(p,cb,card){
 }
 function setupLongPress(element,p){let timer=null,started=false;
  const stop=()=>{if(timer)clearTimeout(timer);timer=null;};
- element.addEventListener('pointerdown',event=>{if(event.button!==0)return;started=true;stop();timer=setTimeout(()=>{if(started&&S.overview?.ledger?.status==='open'){$('categoryPerson').textContent=M.normalizeName(p.name);$('categorySelect').value=p.category;S.modalTarget=p;dialog('categoryDialog');}},650);});
+ element.addEventListener('pointerdown',event=>{if(event.button!==0)return;started=true;stop();timer=setTimeout(()=>{if(started&&!S.pending.size&&!S.paymentNeedsRefresh&&S.overview?.ledger?.status==='open'){$('categoryPerson').textContent=M.normalizeName(p.name);$('categorySelect').value=p.category;S.modalTarget=p;dialog('categoryDialog');}},650);});
  for(const ev of ['pointerup','pointercancel','pointerleave'])element.addEventListener(ev,()=>{started=false;stop();});
  element.addEventListener('contextmenu',event=>event.preventDefault());
 }
