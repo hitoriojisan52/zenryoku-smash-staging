@@ -11,6 +11,7 @@ on:
       - 'tests/check-stage-participant-refresh-v1638e.cjs'
       - 'tests/check-stage-participant-v7-layout-v1638f.cjs'
       - 'tests/check-stage-match-delete-v1639.cjs'
+      - 'tests/check-stage-match-create-v1639a.cjs'
       - 'scripts/gas-staging-guard.cjs'
       - 'scripts/gas-staging-deploy.sh'
       - 'tests/check-gas-staging-ci.cjs'
@@ -37,5 +38,6 @@ jobs:
       - run: node tests/check-stage-participant-refresh-v1638e.cjs
       - run: node tests/check-stage-participant-v7-layout-v1638f.cjs
       - run: node tests/check-stage-match-delete-v1639.cjs
+      - run: node tests/check-stage-match-create-v1639a.cjs
       - run: node tests/check-gas-audit-ids-v1636h.cjs
       - run: bash -n scripts/gas-staging-deploy.sh
