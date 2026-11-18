@@ -1,0 +1,33 @@
+name: Connected staging UI regression checks
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'live.js'
+      - 'live.html'
+      - 'stage-ui.js'
+      - 'tests/check-stage-payment-parallel-v1636f.cjs'
+      - 'tests/check-stage-finance-v1636c.cjs'
+      - 'tests/check-ui-standards.cjs'
+      - '.github/workflows/stage-ui-check.yml'
+permissions:
+  contents: read
+jobs:
+  payment-and-ui-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Simulate simultaneous checkboxes, inverse responses, errors and undo
+        run: node tests/check-stage-payment-parallel-v1636f.cjs
+      - name: Verify frontend financial state and Worker gating
+        run: node tests/check-stage-finance-v1636c.cjs
+      - name: Verify common UI standards
+        run: node tests/check-ui-standards.cjs
+      - name: Verify staging withdrawal remains isolated
+        run: node tests/check-stage-withdraw-boundary.cjs
+      - name: Verify GAS payment timing without extra sheet writes
+        run: node tests/check-gas-payment-profile.cjs
