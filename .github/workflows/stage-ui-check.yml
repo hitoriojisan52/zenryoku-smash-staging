@@ -11,6 +11,7 @@ on:
       - 'tests/check-stage-participant-refresh-v1638e.cjs'
       - 'tests/check-stage-participant-v7-layout-v1638f.cjs'
       - 'tests/check-stage-match-delete-v1639.cjs'
+      - 'tests/check-stage-match-create-v1639a.cjs'
       - 'match.js'
       - 'match.html'
       - 'match.css'
@@ -52,6 +53,8 @@ jobs:
         run: node tests/check-stage-participant-v7-layout-v1638f.cjs
       - name: Verify match deletion is confirmed, backed up and attendance-safe
         run: node tests/check-stage-match-delete-v1639.cjs
+      - name: Verify match creation requires registered roster and delete control placement
+        run: node tests/check-stage-match-create-v1639a.cjs
       - name: Verify frontend financial state and Worker gating
         run: node tests/check-stage-finance-v1636c.cjs
       - name: Verify common UI standards
