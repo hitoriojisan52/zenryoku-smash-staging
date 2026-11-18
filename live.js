@@ -7,6 +7,12 @@
 const M=window.SmashModel,$=id=>document.getElementById(id),yen=n=>Number(n).toLocaleString('ja-JP')+'円';
 const CONFIG=window.SMASH_CONFIG||{};
 const S={token:'',actor:null,overview:null,practiceId:'',loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false};
+const VISITOR_MODE=(()=>{
+ const q=new URLSearchParams(location.search||'');
+ let state=q.get('liff.state')||'';
+ if(state.includes('?'))state=state.slice(state.indexOf('?')+1);
+ return q.get('visitor')==='1'||new URLSearchParams(state).get('visitor')==='1';
+})();
 const PERF_MODE=(()=>{
  const q=new URLSearchParams(location.search||'');let state=q.get('liff.state')||'';
  if(state.includes('?'))state=state.slice(state.indexOf('?')+1);
@@ -52,7 +58,7 @@ async function call(path,payload={}){
  if(!S.token||!CONFIG.apiBaseUrl)throw new Error('LINE認証またはAPI設定がありません');
  const url=CONFIG.apiBaseUrl.replace(/\/$/,'')+path;
  // Invalidate responses from reads that started before a write.
- if(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change','/api/schedule/change','/api/visitor/register','/api/participant/change'].includes(path))S.updateEpoch++;
+ if(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change','/api/schedule/change','/api/visitor/register','/api/visitor/request','/api/visitor/decide','/api/participant/change'].includes(path))S.updateEpoch++;
  const startedAt=performance.now();
  const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},body:JSON.stringify(payload),cache:'no-store'});
  if(PERF_MODE){
@@ -135,12 +141,16 @@ async function boot(){
   if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return;}
   S.token=liff.getIDToken();if(!S.token)throw new Error('LINE IDトークンを取得できません');
   S.actor=await call('/api/session');
-  // Registered non-duty members can register visitors without viewing accounting.
-  if(S.actor.role==='member'){
+  window.SMVisitor?.setup({api:call,actor:S.actor,
+   onDecision:async()=>{if(S.actor?.role!=='member'&&S.overview)await reload(true);}});
+  // This link is opened from the existing LINE attendance form. An ordinary
+  // member never loads finance or match-administration data.
+  if(S.actor.role==='member'||VISITOR_MODE){
    document.body.classList.add('visitor-member');
    $('visitorMemberHome').hidden=false;
    const list=await call('/api/visitor/practices');
    VIS.practices=validateVisitorPractices_(list);
+   await window.SMVisitor.loadMine();
    toast('接続しました');
    return;
   }
@@ -730,34 +740,37 @@ async function confirmVisitorForm_(e){
   if(VIS.unknownResult)throw new Error('前回の登録結果が不明です。画面を開き直して確認してください');
   const d=visitorFormDraft_();VIS.draft=d;
   $('visitorConfirmText').textContent=window.SMDate.date(d.practice.date)+' '+d.name+
-   'さんをビジターとして登録しますか？';
+   'さんをビジター登録申請しますか？ 管理者が承認するまで参加者一覧には表示されません。';
   dialog('visitorConfirmDialog');
  }catch(e){await window.SMStageUX.showError(e);}
 }
 async function registerVisitor_(){
  const d=VIS.draft;close('visitorConfirmDialog');if(!d)return;
  await guard(async()=>{
-  if(VIS.unknownResult)throw new Error('登録結果を確認できません。再登録は行わないでください');
-  // Treat a lost reply as indeterminate. No silent retry or new participant ID.
-  const participantId='PV-'+uuid();
+  if(VIS.unknownResult)throw new Error('登録結果が不明です。申請状況を更新して確認してください。');
+  const requestId='VR-'+uuid(),participantId='PV-'+uuid();
   let result;
   try{
-   result=await call('/api/visitor/register',{operationId:uuid(),participantId,
-    practiceId:d.practiceId,name:d.name,nameKana:d.nameKana,memo:d.memo});
-  }catch(err){
-   VIS.unknownResult=true;$('visitorSubmit').disabled=true;
-   throw err;
+   result=await call('/api/visitor/request',{
+    operationId:uuid(),requestId,participantId,
+    practiceId:d.practiceId,name:d.name,nameKana:d.nameKana,memo:d.memo
+   });
+  }catch(error){
+   if(!Number.isInteger(error?.status)||error.status>=500){
+    VIS.unknownResult=true;$('visitorSubmit').disabled=true;
+   }
+   throw error;
   }
-  if(result?.participantId!==participantId||result.practiceId!==d.practiceId||
-     result.category!=='visitor'||result.name!==d.name||result.attending!==true){
+  if(result?.requestId!==requestId||result.participantId!==participantId||
+     result.practiceId!==d.practiceId||result.status!=='pending'||result.version!==0){
    VIS.unknownResult=true;$('visitorSubmit').disabled=true;
-   throw new Error('登録結果が確認できません。重複登録せず参加者一覧で確認してください');
+   throw new Error('申請結果が不明です。申請状況を更新して確認してください。');
   }
   VIS.draft=null;
   close('visitorDialog');
-  if(S.actor?.role!=='member')await reload(false);
-  toast(d.name+'さんを登録しました');
- },'ビジターを登録しています…');
+  await window.SMVisitor.loadMine();
+  toast(d.name+'さんのビジター申請を受け付けました');
+ },'ビジターの登録申請を送信しています…');
 }
 
 
