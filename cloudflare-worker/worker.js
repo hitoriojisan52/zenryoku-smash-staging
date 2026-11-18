@@ -161,7 +161,7 @@ export async function handleRequest(request,env){
     // Public LIFF channel prefix (not a secret); disclose only a boolean,
     // never the configured environment value or any LINE token.
     const channelMatchesLiveLiff=env.LINE_LOGIN_CHANNEL_ID==='2012602642';
-    return json({ok:true,status:'deployed',version:'0.16.45-stage-attendance',
+    return json({ok:true,status:'deployed',version:'0.16.53-stage-withdrawal',
       configured,channelMatchesLiveLiff});
   }
   const origin=request.headers.get('Origin')||'';
