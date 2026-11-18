@@ -55,6 +55,7 @@ const reload=new Function('S','$','call','window','Option','renderHome','syncPay
  ui.slice(a,z)+'\nreturn reload;')(
  S,id=>dom[id],call,
  {SMDate:{date:v=>v}},
+ function Option(label,value){this.text=label;this.value=value;},
  function(){paint++},function(){controls++}
 );
 const info={ok:true,practice:{practiceId:'P-TEST'},practices:[
