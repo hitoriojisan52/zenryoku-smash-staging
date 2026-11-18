@@ -35,12 +35,17 @@
 1. 現行の接続検証用GASとCloudflare Workerの現行デプロイ版・設定を照合し、事前バックアップを作成。過去の架空メンバー専用の環境と混同しない。
 2. GitHubの `cloudflare-worker/worker.js` を既存の検証用Worker `zenryoku-smash-staging-api` のみにデプロイ。既存Cloudflare変数・Secrets・許可Origin・LINEチャネルを維持し、/healthが `version=0.16.50-stage-member-withdraw-ready` であることを確認。
 3. まずGAS `WITHDRAW_MEMBER_ENABLED=false`、Worker `WITHDRAW_MEMBER_ENABLED=false` のまま、管理者と一般メンバーの権限別表示、二段階確認、失敗時UIを実機検証。
-4. 破壊的な操作の対象は最初は**接続検証環境内に追加した架空の一般メンバー１名だけ**に限定。双方に追加の対象IDを合わせる実行許可設計・監査確認を実施してから実行（未実施）。
+4. 破壊的な操作の対象は最初は**接続検証環境内に追加した架空の一般メンバー１名だけ**に限定。実装済みの `WITHDRAW_MEMBER_SCOPE=single` と `WITHDRAW_MEMBER_TARGET_ID` に両サービスで同じ架空メンバーIDを設定してから実行します。実機試験は未実施。
 5. 有効化設定（運用開始時にのみ実施）:
    - Worker vars: `WITHDRAW_MEMBER_ENABLED=true`, `WITHDRAW_MEMBER_PURPOSE=staging-member-withdraw-v1650`, `WITHDRAW_STAGE_SPREADSHEET_ID` を接続検証用スプレッドシートIDに設定。
    - GAS script properties: `WITHDRAW_MEMBER_ENABLED=true`, `STAGING_WITHDRAW_MEMBER_PURPOSE=staging-member-withdraw-v1650`, `SPREADSHEET_ID` を接続検証用スプレッドシートIDに設定。
    - `RICH_MENU_SYNC_ENABLED=false` を維持し、本番用の秘密値やトークンをチャットやGitHubコードに記載しない。
-6. 最初の実行前に別個の架空対象限定ゲートを追加してテストし、結果・履歴・過去記録保存・再入会を実機で確認してから通常メンバーでの運用を承認する。
+6. 既存の対象ID限定ゲートを使って架空1名の退会・再登録を実機で確認し、履歴の保全・管理者/本人拒否を確認してから通常メンバー向けに `WITHDRAW_MEMBER_SCOPE=all` を別途承認する。
 7. 実行後にフラグをfalseへ戻して履歴と書込差分を確認する。通信断時に同じ退会操作を再送しない。
 
 **既存本番環境、本番LINEメニュー、本番GAS・Workerは変更しない。** 今回の実装変更はGitHubの検証用ソースとGASの自動デプロイだけ。Cloudflare Workerの実デプロイやvars変更は、接続・権限の設定を確認できるまで実施しない。
+
+### 追加の必須スコープ設定
+- Worker/GASとも `WITHDRAW_MEMBER_SCOPE=single` と `WITHDRAW_MEMBER_TARGET_ID`（同じ架空対象memberId）を指定する。違う対象には退会ボタンを有効にせず、サーバー側も拒否。
+- 実試験に合格し、通常メンバーの退会を許可する段階でのみ両方を `WITHDRAW_MEMBER_SCOPE=all` に変更する。
+- 設定が未指定なら、`WITHDRAW_MEMBER_ENABLED=true` であってもサーバーは拒否。
