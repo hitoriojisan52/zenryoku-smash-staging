@@ -10,9 +10,16 @@ async function load(){if(inFlight)return;inFlight=true;const refresh=$('guestRef
  const resp=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token}),cache:'no-store',referrerPolicy:'no-referrer'});
  const result=await resp.json();if(!resp.ok||!result.ok)throw Error(result.error||'対戦表を取得できません');
  const data=result.data;
+ $('guestNotice').textContent='';$('guestNotice').hidden=true;
  $('guestPractice').textContent=window.SMDate.date(data.practice.date)+'　'+data.practice.place;
  $('guestStatus').textContent=data.state==='not_created'?'対戦表はまだ作成されていません':data.state==='finished'?'進行終了':data.state==='ready'?'試合開始前':'第'+data.currentRound+'試合を進行中';
  const box=$('guestRounds');box.replaceChildren();
+ if(data.state==='not_created'){
+  const notice=el('p','stage-system-message stage-system-message--info',
+    'この開催日の対戦表はまだ作成されていません。');
+  notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');
+  box.append(notice);
+ }
  for(const r of data.rounds||[]){
   const section=el('section','match-round current');
   section.append(el('h2','', '第'+r.roundNumber+'試合｜'+(r.state==='running'?'進行中':r.state==='completed'?'完了':'予定')));
@@ -24,7 +31,12 @@ async function load(){if(inFlight)return;inFlight=true;const refresh=$('guestRef
   box.append(section);
  }
  $('guestExpiry').textContent='閲覧期限：'+window.SMDate.dateTimeJst(data.expiresAt);
- }catch(e){$('guestStatus').textContent=e.message||'読み込めませんでした';$('guestRounds').replaceChildren();}
+ }catch(e){
+  $('guestStatus').textContent='対戦表を表示できません';
+  $('guestPractice').textContent='';$('guestRounds').replaceChildren();$('guestExpiry').textContent='';
+  $('guestNotice').textContent=e.message||'読み込めませんでした';
+  $('guestNotice').hidden=false;
+ }
  finally{inFlight=false;refresh.disabled=false;refresh.textContent='🔄 更新';}}
 $('guestRefresh').addEventListener('click',load);load();setInterval(()=>{if(!document.hidden)load();},15000);
 })();
