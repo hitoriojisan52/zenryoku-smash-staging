@@ -109,6 +109,18 @@ ok(inactiveSelect?.disabled&&inactiveChange?.disabled,
  'stopped members retain visible but disabled role controls');
 ok(inactiveNodes.some(e=>e.textContent==='停止中'),
  'stopped state is still distinguished without an active/inactive switch');
+ok(memberNodes.some(e=>e.tag==='button'&&e.textContent==='退会'&&e.disabled),
+ 'withdrawal action is visible but default-OFF on connected staging');
+ok(!adminNodes.some(e=>e.tag==='button'&&e.textContent==='退会')&&
+ !inactiveNodes.some(e=>e.tag==='button'&&e.textContent==='退会'),
+ 'admin self and stopped members never show an actionable withdraw control');
+snapshot.withdrawMemberEnabled=true;
+names.render(snapshot);
+const enabledMember=traverse(elements.memberAccessMembers.children[1]);
+ok(enabledMember.some(e=>e.tag==='button'&&e.textContent==='退会'&&!e.disabled),
+ 'with explicit server capability, eligible member row offers withdrawal');
+snapshot.withdrawMemberEnabled=false;
+names.render(snapshot);
 ok(elements.memberAccessHistoryV2.hidden===false &&
  elements.memberAccessWithdrawnV2.children.length===1,
  'history source available but the details disclosure remains initially folded');
