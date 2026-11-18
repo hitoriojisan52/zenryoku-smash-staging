@@ -204,7 +204,7 @@ const deepText=e=>[e.textContent,...e.children.map(deepText)].filter(Boolean).jo
   ok(match&&match[0].includes('class="btn-outline"'),'close button is secondary grey: '+id);
  }
  for(const page of ['live.html','match.html','guest.html','match-view.html']){
-  ok(read(page).includes('stage-ui.css?v=1644'),'same shared button CSS cache applied: '+page);
+  ok(read(page).includes('stage-ui.css?v=1646'),'same shared button CSS cache applied: '+page);
  }
  ok(html.includes('date-format.js?v=1641')&&html.includes('visitor-approval.js?v=1642')&&
   html.includes('live.js?v=1645')&&html.includes('live-access-v2.js?v=1641'),
