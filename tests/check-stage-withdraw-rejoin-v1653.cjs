@@ -136,7 +136,7 @@ for(const name of protectedSheets)
 ok(db['操作履歴'].some(r=>r[0]===opid&&r[1]==='member.manage.withdraw')&&
  db['操作履歴'].some(r=>r[0]==='OP-OLD'),
  'new withdrawal audit appended; old audit remains');
-blocked(()=>withdraw(),'NOT_FOUND','second withdrawal cannot replay deleted account');
+blocked(()=>withdraw(),'CONFLICT','second withdrawal cannot reuse the destructive operation ID');
 const regStart=src.indexOf('function accessRegistration16_('),
  regEnd=src.indexOf('function accessAdmin16_(',regStart);
 ok(regStart>=0&&regEnd>regStart,'actual registration handler isolated');
