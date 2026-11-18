@@ -57,9 +57,10 @@
   const details=node('div','participant-card-details visitor-review-info');
   const fields=[
    shortDate(data),
-   '📧 未記録',
    '📅 申請日時：'+formatRequestedAt_(data.requestedAt),
-   '出欠：'+(data.status==='approved'?'参加':data.status==='pending'?'承認待ち':'却下済み'),
+   '出欠：'+(data.status==='approved'?
+     data.attending===true?'参加':data.attending===false?'欠席':'参加情報未確認':
+     data.status==='pending'?'承認待ち':'却下済み'),
    admin?'申請者：'+(data.requestedByName||'不明'):'',
    data.nameKana?'カナ：'+data.nameKana:''
   ].filter(Boolean);
@@ -152,6 +153,7 @@
   $('visitorMineEditName').value=data.name||'';
   $('visitorMineEditKana').value=data.nameKana||'';
   $('visitorMineEditMemo').value=data.memo||'';
+  $('visitorMineEditAttendance').value=data.attending===false?'absent':'attend';
   $('visitorMineEditDialog').showModal();
  }
  async function saveEdit(event){
@@ -166,7 +168,9 @@
   editTarget=null;$('visitorMineEditDialog').close();
   await busy('ビジター情報を修正しています…',async()=>{
    const result=await api('/api/visitor/modify',{
-    ...current,action:'edit',operationId:crypto.randomUUID(),name,nameKana,memo
+    ...current,action:'edit',operationId:crypto.randomUUID(),
+    name,nameKana,memo,category:'visitor',
+    attending:$('visitorMineEditAttendance').value==='attend'
    });
    if(result?.requestId!==current.requestId||result.status!=='approved'||
       result.version!==current.expectedVersion+1)
