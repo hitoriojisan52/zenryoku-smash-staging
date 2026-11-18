@@ -21,6 +21,8 @@ ok(panel.includes('id="participantPractice"')&&panel.includes('id="participantRe
 ok(!panel.includes('participantAdd')&&!panel.includes('ビジター追加')&&
  !panel.includes('ビジター登録'),'visitor addition removed from participant list');
 ok(!ui.includes("participantAdd"),'removed element has no click or disabled wiring');
+ok(!html.includes('id="participantEmail"')&&!ui.includes("participantEmail"),
+ 'email is absent from participant list/edit UI entirely');
 ok(html.includes('id="visitorRegisterMenu"')&&html.includes('id="visitorDialog"'),
  'existing separate visitor registration remains intact pending new instructions');
 const cssChecks=[
@@ -37,7 +39,7 @@ const cssChecks=[
  'min-height:44px'
 ];
 for(const rule of cssChecks)ok(html.includes(rule),'old-v7 visual baseline: '+rule);
-ok(html.includes('live.js?v=1642'),'new UI cache version');
+ok(html.includes('live.js?v=1643'),'new UI cache version');
 const begin=ui.indexOf('function renderParticipantManager_(){'),end=ui.indexOf('async function loadParticipants_(){',begin);
 ok(begin>=0&&end>begin,'render participant routine still present');
 const code=ui.slice(begin,end);
@@ -54,9 +56,9 @@ const $=id=>node[id]||(node[id]=new Element('div'));
 const document={createElement:tag=>new Element(tag)};
 const pm={people:[
  {practiceId:'P1',participantId:'ID1',name:'全力太郎',category:'member',attending:true,
-  email:null,registeredAt:null,memo:'体育館入口に集合',collectionCompleted:true},
+  lineUserId:'U'+'a'.repeat(32),registeredAt:null,memo:'体育館入口に集合',collectionCompleted:true},
  {practiceId:'P1',participantId:'ID2',name:'全力花子',category:'visitor',attending:false,
-  email:null,registeredAt:null,memo:'',collectionCompleted:false}
+  lineUserId:null,registeredAt:null,memo:'',collectionCompleted:false}
 ],matchLocked:false,financeLocked:false,uncertain:false};
 let edited=0,deleted=0;
 const render=new Function('PM','$','document','PM_CATEGORIES',
@@ -87,15 +89,16 @@ ok(second.children[0].children[1].textContent==='欠席'&&
  second.children[0].children[1].className.includes('is-absent'),
  'absence shown red at far right');
 const memberInfo=first.children[1].children[0],memberDetails=memberInfo.children[0];
-ok(memberDetails.children[0].textContent==='📧 未記録'&&
+ok(memberDetails.children[0].textContent==='LINE ID：'+'U'+'a'.repeat(32)&&
  memberDetails.children[1].textContent==='📅 登録: 未記録',
- 'member missing email/timestamp remain unfabricated');
+ 'member LINE user ID shown with registration date, no fictitious email');
 ok(memberInfo.children[1].textContent==='📝 備考: 体育館入口に集合',
  'optional note stays above inline action buttons');
 const visitorDetails=second.children[1].children[0].children[0];
-ok(visitorDetails.children.length===1&&
- visitorDetails.children[0].textContent==='📅 登録: 未記録',
- 'visitor card never displays a nonexistent email field');
+ok(visitorDetails.children.length===2&&
+ visitorDetails.children[0].textContent==='LINE ID：なし（ビジター）'&&
+ visitorDetails.children[1].textContent==='📅 登録: 未記録',
+ 'visitor card distinguishes absence of LINE account without showing sponsor LINE ID');
 ok(!first.children.some(x=>x.textContent.includes('集金：')),
  'old response view excludes unrelated payment-summary row');
 const buttons=first.children[1].children[1].children;
@@ -116,15 +119,20 @@ const openEditor=new Function('PM','$','dialog',ui.slice(start,finish)+'\nreturn
  pm,$,()=>{}
 );
 pm.matchLocked=false;
-openEditor({name:'テストビジター',nameKana:'',email:null,category:'visitor',attending:true,memo:''});
-ok(node.participantEmailField.hidden&&node.participantEmailNote.hidden,
- 'visitor editor hides both email input and its notice');
-ok(node.participantCategory.disabled&&node.participantCategory.value==='visitor',
- 'visitor category locked to visitor in participant edit form');
-openEditor({name:'テストメンバー',nameKana:'',email:'',category:'member',attending:true,memo:''});
-ok(!node.participantEmailField.hidden&&!node.participantEmailNote.hidden&&
+openEditor({name:'テストビジター',nameKana:'',category:'visitor',attending:true,memo:''});
+ok(!node.participantVisitorIdentity.hidden&&node.participantMemberIdentity.hidden,
+ 'visitor edit retains dedicated visitor name/kana inputs');
+ok(node.participantCategory.disabled&&node.participantCategory.value==='visitor'&&
+ !node.participantCategoryVisitor.disabled,
+ 'existing visitor category remains fixed');
+openEditor({name:'テストメンバー',nameKana:'カナ',category:'member',attending:true,memo:''});
+ok(node.participantVisitorIdentity.hidden&&!node.participantMemberIdentity.hidden&&
+ node.participantMemberName.textContent==='テストメンバー'&&
+ node.participantMemberKana.textContent==='カナ',
+ 'member name/kana displayed as read-only identity without editable inputs');
+ok(node.participantCategoryVisitor.hidden&&node.participantCategoryVisitor.disabled&&
  !node.participantCategory.disabled,
- 'member editor retains historical email and editable category');
+ 'nonvisitor cannot select visitor category');
 pm.people=[];render();
 ok(node.participantCards.children[0].textContent==='この開催日の回答データはありません。',
  'empty state matches original v7');
