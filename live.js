@@ -786,6 +786,7 @@ async function registerVisitor_(){
 }
 
 
+// v0.16.38d: legacy participant roster/edit/delete, keyed only by fixed IDs.
 // v0.16.43: stable member identity is read-only in participant edits.
 // Unlinked LINE subject is shown explicitly; visitor identities remain separately editable.
 const PM={practices:[],practiceId:'',people:[],editing:null,deleting:null,
