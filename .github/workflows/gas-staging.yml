@@ -47,6 +47,8 @@ jobs:
         run: node tests/check-gas-staging-ci.cjs
       - name: Test remote drift and manifest safety guards
         run: node tests/check-gas-staging-guard.cjs
+      - name: Check payment ledger fast path safety
+        run: node tests/check-gas-payment-fastpath.cjs
       - name: Install pinned official Google clasp
         run: npm install --global --no-fund --no-audit --ignore-scripts @google/clasp@3.4.1
       - name: Preflight or update EXISTING staging GAS deployment
