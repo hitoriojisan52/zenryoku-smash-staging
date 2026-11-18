@@ -97,6 +97,12 @@ GitHub **Actions → Staging GAS - GitHub / clasp → Run workflow**
 
 有効時だけ、`main` の `gas-staging/*.gs`（GASソース）またはデプロイスクリプトの変更がGitHubに入ると、GASデプロイが自動で走ります。通常のフロントエンド、対戦表、Workerのみの変更ではGASデプロイしません。GitHubのレビューを通したコードだけが反映されます。
 
+## 2026-11-18 preflight初回実行で見つかったclaspのファイル拡張子差異
+
+GitHub Actions実行ID `44205829733` は **preflightとして正常に起動し、clasp pullで既存GASの5ファイル取得まで成功**しましたが、当初の安全チェックが `コード.gs` を探したために失敗しました。実際の`clasp pull`はGASコードを `コード.js` / `AccessAndGuestV160.js` として保存します。
+
+修正版ガードは、GitHub上の `gas-staging/*.gs` を、取得先の同名 `*.js` に厳密に対応付け、同名のGSを追加して二重ファイルを作らないようにしています。未承認の手動編集検出、マニフェスト・他の3ファイルの保持、`preflight`読み取り専用は維持します。確認操作はSecretsを再登録せず、`preflight` を再実行するだけです。
+
 ## 保護・注意点
 
 - 本番Script IDを設定しないこと。最初は必ず `preflight`
