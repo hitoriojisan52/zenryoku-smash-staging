@@ -32,6 +32,7 @@ on:
       - 'tests/check-stage-dialog-inventory-v1646.cjs'
       - 'tests/check-stage-ledger-add-v1647.cjs'
       - 'tests/check-stage-finance-member-v1648.cjs'
+      - 'tests/check-stage-ledger-confirm-order-v1651.cjs'
       - 'tests/check-stage-line-attendance-v1645.cjs'
       - 'match.js'
       - 'match.html'
@@ -96,6 +97,8 @@ jobs:
         run: node tests/check-stage-ledger-add-v1647.cjs
       - name: Verify member access cards and future ledger/confirmation safeguards
         run: node tests/check-stage-finance-member-v1648.cjs
+      - name: Verify v15 strictly sequential ledger confirmation and earlier-month blockers
+        run: node tests/check-stage-ledger-confirm-order-v1651.cjs
       - name: Verify staging withdrawal remains isolated
         run: node tests/check-stage-withdraw-boundary.cjs
       - name: Verify GAS payment timing without extra sheet writes
