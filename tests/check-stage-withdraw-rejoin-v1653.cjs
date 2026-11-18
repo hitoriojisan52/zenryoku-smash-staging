@@ -178,4 +178,27 @@ ok(front.includes("data.withdrawn.some(x=>x.memberId===m.memberId&&x.state==='co
  'UI success verifies both roster deletion and completed archive');
 ok(worker.includes("result.data.withdrawEnabled=result.data.withdrawEnabled===true&&withdrawAtEdge"),
  'Worker requires double backend permission before enabling UI');
+
+/* Inject a mid-withdrawal failure. The affected member must lose access,
+ * remain in processing, and automatic retry/reapplication must be blocked. */
+const FAIL_ID='M-TEST-WITHDRAW-V1653-002',FAIL_LINE='U'+'d'.repeat(32);
+db['メンバー'].push([FAIL_ID,'架空退会中断',FAIL_LINE,true,false]);
+const restoreFlush=SpreadsheetApp.flush;
+SpreadsheetApp.flush=()=>{throw new Error('INJECTED_OUTAGE');};
+assert.throws(()=>withdraw(member,FAIL_ID,'bb123456-0123-4123-8123-123456789abc'),
+ /INJECTED_OUTAGE/);
+n++;
+SpreadsheetApp.flush=restoreFlush;
+const processing=db['退会履歴'].find(r=>r[0]===FAIL_ID);
+const blockedAccount=db['メンバー'].find(r=>r[0]===FAIL_ID);
+ok(processing?.[4]==='processing'&&blockedAccount?.[3]===false,
+ 'after partial failure, history is processing and user access is revoked');
+ok(register(ss,FAIL_LINE,'member.status',{}).data.status==='withdrawal_processing',
+ 'partial withdrawal is never reported as approved or not requested');
+blocked(()=>register(ss,FAIL_LINE,'member.apply',{displayName:'架空再申請'}),
+ 'CONFLICT','no reentry while old withdrawal is processing');
+blocked(()=>withdraw(member,FAIL_ID,'cc123456-0123-4123-8123-123456789abc'),
+ 'FORBIDDEN','retry after partial failure is refused, not auto-replayed');
+ok(db['メンバー'].some(r=>r[0]===ADMIN&&r[3]===true&&r[4]===true),
+ 'sole admin remains enabled after partial failure');
 console.log('PASS '+n+'/'+n+' stage-only withdrawal, historical preservation, reapplication and new member ID');
