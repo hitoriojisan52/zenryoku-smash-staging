@@ -115,10 +115,17 @@ ok(!adminNodes.some(e=>e.tag==='button'&&e.textContent==='退会')&&
  !inactiveNodes.some(e=>e.tag==='button'&&e.textContent==='退会'),
  'admin self and stopped members never show an actionable withdraw control');
 snapshot.withdrawMemberEnabled=true;
+snapshot.withdrawMemberScope='single';
+snapshot.withdrawMemberTargetId='M-OTHER';
+names.render(snapshot);
+const wrongTarget=traverse(elements.memberAccessMembers.children[1]);
+ok(wrongTarget.some(e=>e.tag==='button'&&e.textContent==='退会'&&e.disabled),
+ 'single-target stage mode disables withdrawal on everyone else');
+snapshot.withdrawMemberTargetId='M-2';
 names.render(snapshot);
 const enabledMember=traverse(elements.memberAccessMembers.children[1]);
 ok(enabledMember.some(e=>e.tag==='button'&&e.textContent==='退会'&&!e.disabled),
- 'with explicit server capability, eligible member row offers withdrawal');
+ 'only exact server-authorized target gets an enabled withdrawal button');
 snapshot.withdrawMemberEnabled=false;
 names.render(snapshot);
 ok(elements.memberAccessHistoryV2.hidden===false &&
