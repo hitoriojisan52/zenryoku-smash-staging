@@ -42,7 +42,12 @@ const practiceId='PR-SYNTHETIC-1121',rows=[
  {requestId:'VR-THREE',practiceId,name:'仮三郎',date:'2026-11-21',place:'検証体育館',
   requestedAt:old,status:'rejected',version:2,requestedByName:'一般メンバー'}
 ];
-w.SMVisitor.setup({api:async path=>({requests:rows}),actor:{role:'admin'}});
+const schedules=[
+ {practiceId,date:'2026-11-21',place:'検証体育館',startTime:'09:00',endTime:'13:00'},
+ {practiceId:'PR-SECOND',date:'2026-11-28',place:'別体育館',startTime:'09:00',endTime:'13:00'},
+ {practiceId:'PR-EMPTY',date:'2026-12-05',place:'無回答会場',startTime:'09:00',endTime:'13:00'}
+];
+w.SMVisitor.setup({api:async path=>({requests:rows,practices:schedules}),actor:{role:'admin'}});
 const find=(e,cls)=>{
  if(String(e.className).split(' ').includes(cls))return e;
  for(const child of e.children){const match=find(child,cls);if(match)return match;}
@@ -158,12 +163,19 @@ const deepText=e=>[e.textContent,...e.children.map(deepText)].filter(Boolean).jo
  elements.visitorMinePractice.listeners.change();
  ok(elements.visitorMineCards.children.length===4,
   'all dates option restores all applicant statuses');
+ elements.visitorMinePractice.value='PR-EMPTY';
+ elements.visitorMinePractice.listeners.change();
+ ok(elements.visitorMineCards.children.length===1&&
+  deepText(elements.visitorMineCards.children[0]).includes('この開催日のビジター申請はありません'),
+  'selecting a master schedule date without requests shows clear empty-state message');
+ elements.visitorMinePractice.value='all';
+ elements.visitorMinePractice.listeners.change();
 
  for(const oldId of ['visitorMineMenu','visitorMineDialog','visitorMemberRefresh','visitorMineList']){
   ok(!html.includes('id="'+oldId+'"'),'obsolete standalone element removed: '+oldId);
   ok(!ui.includes("$('"+oldId+"')"),'no stale listener or DOM reference: '+oldId);
  }
- ok(ui.includes("render('visitorMineCards',optionsFor(mineRows,'visitorMinePractice'),false)")&&
+ ok(ui.includes("render('visitorMineCards',optionsFor(mineRows,'visitorMinePractice',mineDates),false)")&&
   !ui.includes("render('visitorMineList'"),
   'request status refreshed only in integrated screen');
  ok(liveJs.includes("const [response]=await Promise.all([call('/api/visitor/practices'),window.SMVisitor.loadMine()])"),
