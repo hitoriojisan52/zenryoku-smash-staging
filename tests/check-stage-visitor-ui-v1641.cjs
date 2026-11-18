@@ -98,7 +98,7 @@ const deepText=e=>[e.textContent,...e.children.map(deepText)].filter(Boolean).jo
   'visitor cards, including admin review, never display email');
  ok(find(elements.visitorMineCards.children[1],'visitor-status')!==null&&
   find(elements.visitorAdminCards.children[1],'visitor-status')===null,
-  'approval status badge only shown on requester's visitor registration screen');
+  "approval status badge only shown on the requester visitor registration screen");
  ok(find(elements.visitorMineCards.children[1],'participant-card-content')!==null,
   'visitor cards share participant list layout');
  const memberCards=elements.visitorMineCards.children;
