@@ -7,6 +7,7 @@ on:
       - 'tests/check-stage-schedule-v1638.cjs'
       - 'tests/check-stage-visitor-v1638b.cjs'
       - 'tests/check-stage-cascade-v1638c.cjs'
+      - 'tests/check-stage-participant-v1638d.cjs'
       - 'scripts/gas-staging-guard.cjs'
       - 'scripts/gas-staging-deploy.sh'
       - 'tests/check-gas-staging-ci.cjs'
@@ -29,5 +30,6 @@ jobs:
       - run: node tests/check-stage-schedule-v1638.cjs
       - run: node tests/check-stage-visitor-v1638b.cjs
       - run: node tests/check-stage-cascade-v1638c.cjs
+      - run: node tests/check-stage-participant-v1638d.cjs
       - run: node tests/check-gas-audit-ids-v1636h.cjs
       - run: bash -n scripts/gas-staging-deploy.sh
