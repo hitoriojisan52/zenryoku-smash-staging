@@ -165,6 +165,13 @@ body.visitor-member #visitorMemberHome button{width:100%}
 
 <dialog id="visitorDialog" aria-labelledby="visitorDialogTitle">
  <h2 id="visitorDialogTitle">👤 ビジター登録</h2>
+ <section class="visitor-my-requests" aria-labelledby="visitorMyRequestsTitle">
+  <div class="visitor-review-section-heading">
+   <h3 id="visitorMyRequestsTitle">📋 自分の申請</h3>
+   <button id="visitorMineRefresh" class="btn-blue" type="button">更新</button>
+  </div>
+  <div id="visitorMineCards" class="visitor-review-list" role="status" aria-live="polite"></div>
+ </section>
  <form id="visitorForm">
   <label for="visitorPractice" class="dialog-label">参加希望日</label><select id="visitorPractice" class="dialog-select" required></select>
   <label for="visitorName" class="dialog-label">お名前</label><input id="visitorName" class="dialog-input" type="text" maxlength="60" required autocomplete="off">
@@ -173,13 +180,6 @@ body.visitor-member #visitorMemberHome button{width:100%}
   <p id="visitorStatus" class="schedule-note stage-system-message stage-system-message--warning" role="status" aria-live="polite"></p>
   <div class="modal-actions"><button id="visitorCancel" type="button" class="btn-outline">キャンセル</button><button id="visitorSubmit" type="submit" class="btn-green">確認する</button></div>
  </form>
- <section class="visitor-my-requests" aria-labelledby="visitorMyRequestsTitle">
-  <div class="visitor-review-section-heading">
-   <h3 id="visitorMyRequestsTitle">📋 自分の申請</h3>
-   <button id="visitorMineRefresh" class="btn-blue" type="button">更新</button>
-  </div>
-  <div id="visitorMineCards" class="visitor-review-list" role="status" aria-live="polite"></div>
- </section>
 </dialog>
 <dialog id="visitorConfirmDialog" aria-labelledby="visitorConfirmTitle">
  <h2 id="visitorConfirmTitle">ビジターの申請確認</h2><p id="visitorConfirmText"></p>
