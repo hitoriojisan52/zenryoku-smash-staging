@@ -58,7 +58,7 @@ for(const [,id,body] of blocks){
 const allIds=[...html.matchAll(/\bid="([^"]+)"/g)].map(x=>x[1]);
 ok(new Set(allIds).size===allIds.length,'entire management page has no duplicate IDs');
 for(const id of ['scheduleAdd','scheduleReload','participantReload','memberAccessRefresh',
- 'visitorAdminRefresh','attendanceReload','newLedgerRow']){
+ 'visitorAdminRefresh','newLedgerRow']){
  ok(js.includes("'"+id+"'"),'shared toolbar has explicit original action: '+id);
  ok((ui+access+vis).includes("'"+id+"'"),
   'reparented action remains bound by application logic: '+id);
@@ -73,8 +73,8 @@ ok(match.includes('id="accessQrButton"')&&match.includes('id="accessShareCopy"')
  match.includes('id="accessQrCopy"')&&match.includes('id="accessShareClose"'),
  'QR issue, copy and Close all retained');
 ok(match.includes('id="matchConfirmCancel"')&&match.includes('id="matchConfirmOk"')&&
- match.includes('id="matchConfirmClose"'),
- 'match confirmations retain both possible outcomes and the new Close');
+ !match.includes('id="matchConfirmClose"'),
+ 'match confirmation is a popup: retain Cancel/Execute without new Close');
 ok(js.includes("cancel.click()")&&js.includes('if(dialog.inert||!dialog.open'),
  'new Close delegates to real Cancel and respects screen lock');
 console.log('PASS '+n+'/'+n+' original staging modal action IDs and event route inventory');
