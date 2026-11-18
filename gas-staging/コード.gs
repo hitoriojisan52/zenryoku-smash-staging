@@ -384,7 +384,8 @@ var SM = {
     '集金記録':['practiceId','participantId','completed','version','updatedBy','updatedAt'],
     '全体収支管理表':['日付','開催場所・費目名','集金額','支出','残金','確認者','rowId','kind','practiceId','status','version','当日補正','費目','立替者','receiptFileId','作成者'],
     '操作履歴':['operationId','operation','actorMemberId','timestamp','targetId','resultJSON'],
-    '現金確認記録':['practiceId','auditDate','countsJson','cashTotal','bookBalance','difference','version','updatedBy','updatedAt']
+    '現金確認記録':['practiceId','auditDate','countsJson','cashTotal','bookBalance','difference','version','updatedBy','updatedAt'],
+    '日程削除アーカイブ':['operationId','practiceId','archivedAt','archivedBy','chunkIndex','chunkCount','snapshotChunk','status']
   },
   fees: {member:800,student:400,visitor:1000,duty:400,shuttle:400}
 };
@@ -506,7 +507,7 @@ function unlockable_(row){if(row.status==='confirmed')fail_('LOCKED','確定済�
 function dateAllowed_(date){if(!iso_(date)||date>today_())fail_('BAD_REQUEST','未来日または日付が不正です');}
 function expectVersion_(current,expected){if(!Number.isSafeInteger(Number(expected))||Number(expected)!==current)fail_('CONFLICT','他の端末で変更されています。再読込してください');}
 function changeMoney_(ss,member,payload,kind){
- var id=str_(payload.practiceId),p=practice_(ss,id),rows=entries_(ss),row=row_(rows,'P-'+id);unlockable_(row);expectVersion_(row.version,payload.expectedVersion);
+ var id=str_(payload.practiceId),p=practice_(ss,id),rows=entries_(ss);requireCollection_(ss,p,rows);var row=row_(rows,'P-'+id);unlockable_(row);expectVersion_(row.version,payload.expectedVersion);
  if(kind==='adjustment')row.adjustment=jpy_(payload.value,true);else row.expense=jpy_(payload.value,false);
  row.income=practiceIncome_(ss,id,row.adjustment);row.version++;
  var result=balanceRecalc_(rows,entries_(ss));writeLedger_(ss,result);
@@ -516,7 +517,7 @@ function setPayment_(ss,member,payload,profile){
  var mark=profile?Date.now():0;
  var id=str_(payload.practiceId),person=str_(payload.participantId),p=practice_(ss,id);
  if(profile){profile.practiceReadMs=Date.now()-mark;mark=Date.now();}
- var original=entries_(ss),rows=original.map(function(r){return Object.assign({},r);}),ledger=row_(rows,'P-'+id);
+ var original=entries_(ss),rows=original.map(function(r){return Object.assign({},r);});requireCollection_(ss,p,original);var ledger=row_(rows,'P-'+id);
  if(profile){profile.ledgerReadMs=Date.now()-mark;mark=Date.now();}
  unlockable_(ledger);var attending=attendees_(ss,id);if(!attending.some(function(a){return a.participantId===person;}))fail_('NOT_FOUND','出欠登録のある参加者が見つかりません');
  if(profile){profile.attendeeReadMs=Date.now()-mark;mark=Date.now();}
@@ -553,7 +554,7 @@ function mutateLedger_(ss,member,payload){
  if(action!=='add'){r=row_(rows,id);expectVersion_(r.version,payload.expectedVersion);}
  if(action==='add'){
    var kind=str_(payload.kind);if(kind==='practice'){
-     var p=practice_(ss,str_(payload.practiceId));dateAllowed_(p.date);id='P-'+p.practiceId;
+     var p=practice_(ss,str_(payload.practiceId));dateAllowed_(p.date);var access=collectionState_(ss,p,rows);if(!access.canStart)fail_('LOCKED',access.reason);id='P-'+p.practiceId;
      if(rows.some(function(x){return x.rowId===id;}))fail_('CONFLICT','練習日の収支行は登録済みです');
      r={date:p.date,label:p.place,income:practiceIncome_(ss,p.practiceId,0),expense:0,balance:0,confirmedBy:'',rowId:id,kind:'practice',practiceId:p.practiceId,status:'open',version:1,adjustment:0,item:'',payee:'',receiptFileId:'',createdBy:member.memberId};rows.push(r);
    }else if(kind==='reimbursement'||kind==='other'){
@@ -693,18 +694,101 @@ function scheduleList_(ss,member,payload){
   .map(function(r){var o=Object.assign({},r);delete o.rowNumber;return o;});
  return {ok:true,data:{schedules:rows}};
 }
-function scheduleHasReferences_(ss,id){
- // Even an inactive date cannot be deleted if another feature has rows for it.
- if(sheetRows_(ss,'出欠回答').some(function(r){return str_(r[0])===id;}))return true;
- if(sheetRows_(ss,'集金記録').some(function(r){return str_(r[0])===id;}))return true;
- if(sheetRows_(ss,'全体収支管理表').some(function(r){return str_(r[8])===id;}))return true;
- var match=ss.getSheetByName('試合セッション');
- if(match&&match.getLastRow()>1){
-  if(match.getRange(2,1,match.getLastRow()-1,1).getValues()
-    .some(function(r){return str_(r[0])===id;}))return true;
- }
- return false;
+
+/** A confirmed schedule is deletable, but finalized financial entries are not.
+ * Archive every affected physical row before any destructive update. The archive
+ * is intentionally retained with the operation audit for manual recovery.
+ * Google Sheets has no multi-sheet transaction, so pending archives block reuse.
+ */
+var SCHEDULE_DELETE_TABS_=[
+ ['出欠回答',0,9],['集金記録',0,6],['現金確認記録',0,9],
+ ['試合セッション',0,5],['試合版管理',1,9],['試合操作履歴',1,7],
+ ['閲覧リンク',1,6]
+];
+function scheduleDeleteTargets_(ss,id){
+ var found={};
+ SCHEDULE_DELETE_TABS_.forEach(function(spec){
+  var name=spec[0],sh=sheet_(ss,name),last=sh.getLastRow(),items=[];
+  if(last>1)sh.getRange(2,1,last-1,spec[2]).getValues().forEach(function(row,i){
+   if(str_(row[spec[1]])===id)items.push({rowNumber:i+2,cells:row});
+  });
+  found[name]=items;
+ });
+ return found;
 }
+function scheduleArchiveHas_(ss,id){
+ return sheetRows_(ss,'日程削除アーカイブ').some(function(r){return str_(r[1])===id;});
+}
+function scheduleDeletePlan_(ss,existing){
+ var id=existing.practiceId,original=entries_(ss);
+ var affected=original.filter(function(r){return r.practiceId===id||r.rowId==='P-'+id;});
+ if(affected.some(function(r){return r.kind==='opening';}))
+  fail_('SETUP','引継行は日程削除の対象にできません');
+ if(affected.some(function(r){return r.status==='confirmed';}))
+  fail_('LOCKED','収支確定済みです。確定解除してから削除してください');
+ var retained=original.filter(function(r){return affected.indexOf(r)===-1;});
+ // Existing finalized balances must remain exactly unchanged.
+ balanceRecalc_(retained,original);
+ var targets=scheduleDeleteTargets_(ss,id),counts={};
+ Object.keys(targets).forEach(function(name){counts[name]=targets[name].length;});
+ counts['全体収支管理表']=affected.length;
+ return {ledgerBefore:original,ledgerAfter:retained,ledgerRemoved:affected,
+  targets:targets,counts:counts};
+}
+function scheduleDeletePreview_(ss,member,payload){
+ var id=str_(payload.practiceId),rows=scheduleRows_(ss);
+ var matches=rows.filter(function(p){return p.practiceId===id;});
+ if(matches.length!==1)fail_('NOT_FOUND','日程が見つかりません');
+ var existing=matches[0];
+ expectVersion_(existing.version,payload.expectedVersion);
+ if(scheduleArchiveHas_(ss,id))
+  fail_('CONFLICT','日程の削除処理履歴があります。管理者に確認してください');
+ var plan=scheduleDeletePlan_(ss,existing);
+ return {ok:true,data:{practiceId:id,version:existing.version,
+  counts:plan.counts,canDelete:true}};
+}
+function scheduleArchivePrepare_(ss,member,operationId,existing,plan){
+ if(scheduleArchiveHas_(ss,existing.practiceId))
+  fail_('CONFLICT','削除処理中の記録があります。管理者に確認してください');
+ var snapshot={schema:1,practiceId:existing.practiceId,
+  schedule:sheet_(ss,'練習日程').getRange(existing.rowNumber,1,1,9).getValues()[0],
+  ledgerRemoved:plan.ledgerRemoved,ledgerBefore:plan.ledgerBefore,
+  targets:plan.targets};
+ var serialized=JSON.stringify(snapshot),size=12000,chunks=[];
+ for(var i=0;i<serialized.length;i+=size)chunks.push(serialized.slice(i,i+size));
+ if(!chunks.length)chunks=['{}'];
+ if(chunks.length>3000)fail_('LIMIT','削除対象が多いため管理者に確認してください');
+ var sheet=sheet_(ss,'日程削除アーカイブ'),first=sheet.getLastRow()+1;
+ // Grow only the staging archive sheet if chunk count exceeds its grid size.
+ if(first+chunks.length-1>sheet.getMaxRows())
+  sheet.insertRowsAfter(sheet.getMaxRows(),first+chunks.length-1-sheet.getMaxRows());
+ var time=now_(),write=chunks.map(function(chunk,i){
+  return [operationId,existing.practiceId,time,member.memberId,i+1,chunks.length,
+    safeCell_(chunk),i===0?'prepared':''];
+ });
+ sheet.getRange(first,1,chunks.length,8).setValues(write);
+ SpreadsheetApp.flush(); // ensure recovery archive is committed before deletion
+ return {sheet:sheet,firstRow:first};
+}
+function scheduleDeleteExecute_(ss,member,payload,existing){
+ var id=existing.practiceId,plan=scheduleDeletePlan_(ss,existing);
+ var archived=scheduleArchivePrepare_(ss,member,str_(payload.operationId),existing,plan);
+ // Hide the date from all LIFF reads before removing its linked data.
+ sheet_(ss,'練習日程').getRange(existing.rowNumber,7,1,3)
+   .setValues([[false,safeCell_(existing.remark),existing.version+1]]);
+ if(plan.ledgerRemoved.length)writeLedger_(ss,plan.ledgerAfter);
+ SCHEDULE_DELETE_TABS_.forEach(function(spec){
+  var items=plan.targets[spec[0]];
+  var sh=sheet_(ss,spec[0]);
+  items.slice().sort(function(a,b){return b.rowNumber-a.rowNumber;})
+    .forEach(function(item){sh.deleteRow(item.rowNumber);});
+ });
+ sheet_(ss,'練習日程').deleteRow(existing.rowNumber);
+ archived.sheet.getRange(archived.firstRow,8).setValue('completed');
+ return {ok:true,data:{practiceId:id,action:'delete',
+  version:existing.version+1,removed:plan.counts,archived:true}};
+}
+
 function scheduleChange_(ss,member,payload){
  var action=str_(payload.action),id=str_(payload.practiceId),
      rows=scheduleRows_(ss),sh=sheet_(ss,'練習日程');
@@ -723,15 +807,12 @@ function scheduleChange_(ss,member,payload){
  if(matches.length!==1)fail_('NOT_FOUND','日程が見つかりません');
  var existing=matches[0];
  expectVersion_(existing.version,payload.expectedVersion);
- if(existing.enabled)fail_('FORBIDDEN','確定済みの日程は修正・削除できません');
- if(existing.date<today_())fail_('BAD_REQUEST','過去の日程は変更できません');
- if(action==='delete'){
-  if(scheduleHasReferences_(ss,id))fail_('CONFLICT','関連データがあるため削除できません');
-  sh.deleteRow(existing.rowNumber);
-  return {ok:true,data:{practiceId:id,action:action,version:existing.version+1}};
- }
+ if(scheduleArchiveHas_(ss,id))fail_('CONFLICT','日程の削除処理履歴があります。管理者に確認してください');
+ if(action==='delete')return scheduleDeleteExecute_(ss,member,payload,existing);
+ if(existing.enabled)fail_('FORBIDDEN','確定済みの日程は修正できません');
+ if(existing.date<today_())fail_('BAD_REQUEST','過去の日程は修正できません');
  if(action==='edit'){
-  if(scheduleHasReferences_(ss,id))fail_('CONFLICT','関連データがあるため修正できません');
+  if(scheduleDeleteTargets_(ss,id)['出欠回答'].length||scheduleDeleteTargets_(ss,id)['集金記録'].length||entries_(ss).some(function(r){return r.practiceId===id;}))fail_('CONFLICT','関連データがあるため修正できません');
   var update=scheduleData_(payload);
   if(rows.some(function(r){return r.practiceId!==id&&r.date===update.date;}))
    fail_('CONFLICT','同じ開催日が登録されています');
@@ -750,13 +831,60 @@ function scheduleChange_(ss,member,payload){
  fail_('BAD_REQUEST','日程操作が不正です');
 }
 
+
+/** v0.16.38c: collection is allowed only on/after the meeting day AND
+ * after the immediately preceding published meeting's ledger is finalized.
+ * The hours field is the fee category, NOT the meeting's elapsed duration.
+ */
+function collectionState_(ss,p,ledgerRows){
+ var ordered=practices_(ss).slice().sort(function(a,b){return a.date.localeCompare(b.date)||a.practiceId.localeCompare(b.practiceId);});
+ var previous=null;
+ for(var i=0;i<ordered.length;i++)if(ordered[i].date<p.date)previous=ordered[i];
+ var previousLedger=previous?ledgerRows.find(function(r){return r.rowId==='P-'+previous.practiceId;}):null;
+ var priorOpen=!!previous&&(!previousLedger||previousLedger.status!=='confirmed');
+ var future=p.date>today_();
+ var current=ledgerRows.find(function(r){return r.rowId==='P-'+p.practiceId;});
+ var finished=!!current&&current.status==='confirmed',reasons=[];
+ if(future)reasons.push('開催日前');
+ if(priorOpen)reasons.push('前日程の収支未確定');
+ if(finished)reasons.push('この日程の収支確定済み');
+ if(!current&&!future&&!priorOpen)reasons.push('集金・収支データ未作成');
+ return {canCollect:!!current&&!future&&!priorOpen&&!finished,
+  canStart:!future&&!priorOpen&&!finished,
+  future:future,previousUnconfirmed:priorOpen,confirmed:finished,
+  previousPracticeId:previous?previous.practiceId:'',
+  reason:reasons.join('／')+(reasons.length?'のため集金できません':'')};
+}
+function ensureCollectionLedger_(ss,member,p,oldRows){
+ var current=oldRows.find(function(r){return r.rowId==='P-'+p.practiceId;});
+ var state=collectionState_(ss,p,oldRows);
+ if(current||!state.canStart)return oldRows;
+ var rows=oldRows.map(function(r){return Object.assign({},r);});
+ rows.push({date:p.date,label:p.place,income:practiceIncome_(ss,p.practiceId,0),
+  expense:0,balance:0,confirmedBy:'',rowId:'P-'+p.practiceId,kind:'practice',
+  practiceId:p.practiceId,status:'open',version:1,adjustment:0,
+  item:'',payee:'',receiptFileId:'',createdBy:member.memberId});
+ balanceRecalc_(rows,oldRows); // never shift the balance of finalized rows
+ writeLedger_(ss,rows);
+ // The deterministic row ID, checked under ScriptLock by overview, prevents
+ // duplicate creation even if a mobile client retries the read request.
+ audit_(ss,'AUTO-PRACTICE-'+p.practiceId,'ledger.auto',member,p.practiceId,
+  {ok:true,data:{practiceId:p.practiceId,ledgerVersion:1}});
+ return rows;
+}
+function requireCollection_(ss,p,ledgerRows){
+ var access=collectionState_(ss,p,ledgerRows);
+ if(!access.canCollect)fail_('LOCKED',access.reason||'集金操作はまだ開始できません');
+ return access;
+}
+
 function overview_(ss,member,payload){var all=practices_(ss).sort(function(a,b){return a.date.localeCompare(b.date)||a.startTime.localeCompare(b.startTime);});
- var id=str_(payload.practiceId)|| (all.length?all[all.length-1].practiceId:'');if(!id)fail_('NOT_FOUND','日程がありません');var p=practice_(ss,id),pay=paymentRows_(ss,id),pm={};pay.forEach(function(r){pm[str_(r[1])]={completed:bool_(r[2]),version:Number(r[3])||0};});
+ var id=str_(payload.practiceId)|| (all.length?all[all.length-1].practiceId:'');if(!id)fail_('NOT_FOUND','日程がありません');var p=practice_(ss,id),ledgerRows=ensureCollectionLedger_(ss,member,p,entries_(ss)),access=collectionState_(ss,p,ledgerRows),pay=paymentRows_(ss,id),pm={};pay.forEach(function(r){pm[str_(r[1])]={completed:bool_(r[2]),version:Number(r[3])||0};});
  var roster=attendees_(ss,id).map(function(a){var o=pm[a.participantId]||{completed:false,version:0};return {participantId:a.participantId,name:a.name,nameKana:a.nameKana,category:a.category,fee:fee_(a.category,p.hours),attending:true,memo:a.memo,collectionCompleted:o.completed,paymentVersion:o.version,categoryVersion:a.categoryVersion};});
  // Shared dynamic numbering: sorted every read, never a mutation key.
  roster=SMMatchCore.numbered(roster).map(function(a){a.participantId=a.participationId;return a;});
- var ledger=entries_(ss).find(function(r){return r.rowId==='P-'+id;});var completed=roster.filter(function(a){return a.collectionCompleted;});var total=completed.reduce(function(a,b){return a+b.fee;},0);
- return {ok:true,data:{role:member.role,actorName:member.name,practice:p,practices:all,participants:roster,ledger:ledger||null,expected:roster.reduce(function(a,b){return a+b.fee;},0),completedFee:total,completedCount:completed.length,attendingCount:roster.length}};
+ var ledger=ledgerRows.find(function(r){return r.rowId==='P-'+id;});var completed=roster.filter(function(a){return a.collectionCompleted;});var total=completed.reduce(function(a,b){return a+b.fee;},0);
+ return {ok:true,data:{role:member.role,actorName:member.name,practice:p,practices:all,participants:roster,ledger:ledger||null,collectionAccess:access,expected:roster.reduce(function(a,b){return a+b.fee;},0),completedFee:total,completedCount:completed.length,attendingCount:roster.length}};
 }
 function monthLedger_(ss,member,payload){var month=str_(payload.month)||today_().slice(0,7);if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)||month>today_().slice(0,7))fail_('BAD_REQUEST','対象月が不正です');
  var sorted=entries_(ss).filter(function(r){return r.date<=today_();}); // persisted ledger order matches balance calculation
@@ -846,7 +974,7 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
  }
  if(op.indexOf('match.')===0)return matchApiDispatch_(ss,member,op,payload);
  requireDuty_(member);
- if(['overview','ledger.list','cash.get','schedule.list'].indexOf(op)>=0)return withLock_(function(){return op==='overview'?overview_(ss,member,payload):op==='ledger.list'?monthLedger_(ss,member,payload):op==='cash.get'?cashGet_(ss,member,payload):scheduleList_(ss,member,payload);});
+ if(['overview','ledger.list','cash.get','schedule.list','schedule.delete.preview'].indexOf(op)>=0)return withLock_(function(){return op==='overview'?overview_(ss,member,payload):op==='ledger.list'?monthLedger_(ss,member,payload):op==='cash.get'?cashGet_(ss,member,payload):op==='schedule.list'?scheduleList_(ss,member,payload):scheduleDeletePreview_(ss,member,payload);});
  if(['payment.set','category.set','adjustment.set','expense.set','ledger.change','cash.save','schedule.change'].indexOf(op)<0)fail_('BAD_REQUEST','API操作が不正です');
  var opId=checkOpId_(payload);
  return withLock_(function(){
