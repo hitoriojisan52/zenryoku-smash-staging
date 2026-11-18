@@ -408,7 +408,7 @@ function renderCash(){
    return;
   }
   bookEl.textContent=yen(book.balance);
-  status.textContent=book.provisional?'この日付までに未確定の収支行があります。帳簿残金は暫定値です。':'';
+  status.textContent=book.provisional?'対象月のこの日付までに未確定の収支行があります。帳簿残金は暫定値です。':'';
   if(!hasInput)return;
   const difference=actual-book.balance;
   if(!Number.isSafeInteger(difference))throw new Error('差額が計算可能な範囲を超えました');
@@ -426,6 +426,7 @@ async function refreshCashLedger(){
  cashLedger=result;renderCash();
 }
 async function openCash(){
+ let ready=false;
  await guard(async()=>{
   gateEdit();
   if(!CASH)throw new Error('現金確認機能の読み込みに失敗しました');
@@ -435,8 +436,10 @@ async function openCash(){
   cashLedger=null;
   resetCashCounts();
   await refreshCashLedger();
-  close('manageDialog');dialog('cashDialog');
+  ready=true;
  });
+ // Open AFTER the full-screen busy overlay closes, avoiding stacked dialogs.
+ if(ready){close('manageDialog');dialog('cashDialog');}
 }
 
 function bind(){
