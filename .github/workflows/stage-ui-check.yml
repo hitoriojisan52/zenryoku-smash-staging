@@ -13,6 +13,8 @@ on:
       - 'tests/check-stage-match-delete-v1639.cjs'
       - 'tests/check-stage-match-create-v1639a.cjs'
       - 'tests/check-stage-system-messages-v1639b.cjs'
+      - 'tests/check-stage-visitor-approval-v1640.cjs'
+      - 'visitor-approval.js'
       - 'guest.js'
       - 'guest.html'
       - 'match-view.js'
@@ -64,6 +66,8 @@ jobs:
         run: node tests/check-stage-match-create-v1639a.cjs
       - name: Verify shared system messages across all staging screens
         run: node tests/check-stage-system-messages-v1639b.cjs
+      - name: Verify visitor approval and paid-rejection cross-module safety
+        run: node tests/check-stage-visitor-approval-v1640.cjs
       - name: Verify frontend financial state and Worker gating
         run: node tests/check-stage-finance-v1636c.cjs
       - name: Verify common UI standards
