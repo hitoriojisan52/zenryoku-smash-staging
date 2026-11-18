@@ -1,0 +1,26 @@
+name: Specification priority and new-chat handoff checks
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'README.md'
+      - 'docs/SESSION_HANDOFF.md'
+      - 'docs/SPEC_PRIORITY_POLICY.md'
+      - 'docs/NEW_CHAT_START_PROMPT.md'
+      - 'docs/withdrawal-priority-impact-review-v1652.md'
+      - 'docs/ui-standard-v1632.md'
+      - 'tests/check-spec-priority-policy.cjs'
+      - '.github/workflows/spec-priority-check.yml'
+permissions:
+  contents: read
+jobs:
+  spec-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify 1-to-5 priority and required change impact report
+        run: node tests/check-spec-priority-policy.cjs
