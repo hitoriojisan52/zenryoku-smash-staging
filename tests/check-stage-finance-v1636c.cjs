@@ -11,7 +11,7 @@ ok(worker.includes("version:'0.16.38c-stage-cascade'"),'expected Worker version'
 ok(worker.includes("env.WITHDRAW_ENABLED==='true'"),'withdraw mutation remains closed by default');
 ok(worker.includes("env.WORKER_PURPOSE==='staging-withdraw-test-v1636'"),'purpose guard intact');
 ok(worker.includes("const timing=['line;dur='+lineMs"),'safe duration metrics for all authenticated APIs');
-ok(ui.includes("epoch!==S.updateEpoch||S.pending.size||selected!==S.practiceId"),'discard automatic read started before save');
+ok(ui.includes("epoch!==S.updateEpoch||S.pending.size||(!notFound&&selected!==S.practiceId)"),'discard automatic read started before save');
 ok(ui.includes("!S.loading&&!window.SMStageUX.isBusy()"),'avoid parallel automatic refresh');
 ok(ui.includes("S.updateEpoch++"),'writes invalidate pending reads');
 ok(ui.includes("const PERF_MODE=(()=>"),'diagnostic mode isolated');
