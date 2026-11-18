@@ -304,7 +304,7 @@ function accessWithdrawPreflightV1625(){
 var SMA_STAGE_WITHDRAW_ID_V1636='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac';
 var SMA_STAGE_WITHDRAW_PURPOSE_V1636='staging-member-withdraw-v1653';
 var SMA_STAGE_WITHDRAW_HEADER_V1636=['memberId','displayName','withdrawnAt','withdrawnBy','state','operationId'];
-var SMA_STAGE_MEMBER_ID_RE_V1653=/^M-(?:[0-9a-f]{8}-[0-9a-f-]{27,36}|TEST-[A-Z0-9-]{2,80})$/i;
+var SMA_STAGE_MEMBER_ID_RE_V1653=/^M-(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|TEST-[A-Z0-9-]{2,80})$/i;
 var SMA_STAGE_UUID4_RE_V1636=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function accessStageBindingV1636_(ss){
   if(conf_('SPREADSHEET_ID')!==SMA_STAGE_WITHDRAW_ID_V1636||
