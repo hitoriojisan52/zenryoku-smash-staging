@@ -7,6 +7,11 @@
  const $=id=>document.getElementById(id);
  let api=null,actor=null,selected=null,refreshAfterDecision=null;
  const STATUS={pending:'承認待ち',approved:'承認済み',rejected:'却下済み'};
+ const formatRequestedAt_=(value)=>{
+  const text=w.SMDate.dateTimeJst(value,false);
+  return /^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}$/.test(text)
+   ?text:'日時を確認できません';
+ };
  const node=(tag,cls,txt)=>{
   const e=document.createElement(tag);if(cls)e.className=cls;
   if(txt!==undefined)e.textContent=String(txt);
@@ -30,7 +35,7 @@
   el.append(header);
   const details=[
    data.date?(w.SMDate.date(data.date)+' '+(data.place||'')):'開催日：登録がありません',
-   data.requestedAt?'申請日時：'+(w.SMDate.dateTimeJst(data.requestedAt,false)||'日時を確認できません'):'',
+   data.requestedAt?'申請日時：'+formatRequestedAt_(data.requestedAt):'',
    admin?'申請者：'+(data.requestedByName||'不明'):'',
    data.nameKana?'カナ：'+data.nameKana:'',
    data.memo?'備考：'+data.memo:''
