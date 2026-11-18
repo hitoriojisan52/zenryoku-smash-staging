@@ -60,6 +60,8 @@ jobs:
         run: node tests/check-stage-schedule-v1638.cjs
       - name: Verify member-level visitor registration and fee category independence
         run: node tests/check-stage-visitor-v1638b.cjs
+      - name: Verify cascading date deletion is archived and settlement-gated
+        run: node tests/check-stage-cascade-v1638c.cjs
       - name: Verify compact operation-history scan preserves idempotency
         run: node tests/check-gas-audit-ids-v1636h.cjs
       - name: Install pinned official Google clasp

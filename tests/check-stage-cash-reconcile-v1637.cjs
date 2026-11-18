@@ -16,7 +16,7 @@ ok(CASH.cashTotal({10000:'2',500:1})===20500,'partial amounts and blank are calc
 for(const value of ['1.5','-1','10000','1e2','1,000','a'])fails(()=>CASH.parseCount(value));
 ok(!CASH.validDate('2026-02-29')&&CASH.validDate('2024-02-29'),'calendar validation preserved');
 
-const start=gas.indexOf('var SM_CASH_DENOMINATIONS_='),end=gas.indexOf('function overview_(',start);
+const start=gas.indexOf('var SM_CASH_DENOMINATIONS_='),end=gas.indexOf('/* v0.16.38a:',start);
 ok(start>=0&&end>start,'cash audit routines are present in staged GAS');
 const cashSource=gas.slice(start,end);
 // Exercise the actual GAS date-normalizer against the Date objects returned
@@ -35,7 +35,7 @@ for(const forbidden of ['writeLedger_(', 'setPayment_(', 'balanceRecalc_(', "get
  ok(!cashSource.includes(forbidden),'cash audit does not modify financial ledger: '+forbidden);
 }
 ok(gas.includes("'現金確認記録':['practiceId','auditDate'"),'dedicated cash record schema exists');
-ok(gas.includes("['overview','ledger.list','cash.get','schedule.list']"),'cash read requires existing duty authorization');
+ok(gas.includes("['overview','ledger.list','cash.get','schedule.list','schedule.delete.preview']"),'cash read requires existing duty authorization');
 ok(gas.includes("'ledger.change','cash.save'"),'cash save uses existing script lock and operation audit');
 ok(worker.includes("'/api/cash/get':'cash.get'")&&worker.includes("'/api/cash/save':'cash.save'"),
  'Worker forwards auth-checked routes');
@@ -102,7 +102,7 @@ for(const target of ['cashDialog','cashDateDisplay','cashBook','cashActual','cas
  ok(html.includes('id="'+target+'"'),'legacy control present: '+target);
 }
 ok(!html.includes('id="cashDate"'),'cash check uses selected home day, not separate date picker');
-ok(html.includes('cash-reconcile.js?v=1637b')&&html.includes('live.js?v=1638b'),
+ok(html.includes('cash-reconcile.js?v=1637b')&&html.includes('live.js?v=1638c'),
  'new legacy parity files cache busted');
 for(const label of ['現金確認','枚数をリセット','リセットする','いいえ','保存する']){
  ok(html.includes(label),'legacy button text preserved: '+label);

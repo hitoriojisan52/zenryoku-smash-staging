@@ -68,13 +68,14 @@ async function call(path,payload={}){
 // concurrently. Apps Script's lock remains the source of truth for the ledger.
 const MAX_PAYMENT_IN_FLIGHT=2;
 function syncPaymentControls(){
- const pending=S.pending.size>0,ledger=S.overview?.ledger;
+ const pending=S.pending.size>0,ledger=S.overview?.ledger,access=S.overview?.collectionAccess;
+ const locked=!ledger||ledger.status==='confirmed'||access?.canCollect===false;
  for(const id of ['date','refresh','reimbursementBtn','manageBtn']){
-   const el=$(id);if(el)el.disabled=pending;
+   const el=$(id);if(el)el.disabled=pending||(id==='date'&&!S.overview?.practice);
  }
- if($('confirm'))$('confirm').disabled=pending||!ledger||ledger.status==='confirmed'||S.overview?.practice?.date>today();
+ if($('confirm'))$('confirm').disabled=pending||locked||S.overview?.practice?.date>today();
  for(const id of ['adjustment','expense']){
-   const el=$(id);if(el)el.disabled=pending||!ledger||ledger.status==='confirmed';
+   const el=$(id);if(el)el.disabled=pending||locked;
  }
  // A failed payment requires a manual reconciliation. Disable every unchecked
  // row as well as the in-flight rows until the latest overview is fetched.
@@ -82,7 +83,7 @@ function syncPaymentControls(){
  if(list&&typeof list.querySelectorAll==='function'){
    for(const checkbox of list.querySelectorAll('.participant-card input[type="checkbox"]')){
      const id=checkbox.closest('.participant-card')?.dataset?.id;
-     checkbox.disabled=!ledger||ledger.status==='confirmed'||S.paymentNeedsRefresh||S.pending.has(id);
+     checkbox.disabled=locked||S.paymentNeedsRefresh||S.pending.has(id);
    }
  }
 }
@@ -156,23 +157,42 @@ async function reload(refreshDates){
  if(S.loading||S.pending.size)return;S.loading=true;
  const epoch=S.updateEpoch,selected=S.practiceId;
  try{
-   const d=await call('/api/overview',{practiceId:S.practiceId});
-   if(epoch!==S.updateEpoch||S.pending.size||selected!==S.practiceId)return;
-   if(refreshDates||!S.practiceId){$('date').replaceChildren(...d.practices.map(p=>new Option(`${window.SMDate.date(p.date)} ${p.startTime}～${p.endTime}`,p.practiceId)));}
-   S.practiceId=d.practice.practiceId;$('date').value=S.practiceId;S.overview=d;
+   let d,notFound=false;
+   try{d=await call('/api/overview',{practiceId:S.practiceId});}
+   catch(e){
+    // A second device may have deleted the previously selected schedule.
+    if(e.status!==404||!selected)throw e;
+    d=await call('/api/overview',{});notFound=true;
+   }
+   if(epoch!==S.updateEpoch||S.pending.size||(!notFound&&selected!==S.practiceId))return;
+   if(refreshDates||!S.practiceId||notFound){
+    $('date').replaceChildren(...d.practices.map(p=>new Option(`${window.SMDate.date(p.date)} ${p.startTime}～${p.endTime}`,p.practiceId)));
+   }
+   S.practiceId=d.practice?.practiceId||'';$('date').value=S.practiceId;S.overview=d;
    S.paymentNeedsRefresh=false;
    renderHome();syncPaymentControls();
  }finally{S.loading=false;}
 }
 function renderHome(){const v=S.overview;if(!v)return;const {practice,ledger,participants}=v;
+ if(!practice){
+  $('place').textContent='開催日なし';$('hours').textContent='時間区分：—';
+  $('count').textContent='参加者：0名';$('completedCount').textContent='集金完了：0名';
+  $('adjustment').value=0;$('expense').value=0;
+  $('confirm').disabled=true;$('adjustment').disabled=true;$('expense').disabled=true;
+  $('cashCounter').disabled=true;$('list').replaceChildren();
+  $('collectionLockReason').textContent='開催日がありません';
+  $('collectionLockReason').hidden=false;updateFooter();return;
+ }
+ $('cashCounter').disabled=false;
  $('place').textContent='場所：'+practice.place;$('hours').textContent='時間区分：'+practice.hours+'時間';
  $('count').textContent='参加者：'+v.attendingCount+'名';$('completedCount').textContent='集金完了：'+v.completedCount+'名';
  if(document.activeElement!==$('adjustment'))$('adjustment').value=ledger?.adjustment??0;
  if(document.activeElement!==$('expense'))$('expense').value=ledger?.expense??0;
- const homeLocked=!ledger||ledger.status==='confirmed';
+ const access=v.collectionAccess;
+ const homeLocked=!ledger||ledger.status==='confirmed'||access?.canCollect===false;
  const reason=$('collectionLockReason');
  if(reason){
-   reason.textContent=!ledger?'この開催日は集金・収支データが未作成のため、集金操作はできません。':ledger.status==='confirmed'?'この開催日の収支は確定済みです。確定解除は管理者が収支表から実施してください。':'';
+   reason.textContent=access?.reason||(!ledger?'集金・収支データ未作成のため集金できません':ledger.status==='confirmed'?'この日程の収支確定済み':'');
    reason.hidden=!reason.textContent;
  }
  $('confirm').disabled=homeLocked||practice.date>today();$('confirm').textContent=ledger?.status==='confirmed'?'確定済':'収支を確定';
@@ -537,14 +557,14 @@ function renderScheduleMaster_(){
   status.style.color=row.enabled?'#2e7d32':'#666';head.append(title,status);
   const details=document.createElement('div');details.className='schedule-card-detail';
   const hours=document.createElement('span');hours.textContent='🕒 '+row.startTime+'-'+row.endTime+
-   '（時間区分：'+row.hours+'時間） '+row.place;
+   ' ('+row.hours+'h) '+row.place;
   details.append(hours);
   if(row.remark){const memo=document.createElement('span');memo.textContent='📝 '+row.remark;details.append(memo);}
   const actions=document.createElement('div');actions.className='schedule-card-actions';
   for(const [action,label,css] of [['edit','修正','btn-outline'],['delete','削除','btn-danger'],['confirm',row.enabled?'確定済':'確定','btn-green']]){
    const btn=document.createElement('button');btn.type='button';btn.textContent=label;btn.className=css;
-   btn.disabled=row.enabled;
-   if(!row.enabled)btn.addEventListener('click',()=>action==='edit'?openScheduleEditor_(row):confirmScheduleAction_(action,row));
+   btn.disabled=row.enabled&&action!=='delete';
+   if(!btn.disabled)btn.addEventListener('click',()=>action==='edit'?openScheduleEditor_(row):confirmScheduleAction_(action,row));
    actions.append(btn);
   }
   card.append(head,details,actions);list.append(card);
@@ -600,11 +620,29 @@ async function saveScheduleMaster_(event){
   toast(original?'日程を修正しました':'日程を追加しました');
  },'日程を保存しています…');
 }
-function confirmScheduleAction_(action,row){
+async function confirmScheduleAction_(action,row){
+ let description=scheduleDateLabel_(row.date)+' の日程を受付対象に確定しますか？';
+ if(action==='delete'){
+  let preview=null;
+  await guard(async()=>{
+   preview=await call('/api/schedule/delete-preview',{practiceId:row.practiceId,
+     expectedVersion:row.version});
+   if(preview?.practiceId!==row.practiceId||preview?.version!==row.version||
+     preview.canDelete!==true||!preview.counts)
+    throw new Error('削除内容が変わりました。日程を更新してください');
+  },'関連データを確認しています…');
+  if(!preview)return;
+  const counts=preview.counts,group=n=>Number(counts[n]||0);
+  const match=group('試合セッション')+group('試合版管理')+group('試合操作履歴');
+  description=scheduleDateLabel_(row.date)+' を削除します。参加 '+group('出欠回答')+
+    '件、集金 '+group('集金記録')+'件、収支 '+group('全体収支管理表')+
+    '件、現金確認 '+group('現金確認記録')+'件、試合 '+match+
+    '件、閲覧リンク '+group('閲覧リンク')+
+    '件も削除します。復旧用の記録を残しますが、画面から元には戻せません。よろしいですか？';
+ }
  SC.action={action,row};
  $('scheduleActionTitle').textContent=action==='delete'?'【日程の削除】':'【日程の確定】';
- $('scheduleActionText').textContent=scheduleDateLabel_(row.date)+
-  (action==='delete'?' の練習日程を削除しますか？':' の日程を受付対象に確定しますか？');
+ $('scheduleActionText').textContent=description;
  $('scheduleActionSubmit').textContent=action==='delete'?'削除する':'確定する';
  $('scheduleActionSubmit').className=action==='delete'?'btn-danger':'btn-green';
  dialog('scheduleActionDialog');
@@ -619,8 +657,9 @@ async function executeScheduleAction_(){
      result.version!==row.version+1)
     throw new Error('操作結果を確認できません。最新の日程を読み直してください');
   SC.action=null;await loadScheduleMaster_();
-  if(action==='confirm')await reload(true);
-  toast(action==='delete'?'日程を削除しました':'日程を確定しました');
+  if(action==='delete'&&S.practiceId===row.practiceId)S.practiceId='';
+  if(action==='confirm'||action==='delete')await reload(true);
+  toast(action==='delete'?'日程と関連データを削除しました':'日程を確定しました');
  },'日程を更新しています…');
 }
 

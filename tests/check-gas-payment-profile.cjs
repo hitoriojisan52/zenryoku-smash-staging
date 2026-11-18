@@ -9,7 +9,7 @@ const html=fs.readFileSync(path.join(root,'live.html'),'utf8');
 let n=0;const ok=(v,m)=>{assert.ok(v,m);n++;};
 new vm.Script(gas);ok(true,'GAS syntax compiles');
 new vm.Script(ui);ok(true,'client syntax compiles');
-ok(html.includes('live.js?v=1638b'),'updated diagnostic JS cache');
+ok(html.includes('live.js?v=1638c'),'updated diagnostic JS cache');
 ok(html.includes('id="perfBreakdown" hidden'),'diagnostics hidden by default');
 ok(ui.includes('if(!PERF_MODE||!timings'),'panel disabled in normal mode');
 ok(ui.includes('profileTimings:PERF_MODE'),'opt-in request only');
@@ -31,7 +31,7 @@ const sh={getRange:(row,col,rows,cols)=>({setValues:values=>{
 }}),
  appendRow:v=>{paymentRows.push([...v]);calls.paymentWrite++;}};
 const noop=()=>{};
-const f=new Function('str_','practice_','entries_','row_','unlockable_','attendees_','sheet_','sheetRows_','expectVersion_','fail_','bool_','fee_','balanceRecalc_','writePaymentLedger_','now_',
+const f=new Function('str_','practice_','entries_','row_','unlockable_','attendees_','sheet_','sheetRows_','expectVersion_','fail_','bool_','fee_','balanceRecalc_','writePaymentLedger_','now_','requireCollection_',
  gas.slice(i,j)+'\nreturn setPayment_;')(
   x=>String(x==null?'':x),()=>{
    calls.reads++;return {hours:2};
@@ -47,7 +47,8 @@ const f=new Function('str_','practice_','entries_','row_','unlockable_','attende
   ()=>600,
   (rows,old)=>{rows[0].balance=rows[0].income;ok(rows[0].balance===rows[0].income,'balance checked')},
   (ss,rows)=>{calls.ledgerWrite++;Object.assign(ledger,rows[0])},
-  now_);
+  now_,
+  (ss,p,rows)=>{ok(!!p&&Array.isArray(rows),'server collection gate invoked before payment');});
 const args={operationId:'TEST-OP-12345678',practiceId:'TEST-20261116',participantId:'TEST-P001',completed:true,expectedVersion:0};
 const prof={};
 const saved=f({}, {memberId:'TEST-MEMBER'},args,prof);
