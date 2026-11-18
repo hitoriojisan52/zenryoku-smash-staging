@@ -26,6 +26,8 @@ const VALID_PATHS = Object.freeze({
   '/api/ledger/change':'ledger.change',
   '/api/cash/get':'cash.get',
   '/api/cash/save':'cash.save',
+  '/api/schedule/list':'schedule.list',
+  '/api/schedule/change':'schedule.change',
   '/api/roster/line':'roster.line',
   '/api/match/bootstrap':'match.bootstrap',
   '/api/match/practices':'match.practices',
@@ -143,7 +145,7 @@ export async function handleRequest(request,env){
   // It does NOT prove LINE authentication or GAS connectivity.
   if(url.pathname==='/health' && request.method==='GET'){
     const configured=Boolean(env.FRONTEND_ORIGIN&&env.LINE_LOGIN_CHANNEL_ID&&env.GAS_WEB_APP_URL&&env.GAS_SHARED_SECRET);
-    return json({ok:true,status:'deployed',version:'0.16.37b-stage-cash',configured});
+    return json({ok:true,status:'deployed',version:'0.16.38a-stage-schedule',configured});
   }
   const origin=request.headers.get('Origin')||'';
   // Reject any browser origin other than the one approved GitHub Pages site.
