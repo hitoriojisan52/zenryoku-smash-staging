@@ -21,7 +21,10 @@ function toast(message){
  if(PERF_MODE&&/更新しました|保存しました/.test(message)&&S.lastPerf){
    const phase=name=>Number(new RegExp(name+';dur=([0-9]+)').exec(S.lastPerf.serverTiming)?.[1]||0);
    const seconds=ms=>(ms/1000).toFixed(1)+'秒';
-   label+='（通信 '+seconds(S.lastPerf.totalMs)+' / LINE '+seconds(phase('line'))+' / GAS '+seconds(phase('gas'))+'）';
+   const post=phase('gas_post'),content=phase('gas_content');
+    label+='（通信 '+seconds(S.lastPerf.totalMs)+' / LINE '+seconds(phase('line'))+
+      ' / GAS '+seconds(phase('gas'))+
+      (post||content?' / GAS POST '+seconds(post)+' / 応答GET '+seconds(content):'')+'）';
  }
  e.textContent=label;e.classList.add('show');
  clearTimeout(S.timer);S.timer=setTimeout(()=>e.classList.remove('show'),PERF_MODE?4200:2500);
