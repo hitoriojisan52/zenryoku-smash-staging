@@ -385,7 +385,8 @@ var SM = {
     '全体収支管理表':['日付','開催場所・費目名','集金額','支出','残金','確認者','rowId','kind','practiceId','status','version','当日補正','費目','立替者','receiptFileId','作成者'],
     '操作履歴':['operationId','operation','actorMemberId','timestamp','targetId','resultJSON'],
     '現金確認記録':['practiceId','auditDate','countsJson','cashTotal','bookBalance','difference','version','updatedBy','updatedAt'],
-    '日程削除アーカイブ':['operationId','practiceId','archivedAt','archivedBy','chunkIndex','chunkCount','snapshotChunk','status']
+    '日程削除アーカイブ':['operationId','practiceId','archivedAt','archivedBy','chunkIndex','chunkCount','snapshotChunk','status'],
+    '参加者操作アーカイブ':['operationId','practiceId','participantId','action','beforeJson','createdAt','actorMemberId','status']
   },
   fees: {member:800,student:400,visitor:1000,duty:400,shuttle:400}
 };
@@ -899,6 +900,121 @@ function monthLedger_(ss,member,payload){var month=str_(payload.month)||today_()
  var carried=prior.length?prior[prior.length-1].balance:0;return {ok:true,data:{month,carried,rows:within,closingBalance:within.length?within[within.length-1].balance:carried,role:member.role}};
 }
 
+
+/**
+ * v0.16.38d: legacy-v7 participation editing on immutable participant IDs.
+ * Legacy email/timestamp metadata was never imported into the new 9-column
+ * roster: expose null rather than guessing or fabricating contact data.
+ */
+function participantMatchLocked_(ss,id){
+ return sheetRows_(ss,'試合セッション').some(function(r){return str_(r[0])===id;});
+}
+function participantRows_(ss,practiceId){
+ var rows=sheetRows_(ss,'出欠回答').filter(function(r){return str_(r[0])===practiceId;}),
+     seen={},out=[];
+ rows.forEach(function(r){
+  var id=str_(r[1]),version=Number(r[7])||0,cat=str_(r[4]);
+  if(!id||seen[id]||!Number.isSafeInteger(version)||version<0||
+     SM.fees[cat]===undefined)fail_('SETUP','参加者の登録内容が不正です');
+  seen[id]=true;
+  out.push({practiceId:practiceId,participantId:id,name:norm_(r[2]),
+   nameKana:norm_(r[3]),category:cat,attending:bool_(r[5]),memo:str_(r[6]),
+   version:version,registeredBy:str_(r[8]),email:null,registeredAt:null});
+ });
+ return out;
+}
+function participantList_(ss,member,payload){
+ var dates=practices_(ss).sort(function(a,b){return a.date.localeCompare(b.date);});
+ var id=str_(payload.practiceId)||(dates.length?dates[dates.length-1].practiceId:'');
+ if(!id)return {ok:true,data:{practices:[],practiceId:'',participants:[],
+   matchLocked:false,financeLocked:false,financeStatus:''}};
+ var p=practice_(ss,id),rows=participantRows_(ss,id),payments=paymentRows_(ss,id),
+     seenPayment={},paid={};
+ payments.forEach(function(r){
+  var person=str_(r[1]);if(seenPayment[person])fail_('SETUP','集金記録が重複しています');
+  seenPayment[person]=true;paid[person]=bool_(r[2]);
+ });
+ rows.forEach(function(r){r.collectionCompleted=!!paid[r.participantId];});
+ var ledgers=entries_(ss).filter(function(r){return r.rowId==='P-'+id;});
+ if(ledgers.length>1)fail_('SETUP','対象日の収支行が重複しています');
+ return {ok:true,data:{practices:dates,practiceId:id,practice:p,
+  participants:rows,financeStatus:ledgers[0]?ledgers[0].status:'',
+  financeLocked:!!ledgers[0]&&ledgers[0].status==='confirmed',
+  matchLocked:participantMatchLocked_(ss,id)}};
+}
+function participantArchivePending_(ss,id){
+ return sheetRows_(ss,'参加者操作アーカイブ').some(function(r){
+  return str_(r[2])===id&&str_(r[7])!=='completed';
+ });
+}
+function participantChange_(ss,member,payload){
+ var id=str_(payload.practiceId),person=str_(payload.participantId),
+     action=str_(payload.action);
+ if(action!=='edit'&&action!=='delete')fail_('BAD_REQUEST','参加者操作が不正です');
+ var p=practice_(ss,id);
+ if(participantMatchLocked_(ss,id))
+  fail_('LOCKED','対戦表作成済みのため参加情報を変更できません');
+ var sh=sheet_(ss,'出欠回答'),all=sheetRows_(ss,'出欠回答'),positions=[];
+ all.forEach(function(r,i){if(str_(r[0])===id&&str_(r[1])===person)positions.push(i);});
+ if(positions.length!==1)fail_(positions.length?'SETUP':'NOT_FOUND','参加者IDを確認できません');
+ var ix=positions[0],old=all[ix],version=Number(old[7])||0;
+ expectVersion_(version,payload.expectedVersion);
+ if(participantArchivePending_(ss,person))
+  fail_('CONFLICT','参加者の変更処理履歴があります。管理者に確認してください');
+ var paymentSh=sheet_(ss,'集金記録'),allPayments=sheetRows_(ss,'集金記録'),paymentPositions=[];
+ allPayments.forEach(function(r,i){if(str_(r[0])===id&&str_(r[1])===person)paymentPositions.push(i);});
+ if(paymentPositions.length>1)fail_('SETUP','集金記録が重複しています');
+ var paymentIx=paymentPositions.length?paymentPositions[0]:-1,
+     oldPayment=paymentIx>=0?allPayments[paymentIx]:null,
+     wasPaid=oldPayment&&bool_(oldPayment[2]),wasAttending=bool_(old[5]);
+ if(wasPaid&&!wasAttending)fail_('SETUP','欠席者に集金済みの記録があります');
+ var ledgers=entries_(ss),matched=ledgers.filter(function(r){return r.rowId==='P-'+id;});
+ if(matched.length>1)fail_('SETUP','開催日の収支行が重複しています');
+ if(matched.length&&matched[0].status==='confirmed')
+  fail_('LOCKED','収支確定済みの参加者は変更できません');
+ var name=norm_(old[2]),kana=norm_(old[3]),cat=str_(old[4]),
+     attending=wasAttending,memo=str_(old[6]);
+ if(action==='edit'){
+  if(typeof payload.attending!=='boolean')fail_('BAD_REQUEST','出欠を確認してください');
+  name=norm_(payload.name);kana=norm_(payload.nameKana);
+  cat=str_(payload.category);attending=payload.attending;memo=str_(payload.memo);
+  if(!name||name.length>60||kana.length>100||SM.fees[cat]===undefined||
+     memo.length>200||/^[=+@]/.test(name)||/^[=+@]/.test(kana)||
+     /[\u0000-\u001f]/.test(memo))
+   fail_('BAD_REQUEST','氏名・区分・備考を確認してください');
+ }
+ var oldFee=wasPaid?fee_(str_(old[4]),p.hours):0,
+     newFee=action==='edit'&&attending&&wasPaid?fee_(cat,p.hours):0,
+     delta=newFee-oldFee,ledgerResult=null;
+ if(delta){
+  if(!matched.length)fail_('SETUP','集金済みですが収支行が見つかりません');
+  var mutable=ledgers.map(function(r){return Object.assign({},r);});
+  var target=mutable.find(function(r){return r.rowId==='P-'+id;});
+  target.income+=delta;target.version++;
+  balanceRecalc_(mutable,ledgers);
+  ledgerResult=mutable;
+ }
+ var dropPayment=!!oldPayment&&(action==='delete'||!attending);
+ var archive=sheet_(ss,'参加者操作アーカイブ'),snapshot=JSON.stringify({
+  schema:1,practiceId:id,participantId:person,attendance:old,
+  payment:oldPayment,ledgerBefore:matched[0]||null,delta:delta
+ });
+ if(snapshot.length>38000)fail_('LIMIT','参加者の変更情報が大きすぎます');
+ var ar=archive.getLastRow()+1;
+ archive.appendRow([str_(payload.operationId),id,person,action,
+    snapshot,now_(),member.memberId,'prepared']);
+ SpreadsheetApp.flush();
+ if(action==='delete')sh.deleteRow(ix+2);
+ else sh.getRange(ix+2,1,1,9).setValues([[id,person,safeCell_(name),
+    safeCell_(kana),cat,attending,safeCell_(memo),version+1,str_(old[8])]]);
+ if(dropPayment)paymentSh.deleteRow(paymentIx+2);
+ if(ledgerResult)writeLedger_(ss,ledgerResult);
+ archive.getRange(ar,8).setValue('completed');
+ return {ok:true,data:{practiceId:id,participantId:person,action:action,
+   version:version+1,attending:action==='edit'&&attending,category:cat,
+   ledgerChanged:!!ledgerResult,archived:true}};
+}
+
 /* v0.16.38b: member-authenticated visitor proxy registration.
  * Registered club members may register visitors without a LINE identity for
  * the visitor. All records are fixed IDs with original registrar attribution.
@@ -981,8 +1097,8 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
  }
  if(op.indexOf('match.')===0)return matchApiDispatch_(ss,member,op,payload);
  requireDuty_(member);
- if(['overview','ledger.list','cash.get','schedule.list','schedule.delete.preview'].indexOf(op)>=0)return withLock_(function(){return op==='overview'?overview_(ss,member,payload):op==='ledger.list'?monthLedger_(ss,member,payload):op==='cash.get'?cashGet_(ss,member,payload):op==='schedule.list'?scheduleList_(ss,member,payload):scheduleDeletePreview_(ss,member,payload);});
- if(['payment.set','category.set','adjustment.set','expense.set','ledger.change','cash.save','schedule.change'].indexOf(op)<0)fail_('BAD_REQUEST','API操作が不正です');
+ if(['overview','ledger.list','cash.get','schedule.list','schedule.delete.preview','participant.list'].indexOf(op)>=0)return withLock_(function(){return op==='overview'?overview_(ss,member,payload):op==='ledger.list'?monthLedger_(ss,member,payload):op==='cash.get'?cashGet_(ss,member,payload):op==='schedule.list'?scheduleList_(ss,member,payload):op==='schedule.delete.preview'?scheduleDeletePreview_(ss,member,payload):participantList_(ss,member,payload);});
+ if(['payment.set','category.set','adjustment.set','expense.set','ledger.change','cash.save','schedule.change','participant.change'].indexOf(op)<0)fail_('BAD_REQUEST','API操作が不正です');
  var opId=checkOpId_(payload);
  return withLock_(function(){
    var mark=paymentProfile?Date.now():0;
@@ -996,6 +1112,7 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
    else if(op==='expense.set')result=changeMoney_(ss,member,payload,'expense');
    else if(op==='cash.save')result=cashSave_(ss,member,payload);
    else if(op==='schedule.change')result=scheduleChange_(ss,member,payload);
+   else if(op==='participant.change')result=participantChange_(ss,member,payload);
    else result=mutateLedger_(ss,member,payload);
    mark=paymentProfile?Date.now():0;
    audit_(ss,opId,op,member,str_(payload.rowId||payload.participantId||payload.practiceId),result);

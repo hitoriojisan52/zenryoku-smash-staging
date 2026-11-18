@@ -52,7 +52,7 @@ async function call(path,payload={}){
  if(!S.token||!CONFIG.apiBaseUrl)throw new Error('LINE認証またはAPI設定がありません');
  const url=CONFIG.apiBaseUrl.replace(/\/$/,'')+path;
  // Invalidate responses from reads that started before a write.
- if(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change','/api/schedule/change','/api/visitor/register'].includes(path))S.updateEpoch++;
+ if(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change','/api/schedule/change','/api/visitor/register','/api/participant/change'].includes(path))S.updateEpoch++;
  const startedAt=performance.now();
  const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},body:JSON.stringify(payload),cache:'no-store'});
  if(PERF_MODE){
@@ -184,7 +184,7 @@ function renderHome(){const v=S.overview;if(!v)return;const {practice,ledger,par
   $('collectionLockReason').hidden=false;updateFooter();return;
  }
  $('cashCounter').disabled=false;
- $('place').textContent='場所：'+practice.place;$('hours').textContent='時間区分：'+practice.hours+'時間';
+ $('place').textContent='場所：'+practice.place;$('hours').textContent='時間区分：'+practice.hours+'h';
  $('count').textContent='参加者：'+v.attendingCount+'名';$('completedCount').textContent='集金完了：'+v.completedCount+'名';
  if(document.activeElement!==$('adjustment'))$('adjustment').value=ledger?.adjustment??0;
  if(document.activeElement!==$('expense'))$('expense').value=ledger?.expense??0;
@@ -740,6 +740,153 @@ async function registerVisitor_(){
  },'ビジターを登録しています…');
 }
 
+
+// v0.16.38d: legacy participant roster/edit/delete, keyed only by fixed IDs.
+// Email/registered timestamp are not present in the existing v0.15 roster.
+const PM={practices:[],practiceId:'',people:[],editing:null,deleting:null,
+  matchLocked:false,financeLocked:false,uncertain:false};
+const PM_CATEGORIES={member:'メンバー',visitor:'ビジター',student:'学生',
+ duty:'当番担当',shuttle:'シャトル担当'};
+function participantDates_(){
+ const sel=$('participantPractice'),previous=PM.practiceId;
+ sel.replaceChildren(...PM.practices.map(p=>new Option(
+  window.SMDate.date(p.date)+' '+p.startTime+'～'+p.endTime, p.practiceId)));
+ if(PM.practices.some(p=>p.practiceId===previous))sel.value=previous;
+ else if(PM.practices.length)sel.value=PM.practices[PM.practices.length-1].practiceId;
+}
+function renderParticipantManager_(){
+ const list=$('participantCards');list.replaceChildren();
+ const blocked=PM.matchLocked||PM.financeLocked||PM.uncertain;
+ $('participantNotice').textContent=PM.matchLocked?'対戦表がある日程は修正・削除できません':
+  PM.financeLocked?'収支確定済みのため修正・削除できません':
+  PM.uncertain?'保存結果が不明です。更新してから操作してください':'';
+ if(!PM.people.length){
+  const empty=document.createElement('p');empty.className='schedule-note';
+  empty.textContent='参加者の回答はありません。';list.append(empty);return;
+ }
+ for(const p of PM.people){
+  const card=document.createElement('div');card.className='participant-card-item';
+  const title=document.createElement('div');title.className='participant-card-title';
+  const name=document.createElement('span');name.textContent='👤 '+p.name;
+  const category=document.createElement('span');category.textContent='['+(PM_CATEGORIES[p.category]||p.category)+']';
+  const attending=document.createElement('span');attending.textContent=p.attending?'参加':'欠席';
+  title.append(name,category,attending);
+  const details=document.createElement('div');details.className='participant-card-details';
+  for(const value of [
+   '📧 '+(p.email??'未記録'),'📅 '+(p.registeredAt??'未記録'),
+   '📝 '+(p.memo||'—'),
+   p.collectionCompleted?'集金：完了':'集金：未完了'
+  ]){const line=document.createElement('span');line.textContent=value;details.append(line);}
+  const buttons=document.createElement('div');buttons.className='participant-card-buttons';
+  for(const [action,label,style] of [['edit','修正','btn-outline'],['delete','削除','btn-danger']]){
+   const btn=document.createElement('button');btn.type='button';btn.className=style;
+   btn.textContent=label;btn.disabled=blocked;
+   if(!blocked)btn.addEventListener('click',()=>action==='edit'?openParticipantEditor_(p):confirmParticipantDelete_(p));
+   buttons.append(btn);
+  }
+  card.append(title,details,buttons);list.append(card);
+ }
+}
+async function loadParticipants_(){
+ const selected=PM.practiceId,answer=await call('/api/participant/list',{practiceId:selected});
+ if(!Array.isArray(answer?.practices)||!Array.isArray(answer?.participants)||
+  typeof answer.practiceId!=='string'||typeof answer.financeLocked!=='boolean'||
+  typeof answer.matchLocked!=='boolean')throw new Error('参加者一覧の取得結果を確認できません');
+ const unique=new Set();
+ for(const p of answer.participants){
+  if(!p.participantId||unique.has(p.participantId)||typeof p.name!=='string'||
+     typeof p.attending!=='boolean'||!Number.isSafeInteger(p.version)||p.version<0)
+   throw new Error('参加者一覧のIDまたは版番号が不正です');
+  unique.add(p.participantId);
+ }
+ PM.practices=answer.practices;PM.practiceId=answer.practiceId;PM.people=answer.participants;
+ PM.financeLocked=answer.financeLocked;PM.matchLocked=answer.matchLocked;PM.uncertain=false;
+ participantDates_();$('participantPractice').value=PM.practiceId;
+ $('participantAdd').disabled=!PM.practices.length;
+ renderParticipantManager_();
+}
+async function openParticipantManager_(){
+ let ready=false;
+ PM.practiceId=S.practiceId;
+ await guard(async()=>{gateEdit();await loadParticipants_();ready=true;},'参加者を読み込んでいます…');
+ if(ready){close('manageDialog');dialog('participantDialog');}
+}
+async function switchParticipantDate_(){
+ const id=$('participantPractice').value;
+ PM.practiceId=id;
+ await guard(loadParticipants_,'参加者を読み込んでいます…');
+}
+function openParticipantEditor_(p){
+ if(PM.uncertain||PM.financeLocked||PM.matchLocked)return;
+ PM.editing=p;$('participantName').value=p.name;
+ $('participantKana').value=p.nameKana||'';
+ $('participantEmail').value=p.email||'';
+ $('participantAttendance').value=p.attending?'attend':'absent';
+ $('participantCategory').value=p.category;
+ $('participantMemo').value=p.memo||'';
+ dialog('participantEditDialog');
+}
+function participantEditData_(){
+ const p=PM.editing;
+ if(!p)throw new Error('修正対象が見つかりません');
+ const name=$('participantName').value.normalize('NFKC').replace(/[\s\u3000]+/g,'');
+ const nameKana=$('participantKana').value.normalize('NFKC').replace(/[\s\u3000]+/g,'');
+ const category=$('participantCategory').value;
+ const memo=$('participantMemo').value.trim();
+ if(!name||name.length>60||nameKana.length>100||!PM_CATEGORIES[category]||
+    memo.length>200||/^[=+@]/.test(name)||/^[=+@]/.test(nameKana))
+  throw new Error('お名前・区分・備考を確認してください');
+ return {practiceId:p.practiceId,participantId:p.participantId,
+  action:'edit',expectedVersion:p.version,name,nameKana,
+  category,attending:$('participantAttendance').value==='attend',memo};
+}
+async function saveParticipantEdit_(event){
+ event.preventDefault();
+ if(PM.uncertain)return;
+ await guard(async()=>{
+  gateEdit();const data=participantEditData_();
+  let updated;
+  try{updated=await call('/api/participant/change',{operationId:uuid(),...data});}
+  catch(error){PM.uncertain=true;renderParticipantManager_();throw error;}
+  if(updated?.participantId!==data.participantId||updated?.practiceId!==data.practiceId||
+     updated?.action!=='edit'||updated?.version!==data.expectedVersion+1){
+   PM.uncertain=true;renderParticipantManager_();
+   throw new Error('修正結果が不明です。更新してから確認してください');
+  }
+  close('participantEditDialog');PM.editing=null;
+  await loadParticipants_();
+  if(S.practiceId===data.practiceId)await reload(true);
+  toast('参加者を修正しました');
+ },'参加者情報を保存しています…');
+}
+function confirmParticipantDelete_(p){
+ if(PM.uncertain||PM.financeLocked||PM.matchLocked)return;
+ PM.deleting=p;
+ $('participantDeleteText').textContent=p.name+'さんの回答行を本当に削除しますか？'+
+  (p.collectionCompleted?'集金・帳簿残金も更新されます。':'');
+ dialog('participantDeleteDialog');
+}
+async function deleteParticipant_(){
+ const p=PM.deleting;close('participantDeleteDialog');if(!p||PM.uncertain)return;
+ await guard(async()=>{
+  gateEdit();
+  let updated;
+  try{
+   updated=await call('/api/participant/change',{operationId:uuid(),
+    action:'delete',practiceId:p.practiceId,participantId:p.participantId,
+    expectedVersion:p.version});
+  }catch(error){PM.uncertain=true;renderParticipantManager_();throw error;}
+  if(updated?.participantId!==p.participantId||updated?.practiceId!==p.practiceId||
+     updated?.action!=='delete'||updated?.version!==p.version+1){
+   PM.uncertain=true;renderParticipantManager_();
+   throw new Error('削除結果が不明です。更新してから確認してください');
+  }
+  PM.deleting=null;await loadParticipants_();
+  if(S.practiceId===p.practiceId)await reload(true);
+  toast('参加者の回答を削除しました');
+ },'参加者の回答を削除しています…');
+}
+
 function bind(){
  $('date').addEventListener('change',()=>{S.practiceId=$('date').value;guard(()=>reload(false));});$('refresh').addEventListener('click',()=>guard(()=>reload(true)));
  $('categoryDialog').addEventListener('close',()=>{S.modalTarget=null;});$('cancelCategory').addEventListener('click',()=>close('categoryDialog'));$('saveCategory').addEventListener('click',saveCategory);
@@ -769,7 +916,15 @@ function bind(){
  $('scheduleEditForm').addEventListener('submit',saveScheduleMaster_);
  $('scheduleActionCancel').addEventListener('click',()=>close('scheduleActionDialog'));
  $('scheduleActionSubmit').addEventListener('click',executeScheduleAction_);
- $('managePeople').disabled=true; // Full participant editing remains pending.
+ $('managePeople').addEventListener('click',openParticipantManager_);
+ $('participantPractice').addEventListener('change',switchParticipantDate_);
+ $('participantReload').addEventListener('click',()=>guard(loadParticipants_,'参加者を読み込んでいます…'));
+ $('participantClose').addEventListener('click',()=>close('participantDialog'));
+ $('participantAdd').addEventListener('click',()=>{close('participantDialog');openVisitorForm_();});
+ $('participantEditCancel').addEventListener('click',()=>close('participantEditDialog'));
+ $('participantEditForm').addEventListener('submit',saveParticipantEdit_);
+ $('participantDeleteCancel').addEventListener('click',()=>close('participantDeleteDialog'));
+ $('participantDeleteConfirm').addEventListener('click',deleteParticipant_);
  $('visitorRegisterMenu').addEventListener('click',openVisitorForm_);
  $('visitorMemberStart').addEventListener('click',openVisitorForm_);
  $('visitorCancel').addEventListener('click',()=>close('visitorDialog'));

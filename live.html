@@ -52,6 +52,24 @@ body.visitor-member #visitorMemberHome{display:flex!important;flex-direction:col
 body.visitor-member #visitorMemberHome h2{font-size:19px;margin:0}
 body.visitor-member #visitorMemberHome button{width:100%}
 @media(max-width:370px){.stage-ui #scheduleDialog .schedule-heading h2{font-size:15px}.stage-ui #scheduleDialog #scheduleAdd{font-size:12px;padding:6px}}
+
+/* Legacy participant management 0.16.38d: clear one-column mobile cards. */
+.stage-ui dialog#participantDialog{max-width:500px;width:calc(100% - 16px);max-height:calc(100dvh - 26px);overflow-y:auto}
+.stage-ui dialog#participantEditDialog{max-width:440px;width:calc(100% - 18px);max-height:calc(100dvh - 26px);overflow-y:auto}
+.stage-ui .participant-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.stage-ui .participant-heading h2{margin:0}
+.stage-ui #participantAdd{flex:none;min-width:0;width:auto;min-height:40px;padding:6px 9px;font-size:13px}
+.stage-ui .participant-controls{display:flex;gap:6px;align-items:center;margin:12px 0 8px}
+.stage-ui .participant-controls label{flex:none;font-size:14px;font-weight:700}
+.stage-ui .participant-controls select{flex:1;min-width:0}
+.stage-ui .participant-controls button{flex:none;min-height:40px}
+.stage-ui .participant-cards{max-height:51dvh;overflow-y:auto}
+.stage-ui .participant-card-item{border:1px solid #dce5eb;background:#f9fbfd;border-radius:8px;padding:9px;margin:8px 0}
+.stage-ui .participant-card-title{font-weight:700;font-size:15px;display:flex;flex-wrap:wrap;gap:7px}
+.stage-ui .participant-card-details{font-size:13px;color:#42586b;margin:6px 0;display:flex;flex-direction:column;gap:2px;overflow-wrap:anywhere}
+.stage-ui .participant-card-buttons{display:flex;justify-content:flex-end;gap:6px;margin-top:6px}
+.stage-ui .participant-card-buttons button{min-height:40px;padding:6px 12px;font-size:13px}
+@media(max-width:380px){.stage-ui #participantAdd{font-size:12px;padding:6px}.stage-ui .participant-heading h2{font-size:16px}}
 </style></head>
 <body class="stage-ui">
 <main class="container">
@@ -76,7 +94,7 @@ body.visitor-member #visitorMemberHome button{width:100%}
 <dialog id="modal"><h2 id="modalTitle"></h2><p id="modalText"></p><div class="modal-actions"><button id="closeModal" class="btn-blue" type="button">閉じる</button></div></dialog>
 <dialog id="categoryDialog"><h2>参加区分の変更</h2><p id="categoryPerson" class="modal-subtitle"></p><label class="dialog-label" for="categorySelect">参加区分</label><select id="categorySelect" class="dialog-select"><option value="member">メンバー</option><option value="student">学生</option><option value="visitor">ビジター</option><option value="duty">当番担当</option><option value="shuttle">シャトル担当</option></select><div class="modal-actions"><button id="cancelCategory" class="btn-outline" type="button">キャンセル</button><button id="saveCategory" class="btn-blue" type="button">変更する</button></div></dialog>
 <dialog id="reimbursementDialog"><h2>💴 立替精算</h2><form id="reimbursementForm"><label class="dialog-label" for="payoutDate">精算日（現金を渡した日）</label><input class="dialog-input" id="payoutDate" type="date" required><label class="dialog-label" for="reimbursementItem">費目</label><input class="dialog-input" id="reimbursementItem" maxlength="80" type="text" placeholder="例：シャトル購入代" required><label class="dialog-label" for="reimbursementPayee">立替者</label><input class="dialog-input" id="reimbursementPayee" maxlength="60" type="text" placeholder="例：全力太郎" required><label class="dialog-label" for="reimbursementAmount">精算額（円）</label><input class="dialog-input" id="reimbursementAmount" type="number" min="1" step="1" required inputmode="numeric"><label class="dialog-label" for="reimbursementReceipt">領収書</label><input class="dialog-input" id="reimbursementReceipt" type="file" accept="image/*,.pdf,application/pdf"><div class="modal-actions"><button id="cancelReimbursement" type="button" class="btn-outline">キャンセル</button><button type="submit" class="btn-green">精算を登録</button></div></form></dialog>
-<dialog id="manageDialog"><h2>⚙ 運用管理</h2><div class="manage-grid"><button id="cashCounter" type="button" class="btn-outline">💰 現金確認</button><button id="openLedger" type="button" class="btn-blue">📊 収支表</button><button id="manageSchedules" type="button" class="btn-outline">📅 練習日程</button><button id="managePeople" type="button" class="btn-outline">👥 参加者管理</button><button id="visitorRegisterMenu" type="button" class="btn-outline">＋ ビジター登録</button><button id="matchManage" type="button" class="btn-blue">🏸 対戦表</button><button id="manageAccess" type="button" class="btn-blue" hidden>🔐 メンバー・権限管理</button></div><div class="modal-actions"><button id="closeManage" class="btn-outline" type="button">閉じる</button></div></dialog>
+<dialog id="manageDialog"><h2>⚙ 運用管理</h2><div class="manage-grid"><button id="cashCounter" type="button" class="btn-outline">💰 現金確認</button><button id="openLedger" type="button" class="btn-blue">📊 収支表</button><button id="manageSchedules" type="button" class="btn-outline">📅 練習日程</button><button id="managePeople" type="button" class="btn-outline">👥 参加者一覧</button><button id="visitorRegisterMenu" type="button" class="btn-outline">＋ ビジター登録</button><button id="matchManage" type="button" class="btn-blue">🏸 対戦表</button><button id="manageAccess" type="button" class="btn-blue" hidden>🔐 メンバー・権限管理</button></div><div class="modal-actions"><button id="closeManage" class="btn-outline" type="button">閉じる</button></div></dialog>
 <dialog id="memberAccessDialog" aria-labelledby="memberAccessTitle">
     <h2 id="memberAccessTitle">🔐 メンバー・権限管理</h2>
     <p class="access-help">管理者専用です。新規登録の承認時には一般メンバーとして登録します。</p>
@@ -130,6 +148,36 @@ body.visitor-member #visitorMemberHome button{width:100%}
 <dialog id="visitorConfirmDialog" aria-labelledby="visitorConfirmTitle">
  <h2 id="visitorConfirmTitle">ビジターの参加登録</h2><p id="visitorConfirmText"></p>
  <div class="modal-actions"><button id="visitorConfirmCancel" type="button" class="btn-outline">キャンセル</button><button id="visitorConfirmSave" type="button" class="btn-green">登録する</button></div>
+</dialog>
+<dialog id="participantDialog" aria-labelledby="participantTitle">
+ <div class="participant-heading"><h2 id="participantTitle">👥 参加者一覧</h2><button id="participantAdd" type="button" class="btn-green">＋ ビジター追加</button></div>
+ <div class="participant-controls"><label for="participantPractice">開催日</label><select id="participantPractice" class="dialog-select"></select><button id="participantReload" class="btn-outline" type="button">更新</button></div>
+ <p id="participantNotice" class="schedule-note" role="status"></p>
+ <div id="participantCards" class="participant-cards" aria-live="polite"></div>
+ <div class="modal-actions"><button id="participantClose" class="btn-blue" type="button">✕ 閉じる</button></div>
+</dialog>
+<dialog id="participantEditDialog" aria-labelledby="participantEditTitle">
+ <h2 id="participantEditTitle">参加者の修正</h2>
+ <form id="participantEditForm">
+  <label for="participantName" class="dialog-label">お名前</label><input id="participantName" class="dialog-input" type="text" maxlength="60" required>
+  <label for="participantKana" class="dialog-label">氏名カナ（任意）</label><input id="participantKana" class="dialog-input" type="text" maxlength="100">
+  <label for="participantEmail" class="dialog-label">メールアドレス（未取得）</label><input id="participantEmail" class="dialog-input" type="text" value="" placeholder="未記録" disabled>
+  <label for="participantAttendance" class="dialog-label">出欠</label>
+  <select id="participantAttendance" class="dialog-select"><option value="attend">参加</option><option value="absent">欠席</option></select>
+  <label for="participantCategory" class="dialog-label">区分</label>
+  <select id="participantCategory" class="dialog-select">
+   <option value="member">メンバー</option><option value="visitor">ビジター</option><option value="student">学生</option>
+   <option value="duty">当番担当</option><option value="shuttle">シャトル担当</option>
+  </select>
+  <label for="participantMemo" class="dialog-label">備考（任意）</label><input id="participantMemo" class="dialog-input" type="text" maxlength="200">
+  <p class="schedule-note">旧フォームのメールアドレスは新システムに保存されていないため表示のみです。</p>
+  <div class="modal-actions"><button id="participantEditCancel" class="btn-outline" type="button">キャンセル</button><button id="participantEditSave" class="btn-green" type="submit">保存する</button></div>
+ </form>
+</dialog>
+<dialog id="participantDeleteDialog" aria-labelledby="participantDeleteTitle">
+ <h2 id="participantDeleteTitle">【回答の削除】</h2><p id="participantDeleteText"></p>
+ <div class="modal-actions"><button id="participantDeleteCancel" class="btn-outline" type="button">キャンセル</button>
+ <button id="participantDeleteConfirm" class="btn-danger" type="button">削除する</button></div>
 </dialog>
 <dialog id="scheduleDialog" aria-labelledby="scheduleTitle">
  <div class="schedule-heading"><h2 id="scheduleTitle">📅 練習日程マスタ</h2><button id="scheduleAdd" type="button" class="btn-green">＋ 日程追加</button></div>
@@ -192,5 +240,5 @@ body.visitor-member #visitorMemberHome button{width:100%}
  <h2 id="stageErrorTitle">操作できませんでした</h2><p id="stageErrorMessage"></p>
  <div class="modal-actions"><button id="stageErrorOkay" class="btn-blue" type="button">閉じる</button></div>
 </dialog>
-<script src="date-format.js?v=163c"></script><script src="model.js"></script><script src="access-v2-mode.js?v=1627a"></script><script src="live-access.js?v=162e"></script><script src="stage-ui.js?v=1620a"></script><script src="live-access-v2.js?v=1636a"></script><script src="runtime-config.js?v=164a"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script src="cash-reconcile.js?v=1637b"></script><script type="module" src="live.js?v=1638c"></script>
+<script src="date-format.js?v=163c"></script><script src="model.js"></script><script src="access-v2-mode.js?v=1627a"></script><script src="live-access.js?v=162e"></script><script src="stage-ui.js?v=1620a"></script><script src="live-access-v2.js?v=1636a"></script><script src="runtime-config.js?v=164a"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script src="cash-reconcile.js?v=1637b"></script><script type="module" src="live.js?v=1638d"></script>
 </body></html>
