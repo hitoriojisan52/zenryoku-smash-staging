@@ -24,6 +24,9 @@ on:
       - 'match-view.html'
       - 'access-ui.js'
       - 'stage-ui.css'
+      - 'dialog-close.js'
+      - 'match-confirm.js'
+      - 'tests/check-stage-dialog-close-v1644.cjs'
       - 'match.js'
       - 'match.html'
       - 'match.css'
@@ -77,6 +80,8 @@ jobs:
         run: node tests/check-stage-finance-v1636c.cjs
       - name: Verify common UI standards
         run: node tests/check-ui-standards.cjs
+      - name: Verify top-right Close controls and safe confirmation cancellation
+        run: node tests/check-stage-dialog-close-v1644.cjs
       - name: Verify staging withdrawal remains isolated
         run: node tests/check-stage-withdraw-boundary.cjs
       - name: Verify GAS payment timing without extra sheet writes

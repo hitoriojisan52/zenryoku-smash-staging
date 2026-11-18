@@ -796,7 +796,8 @@ const PM_CATEGORIES={member:'メンバー',visitor:'ビジター',student:'学�
 function participantDates_(){
  const sel=$('participantPractice'),previous=PM.practiceId;
  sel.replaceChildren(...PM.practices.map(p=>new Option(
-  window.SMDate.date(p.date)+' '+p.startTime+'～'+p.endTime, p.practiceId)));
+  window.SMDate.date(p.date)+'　'+(p.place||'開催場所未登録')+
+  '　'+p.startTime+'～'+p.endTime, p.practiceId)));
  if(PM.practices.some(p=>p.practiceId===previous))sel.value=previous;
  else if(PM.practices.length)sel.value=PM.practices[PM.practices.length-1].practiceId;
 }
@@ -837,7 +838,9 @@ function renderParticipantManager_(){
   line.textContent='LINE ID：'+(p.category==='visitor'?'なし（ビジター）':(p.lineUserId||'未紐付け'));
   details.append(line);
   const registered=document.createElement('span');
-  registered.textContent='📅 登録: '+(p.registeredAt||'未記録');
+  const dateText=p.registeredAt?window.SMDate.dateTimeJst(p.registeredAt,false):'';
+  registered.textContent='📅 登録日：'+
+    (/^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}$/.test(dateText)?dateText:'未記録');
   details.append(registered);
   info.append(details);
   if(p.memo){

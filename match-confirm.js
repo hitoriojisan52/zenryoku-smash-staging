@@ -21,6 +21,8 @@
   }
 
   cancelBtn().addEventListener('click', () => finish(false));
+  byId('matchConfirmClose').addEventListener('click', () =>
+    finish(pending?.isError ? true : false));
   okBtn().addEventListener('click', () => finish(true));
   // Error dialogs require a conscious acknowledgement: touching the backdrop does not hide them.
   root().addEventListener('click', e => {
@@ -34,7 +36,9 @@
       return;
     }
     if (e.key !== 'Tab') return;
-    const focusables = pending.isError ? [okBtn()] : [cancelBtn(), okBtn()];
+    const focusables = pending.isError ?
+      [byId('matchConfirmClose'), okBtn()] :
+      [byId('matchConfirmClose'), cancelBtn(), okBtn()];
     const index = focusables.indexOf(document.activeElement);
     if (e.shiftKey && index <= 0) { e.preventDefault(); focusables[focusables.length - 1].focus(); }
     else if (!e.shiftKey && index >= focusables.length - 1) { e.preventDefault(); focusables[0].focus(); }
@@ -97,7 +101,7 @@
       // Hide any success toast from a preceding action: the failure must be unambiguous.
       byId('matchToast')?.classList.remove('visible');
       const details = errorDetails(error, labelForId);
-      return open({ ...details, confirmLabel: '閉じる', isError: true });
+      return open({ ...details, confirmLabel: '確認した', isError: true });
     },
     errorDetails,
     isOpen() { return Boolean(pending); },

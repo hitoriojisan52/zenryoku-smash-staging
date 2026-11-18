@@ -37,6 +37,14 @@ let rows={
  'メンバー':[
   ['M-A','全力太郎','U'+'a'.repeat(32),true,false],
   ['M-DUTY','当番','U'+'b'.repeat(32),true,false]
+ ],
+ '登録申請':[
+  ['REQ-MA','U'+'a'.repeat(32),'申請時の太郎','approved',
+   '2026-11-17T03:30:00.000Z','M-DUTY','2026-11-17T08:00:00.000Z','M-A']
+ ],
+ 'ビジター申請':[
+  ['VR-VA','P-TODAY','V-A','全力花子','ゼンリョクハナコ','',
+   'M-DUTY','approved',1,'2026-11-16 10:00:00','2026-11-18 13:20:00','M-DUTY','OP-VA']
  ]
 };
 let ledger=[
@@ -94,13 +102,27 @@ const list=()=>fn.participantList_({},member,{practiceId:'P-TODAY'}).data;
 const baseline=list();
 ok(baseline.participants.length===2&&baseline.participants[0].collectionCompleted,
  'paid and unpaid participants listed by fixed IDs');
-ok(!('email' in baseline.participants[0])&&baseline.participants[0].registeredAt===null,
- 'email no longer returned; historical timestamp not fabricated');
+ok(!('email' in baseline.participants[0])&&
+ baseline.participants[0].registeredAt==='2026-11-17T03:30:00.000Z',
+ 'member registration date uses the linked approved account request, never an invented practice date');
+ok(baseline.participants[1].registeredAt==='2026-11-18 13:20:00',
+ 'approved visitor registration date equals approval timestamp, NOT request timestamp');
 ok(baseline.participants[0].lineUserId==='U'+'a'.repeat(32)&&
  baseline.participants[1].lineUserId===null,
  'attendee memberId resolves own LINE subject, not duty member or visitor sponsor');
 ok(!baseline.financeLocked&&!baseline.matchLocked,'not finalized and no match allows editing');
-ok(baseline.practices.length===2,'all enabled schedules returned for date selector');
+ok(baseline.practices.length===2&&baseline.practices[0].place==='曽谷公民館',
+ 'all schedules and their venues returned for date selector');
+const savedReadWrites=writes.length;
+rows['メンバー'][0][1]='利用申請に合わせた名前';
+ok(list().participants[0].name==='利用申請に合わせた名前'&&
+ writes.length===savedReadWrites,
+ 'member display name tracks the member master on each read without mutating Sheets');
+rows['メンバー'][0][1]='全力太郎';
+rows['登録申請'][0][1]='U'+'e'.repeat(32);
+ok(list().participants[0].registeredAt===null,
+ 'mismatched registration LINE subject cannot be mistaken for the attendee');
+rows['登録申請'][0][1]='U'+'a'.repeat(32);
 const catStart=gas.indexOf('function setCategory_('),catEnd=gas.indexOf('function mutateLedger_(',catStart);
 ok(catStart>=0&&catEnd>catStart,'direct fee-category operation present');
 const setCategory=new Function('str_','practice_','SM','fail_','entries_','row_','unlockable_',
@@ -175,6 +197,23 @@ pendingArchive[7]='prepared';
 fails(()=>edit({name:'例'},'V-A',2),'CONFLICT');
 pendingArchive[7]='completed';
 ok(!fn.participantArchivePending_({},'V-A'),'completed archive no longer blocks changes');
+// If a member master changed after the LINE attendance was recorded, a normal
+// attendance edit preserves the authoritative identity and syncs that one row.
+rows['出欠回答'].push(['P-TODAY','M-SYNC','旧記録の名前','オールドカナ',
+  'member',true,'',0,'M-DUTY']);
+rows['メンバー'].push(['M-SYNC','利用登録の最新名','U'+'c'.repeat(32),true,false]);
+ok(list().participants.find(x=>x.participantId==='M-SYNC').name==='利用登録の最新名',
+ 'stale participation name is overlaid with authoritative member name');
+fails(()=>fn.participantChange_({},member,{operationId:'OP-SYNC-WRONG-NAME',
+  action:'edit',practiceId:'P-TODAY',participantId:'M-SYNC',
+  expectedVersion:0,name:'不正な名前',nameKana:'オールドカナ',category:'member',
+  attending:true,memo:'更新'}),'LOCKED');
+const synchronized=fn.participantChange_({},member,{operationId:'OP-SYNC-CANONICAL',
+  action:'edit',practiceId:'P-TODAY',participantId:'M-SYNC',
+  expectedVersion:0,name:'利用登録の最新名',nameKana:'オールドカナ',category:'member',
+  attending:true,memo:'更新'}).data;
+ok(synchronized.version===1&&rows['出欠回答'].find(x=>x[1]==='M-SYNC')[2]==='利用登録の最新名',
+ 'saving other fields syncs stale participation name from member master');
 for(const tag of ['participantDialog','participantPractice','participantCards','participantReload',
  'participantEditDialog','participantName','participantVisitorIdentity','participantMemberIdentity',
  'participantAttendance','participantCategory','participantMemo','participantDeleteDialog','participantDeleteConfirm']){

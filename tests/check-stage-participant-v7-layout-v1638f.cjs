@@ -21,6 +21,7 @@ ok(panel.includes('id="participantPractice"')&&panel.includes('id="participantRe
 ok(!panel.includes('participantAdd')&&!panel.includes('ビジター追加')&&
  !panel.includes('ビジター登録'),'visitor addition removed from participant list');
 ok(!ui.includes("participantAdd"),'removed element has no click or disabled wiring');
+ok(ui.includes("(p.place||'開催場所未登録')"),'participant date selector shows venue');
 ok(!html.includes('id="participantEmail"')&&!ui.includes("participantEmail"),
  'email is absent from participant list/edit UI entirely');
 ok(html.includes('id="visitorRegisterMenu"')&&html.includes('id="visitorDialog"'),
@@ -39,7 +40,7 @@ const cssChecks=[
  'min-height:44px'
 ];
 for(const rule of cssChecks)ok(html.includes(rule),'old-v7 visual baseline: '+rule);
-ok(html.includes('live.js?v=1643'),'new UI cache version');
+ok(html.includes('live.js?v=1644'),'new UI cache version');
 const begin=ui.indexOf('function renderParticipantManager_(){'),end=ui.indexOf('async function loadParticipants_(){',begin);
 ok(begin>=0&&end>begin,'render participant routine still present');
 const code=ui.slice(begin,end);
@@ -56,14 +57,15 @@ const $=id=>node[id]||(node[id]=new Element('div'));
 const document={createElement:tag=>new Element(tag)};
 const pm={people:[
  {practiceId:'P1',participantId:'ID1',name:'全力太郎',category:'member',attending:true,
-  lineUserId:'U'+'a'.repeat(32),registeredAt:null,memo:'体育館入口に集合',collectionCompleted:true},
+  lineUserId:'U'+'a'.repeat(32),registeredAt:'2026-11-17T03:30:00.000Z',memo:'体育館入口に集合',collectionCompleted:true},
  {practiceId:'P1',participantId:'ID2',name:'全力花子',category:'visitor',attending:false,
-  lineUserId:null,registeredAt:null,memo:'',collectionCompleted:false}
+  lineUserId:null,registeredAt:'2026-11-18 13:20:00',memo:'',collectionCompleted:false}
 ],matchLocked:false,financeLocked:false,uncertain:false};
 let edited=0,deleted=0;
-const render=new Function('PM','$','document','PM_CATEGORIES',
+const render=new Function('PM','$','document','PM_CATEGORIES','window',
  'openParticipantEditor_','confirmParticipantDelete_',code+'\nreturn renderParticipantManager_;')(
  pm,$,document,{member:'メンバー',visitor:'ビジター'},
+ {SMDate:{dateTimeJst:s=>s.startsWith('2026-11-17')?'2026/11/17 12:30':'2026/11/18 13:20'}},
  ()=>{edited++},()=>{deleted++}
 );
 render();
@@ -90,15 +92,15 @@ ok(second.children[0].children[1].textContent==='欠席'&&
  'absence shown red at far right');
 const memberInfo=first.children[1].children[0],memberDetails=memberInfo.children[0];
 ok(memberDetails.children[0].textContent==='LINE ID：'+'U'+'a'.repeat(32)&&
- memberDetails.children[1].textContent==='📅 登録: 未記録',
- 'member LINE user ID shown with registration date, no fictitious email');
+ memberDetails.children[1].textContent==='📅 登録日：2026/11/17 12:30',
+ 'member LINE ID and account registration date formatted in JST');
 ok(memberInfo.children[1].textContent==='📝 備考: 体育館入口に集合',
  'optional note stays above inline action buttons');
 const visitorDetails=second.children[1].children[0].children[0];
 ok(visitorDetails.children.length===2&&
  visitorDetails.children[0].textContent==='LINE ID：なし（ビジター）'&&
- visitorDetails.children[1].textContent==='📅 登録: 未記録',
- 'visitor card distinguishes absence of LINE account without showing sponsor LINE ID');
+ visitorDetails.children[1].textContent==='📅 登録日：2026/11/18 13:20',
+ 'visitor approval date is its registration date and sponsor identity stays hidden');
 ok(!first.children.some(x=>x.textContent.includes('集金：')),
  'old response view excludes unrelated payment-summary row');
 const buttons=first.children[1].children[1].children;

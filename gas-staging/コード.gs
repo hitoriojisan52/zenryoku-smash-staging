@@ -377,6 +377,8 @@
 var SM = {
   headers: {
     'メンバー':['memberId','displayName','lineUserId','active','isAdmin'],
+    // Existing v0.16 account applications; read-only source for enrollment dates.
+    '登録申請':['requestId','lineUserId','displayName','status','requestedAt','decidedBy','decidedAt','memberId'],
     '当番チーム':['teamId','teamName','active'],
     'チーム所属':['teamId','memberId','active'],
     '練習日程':['practiceId','date','place','startTime','endTime','hours','enabled','remark','version'],
@@ -945,20 +947,44 @@ function participantList_(ss,member,payload){
    matchLocked:false,financeLocked:false,financeStatus:''}};
  var p=practice_(ss,id),rows=participantRows_(ss,id),payments=paymentRows_(ss,id),
      seenPayment={},paid={};
- // Only resolve a LINE subject by the attendee's OWN stable memberId.
- // Never use registeredBy: for a visitor it identifies the sponsoring member.
- // Absent/ambiguous mappings remain explicitly unlinked, never guessed.
- var lineByMemberId={},duplicateMemberIds={};
+ // Resolve the participant's OWN stable account ID, not the visitor sponsor.
+ // Keep the approved account's display name authoritative on read, without
+ // writing to the participation/finance/match sheets.
+ var membersById=Object.create(null),ambiguousMemberIds=Object.create(null);
  sheetRows_(ss,'メンバー').forEach(function(m){
-  var memberId=str_(m[0]),lineId=str_(m[2]);
-  if(!memberId||!/^U[0-9a-f]{32}$/i.test(lineId))return;
-  if(Object.prototype.hasOwnProperty.call(lineByMemberId,memberId))
-   duplicateMemberIds[memberId]=true;
-  else lineByMemberId[memberId]=lineId;
+  var mid=str_(m[0]);
+  if(!mid)return;
+  if(membersById[mid])ambiguousMemberIds[mid]=true;
+  else membersById[mid]={name:norm_(m[1]),lineUserId:str_(m[2])};
+ });
+ var registrationById=Object.create(null),ambiguousRegistrations=Object.create(null);
+ sheetRows_(ss,'登録申請').forEach(function(reg){
+  var mid=str_(reg[7]);if(str_(reg[3])!=='approved'||!mid)return;
+  if(registrationById[mid])ambiguousRegistrations[mid]=true;
+  else registrationById[mid]={lineUserId:str_(reg[1]),requestedAt:str_(reg[4])};
+ });
+ // A visitor is registered on APPROVAL, not on the application date.
+ var approvedVisitors=Object.create(null),ambiguousVisitors=Object.create(null);
+ sheetRows_(ss,'ビジター申請').forEach(function(req){
+  if(str_(req[1])!==id||str_(req[7])!=='approved')return;
+  var participantId=str_(req[2]);if(!participantId)return;
+  if(approvedVisitors[participantId])ambiguousVisitors[participantId]=true;
+  else approvedVisitors[participantId]=str_(req[10]);
  });
  rows.forEach(function(r){
-  r.lineUserId=r.category==='visitor'||duplicateMemberIds[r.participantId]?
-   null:(lineByMemberId[r.participantId]||null);
+  if(r.category==='visitor'){
+   r.lineUserId=null;
+   r.registeredAt=ambiguousVisitors[r.participantId]?null:
+    (approvedVisitors[r.participantId]||null);
+   return;
+  }
+  var master=ambiguousMemberIds[r.participantId]?null:membersById[r.participantId];
+  if(master&&master.name)r.name=master.name;
+  r.lineUserId=master&&/^U[0-9a-f]{32}$/i.test(master.lineUserId)?
+   master.lineUserId:null;
+  var reg=ambiguousRegistrations[r.participantId]?null:registrationById[r.participantId];
+  r.registeredAt=master&&reg&&master.lineUserId===reg.lineUserId?
+   (reg.requestedAt||null):null;
  });
  payments.forEach(function(r){
   var person=str_(r[1]);if(seenPayment[person])fail_('SETUP','集金記録が重複しています');
@@ -1035,13 +1061,21 @@ function participantChange_(ss,member,payload,visitorDecisionInternal){
   cat=str_(payload.category);attending=payload.attending;memo=str_(payload.memo);
   if((cat==='visitor')!==visitorIdentity)
    fail_('LOCKED','ビジター区分は変更できません。新規登録はビジター申請から行ってください');
-  // A registered member's identity is not managed by attendance editing.
-  // Visitors have no membership application, so their name/kana remain editable.
-  if(!visitorIdentity&&
-     ((payload.name!==undefined&&norm_(payload.name)!==norm_(old[2]))||
-      (payload.nameKana!==undefined&&norm_(payload.nameKana)!==norm_(old[3]))))
-   fail_('LOCKED','メンバーの氏名・カナは参加者一覧から変更できません');
-  name=visitorIdentity?norm_(payload.name):norm_(old[2]);
+  // Member display names come from the approved member master. No name/kana
+  // editing via attendance, even if the old attendance row has a stale name.
+  var canonicalName=norm_(old[2]);
+  if(!visitorIdentity){
+   var masterMatches=sheetRows_(ss,'メンバー').filter(function(m){
+    return str_(m[0])===person;
+   });
+   if(masterMatches.length>1)fail_('SETUP','利用登録のメンバーIDが重複しています');
+   if(masterMatches.length===1&&norm_(masterMatches[0][1]))
+    canonicalName=norm_(masterMatches[0][1]);
+   if((payload.name!==undefined&&norm_(payload.name)!==canonicalName)||
+      (payload.nameKana!==undefined&&norm_(payload.nameKana)!==norm_(old[3])))
+    fail_('LOCKED','メンバーの氏名・カナは参加者一覧から変更できません');
+  }
+  name=visitorIdentity?norm_(payload.name):canonicalName;
   kana=visitorIdentity?norm_(payload.nameKana):norm_(old[3]);
   if(!name||name.length>60||kana.length>100||SM.fees[cat]===undefined||
      memo.length>200||/^[=+@]/.test(name)||/^[=+@]/.test(kana)||
