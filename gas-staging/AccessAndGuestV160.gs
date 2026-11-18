@@ -8,7 +8,7 @@ var SMA16 = {
   links: '閲覧リンク',
   teamId: 'T-ROLE-DUTY',
   site: 'https://hitoriojisan52.github.io/zenryoku-smash-staging/guest.html',
-  regHeader: ['requestId','lineUserId','displayName','status','requestedAt','decidedBy','decidedAt','memberId'],
+  regHeader: ['requestId','lineUserId','displayName','status','requestedAt','decidedBy','decidedAt','memberId','nameKana'],
   linkHeader: ['tokenHash','practiceId','expiresAt','revokedAt','issuedBy','createdAt']
 };
 function accessSheet16_(ss, name, headers){
@@ -20,6 +20,14 @@ function accessSheet16_(ss, name, headers){
 function accessRows16_(sheet,width){var n=sheet.getLastRow();return n<2?[]:sheet.getRange(2,1,n-1,width).getValues();}
 function accessTime16_(){return new Date().toISOString();}
 function accessSha16_(s){return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,s,Utilities.Charset.UTF_8).map(function(x){return ('0'+(x&255).toString(16)).slice(-2);}).join('');}
+/** Canonical katakana for new LINE applications; blank is allowed only for legacy member editing. */
+function accessKanaV1657_(raw,allowEmpty){
+ var kana=norm_(raw);
+ if(!kana&&allowEmpty)return '';
+ if(!kana||kana.length>60||!/^[ァ-ヶー・]+$/.test(kana))
+  fail_('BAD_REQUEST','氏名カナは全角カタカナで入力してください');
+ return kana;
+}
 function accessMemberRow16_(ss,userId){return sheetRows_(ss,'メンバー').find(function(r){return str_(r[2])===userId;})||null;}
 function accessSetupV160(){
   var ss=ss_(), spec=[[SMA16.registrations,SMA16.regHeader],[SMA16.links,SMA16.linkHeader]];
@@ -41,7 +49,7 @@ function accessRegistration16_(ss,lineUserId,op,payload){
     return {ok:true,data:{status:latest?str_(latest[3]):'not_requested'}};
   }
   if(op!=='member.apply')fail_('BAD_REQUEST','申請操作が不正です');
-  var name=str_(payload.displayName).normalize('NFKC').trim();
+  var name=norm_(payload.displayName),kana=accessKanaV1657_(payload.nameKana,false);
   if(!name||name.length>30||/[\r\n<>]/.test(name))fail_('BAD_REQUEST','表示名を1～30文字で入力してください');
   if(current){
     if(accessStageWithdrawHistoryV1636_(ss,current))fail_('CONFLICT','退会処理中のため再申請できません');
@@ -58,7 +66,7 @@ function accessRegistration16_(ss,lineUserId,op,payload){
     var rows=accessRows16_(sheet,8),pending=rows.find(function(r){return r[1]===lineUserId&&r[3]==='pending';});
     if(pending)return {ok:true,data:{status:'pending'}};
     var id='REQ-'+Utilities.getUuid();
-    sheet.appendRow([id,lineUserId,safeCell_(name),'pending',accessTime16_(),'','','']);
+    sheet.appendRow([id,lineUserId,safeCell_(name),'pending',accessTime16_(),'','','',safeCell_(kana)]);
     return {ok:true,data:{status:'pending'}};
   });
 }
@@ -146,7 +154,7 @@ function accessManagement16_(ss,member,op,payload){
     // Admin-only member card metadata. Preserve the member master as source
     // of identity; expose a registration date only for a UNIQUE approved
     // application linked to that SAME member and LINE subject.
-    var requests=accessRows16_(reg,8),approvedById=Object.create(null);
+    var requests=accessRows16_(reg,9),approvedById=Object.create(null);
     requests.forEach(function(request){
       var mid=str_(request[7]);
       if(str_(request[3])!=='approved'||!mid)return;
@@ -157,12 +165,12 @@ function accessManagement16_(ss,member,op,payload){
        var mid=str_(m[0]),lineUserId=str_(m[2]),matches=approvedById[mid]||[];
        var registeredAt=matches.length===1&&str_(matches[0][1])===lineUserId?
         str_(matches[0][4]):null;
-       return {memberId:mid,name:str_(m[1]),active:bool_(m[3]),
+       return {memberId:mid,name:str_(m[1]),nameKana:str_(m[5]),active:bool_(m[3]),
         role:accessRole16_(m,teams,membership),
         lineUserId:/^U[0-9a-f]{32}$/i.test(lineUserId)?lineUserId:null,
         registeredAt:registeredAt};
       }),
-      pending:requests.filter(function(r){return r[3]==='pending';}).map(function(r){return {requestId:str_(r[0]),name:str_(r[2]),requestedAt:str_(r[4])};}),
+      pending:requests.filter(function(r){return r[3]==='pending';}).map(function(r){return {requestId:str_(r[0]),name:str_(r[2]),nameKana:str_(r[8]),requestedAt:str_(r[4])};}),
       withdrawn:withdrawn,
       // Worker adds the independent edge-gate result to this safe boolean.
       // No secret, spreadsheet ID or LINE user ID is exposed here.
@@ -177,7 +185,7 @@ function accessManagement16_(ss,member,op,payload){
     var result;
     if(op==='member.manage.decide'){
       var id=str_(payload.requestId),accept=payload.approve===true;
-      var all=accessRows16_(reg,8),idx=all.findIndex(function(r){return str_(r[0])===id;});
+      var all=accessRows16_(reg,9),idx=all.findIndex(function(r){return str_(r[0])===id;});
       if(idx<0||all[idx][3]!=='pending')fail_('CONFLICT','申請は既に処理されています');
       var row=all[idx],newId='';
       if(accept){
@@ -185,7 +193,8 @@ function accessManagement16_(ss,member,op,payload){
         if(previous){if(bool_(previous[3]))fail_('CONFLICT','すでに登録済みの利用者です');
           fail_('CONFLICT','停止済みの利用者です。管理者に確認してください');}
         newId='M-'+Utilities.getUuid();
-        sheet_(ss,'メンバー').appendRow([newId,safeCell_(str_(row[2])),str_(row[1]),true,false]);
+        sheet_(ss,'メンバー').appendRow([newId,safeCell_(str_(row[2])),str_(row[1]),true,false,
+         safeCell_(str_(row[8]))]);
       }
       reg.getRange(idx+2,4).setValue(accept?'approved':'rejected');
       reg.getRange(idx+2,6,1,3).setValues([[str_(member.memberId),accessTime16_(),newId]]);
@@ -195,8 +204,12 @@ function accessManagement16_(ss,member,op,payload){
       // privileges, approved registration ID/date, and all historical records
       // are immutable. Update both the active master and its unique approved
       // application under the same existing ScriptLock.
-      var targetId=str_(payload.memberId),name=str_(payload.displayName).normalize('NFKC').trim();
-      var expected=str_(payload.expectedName);
+      var targetId=str_(payload.memberId),name=norm_(payload.displayName);
+      var expected=str_(payload.expectedName),editKana=Object.prototype.hasOwnProperty.call(payload,'nameKana');
+      var kana=editKana?accessKanaV1657_(payload.nameKana,true):'';
+      var expectedKana=editKana?str_(payload.expectedKana):'';
+      if(editKana&&typeof payload.expectedKana!=='string')
+        fail_('BAD_REQUEST','修正前の氏名カナが必要です');
       if(!name||name.length>30||/[\r\n<>]/.test(name))
         fail_('BAD_REQUEST','氏名を1～30文字で入力してください');
       var members=sheetRows_(ss,'メンバー');
@@ -211,22 +224,29 @@ function accessManagement16_(ss,member,op,payload){
       if(!/^U[0-9a-f]{32}$/i.test(lineId)||
          members.filter(function(r){return str_(r[2])===lineId;}).length!==1)
         fail_('CONFLICT','LINE登録情報を一意に確認できません');
-      if(str_(target.row[1])!==expected)
+      if(str_(target.row[1])!==expected||(editKana&&str_(target.row[5])!==expectedKana))
         fail_('CONFLICT','利用者情報が変更されています。更新してから再操作してください');
       // Never patch an unrelated/duplicate/withdrawn registration record.
-      var requests=accessRows16_(reg,8),matched=[];
+      var requests=accessRows16_(reg,9),matched=[];
       requests.forEach(function(r,i){
         if(str_(r[7])===targetId)matched.push({row:r,index:i});
       });
       if(matched.length>1||(matched.length===1&&
-        (str_(matched[0].row[3])!=='approved'||str_(matched[0].row[1])!==lineId)))
+        (str_(matched[0].row[3])!=='approved'||str_(matched[0].row[1])!==lineId||
+         (editKana&&str_(matched[0].row[8])!==expectedKana))))
         fail_('CONFLICT','利用申請の紐付けが一致しません');
       if(name!==expected){
         if(matched.length===1)
           reg.getRange(matched[0].index+2,3).setValue(safeCell_(name));
         sheet_(ss,'メンバー').getRange(target.index+2,2).setValue(safeCell_(name));
       }
+      if(editKana&&kana!==expectedKana){
+        if(matched.length===1)
+          reg.getRange(matched[0].index+2,9).setValue(safeCell_(kana));
+        sheet_(ss,'メンバー').getRange(target.index+2,6).setValue(safeCell_(kana));
+      }
       result={ok:true,data:{memberId:targetId,displayName:name,
+        nameKana:editKana?kana:str_(target.row[5]),
         registrationUpdated:matched.length===1}};
     }else if(op==='member.manage.role'){
       var memberId=str_(payload.memberId),role=str_(payload.role);
