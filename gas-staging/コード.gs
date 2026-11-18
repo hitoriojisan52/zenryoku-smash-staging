@@ -483,7 +483,11 @@ function ledgerCanConfirm_(rows,target){
 function balanceRecalc_(rows,original){
  if(rows.length>5000)fail_('LIMIT','収支行が多すぎます');
  var old={};original.forEach(function(r){old[r.rowId]=r;});
- rows.sort(ledgerChronologyCompare_);
+ // Preserve the legacy self-contained balance calculation: older staging
+ // regression harnesses isolate this function without loading other helpers.
+ // Keep the ordering identical to ledgerChronologyCompare_.
+ var weight={opening:0,practice:1,reimbursement:2,other:3};
+ rows.sort(function(a,b){return a.date.localeCompare(b.date)||((weight[a.kind]===undefined?5:weight[a.kind])-(weight[b.kind]===undefined?5:weight[b.kind]))||a.rowId.localeCompare(b.rowId);});
  var seen={},balance=null;
  rows.forEach(function(r){
    if(!iso_(r.date)||seen[r.rowId])fail_('BAD_REQUEST','収支の日付または行IDが不正です');seen[r.rowId]=true;
