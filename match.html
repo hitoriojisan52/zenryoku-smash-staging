@@ -16,7 +16,7 @@
  <section class="access-panel" id="accessRegistration" hidden>
    <h2>メンバー登録申請</h2><p>初回利用時は表示名を入力して申請してください。管理者の承認後、アプリが利用できます。</p>
    <label for="accessRegName">表示名</label><input id="accessRegName" type="text" maxlength="30" placeholder="例：全力太郎">
-   <button id="accessApply" type="button" class="btn-blue">登録を申請する</button>
+   <button id="accessApply" type="button" class="btn-green">登録を申請する</button>
  </section>
  <section class="access-panel" id="accessShare" hidden>
    <h2>ビジター閲覧用QR</h2><p>QRを読み取ると、公式アカウントのフォローやLINEログインなしで対戦表を閲覧できます。対戦者の表示名が見えることをご確認ください。</p>
@@ -35,15 +35,15 @@
    <div class="match-settings-panels">
    <details class="match-settings" id="courtSettings"><summary>コート設定</summary>
      <section class="match-settings-body">
-       <div class="settings-row"><span>使用コート</span><div id="courtChips" class="court-chips"></div><button type="button" id="saveCourts" class="btn-blue">変更</button></div>
-       <div class="settings-row"><label for="lookahead">先行生成数</label><input id="lookahead" type="number" min="1" max="10" value="5"><button type="button" id="saveLookahead" class="btn-blue">変更</button></div>
+       <div class="settings-row"><span>使用コート</span><div id="courtChips" class="court-chips"></div><button type="button" id="saveCourts" class="btn-green">変更</button></div>
+       <div class="settings-row"><label for="lookahead">先行生成数</label><input id="lookahead" type="number" min="1" max="10" value="5"><button type="button" id="saveLookahead" class="btn-green">変更</button></div>
      </section>
    </details>
    <details class="match-settings" id="participantSettings"><summary>参加者・固定ペア設定</summary>
      <section class="match-settings-body">
        <h2>参加者</h2><div id="matchPeople" class="match-people"></div>
        <h2>固定ペア・トリオ</h2><div id="currentGroups"></div>
-       <div class="settings-row"><select id="groupMember1" aria-label="1人目"></select><select id="groupMember2" aria-label="2人目"></select><select id="groupMember3" aria-label="3人目（トリオのみ）"></select><button type="button" id="addFixedGroup" class="btn-blue">追加</button></div>
+       <div class="settings-row"><select id="groupMember1" aria-label="1人目"></select><select id="groupMember2" aria-label="2人目"></select><select id="groupMember3" aria-label="3人目（トリオのみ）"></select><button type="button" id="addFixedGroup" class="btn-green">追加</button></div>
        <div class="match-delete-row"><button type="button" id="deleteMatch" class="btn-danger" disabled>🗑 対戦表削除</button></div>
      </section>
    </details>
