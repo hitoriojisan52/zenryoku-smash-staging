@@ -38,7 +38,7 @@ const practiceId='PR-SYNTHETIC-1121',rows=[
  {requestId:'VR-ONE',practiceId,name:'仮一郎',date:'2026-11-21',place:'検証体育館',
   requestedAt:old,status:'pending',version:0,requestedByName:'一般メンバー'},
  {requestId:'VR-TWO',practiceId,name:'仮二郎',date:'2026-11-21',place:'検証体育館',
-  requestedAt:old,status:'approved',version:1,requestedByName:'一般メンバー'},
+  requestedAt:old,status:'approved',attending:true,version:1,requestedByName:'一般メンバー'},
  {requestId:'VR-THREE',practiceId,name:'仮三郎',date:'2026-11-21',place:'検証体育館',
   requestedAt:old,status:'rejected',version:2,requestedByName:'一般メンバー'}
 ];
@@ -101,6 +101,64 @@ const deepText=e=>[e.textContent,...e.children.map(deepText)].filter(Boolean).jo
   'approval status badge only shown on requester's visitor registration screen');
  ok(find(elements.visitorMineCards.children[1],'participant-card-content')!==null,
   'visitor cards share participant list layout');
+ const memberCards=elements.visitorMineCards.children;
+ const pendingActions=find(memberCards[0],'visitor-review-actions').children,
+  approvedActions=find(memberCards[1],'visitor-review-actions').children,
+  rejectedActions=find(memberCards[2],'visitor-review-actions').children;
+ ok(pendingActions.map(x=>x.textContent).join(',')==='修正,削除'&&
+  pendingActions[0].disabled&&!pendingActions[1].disabled,
+  'pending own application: modify disabled, delete enabled');
+ ok(!approvedActions[0].disabled&&approvedActions[1].disabled,
+  'approved own visitor: modify enabled, delete disabled');
+ ok(rejectedActions.every(button=>button.disabled),
+  'rejected own request: no modify or delete actions');
+ ok(!deepText(elements.visitorMineCards).includes('📧'),
+  'visitor self-service cards never show email');
+ ok(find(memberCards[1],'participant-card-attendance').textContent==='参加',
+  'approved visitor shows actual participant attendance, not only approval state');
+ pendingActions[1].listeners.click();
+ ok(elements.visitorMineDeleteDialog.open&&
+  elements.visitorMineDeleteText.textContent.includes('削除しますか'),
+  'pending deletion shows explicit confirmation before backend call');
+ elements.visitorMineDeleteCancel.listeners.click();
+ ok(!elements.visitorMineDeleteDialog.open,
+  'cancelling pending deletion never invokes backend');
+ approvedActions[0].listeners.click();
+ ok(elements.visitorMineEditDialog.open &&
+  elements.visitorMineEditAttendance.value==='attend',
+  'approved edit opens with current attendance exactly as participant list');
+ elements.visitorMineEditCancel.listeners.click();
+ ok(!elements.visitorMineEditDialog.open,
+  'cancelling edits does not write');
+ ok(html.includes('id="visitorMineEditAttendance"')&&
+  html.includes('id="visitorMineEditName"')&&
+  html.includes('id="visitorMineEditKana"')&&
+  html.includes('id="visitorMineEditMemo"')&&
+  html.includes('ビジター（変更不可）'),
+  'own visitor edit has name, kana, attendance, memo and immutable category');
+ ok(!html.slice(html.indexOf('<dialog id="visitorMineEditDialog"'),
+  html.indexOf('<dialog id="visitorMineDeleteDialog"')).includes('メールアドレス'),
+  'own visitor edit form has no email input or label');
+ ok(ui.includes("attending:$('visitorMineEditAttendance').value==='attend'")&&
+  ui.includes("category:'visitor'"),
+  'requester edit sends participant-list attendance semantics and fixed visitor category');
+ rows.push({requestId:'VR-FOUR',practiceId:'PR-SECOND',name:'別日程',
+  date:'2026-11-28',place:'別体育館',requestedAt:old,status:'pending',version:0});
+ await w.SMVisitor.loadMine();
+ elements.visitorMinePractice.value=practiceId;
+ elements.visitorMinePractice.listeners.change();
+ ok(elements.visitorMineCards.children.length===3,
+  'date dropdown filters request cards to selected practice');
+ elements.visitorMinePractice.value='PR-SECOND';
+ elements.visitorMinePractice.listeners.change();
+ ok(elements.visitorMineCards.children.length===1 &&
+  deepText(elements.visitorMineCards.children[0]).includes('別日程'),
+  'switching date shows matching visitor alone');
+ elements.visitorMinePractice.value='all';
+ elements.visitorMinePractice.listeners.change();
+ ok(elements.visitorMineCards.children.length===4,
+  'all dates option restores all applicant statuses');
+
  for(const oldId of ['visitorMineMenu','visitorMineDialog','visitorMemberRefresh','visitorMineList']){
   ok(!html.includes('id="'+oldId+'"'),'obsolete standalone element removed: '+oldId);
   ok(!ui.includes("$('"+oldId+"')"),'no stale listener or DOM reference: '+oldId);
