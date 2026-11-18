@@ -59,8 +59,8 @@ const Utilities={formatDate(d,tz,fmt){
  return '09:00';
 }};
 const funcs=new Function('str_','fail_','today_','bool_','iso_','ledgerDate_','safeCell_','expectVersion_',
- 'sheetRows_','sheet_','Utilities',text+'\nreturn {scheduleList_,scheduleChange_,scheduleRows_,scheduleData_,scheduleDeleteTargets_};')(
- str_,fail_,today_,bool_,iso_,ledgerDate_,safeCell_,expectVersion_,sheetRows_,sheet_,Utilities
+ 'sheetRows_','sheet_','Utilities','entries_',text+'\nreturn {scheduleList_,scheduleChange_,scheduleRows_,scheduleData_,scheduleDeleteTargets_};')(
+ str_,fail_,today_,bool_,iso_,ledgerDate_,safeCell_,expectVersion_,sheetRows_,sheet_,Utilities,()=>[]
 );
 const member={role:'admin'},list=()=>funcs.scheduleList_(ss,member,{}).data.schedules;
 ok(list().length===0,'legacy master lists only today or later');
