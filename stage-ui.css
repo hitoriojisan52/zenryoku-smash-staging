@@ -141,6 +141,6 @@
 .stage-ui .visitor-review-section-heading h3{font-size:15px;margin:0}
 .stage-ui .visitor-review-section-heading button{flex:none}
 .stage-ui .visitor-my-requests{
- border-top:1px solid #d7e1e9;margin-top:13px;padding-top:12px;
+ border-bottom:1px solid #d7e1e9;margin:4px 0 12px;padding-bottom:12px;
 }
 .stage-ui #visitorDialog .visitor-review-list{max-height:34dvh;overflow-y:auto;overscroll-behavior:contain}
