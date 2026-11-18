@@ -37,6 +37,13 @@
 - `tests/check-stage-withdraw-rejoin-v1653.cjs` はGAS本体関数をモックSheetsで実行し、本人・非管理者・ステージング外・フラグなし拒否、退会後の関連データ掃除、旧履歴の完全保持、同じLINE IDで再申請→新ID・一般メンバー、途中失敗`processing`と再試行拒否を検証。
 - `tests/check-stage-withdraw-boundary.cjs` は旧専用サンドボックスのID混入を禁止し、検証Worker＋GASの二重許可条件とUI二段階確認を検査。
 
+## 2026/11/19追記：GitHub→Worker実反映と手動設定の進捗
+
+- Workerは[PR #47](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/47)でGitHub経由の変更が統合され、**Cloudflare Workers Buildsのチェック成功**と**ユーザー提示の実公開`/health`応答**（`version:0.16.53-stage-withdrawal`、`codeRevision:stage-v1653-github-sync-20261119`、`configured:true`、`channelMatchesLiveLiff:true`）により反映を確認済み。
+- WorkerのVariables and Secrets更新、およびGASスクリプトプロパティ更新についても、**ユーザーが設定完了を報告済み**。値の直接読取はできていないため、設定の二重許可の成立を確認したと扱わない。
+- 以下の「未確認」記述は**当時の履歴**。現在残っている検証は、LINEの管理者認証後の退会ボタン活性判定、実退会、関連行の保持・失効、同じLINE IDの再入会での新ID発行を含む結合試験。
+- 詳しいGitHub経由デプロイ・確認・作業依頼方法は [DEPLOYMENT_AND_USER_ACTIONS.md](DEPLOYMENT_AND_USER_ACTIONS.md) 参照。設定済みの操作をユーザーに繰り返させない。
+
 ## 実機の未完了事項（区別が必要）
 
 - GitHub上のWorkerソース更新と**Cloudflareに現在デプロイされているWorkerのバージョン**は別。過去の`/health`は`0.16.40`だった。GitHubでPRがマージされてもWorkerが自動デプロイされたことにはならない。

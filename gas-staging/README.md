@@ -1,5 +1,7 @@
 # 接続ステージングGAS — GitHub Actions + clasp（v0.16.36c）
 
+> **2026/11/19 現在の補足（v0.16.53）**：本書のv0.16.36c時点の手動`preflight`・`WITHDRAW_ENABLED=false`などは**初期構築時の履歴**です。現行の検証GASはGitHub`main`へGSソースを統合すると既存デプロイへ**自動反映**されます。ユーザーは退会検証用の`WITHDRAW_ENABLED=true`、`STAGING_WITHDRAW_PURPOSE=staging-member-withdraw-v1653`を**設定済みと報告**しています。新チャットでは[統合運用手順](../docs/DEPLOYMENT_AND_USER_ACTIONS.md)および[引継ぎ文書](../docs/SESSION_HANDOFF.md)を正本として参照してください。GitHub Actionsに接続・認証できる限り、ユーザーへのソースの手動コピーやGASの再デプロイを求めません。本番環境は別承認制です。
+
 **対象は架空データだけの接続ステージング**です。既存のGoogle Sheetsに紐づくApps Scriptプロジェクトを更新します。本番GAS・本番Spreadsheet・専用退会Sandboxには適用しません。
 
 ## 今回GitHubに管理するファイル

@@ -2,7 +2,7 @@
 
 このファイルは、新しいChatGPTチャットで必ず最初に確認する**継続開発用の入口**。
 単なる実装履歴ではなく、旧アプリの業務仕様を無断変更しないための確認事項。
-更新日: 2026-11-19 / 仕様優先順位改定（ユーザー指定）。基準実装：staging v0.16.51。コード・実行環境・テスト結果は都度GitHubから最新を確認すること。
+更新日: 2026-11-19 / ユーザー指定の仕様優先順位・接続検証用デプロイ方式・環境設定を引継ぎ。確認済みWorker/GAS基準実装：staging v0.16.53。コード・実行環境・テスト結果は都度GitHubから最新を確認すること。
 
 ## 1. 最優先原則
 
@@ -16,12 +16,12 @@
    **5が1～4に影響する・懸念がある場合は、勝手に既存仕様を置き換えず、影響・選択肢・判断事項をユーザーへ報告する。** 問題がない両立部分は進める。過去の資料同士が矛盾するときは確認済みの現行動作を基準にし、未確認を推測で補わない。
 3. 画面の再配置・新設、CSSの整理、バックエンド分割時も、ボタンの活性条件、ロック、確認、権限、データの同期、エラー時の復旧、残高計算など**暗黙の業務仕様を削らない**。
 4. 改修着手前に **旧仕様／現在コード／変更要求／保護すべき既存機能／回帰試験** を対応づけて確認する。実装完了はGitHubのCI成功と検証環境の反映確認を区別し、さらに実機確認と区別する。
-5. 本番は別環境。**本番GAS・スプレッドシート・LINE・Cloudflare Workerへの反映は事前承認制**。通常の自動反映は検証用GitHub Pagesと検証GASに限る。Workerの自動デプロイは接続・実反映を確認するまでは「未確認」。
+5. 本番は別環境。**本番GAS・スプレッドシート・LINE・Cloudflare Workerへの反映は事前承認制**。検証環境ではGitHub Pages、GitHub Actions + claspによる既存GAS更新、Cloudflare Workers BuildsによるGit連携デプロイが稼働。**2026/11/19のWorker v0.16.53自動反映はCloudflareチェック成功とユーザーの公開/health応答で確認済み**。次回以降も変更した回ごとに実反映を検証する。詳しくは[更新・作業依頼手順](DEPLOYMENT_AND_USER_ACTIONS.md)。
 
 ## 2. 参照すべき一次情報（最新との差分も見る）
 
 - 検証用GitHub: `hitoriojisan52/zenryoku-smash-staging`（`main`の最新SHA、実装、テスト、直近PR）
-- このファイル、[仕様優先順位の正式ルール](SPEC_PRIORITY_POLICY.md)、[新しいチャット開始用プロンプト](NEW_CHAT_START_PROMPT.md)、`docs/ui-standard-v1632.md`（**履歴上の旧ルールが混在するため、新指示と無条件に突き合わせて勝手に更新しない**）、`docs/stage-v1650-legacy-ledger-withdrawal.md`、関連機能別`docs/`の記録
+- このファイル、[仕様優先順位の正式ルール](SPEC_PRIORITY_POLICY.md)、[新しいチャット開始用プロンプト](NEW_CHAT_START_PROMPT.md)、[GitHub→GAS/Worker更新とユーザー作業依頼手順](DEPLOYMENT_AND_USER_ACTIONS.md)、`docs/ui-standard-v1632.md`（**履歴上の旧ルールが混在するため、新指示と無条件に突き合わせて勝手に更新しない**）、`docs/stage-v1650-legacy-ledger-withdrawal.md`、関連機能別`docs/`の記録
 - 旧画面と旧コードの実資料：`zenryoku_smash_poc_v15`（ユーザー提供の収支管理画面スクリーンショット）、`zenryoku_smash_github_pages_public_manifest_v152.json`、`zenryoku_smash_integrated_design_stage7.md`、`ACCOUNTING_SPEC_V6.md`。旧資料はバージョンによる差があり、確認済みの既存アプリ動作が優先。**その後の変更指示との衝突は、5段階の優先順位に照らして報告**する。
 - 最新のユーザー添付ファイル・このチャットにおける明示的な仕様変更。
 - LIFF検証入口 `https://liff.line.me/2012602642-XBSkXduO`。公開HTML URLの直接起動とLIFF起動を混同しない。
@@ -55,13 +55,22 @@
 2. 依頼対象の**旧アプリの実動作・資料**を可能なら照合する。参照できない資料や未検証事項は推定で補わない。
 3. 変更予定の画面/APIと、影響を受ける関連機能（財務確定順序、収支・集金、出欠、退会、試合、権限、LINE）を列挙。**維持する既存仕様**と**今回変更する仕様**を分け、5が1～4へ影響する場合は実装前に懸念を報告してユーザーの判断を求める。
 4. 修正とともに既存の業務ルールを再現するテストを追加。未確定先行行がある場合など、活性／非活性・サーバー拒否・部分失敗・再読み込み・翌月跨ぎをテストする。
-5. 検証用ブランチ→PR→CI合格→検証用`main`マージ→Pages/GASの成功確認。Workerはデプロイ状態を別途確認する。
+5. 検証用ブランチ→PR→CI合格→検証用`main`マージ→Pages/GAS/Workerの**各々の成功確認**を行う。**WorkerはGitHub上のCloudflare Workers Buildsチェックと公開/health、GASはGAS自動デプロイActions**を確認する。ユーザーにソースを手動コピーさせず、GitHubでChatGPTが実施できない具体的な理由がある場合のみリンク付きの操作手順を依頼する。
 6. 完了報告に「何を変更／何を維持／未実装・実機未確認／デプロイ先と結果」を明記。本番を勝手に変更しない。
 7. 必ず本書と必要なテスト・設計差分を更新し、**次のチャットでも同じ契約を読み取れるようにする**。
 
 ## 5. 未完了・環境上の注意
 
-- 検証用Cloudflare Workerの`/health`は過去に`version:0.16.40-stage-visitor-approval`と報告された。GitHub上のWorkerソースが新しくても、**Workerへの実反映済みとは主張しない**。
-- **2026/11/19の追加許可**：接続検証環境のデータはすべてテスト用であり、退会試験・再入会試験・検証データ作成は都度承認不要。旧「単一架空メンバー限定」暫定ゲートは、検証ワークブックID固定・GASとWorkerの個別フラグ・管理者認証を残してv0.16.53で更新。ただしWorker実デプロイ・環境変数設定と実機E2Eは未確認。本番承認制は変更しない。[旧レビュー](withdrawal-priority-impact-review-v1652.md)の「未決定」は解消済み。
+- **検証用Cloudflare Workerは2026/11/19にGitHub経由でv0.16.53へ自動デプロイ済み**。ユーザーが公開`/health`で`version:"0.16.53-stage-withdrawal"`、`codeRevision:"stage-v1653-github-sync-20261119"`、`configured:true`、`channelMatchesLiveLiff:true`を確認。旧`0.16.40`は過去の状態。**GitHub PR #47 → Cloudflare Workers Builds成功 → 実公開/healthの3段階で確認**し、次回の変更も同様に確認する。
+- **2026/11/19の追加許可**：接続検証環境のデータはすべてテスト用であり、退会試験・再入会試験・検証データ作成は都度承認不要。旧「単一架空メンバー限定」暫定ゲートは、検証ワークブックID固定・GASとWorkerの個別フラグ・管理者認証を残してv0.16.53で更新。**Worker環境変数とGASスクリプトプロパティの更新完了をユーザーが報告済み。Worker公開/healthも確認済み。** ただし退会APIの二重許可・実機E2Eは**未確認**。本番承認制は変更しない。[旧レビュー](withdrawal-priority-impact-review-v1652.md)の「未決定」は解消済み。
 - レイアウトや表示仕様はv15の実画像と確認済み現行動作をまず確認する。後日の変更指示が1～4の仕様に影響する場合は、優先順位に沿って懸念を報告し、無断変更しない。UI仕様ドキュメントには歴史的記述が残り得る。
 - 正式な次作業はユーザーが新しいチャットで指示する。こちらから勝手に広い改修を始めない。
+
+## 6. 新チャットへの必須引継ぎ：GitHub更新とユーザー操作の依頼方法
+
+- **最初に[検証環境デプロイ・ユーザー作業案内手順](DEPLOYMENT_AND_USER_ACTIONS.md)を確認すること**。`docs/NEW_CHAT_START_PROMPT.md`からも必ず参照する。
+- GAS・Workerのコード更新はChatGPTが**GitHub連携**から実施する。GASはGitHub Actionsの既存`Staging GAS - GitHub / clasp`によって自動更新。WorkerはCloudflareの**Workers Builds（Git連携済み）**によって自動デプロイ。ソースの手動コピペをユーザーに依頼しない。
+- 必要な手動設定があるときは、**なぜ必要か／作業先URL／操作手順／入力キーと正確な値／保存後の確認方法／返信してほしい非機密情報**を必ずセットで提示する。操作がGitHub経由で実施できないなら、その理由を具体的に説明する。
+- WorkerのVariables and Secrets、GASスクリプトプロパティは**2026/11/19にユーザーが設定完了を報告済み**。異常や明確な変更理由がない限り再入力を求めない。
+- GAS編集画面の`https://script.google.com/home/projects`は以前404となった。代わりに**[接続検証用スプレッドシート](https://docs.google.com/spreadsheets/d/1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac/edit) → 拡張機能 → Apps Script → プロジェクトの設定 → スクリプト プロパティ**と案内する（PCブラウザ）。
+- Workerの公開`/health`は認証・退会APIの実用性を完全には証明しない。退会・再入会のLINE実機試験は**未完了**。検証データの作成・退会試験は許可済みだが、LINE本人認証／権限／過去記録保持と処理失敗時の再実行禁止は必須。

@@ -1,5 +1,7 @@
 # Cloudflare Worker — 検証環境のGitHub連携・デプロイ (v0.16.53)
 
+> **2026/11/19 実反映確認済み**：PR [#47](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/47)のWorker更新はCloudflare Workers Buildsにて成功。ユーザーが公開`/health`で`version:0.16.53-stage-withdrawal`／`codeRevision:stage-v1653-github-sync-20261119`／`configured:true`／`channelMatchesLiveLiff:true`を確認済み。**GitHub連携は現在有効です。** 次のチャットでは手動ソース貼り付けやGit連携の再設定を要求せず、[GitHub→Worker/GAS更新と作業依頼の手順](../docs/DEPLOYMENT_AND_USER_ACTIONS.md)に従ってください。WorkerのVariables and Secrets更新もユーザー報告済み（秘密値の直接検証ではない）。
+
 対象：**既存の** `zenryoku-smash-staging-api`。本番・専用退会サンドボックスには適用しない。
 
 ## 正本とGitHubからの反映

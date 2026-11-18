@@ -1,6 +1,7 @@
 # 全力☆スマッシュ｜検証用GitHub Pages
 
 **新しいチャットで開発を再開する場合は、必ず [開始用プロンプト](docs/NEW_CHAT_START_PROMPT.md) を使用し、[開発引継ぎ文書](docs/SESSION_HANDOFF.md) と [仕様優先順位の正式ルール](docs/SPEC_PRIORITY_POLICY.md) を確認する。**
+**GAS・Worker・PagesのGitHub経由デプロイとユーザーへの具体的な作業案内**は [DEPLOYMENT_AND_USER_ACTIONS.md](docs/DEPLOYMENT_AND_USER_ACTIONS.md) に従う（Worker v0.16.53の反映確認とGAS/Workerの設定完了報告を記録済み）。
 **退会・再入会の確定仕様と接続検証の進捗**：[v0.16.53引継ぎ](docs/stage-v1653-withdraw-rejoin.md)を参照。
 仕様はユーザー指定の **「既存業務仕様・動作 → 整合性・安全性 → 協議済み実装ルール → 新機能の実装方法 → 明示的な変更指示」** の順で保護する。
 明示的な変更指示が先行仕様に影響する場合は、**懸念・影響をユーザーへ報告するまで既存仕様を上書きしない**。
