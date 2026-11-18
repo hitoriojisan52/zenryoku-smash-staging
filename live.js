@@ -79,7 +79,8 @@ function syncPaymentControls(){
  for(const id of ['date','refresh','reimbursementBtn','manageBtn']){
    const el=$(id);if(el)el.disabled=pending||(id==='date'&&!S.overview?.practice);
  }
- if($('confirm'))$('confirm').disabled=pending||locked||S.overview?.practice?.date>today();
+ if($('confirm'))$('confirm').disabled=pending||locked||
+    S.overview?.practice?.date>today()||ledger?.canConfirm!==true;
  for(const id of ['adjustment','expense']){
    const el=$(id);if(el)el.disabled=pending||locked;
  }
@@ -224,7 +225,8 @@ function renderHome(){const v=S.overview;if(!v)return;const {practice,ledger,par
    reason.textContent=access?.reason||(!ledger?'集金・収支データ未作成のため集金できません':ledger.status==='confirmed'?'この日程の収支確定済み':'');
    reason.hidden=!reason.textContent;
  }
- $('confirm').disabled=homeLocked||practice.date>today();$('confirm').textContent=ledger?.status==='confirmed'?'確定済':'収支を確定';
+ $('confirm').disabled=homeLocked||practice.date>today()||ledger?.canConfirm!==true;
+ $('confirm').textContent=ledger?.status==='confirmed'?'確定済':'収支を確定';
  $('adjustment').disabled=homeLocked;$('expense').disabled=homeLocked;
  const list=$('list'),pos=list.scrollTop;list.replaceChildren();
  for(const p of M.sortParticipants(participants)){
@@ -385,7 +387,9 @@ async function loadLedger(){const month=$('ledgerMonth').value,ledger=await call
    const group=document.createElement('div');group.className='ledger-action-group';
    const canEdit=!future&&!confirmed&&r.kind!=='practice';
    const canDelete=!future&&!confirmed;
-   const canConfirm=!future&&!confirmed;
+   // Eligibility is determined by GAS against the full ledger, including
+   // prior months and earlier entries on the same date.
+   const canConfirm=!future&&!confirmed&&r.canConfirm===true;
    const slots=[['修正','edit',canEdit],['削除','delete',canDelete],
      [confirmed?'確定済み':'確定','confirm',canConfirm]];
    for(const [label,act,enabled] of slots){
@@ -413,6 +417,7 @@ async function loadLedger(){const month=$('ledgerMonth').value,ledger=await call
  $('nextMonth').disabled=month>=(ledger.maxMonth||today().slice(0,7));
 }
 function ledgerAction(act,row){
+ if(act==='confirm'&&row.canConfirm!==true)return;
  if(act==='edit'){openEditor(row);return;}
  S.modalTarget={act,row};
  const titles={confirm:'【収支の確定】',delete:'【収支の削除】',unlock:'【確定の解除】'};

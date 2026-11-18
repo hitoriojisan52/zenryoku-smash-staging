@@ -453,9 +453,39 @@ function practice_(ss,id){var found=practices_(ss).filter(function(p){return p.p
 function attendees_(ss,id){return sheetRows_(ss,'出欠回答').filter(function(r){return str_(r[0])===id&&bool_(r[5]);}).map(function(r){return {practiceId:id,participantId:str_(r[1]),name:norm_(r[2]),nameKana:norm_(r[3]),category:str_(r[4]),attending:true,memo:str_(r[6]),categoryVersion:Number(r[7])||0};});}
 function paymentRows_(ss,id){return sheetRows_(ss,'集金記録').filter(function(r){return str_(r[0])===id;});}
 function practiceIncome_(ss,id,adjustment){var p=practice_(ss,id);var payments=paymentRows_(ss,id);var done={};payments.forEach(function(r){if(bool_(r[2]))done[str_(r[1])]=true;});var amount=attendees_(ss,id).reduce(function(sum,a){return sum+(done[a.participantId]?fee_(a.category,p.hours):0);},0);return amount+Number(adjustment||0);}
+/** Legacy accounting contract: chronological order is authoritative for
+ * balances AND confirmation. Same-day entries use kind then fixed rowId,
+ * exactly as the persisted ledger calculation does. */
+function ledgerChronologyCompare_(a,b){
+ var weight={opening:0,practice:1,reimbursement:2,other:3};
+ return a.date.localeCompare(b.date)||
+  ((weight[a.kind]===undefined?5:weight[a.kind])-
+   (weight[b.kind]===undefined?5:weight[b.kind]))||
+  a.rowId.localeCompare(b.rowId);
+}
+/** Returns the earliest still-open ledger row BEFORE the target, or null.
+ * Excludes the opening balance (never a confirmable operation).
+ * Must be checked under ScriptLock immediately before every confirmation. */
+function ledgerPriorPending_(rows,target){
+ var sorted=rows.slice().sort(ledgerChronologyCompare_),pending=null,found=false;
+ for(var i=0;i<sorted.length;i++){
+  var row=sorted[i];
+  if(row.rowId===target.rowId){found=true;break;}
+  if(row.kind!=='opening'&&row.status!=='confirmed'&&!pending)pending=row;
+ }
+ if(!found)fail_('NOT_FOUND','確定対象の収支行が見つかりません');
+ return pending;
+}
+function ledgerCanConfirm_(rows,target){
+ return target.kind!=='opening'&&target.status!=='confirmed'&&
+  target.date<=today_()&&!ledgerPriorPending_(rows,target);
+}
 function balanceRecalc_(rows,original){
  if(rows.length>5000)fail_('LIMIT','収支行が多すぎます');
  var old={};original.forEach(function(r){old[r.rowId]=r;});
+ // Preserve the legacy self-contained balance calculation: older staging
+ // regression harnesses isolate this function without loading other helpers.
+ // Keep the ordering identical to ledgerChronologyCompare_.
  var weight={opening:0,practice:1,reimbursement:2,other:3};
  rows.sort(function(a,b){return a.date.localeCompare(b.date)||((weight[a.kind]===undefined?5:weight[a.kind])-(weight[b.kind]===undefined?5:weight[b.kind]))||a.rowId.localeCompare(b.rowId);});
  var seen={},balance=null;
@@ -589,7 +619,13 @@ function mutateLedger_(ss,member,payload){
  }else if(action==='delete'){
    unlockable_(r);rows=rows.filter(function(x){return x.rowId!==id;});
  }else if(action==='confirm'){
-   unlockable_(r);dateAllowed_(r.date);r.status='confirmed';r.confirmedBy=member.name;r.version++;
+   unlockable_(r);dateAllowed_(r.date);
+   // v15 requirement: every chronologically earlier ledger row must be
+   // confirmed first. Do not rely on the disabled HTML button: concurrent
+   // clients and direct API calls must be rejected as well.
+   if(ledgerPriorPending_(rows,r))
+    fail_('LOCKED','前の収支行が未確定です。先に確定してください');
+   r.status='confirmed';r.confirmedBy=member.name;r.version++;
  }else if(action==='unlock'){
    if(member.role!=='admin')fail_('FORBIDDEN','確定解除はシステム管理者のみ可能です');
    if(r.status!=='confirmed')fail_('BAD_REQUEST','未確定の行です');r.status='open';r.confirmedBy='';r.version++;
@@ -929,10 +965,23 @@ function overview_(ss,member,payload){var all=practices_(ss).sort(function(a,b){
  // Shared dynamic numbering: sorted every read, never a mutation key.
  roster=SMMatchCore.numbered(roster).map(function(a){a.participantId=a.participationId;return a;});
  var ledger=ledgerRows.find(function(r){return r.rowId==='P-'+id;});var completed=roster.filter(function(a){return a.collectionCompleted;});var total=completed.reduce(function(a,b){return a+b.fee;},0);
- return {ok:true,data:{role:member.role,actorName:member.name,practice:p,practices:all,participants:roster,ledger:ledger||null,collectionAccess:access,expected:roster.reduce(function(a,b){return a+b.fee;},0),completedFee:total,completedCount:completed.length,attendingCount:roster.length}};
+ var visibleLedger=ledger?Object.assign({},ledger,{canConfirm:ledgerCanConfirm_(ledgerRows,ledger)}):null;
+ return {ok:true,data:{role:member.role,actorName:member.name,practice:p,practices:all,participants:roster,ledger:visibleLedger,collectionAccess:access,expected:roster.reduce(function(a,b){return a+b.fee;},0),completedFee:total,completedCount:completed.length,attendingCount:roster.length}};
 }
 function monthLedger_(ss,member,payload){
- var sorted=entries_(ss),currentMonth=today_().slice(0,7);
+ var source=entries_(ss),sorted=source.slice().sort(ledgerChronologyCompare_),
+     currentMonth=today_().slice(0,7);
+ // Compute eligibility against ALL preceding rows, including prior months.
+ // This is an output-only annotation, not a mutation of Sheets data.
+ var earliestOpen='';
+ sorted=sorted.map(function(r){
+  var canConfirm=r.kind!=='opening'&&r.status!=='confirmed'&&
+     r.date<=today_()&&!earliestOpen;
+  var view=Object.assign({},r,{canConfirm:canConfirm});
+  if(!earliestOpen&&r.kind!=='opening'&&r.status!=='confirmed')
+   earliestOpen=r.rowId;
+  return view;
+ });
  // Future published practices are visible as provisional OPEN accounting rows.
  // They cannot be collected/confirmed before the practice date.
  var latest=sorted.reduce(function(max,r){

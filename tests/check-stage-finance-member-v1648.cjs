@@ -140,14 +140,15 @@ ok(ui.includes('ledger.maxMonth||today().slice(0,7)')&&
  gas.includes('maxMonth:latest'),'future published ledgers visible in month navigation');
 const mStart=gas.indexOf('function monthLedger_('),mEnd=gas.indexOf('\nfunction ',mStart+10);
 ok(mStart>=0&&mEnd>mStart,'monthLedger backend isolated');
-const monthLedger=new Function('str_','today_','entries_','fail_',gas.slice(mStart,mEnd)+
+const monthLedger=new Function('str_','today_','entries_','fail_','ledgerChronologyCompare_',gas.slice(mStart,mEnd)+
  '\nreturn monthLedger_;')(
  x=>String(x??''),()=> '2026-11-19',
  ()=>[
   {rowId:'OPEN',date:'2026-11-01',kind:'opening',income:0,expense:0,balance:10000},
   {rowId:'P-PR-FUTURE',date:'2026-12-02',kind:'practice',income:0,expense:0,balance:10000}
  ],
- (code,msg)=>{let e=new Error(msg);e.smCode=code;throw e});
+ (code,msg)=>{let e=new Error(msg);e.smCode=code;throw e},
+ (a,b)=>a.date.localeCompare(b.date)||a.rowId.localeCompare(b.rowId));
 const future=monthLedger({}, {role:'admin'}, {month:'2026-12'}).data;
 ok(future.maxMonth==='2026-12'&&future.rows.length===1&&
  future.rows[0].rowId==='P-PR-FUTURE','future linked ledger month returned read-only');
