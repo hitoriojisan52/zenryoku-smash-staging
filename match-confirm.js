@@ -21,9 +21,7 @@
   }
 
   cancelBtn().addEventListener('click', () => finish(false));
-  byId('matchConfirmClose').addEventListener('click', () =>
-    finish(pending?.isError ? true : false));
-  okBtn().addEventListener('click', () => finish(true));
+ okBtn().addEventListener('click', () => finish(true));
   // Error dialogs require a conscious acknowledgement: touching the backdrop does not hide them.
   root().addEventListener('click', e => {
     if (e.target === root() && pending && !pending.isError) finish(false);
@@ -36,9 +34,7 @@
       return;
     }
     if (e.key !== 'Tab') return;
-    const focusables = pending.isError ?
-      [byId('matchConfirmClose'), okBtn()] :
-      [byId('matchConfirmClose'), cancelBtn(), okBtn()];
+    const focusables = pending.isError ? [okBtn()] : [cancelBtn(), okBtn()];
     const index = focusables.indexOf(document.activeElement);
     if (e.shiftKey && index <= 0) { e.preventDefault(); focusables[focusables.length - 1].focus(); }
     else if (!e.shiftKey && index >= focusables.length - 1) { e.preventDefault(); focusables[0].focus(); }
