@@ -109,7 +109,10 @@ function render(){const v=S.view,s=v?.session,editable=isDuty();const body=$('ma
      ?'参加者は現在'+count+'名です。対戦表の作成には4名以上必要です。'
      :'対戦表を作成してください。'
    :'対戦表の作成をお待ちください。';
-  body.append(el('p','',text));
+  const kind=editable&&count<4?'stage-system-message--warning':'stage-system-message--info';
+  const message=el('p','stage-system-message '+kind,text);
+  message.setAttribute('role','status');message.setAttribute('aria-live','polite');
+  body.append(message);
  }
  else{const finished=s.sessionState==='finished';$('matchHeader').textContent=finished?'対戦表の進行は終了しました':s.sessionState==='ready'?'試合開始前':`第${s.currentRound}試合`;
    const rounds=v.visibleRounds||[];if(!rounds.length)body.append(el('p','','対戦予定はありません。'));rounds.forEach((r,i)=>body.append(renderRound(r,i===0)));}
