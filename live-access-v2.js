@@ -1,6 +1,7 @@
 /* v0.16.19 opt-in member administration UI for the existing staging LIVE page.
  * Enabled ONLY when ?accessUi=v2 is present. Original stage UI stays unchanged.
- * Withdrawal remains disabled until the staging backend is safely approved; no rich-menu sync.
+ * v0.16.53: withdrawal is available only if BOTH stage backend gates report
+ * enabled; admin two-step confirmation, no automatic retries or rich-menu sync.
  */
 (function () {
  'use strict';
@@ -158,16 +159,19 @@
     setRole(m,select);
    });
    frame.actions.append(select,change);
-   // The existing staging withdrawal endpoint is deliberately test-gated.
-   // Do not advertise a live destructive action until its server policy
-   // permits real members. Keep the target identifiable and the control
-   // present for the later reviewed backend rollout.
+   // The full roster comes from GAS after LINE ID verification. The Worker
+   // additionally intersects its own stage-only flag with GAS readiness.
+   // Never rely on a client flag to authorize a destructive operation.
    if(!isSelf&&m.active&&m.role!=='admin'){
     const withdraw=item('button','btn-outline','退会');
     withdraw.type='button';
-    withdraw.disabled=true;
-    withdraw.title='退会機能の接続準備中です';
-    withdraw.setAttribute('aria-label',m.name+' さんの退会（準備中）');
+    withdraw.disabled=snapshot.withdrawEnabled!==true;
+    if(withdraw.disabled)withdraw.title='検証用退会機能の接続準備中です';
+    withdraw.setAttribute('aria-label',m.name+' さんの退会');
+    withdraw.addEventListener('click',()=>{
+     if(withdraw.disabled||busy||prompt)return;
+     withdrawMember(m);
+    });
     frame.actions.append(withdraw);
    }
    members.append(frame.card);
@@ -259,6 +263,30 @@
      {requestId:p.requestId,approve,operationId:crypto.randomUUID()},
      approve?'承認':'却下',
      data=>!data.pending.some(x=>x.requestId===p.requestId));
+ }
+ /** v0.16.53: only the verified administrator may withdraw another
+  * active nonadmin member from the connected test workbook. Never retry
+  * automatically after a network/timeout/error/processing state. */
+ async function withdrawMember(m){
+   if(busy||prompt||actorRole!=='admin'||!m.active||
+      m.role==='admin'||m.memberId===actorMemberId)return;
+   const first=await ask({title:'【退会確認（1/2）】',
+     message:m.name+' さんの登録情報を削除します。\n過去の出欠・集金・試合履歴は残します。',
+     label:'次へ',danger:true});
+   if(!first)return;
+   const second=await ask({title:'【退会確認（2/2）】',
+     message:m.name+' さんを退会させますか？',
+     label:'退会する',danger:true});
+   if(!second)return;
+   const operationId=crypto.randomUUID();
+   await mutate('/api/member/manage/withdraw',
+     {memberId:m.memberId,confirmMemberId:m.memberId,operationId},
+     '退会',data=>{
+      const disappeared=!data.members.some(x=>x.memberId===m.memberId);
+      const historical=Array.isArray(data.withdrawn)&&
+       data.withdrawn.some(x=>x.memberId===m.memberId&&x.state==='completed');
+      return disappeared&&historical;
+     });
  }
  async function setRole(m,select){
    if(busy||prompt||m.memberId===actorMemberId||!m.active||select.value===m.role)return;

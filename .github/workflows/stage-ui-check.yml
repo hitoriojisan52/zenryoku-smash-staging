@@ -33,6 +33,8 @@ on:
       - 'tests/check-stage-ledger-add-v1647.cjs'
       - 'tests/check-stage-finance-member-v1648.cjs'
       - 'tests/check-stage-ledger-confirm-order-v1651.cjs'
+      - 'tests/check-stage-withdraw-boundary.cjs'
+      - 'tests/check-stage-withdraw-rejoin-v1653.cjs'
       - 'tests/check-stage-line-attendance-v1645.cjs'
       - 'match.js'
       - 'match.html'
@@ -101,5 +103,7 @@ jobs:
         run: node tests/check-stage-ledger-confirm-order-v1651.cjs
       - name: Verify staging withdrawal remains isolated
         run: node tests/check-stage-withdraw-boundary.cjs
+      - name: Verify end-to-end withdrawal and reapplication in mocked Sheets
+        run: node tests/check-stage-withdraw-rejoin-v1653.cjs
       - name: Verify GAS payment timing without extra sheet writes
         run: node tests/check-gas-payment-profile.cjs

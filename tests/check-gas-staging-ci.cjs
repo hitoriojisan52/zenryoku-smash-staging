@@ -17,7 +17,7 @@ ok(core.includes('function checkLedgerConsistencyInNewSystem'),'read-only ledger
 ok(core.includes('TEST-20261116')||core.includes('STAGING ONLY COMBINED BUNDLE'),'reviewed stage finance core');
 ok(access.includes('logStageWithdrawPreflightV1636'),'stage withdrawal read-only preflight');
 ok(access.includes("STAGING_WITHDRAW_PURPOSE"),'withdraw purpose gate');
-ok(access.includes("WITHDRAW_TEST_MEMBER_ID"),'synthetic target gate');
+ok(access.includes("SMA_STAGE_MEMBER_ID_RE_V1653")&&access.includes("SMA_STAGE_WITHDRAW_ID_V1636"),'all user-authorized staging test members remain stage-bound');
 ok(access.includes('1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac'),'exact connected staging workbook');
 ok(guard.includes("mode==='verify'"),'verify pulled sources after push');
 ok(guard.includes('Remote GAS was edited outside reviewed Git history'),'fail on unreviewed remote changes');
