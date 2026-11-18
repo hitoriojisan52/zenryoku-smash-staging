@@ -170,7 +170,10 @@ function accessManagement16_(ss,member,op,payload){
       withdrawn:withdrawn,
       // Separate server capability; frontend must keep withdrawal disabled
       // until the stage-only double gate has been explicitly configured.
-      withdrawMemberEnabled:accessMemberWithdrawalGateV1650_(ss)}};
+      withdrawMemberEnabled:accessMemberWithdrawalGateV1650_(ss),
+    withdrawMemberScope:str_(conf_('WITHDRAW_MEMBER_SCOPE')),
+    withdrawMemberTargetId:str_(conf_('WITHDRAW_MEMBER_SCOPE'))==='single'?
+      str_(conf_('WITHDRAW_MEMBER_TARGET_ID')):null}};
   }
   var opId=checkOpId_(payload);
   return withLock_(function(){
@@ -388,10 +391,13 @@ function accessStageWithdrawalV1636_(ss,member,payload){
  */
 var SMA_MEMBER_WITHDRAW_PURPOSE_V1650='staging-member-withdraw-v1650';
 function accessMemberWithdrawalGateV1650_(ss){
+ var scope=str_(conf_('WITHDRAW_MEMBER_SCOPE'));
+ var target=str_(conf_('WITHDRAW_MEMBER_TARGET_ID'));
  return conf_('SPREADSHEET_ID')===SMA_STAGE_WITHDRAW_ID_V1636&&
   !!ss&&typeof ss.getId==='function'&&ss.getId()===SMA_STAGE_WITHDRAW_ID_V1636&&
   conf_('WITHDRAW_MEMBER_ENABLED')==='true'&&
-  conf_('STAGING_WITHDRAW_MEMBER_PURPOSE')===SMA_MEMBER_WITHDRAW_PURPOSE_V1650;
+  conf_('STAGING_WITHDRAW_MEMBER_PURPOSE')===SMA_MEMBER_WITHDRAW_PURPOSE_V1650&&
+  (scope==='all'||(scope==='single'&&/^M-[A-Za-z0-9_-]{8,100}$/.test(target)));
 }
 function accessMemberWithdrawalV1650_(ss,member,payload){
  accessAdmin16_(member);
@@ -407,10 +413,14 @@ function accessMemberWithdrawalV1650_(ss,member,payload){
  if(!SMA_STAGE_UUID4_RE_V1636.test(opId))
   fail_('BAD_REQUEST','操作IDが不正です');
  if(id===str_(member.memberId))fail_('FORBIDDEN','自分自身は退会できません');
+ if(str_(conf_('WITHDRAW_MEMBER_SCOPE'))==='single'&&id!==str_(conf_('WITHDRAW_MEMBER_TARGET_ID')))
+  fail_('TEST_TARGET_ONLY','このメンバーの退会は検証対象外です');
  return withLock_(function(){
   // Verify all gates again under LockService, not only the UI.
   if(!accessMemberWithdrawalGateV1650_(ss))
    fail_('WITHDRAW_DISABLED','退会処理は現在無効です');
+  if(str_(conf_('WITHDRAW_MEMBER_SCOPE'))==='single'&&id!==str_(conf_('WITHDRAW_MEMBER_TARGET_ID')))
+   fail_('TEST_TARGET_ONLY','このメンバーの退会は検証対象外です');
   var memberSheet=accessSheet16_(ss,'メンバー',SM.headers['メンバー']);
   var teamSheet=accessSheet16_(ss,'チーム所属',SM.headers['チーム所属']);
   var reg=accessSheet16_(ss,SMA16.registrations,SMA16.regHeader);
