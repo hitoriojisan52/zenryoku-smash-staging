@@ -133,6 +133,29 @@ ok(node.participantVisitorIdentity.hidden&&!node.participantMemberIdentity.hidde
 ok(node.participantCategoryVisitor.hidden&&node.participantCategoryVisitor.disabled&&
  !node.participantCategory.disabled,
  'nonvisitor cannot select visitor category');
+// The submit routine must not trust hidden inputs or allow manual DOM tampering.
+const dataStart=ui.indexOf('function participantEditData_(){');
+const dataEnd=ui.indexOf('async function saveParticipantEdit_(',dataStart);
+ok(dataStart>=0&&dataEnd>dataStart,'participant editor payload is available');
+const getData=new Function('PM','
+ok(node.participantCards.children[0].textContent==='この開催日の回答データはありません。',
+ 'empty state matches original v7');
+console.log('PASS '+n+'/'+n+' original v7 participant layout and no visitor-add regression');
+,'PM_CATEGORIES',ui.slice(dataStart,dataEnd)+
+ '\nreturn participantEditData_;')(pm,$,{member:'メンバー',visitor:'ビジター',student:'学生'});
+node.participantName.value='別人';node.participantKana.value='ニセモノ';
+node.participantCategory.value='member';node.participantMemo.value='既存の備考';
+const data=getData();
+ok(data.name==='テストメンバー'&&data.nameKana==='カナ'&&data.category==='member',
+ 'member submit ignores hidden name/kana and preserves saved identity');
+node.participantCategory.value='visitor';
+assert.throws(()=>getData(),/ビジター/);n++;
+openEditor({name:'代理ビジター',nameKana:'ダイリ',category:'visitor',attending:true,memo:''});
+node.participantName.value='修正ビジター';node.participantKana.value='シュウセイ';
+const visitorData=getData();
+ok(visitorData.name==='修正ビジター'&&visitorData.nameKana==='シュウセイ'&&
+ visitorData.category==='visitor',
+ 'visitor retains own name/kana editing without a member account');
 pm.people=[];render();
 ok(node.participantCards.children[0].textContent==='この開催日の回答データはありません。',
  'empty state matches original v7');
