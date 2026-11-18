@@ -13,9 +13,15 @@ async function status(){try{const r=await api('/api/member/status');
  else if(r.status==='approved')say('登録済みです。画面を開き直してください。');
  else if(r.status==='rejected')say('前の申請は承認されていません。再申請できます。');
  }catch(e){say(e.message||String(e),'error');}}
-async function apply(){const name=$('accessRegName').value.trim();
- if(!name){say('表示名を入力してください','warning');return;}
- const r=await api('/api/member/apply',{displayName:name});
+async function apply(){const name=$('accessRegName').value.normalize('NFKC').replace(/[\s\u00a0\u3000]+/g,'');
+ const nameKana=$('accessRegKana').value.normalize('NFKC').replace(/[\s\u00a0\u3000]+/g,'');
+ if(!name||name.length>30||/[\r\n<>]/.test(name)){
+  say('氏名を1～30文字で入力してください','warning');return;
+ }
+ if(!nameKana||nameKana.length>60||!(/^[ァ-ヶー・]+$/).test(nameKana)){
+  say('氏名カナを全角カタカナで入力してください','warning');return;
+ }
+ const r=await api('/api/member/apply',{displayName:name,nameKana});
  say(r.status==='pending'?'登録申請を受け付けました。承認をお待ちください。':'登録済みです。画面を開き直してください。');
  $('accessApply').disabled=r.status==='pending';}
 async function share(){const practiceId=getPracticeId();
@@ -37,7 +43,7 @@ async function share(){const practiceId=getPracticeId();
    say(''); // The visible QR already communicates success; clear previous notices.
  }else say('QR画像を生成できません。URLをコピーしてください。','warning');
  $('accessShareExpiry').textContent='有効期限：'+window.SMDate.dateTimeJst(r.expiresAt);}
-$('accessApply').onclick=()=>apply().catch(e=>say(e.message||String(e),'error'));
+$('accessApply').onclick=()=>window.SMMatchBusy.run(()=>apply()).catch(e=>say(e.message||String(e),'error'));
 $('accessQrButton').onclick=()=>window.SMMatchBusy.run(()=>share()).catch(e=>say(e.message||String(e),'error'));
 $('accessQrCopy').onclick=async()=>{const url=$('accessShareUrl').value;if(!url)return;try{await navigator.clipboard.writeText(url);say('URLをコピーしました');}catch(_){$('accessShareUrl').select();say('URLを選択しました。長押しでコピーしてください');}};
 $('accessShareClose').onclick=()=>{$('accessShare').hidden=true;};
