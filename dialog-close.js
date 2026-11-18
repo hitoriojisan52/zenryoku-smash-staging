@@ -11,14 +11,13 @@
  // must never acquire an extra synthetic top-right Close.
  const screenIds=new Set([
   'manageDialog','memberAccessDialog','cashDialog','visitorDialog',
-  'visitorAdminDialog','participantDialog','scheduleDialog','ledgerDialog'
+  'visitorAdminDialog','participantDialog','scheduleDialog'
  ]);
  const topActions={
   memberAccessDialog:['memberAccessRefresh'],
   visitorAdminDialog:['visitorAdminRefresh'],
   participantDialog:['participantReload'],
-  scheduleDialog:['scheduleAdd','scheduleReload'],
-  ledgerDialog:['newLedgerRow']
+  scheduleDialog:['scheduleAdd','scheduleReload']
  };
  for(const dialog of document.querySelectorAll('dialog')){
   if(!screenIds.has(dialog.id))continue; // no added Close on popups or busy overlay
