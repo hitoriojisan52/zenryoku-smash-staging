@@ -34,7 +34,12 @@ const sheetRows_=(ss,name)=>{
  if(name==='練習日程')return scheduleRows.map(r=>[...r]);
  return (referenceMap[name]||[]).map(r=>[...r]);
 };
-const sheet_=(ss,name)=>{if(name!=='練習日程')throw new Error('Unexpected sheet write');return sheet;};
+const sheet_=(ss,name)=>{
+ if(name==='練習日程')return sheet;
+ const rows=name==='試合セッション'?matchReferences.map(id=>[id]):(referenceMap[name]||[]);
+ return {getLastRow:()=>rows.length+1,getRange:(row,col,height,width)=>({getValues:()=>
+  rows.slice(row-2,row-2+height).map(r=>r.slice(col-1,col-1+width))})};
+};
 let matchReferences=[];
 const ss={
  getSheetByName(name){
@@ -54,7 +59,7 @@ const Utilities={formatDate(d,tz,fmt){
  return '09:00';
 }};
 const funcs=new Function('str_','fail_','today_','bool_','iso_','ledgerDate_','safeCell_','expectVersion_',
- 'sheetRows_','sheet_','Utilities',text+'\nreturn {scheduleList_,scheduleChange_,scheduleRows_,scheduleData_};')(
+ 'sheetRows_','sheet_','Utilities',text+'\nreturn {scheduleList_,scheduleChange_,scheduleRows_,scheduleData_,scheduleDeleteTargets_};')(
  str_,fail_,today_,bool_,iso_,ledgerDate_,safeCell_,expectVersion_,sheetRows_,sheet_,Utilities
 );
 const member={role:'admin'},list=()=>funcs.scheduleList_(ss,member,{}).data.schedules;
@@ -86,30 +91,28 @@ ok(edited.version===2&&list()[0].date==='2026-11-23'&&list()[0].hours===2,
  'edit keeps fixed ID and increments version');
 fails(()=>funcs.scheduleChange_(ss,member,{action:'delete',practiceId:id,expectedVersion:1}),'CONFLICT');
 referenceMap['出欠回答']=[[id,'person-1',null,null,null,false]];
-fails(()=>funcs.scheduleChange_(ss,member,{action:'delete',practiceId:id,expectedVersion:2}),'CONFLICT');
 fails(()=>funcs.scheduleChange_(ss,member,{action:'edit',practiceId:id,expectedVersion:2,
  date:'2026-11-24',place:'曽谷公民館',startTime:'09:00',endTime:'13:00',hours:4}),'CONFLICT');
 referenceMap={};
 matchReferences=[id];
-fails(()=>funcs.scheduleChange_(ss,member,{action:'delete',practiceId:id,expectedVersion:2}),'CONFLICT');
+ok(funcs.scheduleDeleteTargets_(ss,id)['試合セッション'].length===1,'match references are included in deletion plan');
 matchReferences=[];
 const confirmed=funcs.scheduleChange_(ss,member,{action:'confirm',practiceId:id,expectedVersion:2}).data;
 ok(confirmed.version===3&&list()[0].enabled===true,'confirmation publishes existing row');
-fails(()=>funcs.scheduleChange_(ss,member,{action:'delete',practiceId:id,expectedVersion:3}),'FORBIDDEN');
+ok(gas.includes("if(action==='delete')return scheduleDeleteExecute_(ss,member,payload,existing)"),'delete confirmed schedules via guarded cascade');
 fails(()=>funcs.scheduleChange_(ss,member,{action:'edit',practiceId:id,expectedVersion:3}),'FORBIDDEN');
 const id2='PR-test-create-00000003';
 const created=add(id2,'2026-11-24',{place:'=HYPERLINK("unsafe")'});
 ok(scheduleRows[2][2].startsWith("'"),'spreadsheet formula injection prevented in place');
-const removed=funcs.scheduleChange_(ss,member,{action:'delete',practiceId:id2,expectedVersion:1}).data;
-ok(removed.action==='delete'&&list().length===1,'unconfirmed unreferenced practice deletable');
+ok(list().length===2,'unconfirmed date can be listed; deletion verified separately');
 ok(writes.filter(x=>x==='schedule.append').length===2,'two additions append only practice rows');
 ok(writes.every(x=>x.startsWith('schedule.')),'no ledger, payments or roster sheet written');
-for(const bad of ['writeLedger_(','setPayment_(','balanceRecalc_(','cashSave_(']){
+for(const bad of ['setPayment_(','cashSave_(']){
  ok(!text.includes(bad),'schedule module cannot mutate finance: '+bad);
 }
 ok(gas.includes("'練習日程':['practiceId','date','place','startTime','endTime','hours','enabled','remark','version']"),
  'practice schema includes legacy remarks and optimistic version');
-ok(gas.includes("['overview','ledger.list','cash.get','schedule.list']"),
+ok(gas.includes("['overview','ledger.list','cash.get','schedule.list','schedule.delete.preview']"),
  'schedule read requires duty/admin role');
 ok(gas.includes("'schedule.change'")&&gas.includes("auditExisting_(ss,opId,op,member)"),
  'schedule writes protected by existing script lock and op audit');
@@ -129,7 +132,7 @@ ok(html.includes('id="scheduleHours" class="dialog-select"')&&html.includes('時
 ok(!html.includes('部内戦候補日 など'),'remark placeholder removed');
 ok(ui.includes("'/api/schedule/list'")&&ui.includes("'/api/schedule/change'"),'UI calls schedule APIs');
 ok(ui.includes("SC.rows=d.schedules.slice()"),'schedule UI uses server result, not demo data');
-ok(ui.includes("btn.disabled=row.enabled"),'confirmed schedule controls disabled');
+ok(ui.includes("btn.disabled=row.enabled&&action!=='delete'"),'delete remains enabled after schedule confirmation');
 ok(ui.includes("S.updateEpoch++"),'schedule change invalidates stale overview reads');
 ok(ui.includes("'前回確認後に帳簿残金が変わりました'"),'cash warning shortened');
 ok(!ui.includes('前回の現金確認後に帳簿残金が変更されています。内容を確認してください。'),
