@@ -163,7 +163,13 @@ function accessManagement16_(ss,member,op,payload){
         registeredAt:registeredAt};
       }),
       pending:requests.filter(function(r){return r[3]==='pending';}).map(function(r){return {requestId:str_(r[0]),name:str_(r[2]),requestedAt:str_(r[4])};}),
-      withdrawn:withdrawn}};
+      withdrawn:withdrawn,
+      // Worker adds the independent edge-gate result to this safe boolean.
+      // No secret, spreadsheet ID or LINE user ID is exposed here.
+      withdrawEnabled:conf_('WITHDRAW_ENABLED')==='true'&&
+        conf_('STAGING_WITHDRAW_PURPOSE')===SMA_STAGE_WITHDRAW_PURPOSE_V1636&&
+        conf_('SPREADSHEET_ID')===SMA_STAGE_WITHDRAW_ID_V1636&&
+        ss.getId()===SMA_STAGE_WITHDRAW_ID_V1636}};
   }
   var opId=checkOpId_(payload);
   return withLock_(function(){
@@ -288,14 +294,17 @@ function accessWithdrawPreflightV1625(){
 
 
 /**
- * v0.16.36 — CONNECTED STAGING ONLY / SYNTHETIC MEMBER ONLY.
- * Not for production. This code is inert unless ALL explicit stage gates agree.
- * Never copy the isolated sandbox's old IDs, secrets or Worker destination here.
+ * v0.16.53 — CONNECTED STAGING ONLY / ALL RECORDS ARE USER-APPROVED TEST DATA.
+ * The user authorized destructive tests on members of the connected staging
+ * workbook. This does NOT authorize production access or bypass admin,
+ * idempotency, historical data retention or partial-failure safeguards.
+ * Both GAS and Worker must explicitly opt into the NEW staging purpose.
+ * Never copy the isolated sandbox IDs/secrets/Worker destination here.
  */
 var SMA_STAGE_WITHDRAW_ID_V1636='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac';
-var SMA_STAGE_WITHDRAW_PURPOSE_V1636='staging-withdraw-test-v1636';
+var SMA_STAGE_WITHDRAW_PURPOSE_V1636='staging-member-withdraw-v1653';
 var SMA_STAGE_WITHDRAW_HEADER_V1636=['memberId','displayName','withdrawnAt','withdrawnBy','state','operationId'];
-var SMA_STAGE_SYNTHETIC_ID_RE_V1636=/^M-TEST-STAGE-WITHDRAW-[A-Z0-9-]{4,64}$/;
+var SMA_STAGE_MEMBER_ID_RE_V1653=/^M-(?:[0-9a-f]{8}-[0-9a-f-]{27,36}|TEST-[A-Z0-9-]{2,80})$/i;
 var SMA_STAGE_UUID4_RE_V1636=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function accessStageBindingV1636_(ss){
   if(conf_('SPREADSHEET_ID')!==SMA_STAGE_WITHDRAW_ID_V1636||
@@ -304,11 +313,12 @@ function accessStageBindingV1636_(ss){
 }
 function accessStageGateV1636_(ss,id){
   accessStageBindingV1636_(ss);
-  var allowed=str_(conf_('WITHDRAW_TEST_MEMBER_ID'));
+  // Member ID never comes from LINE identity; it must be a fixed-ID target
+  // chosen from the manager's authenticated member roster.
   if(conf_('WITHDRAW_ENABLED')!=='true'||
      conf_('STAGING_WITHDRAW_PURPOSE')!==SMA_STAGE_WITHDRAW_PURPOSE_V1636||
-     !SMA_STAGE_SYNTHETIC_ID_RE_V1636.test(allowed)||id!==allowed)
-    fail_('WITHDRAW_DISABLED','退会機能は無効です。対象が検証用の架空メンバーであることを確認してください');
+     !SMA_STAGE_MEMBER_ID_RE_V1653.test(id))
+    fail_('WITHDRAW_DISABLED','検証環境の退会機能が有効ではありません');
 }
 function accessStageWithdrawHistoryV1636_(ss,memberRow){
   if(!memberRow||conf_('SPREADSHEET_ID')!==SMA_STAGE_WITHDRAW_ID_V1636||
@@ -347,7 +357,6 @@ function accessStageWithdrawalV1636_(ss,member,payload){
     if(matches.length!==1)fail_('NOT_FOUND','退会対象を一意に確認できません');
     var target=matches[0].r,idx=matches[0].i,lineId=str_(target[2]);
     if(!bool_(target[3])||bool_(target[4]))fail_('FORBIDDEN','停止中または管理者は退会できません');
-    if(str_(target[1]).indexOf('架空')<0)fail_('TEST_TARGET_ONLY','架空メンバー以外は退会できません');
     if(!/^U[0-9a-f]{32}$/i.test(lineId)||
        members.filter(function(r){return str_(r[2])===lineId;}).length!==1)
       fail_('CONFLICT','LINEユーザーIDが不正または重複しています');
@@ -379,16 +388,15 @@ function accessStageWithdrawPreflightV1636(){
   var ss=ss_();accessStageBindingV1636_(ss);
   var members=sheetRows_(ss,'メンバー');
   var hist=accessRows16_(accessSheet16_(ss,'退会履歴',SMA_STAGE_WITHDRAW_HEADER_V1636),6);
-  var allowed=str_(conf_('WITHDRAW_TEST_MEMBER_ID'));
   var actorCount=members.filter(function(r){return bool_(r[3])&&bool_(r[4]);}).length;
   var eligible=members.filter(function(r){var line=str_(r[2]);return bool_(r[3])&&!bool_(r[4])&&
-    SMA_STAGE_SYNTHETIC_ID_RE_V1636.test(str_(r[0]))&&str_(r[1]).indexOf('架空')>=0&&
+    SMA_STAGE_MEMBER_ID_RE_V1653.test(str_(r[0]))&&
     /^U[0-9a-f]{32}$/i.test(line)&&members.filter(function(x){return str_(x[2])===line;}).length===1&&
-    str_(r[0])===allowed&&!hist.some(function(h){return str_(h[0])===str_(r[0]);});}).length;
-  return {staging:true,readOnly:true,withdrawFlagEnabled:conf_('WITHDRAW_ENABLED')==='true',
-    testTargetConfigured:SMA_STAGE_SYNTHETIC_ID_RE_V1636.test(allowed),
+    !hist.some(function(h){return str_(h[0])===str_(r[0]);});}).length;
+  return {staging:true,readOnly:true,
+    withdrawFlagEnabled:conf_('WITHDRAW_ENABLED')==='true',
     purposeConfigured:conf_('STAGING_WITHDRAW_PURPOSE')===SMA_STAGE_WITHDRAW_PURPOSE_V1636,
-    activeAdminCount:actorCount,eligibleSyntheticTargetCount:eligible,historyCount:hist.length};
+    activeAdminCount:actorCount,eligibleMemberCount:eligible,historyCount:hist.length};
 }
 function logStageWithdrawPreflightV1636(){
   console.log(JSON.stringify(accessStageWithdrawPreflightV1636()));
