@@ -22,6 +22,8 @@ on:
       - 'gas-staging/*.gs'
       - 'scripts/gas-staging-guard.cjs'
       - 'scripts/gas-staging-deploy.sh'
+      # Bootstrap this policy revision by deploying the already-reviewed GAS source.
+      - '.github/workflows/gas-staging.yml'
 permissions:
   contents: read
 concurrency:
@@ -29,10 +31,11 @@ concurrency:
   cancel-in-progress: false
 jobs:
   update-existing-staging-gas:
+    # Connected staging is authorized for unattended deployment after merges to main.
+    # Production MUST use a separate manual-only workflow and protected environment.
     if: >-
       github.ref == 'refs/heads/main' &&
-      (github.event_name == 'workflow_dispatch' ||
-       (github.event_name == 'push' && vars.GAS_STAGE_AUTODEPLOY == 'enabled'))
+      (github.event_name == 'workflow_dispatch' || github.event_name == 'push')
     runs-on: ubuntu-latest
     environment: staging-gas
     timeout-minutes: 15
