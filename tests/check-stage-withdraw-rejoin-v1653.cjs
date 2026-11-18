@@ -140,8 +140,9 @@ blocked(()=>withdraw(),'CONFLICT','second withdrawal cannot reuse the destructiv
 const regStart=src.indexOf('function accessRegistration16_('),
  regEnd=src.indexOf('function accessAdmin16_(',regStart);
 ok(regStart>=0&&regEnd>regStart,'actual registration handler isolated');
-const register=new Function(...names,src.slice(regStart,regEnd)+
- '\nreturn accessRegistration16_;')(...values);
+const register=new Function(...names,'accessStageWithdrawHistoryV1636_',
+ src.slice(regStart,regEnd)+'\nreturn accessRegistration16_;')(
+ ...values,staging.accessStageWithdrawHistoryV1636_);
 const status=()=>register(ss,LINE,'member.status',{}).data.status;
 ok(status()==='not_requested','withdrawn LINE ID is eligible for fresh application');
 const applied=register(ss,LINE,'member.apply',{displayName:'再入会の架空メンバー'});
