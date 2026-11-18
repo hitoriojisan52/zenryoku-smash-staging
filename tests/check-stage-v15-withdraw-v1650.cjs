@@ -24,7 +24,8 @@ const id='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac',
  opId='12345678-1234-4123-8123-123456789abc';
 const config={
  SPREADSHEET_ID:id,WITHDRAW_MEMBER_ENABLED:'false',
- STAGING_WITHDRAW_MEMBER_PURPOSE:'staging-member-withdraw-v1650'
+ STAGING_WITHDRAW_MEMBER_PURPOSE:'staging-member-withdraw-v1650',
+ WITHDRAW_MEMBER_SCOPE:'single',WITHDRAW_MEMBER_TARGET_ID:memberId
 };
 const db={
  'メンバー':[
@@ -91,6 +92,9 @@ errorCode(()=>call(),'WITHDRAW_DISABLED');
 ok(db['メンバー'].length===2&&db['退会履歴'].length===0,
  'disabled action does not mutate member or history');
 config.WITHDRAW_MEMBER_ENABLED='true';
+config.WITHDRAW_MEMBER_TARGET_ID='M-NO-OTHER-123456';
+errorCode(()=>call(),'TEST_TARGET_ONLY');
+config.WITHDRAW_MEMBER_TARGET_ID=memberId;
 errorCode(()=>call(payload,{memberId:actorId,role:'member'}),'FORBIDDEN');
 errorCode(()=>call({...payload,confirmMemberId:'M-OTHER'}),'BAD_REQUEST');
 errorCode(()=>call({...payload,confirmName:'名前が違う'}),'CONFLICT');
@@ -136,8 +140,10 @@ ok(worker.includes("'/api/member/manage/withdraw-member':'member.manage.withdraw
  'independent authenticated Worker route for real member withdrawal');
 ok(worker.includes("env.WITHDRAW_MEMBER_ENABLED==='true'")&&
  worker.includes("env.WITHDRAW_MEMBER_PURPOSE==='staging-member-withdraw-v1650'")&&
- worker.includes('env.WITHDRAW_STAGE_SPREADSHEET_ID===stageId'),
- 'Worker requires 3 independent explicit staging gates');
+ worker.includes('env.WITHDRAW_STAGE_SPREADSHEET_ID===stageId')&&
+ worker.includes("env.WITHDRAW_MEMBER_SCOPE==='single'")&&
+ worker.includes("env.WITHDRAW_MEMBER_SCOPE==='all'"),
+ 'Worker requires stage binding, explicit enable and single-target/all-member scope');
 ok(worker.includes("if(op==='member.manage.withdraw'){")&&
  gas.includes("if(op==='member.manage.withdraw')"),
  'legacy synthetic-only gated withdrawal remains unchanged');
