@@ -17,6 +17,8 @@ on:
       - 'tests/check-stage-visitor-ui-v1641.cjs'
       - 'visitor-approval.js'
       - 'live-access-v2.js'
+      - 'live-access-v2.css'
+      - 'access-v2-mode.js'
       - 'date-format.js'
       - 'guest.js'
       - 'guest.html'
