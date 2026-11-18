@@ -209,6 +209,9 @@ body.visitor-member #visitorMemberHome button{width:100%}
  <form id="visitorMineEditForm">
   <label for="visitorMineEditName" class="dialog-label">お名前</label><input id="visitorMineEditName" class="dialog-input" maxlength="60" required>
   <label for="visitorMineEditKana" class="dialog-label">氏名カナ（任意）</label><input id="visitorMineEditKana" class="dialog-input" maxlength="100">
+  <label for="visitorMineEditAttendance" class="dialog-label">出欠</label>
+  <select id="visitorMineEditAttendance" class="dialog-select"><option value="attend">参加</option><option value="absent">欠席</option></select>
+  <label class="dialog-label">区分</label><div class="stage-role-readonly">ビジター（変更不可）</div>
   <label for="visitorMineEditMemo" class="dialog-label">備考（任意）</label><input id="visitorMineEditMemo" class="dialog-input" maxlength="200">
   <p class="stage-system-message stage-system-message--info">出欠・参加区分・集金状況はこの画面では変更できません。収支確定後や対戦表作成後も修正できません。</p>
   <div class="modal-actions"><button id="visitorMineEditCancel" type="button" class="btn-outline">キャンセル</button><button id="visitorMineEditSave" type="submit" class="btn-green">保存する</button></div>
@@ -230,7 +233,9 @@ body.visitor-member #visitorMemberHome button{width:100%}
  <form id="participantEditForm">
   <label for="participantName" class="dialog-label">お名前</label><input id="participantName" class="dialog-input" type="text" maxlength="60" required>
   <label for="participantKana" class="dialog-label">氏名カナ（任意）</label><input id="participantKana" class="dialog-input" type="text" maxlength="100">
-  <label for="participantEmail" class="dialog-label">メールアドレス（未取得）</label><input id="participantEmail" class="dialog-input" type="text" value="" placeholder="未記録" disabled>
+  <div id="participantEmailField">
+   <label for="participantEmail" class="dialog-label">メールアドレス（未取得）</label><input id="participantEmail" class="dialog-input" type="text" value="" placeholder="未記録" disabled>
+  </div>
   <label for="participantAttendance" class="dialog-label">出欠</label>
   <select id="participantAttendance" class="dialog-select"><option value="attend">参加</option><option value="absent">欠席</option></select>
   <label for="participantCategory" class="dialog-label">区分</label>
@@ -239,7 +244,7 @@ body.visitor-member #visitorMemberHome button{width:100%}
    <option value="duty">当番担当</option><option value="shuttle">シャトル担当</option>
   </select>
   <label for="participantMemo" class="dialog-label">備考（任意）</label><input id="participantMemo" class="dialog-input" type="text" maxlength="200">
-  <p class="schedule-note">旧フォームのメールアドレスは新システムに保存されていないため表示のみです。</p>
+  <p id="participantEmailNote" class="schedule-note">旧フォームのメールアドレスは新システムに保存されていないため表示のみです。</p>
   <div class="modal-actions"><button id="participantEditCancel" class="btn-outline" type="button">キャンセル</button><button id="participantEditSave" class="btn-green" type="submit">保存する</button></div>
  </form>
 </dialog>
