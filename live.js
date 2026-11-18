@@ -76,6 +76,15 @@ function syncPaymentControls(){
  for(const id of ['adjustment','expense']){
    const el=$(id);if(el)el.disabled=pending||!ledger||ledger.status==='confirmed';
  }
+ // A failed payment requires a manual reconciliation. Disable every unchecked
+ // row as well as the in-flight rows until the latest overview is fetched.
+ const list=$('list');
+ if(list&&typeof list.querySelectorAll==='function'){
+   for(const checkbox of list.querySelectorAll('.participant-card input[type="checkbox"]')){
+     const id=checkbox.closest('.participant-card')?.dataset?.id;
+     checkbox.disabled=!ledger||ledger.status==='confirmed'||S.paymentNeedsRefresh||S.pending.has(id);
+   }
+ }
 }
 function drainPaymentQueue_(){
  if(S.paymentNeedsRefresh){
@@ -203,16 +212,21 @@ async function setPayment(p,cb,card){
  p.collectionCompleted=checked;card.classList.toggle('checked',checked);updateFooter();
  try{
    // Only two requests in flight. GAS still serializes financial mutations.
+   // Validate inside the queued job. A malformed 200 response must block
+   // unsubmitted payments BEFORE a request slot becomes free.
    const saved=await paymentCall_(
-     ()=>call('/api/payment',request),
+     async()=>{
+       const result=await call('/api/payment',request);
+       if(result?.practiceId!==practiceId||result?.participantId!==id||result.completed!==checked||
+          result.version!==version+1||!Number.isSafeInteger(result.ledgerVersion)||
+          !Number.isSafeInteger(result.balance)||!Number.isSafeInteger(result.income)){
+         const e=new Error('保存結果を確認できませんでした。「更新」で最新状態をご確認ください。');
+         e.appliedButRefreshFailed=true;throw e;
+       }
+       return result;
+     },
      ()=>{if(state)state.textContent='保存中…';}
    );
-   if(saved?.practiceId!==practiceId||saved?.participantId!==id||saved.completed!==checked||
-      saved.version!==version+1||!Number.isSafeInteger(saved.ledgerVersion)||
-      !Number.isSafeInteger(saved.balance)||!Number.isSafeInteger(saved.income)){
-     const e=new Error('保存結果を確認できませんでした。「更新」で最新状態をご確認ください。');
-     e.appliedButRefreshFailed=true;throw e;
-   }
    p.paymentVersion=saved.version;
    const ledger=S.overview?.ledger;
    // Responses may arrive in a different order than committed financial writes.
