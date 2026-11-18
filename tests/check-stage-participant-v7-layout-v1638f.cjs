@@ -109,25 +109,19 @@ ok(node.participantCards.children.every(card=>card.children[1].children[1].child
  'match session protection remains disabling editing/deletion');
 ok(!node.participantNotice.hidden&&node.participantNotice.textContent.includes('対戦表'),
  'match lock warning remains visible when relevant');
-// The actual participant editor retains email for members and hides both
-// the email label/input and historical email note for visitors.
 const start=ui.indexOf('function openParticipantEditor_(p){');
 const finish=ui.indexOf('function participantEditData_(){',start);
 ok(start>=0&&finish>start,'actual participant edit setup found');
-const edit=new Function('PM','
-ok(node.participantCards.children[0].textContent==='この開催日の回答データはありません。',
- 'empty state matches original v7');
-console.log('PASS '+n+'/'+n+' original v7 participant layout and no visitor-add regression');
-,'dialog',ui.slice(start,finish)+'\nreturn openParticipantEditor_;')(
+const openEditor=new Function('PM','$','dialog',ui.slice(start,finish)+'\nreturn openParticipantEditor_;')(
  pm,$,()=>{}
 );
-pm.matchLocked=false;pm.people=[...pm.people];
-edit({name:'テストビジター',nameKana:'',email:null,category:'visitor',attending:true,memo:''});
+pm.matchLocked=false;
+openEditor({name:'テストビジター',nameKana:'',email:null,category:'visitor',attending:true,memo:''});
 ok(node.participantEmailField.hidden&&node.participantEmailNote.hidden,
  'visitor editor hides both email input and its notice');
 ok(node.participantCategory.disabled&&node.participantCategory.value==='visitor',
  'visitor category locked to visitor in participant edit form');
-edit({name:'テストメンバー',nameKana:'',email:'',category:'member',attending:true,memo:''});
+openEditor({name:'テストメンバー',nameKana:'',email:'',category:'member',attending:true,memo:''});
 ok(!node.participantEmailField.hidden&&!node.participantEmailNote.hidden&&
  !node.participantCategory.disabled,
  'member editor retains historical email and editable category');
