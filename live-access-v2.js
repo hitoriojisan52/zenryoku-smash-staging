@@ -37,7 +37,7 @@
    $('accessConfirmTitleV2').textContent=d.title||(error?'操作できませんでした':'確認');
    $('accessConfirmMessageV2').textContent=d.message||'';
    okay.textContent=d.label||(error?'閉じる':'実行する');
-   okay.className=d.danger&&!error?'access-danger-v2':'btn-blue';
+   okay.className=error?'btn-blue':d.danger?'access-danger-v2':'btn-green';
    confirmDialog.setAttribute('role',error?'alertdialog':'dialog');
    cancel.hidden=Boolean(error);
    confirmDialog.returnValue='';
@@ -91,9 +91,9 @@
    for(const p of snapshot.pending){
      const row=item('div','live-access-row');
      row.append(item('span','live-access-name',p.name));
-     const accept=item('button','btn-blue','承認');
+     const accept=item('button','btn-green','承認');
      accept.type='button';accept.addEventListener('click',()=>decide(p,true));
-     const reject=item('button','btn-outline','却下');
+     const reject=item('button','btn-danger','却下');
      reject.type='button';reject.addEventListener('click',()=>decide(p,false));
      row.append(accept,reject);pending.append(row);
    }
@@ -110,7 +110,7 @@
        row.append(label,current,note);members.append(row);
        continue;
      }
-     const change=item('button','btn-blue','変更');change.type='button';change.disabled=true;
+     const change=item('button','btn-green','変更');change.type='button';change.disabled=true;
      select.addEventListener('change',()=>{change.disabled=select.value===m.role;});
      change.addEventListener('click',()=>setRole(m,select));
      row.append(label,select,change);members.append(row);
