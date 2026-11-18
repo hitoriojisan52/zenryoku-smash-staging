@@ -80,7 +80,7 @@ ok(actual.visitorHasApproved_({},base.practiceId,base.participantId),'approved p
 const duplicate=actual.visitorDecision_({},A,{requestId:base.requestId,action:'approve',expectedVersion:0,operationId:'OP-APPROVE-001'});
 ok(duplicate.data.status==='approved'&&rows['出欠回答'].length===1,'same operationId replay does not duplicate attendee');
 expect(()=>actual.visitorDecision_({},A,{requestId:base.requestId,action:'approve',expectedVersion:1,operationId:'OP-APPROVE-002'}),'LOCKED');
-expect(()=>actual.participantChange_({},A,{practiceId:base.practiceId,participantId:base.participantId,action:'delete',expectedVersion:0,operationId:'OP-DELETE-001'}),'LOCKED');
+expect(()=>actual.participantChange_({}, {memberId:'M-DUTY',role:'duty'},{practiceId:base.practiceId,participantId:base.participantId,action:'delete',expectedVersion:0,operationId:'OP-DELETE-001'}),'FORBIDDEN');
 ok(rows['出欠回答'].length===1,'direct delete blocked to prevent approved request mismatch');
 rows['集金記録'].push([base.practiceId,base.participantId,true,1,'M-ADMIN',now_()]);
 ledgerIncome=1000;ledgerStatus='confirmed';
@@ -106,6 +106,17 @@ expect(()=>actual.visitorDecision_({},A,{requestId:base2.requestId,action:'rejec
 ledgerStatus='open';
 const rejPending=actual.visitorDecision_({},A,{requestId:base2.requestId,action:'reject',expectedVersion:0,operationId:'OP-REJECT-003'});
 ok(rejPending.data.status==='rejected'&&rows['出欠回答'].length===0,'pending can reject without roster writes');
+const base3={...base,requestId:'VR-THREE-12345678',participantId:'PV-THREE-12345678'};
+actual.visitorRequest_({},M,base3);
+actual.visitorDecision_({},A,{requestId:base3.requestId,action:'approve',expectedVersion:0,operationId:'OP-APPROVE-004'});
+rows['集金記録'].push([base3.practiceId,base3.participantId,true,1,'M-ADMIN',now_()]);
+ledgerIncome=1000;
+const direct=actual.participantChange_({},A,{practiceId:base3.practiceId,participantId:base3.participantId,action:'delete',expectedVersion:0,operationId:'OP-DELETE-ADMIN'});
+ok(direct.data.action==='delete'&&direct.data.visitorStatus==='rejected','admin attendance deletion delegates to visitor rejection');
+ok(rows['出欠回答'].length===0&&rows['集金記録'].length===0&&ledgerIncome===0,
+ 'admin delete removes collected checked visitor and open ledger fee');
+ok(actual.visitorRequests_({}).find(x=>x.requestId===base3.requestId).status==='rejected',
+ 'applicant sees rejected status after admin deletes from participant list');
 ok(gas.includes("['閲覧リンク',1,6],['ビジター申請',1,13]"),'schedule cascade includes visitor applications');
 ok(worker.includes("'/api/visitor/decide':'visitor.decide'")&&worker.includes("'/api/visitor/mine':'visitor.mine'"),
  'Worker maps member/admin visitor operations');
