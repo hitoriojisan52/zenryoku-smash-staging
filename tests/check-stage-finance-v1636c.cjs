@@ -7,7 +7,7 @@ let n=0;
 const ok=(x,m)=>{assert.ok(x,m);n++};
 function span(a,b){const i=ui.indexOf(a),j=ui.indexOf(b,i);assert.ok(i>=0&&j>i);return ui.slice(i,j)}
 ok(html.includes('live.js?v=1651'),'latest finance client version');
-ok(worker.includes("version:'0.16.45-stage-attendance'"),'expected Worker version');
+ok(worker.includes("version:'0.16.53-stage-withdrawal'"),'expected Worker version');
 ok(worker.includes("env.WITHDRAW_ENABLED==='true'"),'withdraw mutation remains closed by default');
 ok(worker.includes("env.WORKER_PURPOSE==='staging-member-withdraw-v1653'"),'stage-only purpose guard intact');
 ok(worker.includes("const timing=['line;dur='+lineMs"),'safe duration metrics for all authenticated APIs');
