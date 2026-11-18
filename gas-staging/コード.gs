@@ -963,9 +963,29 @@ function participantChange_(ss,member,payload,visitorDecisionInternal){
  if(action!=='edit'&&action!=='delete')fail_('BAD_REQUEST','参加者操作が不正です');
  // An approved visitor's application must never stay 'approved' after their
  // roster row is deleted. Route deletion through the admin rejection action.
- if(action==='delete'&&!visitorDecisionInternal&&/^PV-/.test(person)&&
-    visitorHasApproved_(ss,id,person))
-   fail_('LOCKED','承認済みのビジターは「ビジター管理」から却下してください');
+ if(action==='delete'&&!visitorDecisionInternal&&/^PV-/.test(person)){
+   var linked=visitorRequests_(ss).filter(function(r){
+     return r.practiceId===id&&r.participantId===person&&r.status==='approved';
+   });
+   if(linked.length>1)fail_('SETUP','承認済みビジターの申請履歴が重複しています');
+   if(linked.length===1){
+     // Preserve the old participant-list Delete UI for admins. The deletion
+     // is an actual visitor rejection so the applicant's status stays true.
+     if(member.role!=='admin')
+       fail_('FORBIDDEN','承認済みビジターの削除・却下は管理者のみ実行できます');
+     var linkedPerson=sheetRows_(ss,'出欠回答').filter(function(r){
+       return str_(r[0])===id&&str_(r[1])===person;
+     });
+     if(linkedPerson.length!==1)fail_('STORAGE_INCOMPLETE','削除する参加者が見つかりません');
+     expectVersion_(Number(linkedPerson[0][7])||0,payload.expectedVersion);
+     var decision=visitorDecision_(ss,member,{requestId:linked[0].requestId,
+       expectedVersion:linked[0].version,action:'reject',operationId:payload.operationId});
+     return {ok:true,data:{practiceId:id,participantId:person,
+       action:'delete',version:Number(payload.expectedVersion)+1,
+       archived:true,visitorRequestId:decision.data.requestId,
+       visitorStatus:'rejected'}};
+   }
+ }
  var p=practice_(ss,id);
  if(participantMatchLocked_(ss,id))
   fail_('LOCKED','対戦表作成済みのため参加情報を変更できません');
