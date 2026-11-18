@@ -165,7 +165,10 @@ export async function handleRequest(request,env){
     const withdrawMemberConfigured=
       env.WITHDRAW_MEMBER_ENABLED==='true' &&
       env.WITHDRAW_STAGE_SPREADSHEET_ID==='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac' &&
-      env.WITHDRAW_MEMBER_PURPOSE==='staging-member-withdraw-v1650';
+      env.WITHDRAW_MEMBER_PURPOSE==='staging-member-withdraw-v1650' &&
+      (env.WITHDRAW_MEMBER_SCOPE==='all'||
+        (env.WITHDRAW_MEMBER_SCOPE==='single'&&
+         /^M-[A-Za-z0-9_-]{8,100}$/.test(env.WITHDRAW_MEMBER_TARGET_ID||'')));
     return json({ok:true,status:'deployed',version:'0.16.50-stage-member-withdraw-ready',
       configured,channelMatchesLiveLiff,withdrawMemberConfigured});
   }
@@ -218,9 +221,15 @@ export async function handleRequest(request,env){
       const stageId='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac';
       const allowed=env.WITHDRAW_MEMBER_ENABLED==='true' &&
         env.WITHDRAW_STAGE_SPREADSHEET_ID===stageId &&
-        env.WITHDRAW_MEMBER_PURPOSE==='staging-member-withdraw-v1650';
+        env.WITHDRAW_MEMBER_PURPOSE==='staging-member-withdraw-v1650' &&
+        (env.WITHDRAW_MEMBER_SCOPE==='all'||
+          (env.WITHDRAW_MEMBER_SCOPE==='single'&&
+           /^M-[A-Za-z0-9_-]{8,100}$/.test(env.WITHDRAW_MEMBER_TARGET_ID||'')));
       if(!allowed)return failure('退会処理は現在無効です。管理者に確認してください',
         403,origin,'WITHDRAW_DISABLED');
+      if(env.WITHDRAW_MEMBER_SCOPE==='single'&&
+         payload.memberId!==env.WITHDRAW_MEMBER_TARGET_ID)
+        return failure('このメンバーの退会は検証対象外です',403,origin,'TEST_TARGET_ONLY');
       if(typeof payload.memberId!=='string'||
          !/^M-[A-Za-z0-9_-]{8,100}$/.test(payload.memberId)||
          payload.confirmMemberId!==payload.memberId||
