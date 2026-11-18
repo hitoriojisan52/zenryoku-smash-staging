@@ -1,6 +1,6 @@
 /* v0.16.19 opt-in member administration UI for the existing staging LIVE page.
  * Enabled ONLY when ?accessUi=v2 is present. Original stage UI stays unchanged.
- * No withdrawal mutation endpoint, no rich-menu sync, no test fixture member IDs.
+ * Withdrawal remains disabled until the staging backend is safely approved; no rich-menu sync.
  */
 (function () {
  'use strict';
@@ -158,6 +158,18 @@
     setRole(m,select);
    });
    frame.actions.append(select,change);
+   // The existing staging withdrawal endpoint is deliberately test-gated.
+   // Do not advertise a live destructive action until its server policy
+   // permits real members. Keep the target identifiable and the control
+   // present for the later reviewed backend rollout.
+   if(!isSelf&&m.active&&m.role!=='admin'){
+    const withdraw=item('button','btn-outline','退会');
+    withdraw.type='button';
+    withdraw.disabled=true;
+    withdraw.title='退会機能の接続準備中です';
+    withdraw.setAttribute('aria-label',m.name+' さんの退会（準備中）');
+    frame.actions.append(withdraw);
+   }
    members.append(frame.card);
   }
   renderHistory(snapshot.withdrawn);
