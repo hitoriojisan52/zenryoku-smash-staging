@@ -144,3 +144,4 @@
  border-bottom:1px solid #d7e1e9;margin:4px 0 12px;padding-bottom:12px;
 }
 .stage-ui #visitorDialog .visitor-review-list{max-height:34dvh;overflow-y:auto;overscroll-behavior:contain}
+.stage-ui .visitor-form-section-heading{font-size:15px;color:#263746;font-weight:700;margin:10px 0 7px;}
