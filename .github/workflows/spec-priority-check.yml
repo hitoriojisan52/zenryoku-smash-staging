@@ -5,6 +5,10 @@ on:
     paths:
       - 'README.md'
       - 'docs/SESSION_HANDOFF.md'
+      - 'docs/DEPLOYMENT_AND_USER_ACTIONS.md'
+      - 'docs/stage-v1653-withdraw-rejoin.md'
+      - 'gas-staging/README.md'
+      - 'cloudflare-worker/README.md'
       - 'docs/SPEC_PRIORITY_POLICY.md'
       - 'docs/NEW_CHAT_START_PROMPT.md'
       - 'docs/withdrawal-priority-impact-review-v1652.md'
