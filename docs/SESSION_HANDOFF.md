@@ -78,3 +78,11 @@
 - WorkerのVariables and Secrets、GASスクリプトプロパティは**2026/11/19にユーザーが設定完了を報告済み**。異常や明確な変更理由がない限り再入力を求めない。
 - GAS編集画面の`https://script.google.com/home/projects`は以前404となった。代わりに**[接続検証用スプレッドシート](https://docs.google.com/spreadsheets/d/1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac/edit) → 拡張機能 → Apps Script → プロジェクトの設定 → スクリプト プロパティ**と案内する（PCブラウザ）。
 - Workerの公開`/health`は認証・退会APIの実用性を完全には証明しない。退会・再入会のLINE実機試験は**未完了**。検証データの作成・退会試験は許可済みだが、LINE本人認証／権限／過去記録保持と処理失敗時の再実行禁止は必須。
+
+## 7. v0.16.56の実装・環境状態（2026/11/19）
+
+- [v0.16.56仕様](stage-v1656-management-ledger-ui.md)、[PR #50](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/50)。UI/GAS/仕様契約のCI成功。検証用GitHub Pages・GAS自動デプロイ・Cloudflare Workers Buildsは**各々成功**。
+- Worker公開`/health`は今回のv0.16.56更新後の応答を直接取得できていないため、**公開反映の最終疎通確認だけ残る**。`version:0.16.56-stage-member-edit`、`codeRevision:stage-v1656-member-editor-20261119`を期待。ユーザーがそれを返したら記録する。古いv0.16.53の確認済み応答と混同しない。
+- **一般メンバー「架空利用者修正1656」**（`M-TEST-MEMBER-V1656-001`）を接続検証用`メンバー`／`登録申請`に追加し読み直して確認。検証前バックアップも作成済み。これで管理者LINEから氏名修正・権限変更・退会ボタンを検証できる。
+- **まだ実機で確認していない内容**：氏名修正後にメンバー・承認済み申請が両方更新されること、実機の右上プルダウンと３ボタン配置、退会の１回確認、確定後の役割別ボタンの実表示。既存回帰試験は通過しているが実機成功と主張しない。
+- **次のチャット／後続**：管理者LIFFで「架空利用者修正1656」を`修正`した結果を受けて、ChatGPTがGoogle Sheetsを照合する。その後`権限変更`や`退会`を検証する。本番・既存Secretの変更なし。
