@@ -14,6 +14,7 @@ on:
       - 'tests/check-stage-match-create-v1639a.cjs'
       - 'tests/check-stage-visitor-approval-v1640.cjs'
       - 'tests/check-stage-visitor-ui-v1641.cjs'
+      - 'tests/check-stage-line-attendance-v1645.cjs'
       - 'scripts/gas-staging-guard.cjs'
       - 'scripts/gas-staging-deploy.sh'
       - 'tests/check-gas-staging-ci.cjs'
@@ -43,5 +44,6 @@ jobs:
       - run: node tests/check-stage-match-create-v1639a.cjs
       - run: node tests/check-stage-visitor-approval-v1640.cjs
       - run: node tests/check-stage-visitor-ui-v1641.cjs
+      - run: node tests/check-stage-line-attendance-v1645.cjs
       - run: node tests/check-gas-audit-ids-v1636h.cjs
       - run: bash -n scripts/gas-staging-deploy.sh
