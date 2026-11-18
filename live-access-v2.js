@@ -8,6 +8,8 @@
  const $=id=>document.getElementById(id);
  const dialog=$('memberAccessDialog'),confirmDialog=$('accessConfirmV2');
  const cancel=$('accessConfirmCancelV2'),okay=$('accessConfirmOkayV2'),toastEl=$('toast');
+ const withdrawNameInput=$('accessWithdrawConfirmNameV1650');
+ const withdrawNameLabel=$('accessWithdrawConfirmNameLabelV1650');
  let api=null,actorRole='',actorMemberId='',busy=false,prompt=null,toastTimer=null;
  const status=s=>{$('memberAccessStatus').textContent=String(s||'');};
  function item(tag,cls,label){
@@ -29,7 +31,14 @@
  confirmDialog.addEventListener('close',closePrompt);
  confirmDialog.addEventListener('cancel',event=>{if(prompt?.error)event.preventDefault();});
  cancel.addEventListener('click',()=>confirmDialog.close('no'));
- okay.addEventListener('click',()=>confirmDialog.close('yes'));
+ okay.addEventListener('click',()=>{
+   if(prompt?.requireName&&withdrawNameInput.value.trim()!==prompt.requireName)return;
+   confirmDialog.close('yes');
+ });
+ withdrawNameInput.addEventListener('input',()=>{
+   if(prompt?.requireName)
+    okay.disabled=withdrawNameInput.value.trim()!==prompt.requireName;
+ });
  dialog.addEventListener('cancel',event=>{if(busy||prompt)event.preventDefault();});
  function ask(o,error){
    if(busy||prompt)return Promise.resolve(false);
@@ -38,14 +47,19 @@
    $('accessConfirmMessageV2').textContent=d.message||'';
    okay.textContent=d.label||(error?'閉じる':'実行する');
    okay.className=error?'btn-blue':d.danger?'access-danger-v2':'btn-green';
+   const requireName=!error&&typeof d.requireName==='string'?d.requireName:'';
+   withdrawNameInput.hidden=!requireName;
+   withdrawNameLabel.hidden=!requireName;
+   withdrawNameInput.value='';
+   okay.disabled=Boolean(requireName);
    confirmDialog.setAttribute('role',error?'alertdialog':'dialog');
    cancel.hidden=Boolean(error);
    confirmDialog.returnValue='';
    const focus=document.activeElement;
    return new Promise(resolve=>{
-     prompt={resolve,focus,error:Boolean(error)};
+     prompt={resolve,focus,error:Boolean(error),requireName};
      confirmDialog.showModal();
-     (error?okay:cancel).focus({preventScroll:true});
+     (requireName?withdrawNameInput:(error?okay:cancel)).focus({preventScroll:true});
    });
  }
  function errorDetails(e){
@@ -164,6 +178,19 @@
     setRole(m,select);
    });
    frame.actions.append(select,change);
+   // Admin-only action is visible beside the member's role. With the
+   // mandatory backend flags OFF, it stays disabled and cannot issue a
+   // destructive request. Never show it for admins or the current actor.
+   if(m.active&&m.role!=='admin'&&!isSelf){
+    const withdraw=item('button','btn-danger','退会');
+    withdraw.type='button';
+    withdraw.disabled=snapshot.withdrawMemberEnabled!==true;
+    if(withdraw.disabled)withdraw.title='退会機能は検証環境で無効です';
+    withdraw.addEventListener('click',()=>{
+     if(!withdraw.disabled)withdrawMember(m);
+    });
+    frame.actions.append(withdraw);
+   }
    members.append(frame.card);
   }
   renderHistory(snapshot.withdrawn);
@@ -253,6 +280,61 @@
      {requestId:p.requestId,approve,operationId:crypto.randomUUID()},
      approve?'承認':'却下',
      data=>!data.pending.some(x=>x.requestId===p.requestId));
+ }
+ async function withdrawMember(m){
+  if(busy||prompt||actorRole!=='admin'||!m.active||
+     m.role==='admin'||m.memberId===actorMemberId)return;
+  // Both confirmations must complete. Second requires the exact displayed
+  // member name, not a generic Yes/No click.
+  const first=await ask({
+   title:'【退会の確認 1/2】',
+   message:m.name+' さんを退会させますか？\n登録情報とLINEの紐付けを削除します。',
+   label:'次へ',danger:true
+  });
+  if(!first)return;
+  const second=await ask({
+   title:'【退会の最終確認 2/2】',
+   message:'退会後も過去の出欠・集金・収支・試合記録は残します。\n'+
+    m.name+' さんの氏名を入力して退会を実行します。',
+   requireName:m.name,label:'退会を実行',danger:true
+  });
+  if(!second)return;
+  await run('退会処理中です…',async()=>{
+   // Refresh before destructive action; reject stale identity/role or
+   // already-archived subject. Never retry after uncertain network status.
+   const latest=await api('/api/member/manage/list');
+   const matches=(latest.members||[]).filter(x=>x.memberId===m.memberId);
+   if(latest.withdrawMemberEnabled!==true||matches.length!==1||
+      !matches[0].active||matches[0].role==='admin'||
+      matches[0].name!==m.name||
+      (latest.withdrawn||[]).some(x=>x.memberId===m.memberId))
+    throw new Error('退会対象が変更されています。更新して確認してください。');
+   const payload={memberId:m.memberId,confirmMemberId:m.memberId,
+    confirmName:m.name,operationId:crypto.randomUUID()};
+   let result;
+   try{result=await api('/api/member/manage/withdraw-member',payload);}
+   catch(error){
+    // Never automatically retransmit an irreversible operation.
+    if(isUncertain(error)||error?.status===409){
+     error.mutationUncertain=isUncertain(error);
+     try{await load();}catch(_){status('更新して退会状況を確認してください。');}
+    }
+    throw error;
+   }
+   if(result?.memberId!==m.memberId||result?.status!=='withdrawn'){
+    const error=new Error('退会結果が不明です。更新して確認してください。');
+    error.appliedButRefreshFailed=true;throw error;
+   }
+   let refreshed;
+   try{refreshed=await load();}
+   catch(e){e.appliedButRefreshFailed=true;throw e;}
+   if(refreshed.members.some(x=>x.memberId===m.memberId)||
+      !Array.isArray(refreshed.withdrawn)||
+      !refreshed.withdrawn.some(x=>x.memberId===m.memberId&&x.state==='completed')){
+    const error=new Error('退会状態を確認できません。更新してください。');
+    error.appliedButRefreshFailed=true;throw error;
+   }
+  },'退会しました。');
  }
  async function setRole(m,select){
    if(busy||prompt||m.memberId===actorMemberId||!m.active||select.value===m.role)return;
