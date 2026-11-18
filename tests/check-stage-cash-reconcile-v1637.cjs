@@ -35,7 +35,7 @@ for(const forbidden of ['writeLedger_(', 'setPayment_(', 'balanceRecalc_(', "get
  ok(!cashSource.includes(forbidden),'cash audit does not modify financial ledger: '+forbidden);
 }
 ok(gas.includes("'現金確認記録':['practiceId','auditDate'"),'dedicated cash record schema exists');
-ok(gas.includes("['overview','ledger.list','cash.get']"),'cash read requires existing duty authorization');
+ok(gas.includes("['overview','ledger.list','cash.get','schedule.list']"),'cash read requires existing duty authorization');
 ok(gas.includes("'ledger.change','cash.save'"),'cash save uses existing script lock and operation audit');
 ok(worker.includes("'/api/cash/get':'cash.get'")&&worker.includes("'/api/cash/save':'cash.save'"),
  'Worker forwards auth-checked routes');
