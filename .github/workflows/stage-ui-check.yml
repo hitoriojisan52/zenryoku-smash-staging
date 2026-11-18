@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'live.js'
+      - 'tests/check-stage-schedule-v1638.cjs'
       - 'cash-reconcile.js'
       - 'cloudflare-worker/worker.js'
       - 'tests/check-stage-cash-reconcile-v1637.cjs'
@@ -28,6 +29,8 @@ jobs:
         run: node tests/check-stage-payment-parallel-v1636f.cjs
       - name: Verify cash count, exact-date ledger reconciliation and read-only isolation
         run: node tests/check-stage-cash-reconcile-v1637.cjs
+      - name: Verify schedule master fixed-ID controls and referential safety
+        run: node tests/check-stage-schedule-v1638.cjs
       - name: Verify frontend financial state and Worker gating
         run: node tests/check-stage-finance-v1636c.cjs
       - name: Verify common UI standards
