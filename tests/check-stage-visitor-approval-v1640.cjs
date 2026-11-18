@@ -174,6 +174,25 @@ const saved=ledgerWrites,again=actual.visitorModify_({},M,change);
 ok(again.data.status==='approved'&&ledgerWrites===saved,
  'completed member edit operation safely replays without duplicate ledger changes');
 expect(()=>actual.visitorModify_({},M,{...change,operationId:'OP-STALE-EDIT-005'}),'VERSION_CONFLICT');
+const changedByDuty=actual.participantChange_({},A,{
+ practiceId:base4.practiceId,participantId:base4.participantId,action:'edit',
+ expectedVersion:1,operationId:'OP-ADMIN-EDIT-004',
+ name:'管理者修正済み',nameKana:'',category:'visitor',attending:true,memo:'再参加'
+});
+ok(changedByDuty.data.version===2&&rows['出欠回答'][0][5]===true,
+ 'admin participant-list edit reuses same attendance mutation for approved visitor');
+const afterAdmin=actual.visitorMine_({},M).data.requests.find(x=>x.requestId===base4.requestId);
+ok(afterAdmin.name==='管理者修正済み'&&afterAdmin.attending===true&&afterAdmin.version===3,
+ 'requester sees admin participant-list corrections in visitor request details');
+ok(rows['参加者操作アーカイブ'].some(r=>r[0]==='OP-ADMIN-EDIT-004'&&r[7]==='completed')&&
+ rows['ビジター申請'].find(r=>r[0]===base4.requestId)[12]==='OP-ADMIN-EDIT-004',
+ 'admin mutation archives original roster and synchronizes request revision');
+expect(()=>actual.visitorModify_({},M,{...change,operationId:'OP-STALE-AFTER-ADMIN',
+ expectedVersion:2}),'VERSION_CONFLICT');
+ok(actual.visitorMine_({},M).data.practices.some(p=>p.practiceId===base4.practiceId)&&
+ actual.visitorAdminList_({},A).data.practices.some(p=>p.practiceId===base4.practiceId),
+ 'both applicant and admin APIs expose all practice dates for dropdowns');
+
 const base5={...base,requestId:'VR-FIVE-12345678',participantId:'PV-FIVE-12345678'};
 actual.visitorRequest_({},M,base5);
 const withdrawn=actual.visitorModify_({},M,{requestId:base5.requestId,action:'delete',
