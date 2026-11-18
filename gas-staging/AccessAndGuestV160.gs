@@ -143,8 +143,26 @@ function accessManagement16_(ss,member,op,payload){
   if(op==='member.manage.list'){
     var members=sheetRows_(ss,'メンバー'),teams=sheetRows_(ss,'当番チーム'),membership=sheetRows_(ss,'チーム所属');
     var withdrawn=accessHistoryForManagerV1623_(ss,members);
-    return {ok:true,data:{members:members.filter(function(m){return str_(m[0]);}).map(function(m){return {memberId:str_(m[0]),name:str_(m[1]),active:bool_(m[3]),role:accessRole16_(m,teams,membership)};}),
-      pending:accessRows16_(reg,8).filter(function(r){return r[3]==='pending';}).map(function(r){return {requestId:str_(r[0]),name:str_(r[2]),requestedAt:str_(r[4])};}),
+    // Admin-only member card metadata. Preserve the member master as source
+    // of identity; expose a registration date only for a UNIQUE approved
+    // application linked to that SAME member and LINE subject.
+    var requests=accessRows16_(reg,8),approvedById=Object.create(null);
+    requests.forEach(function(request){
+      var mid=str_(request[7]);
+      if(str_(request[3])!=='approved'||!mid)return;
+      if(!approvedById[mid])approvedById[mid]=[];
+      approvedById[mid].push(request);
+    });
+    return {ok:true,data:{members:members.filter(function(m){return str_(m[0]);}).map(function(m){
+       var mid=str_(m[0]),lineUserId=str_(m[2]),matches=approvedById[mid]||[];
+       var registeredAt=matches.length===1&&str_(matches[0][1])===lineUserId?
+        str_(matches[0][4]):null;
+       return {memberId:mid,name:str_(m[1]),active:bool_(m[3]),
+        role:accessRole16_(m,teams,membership),
+        lineUserId:/^U[0-9a-f]{32}$/i.test(lineUserId)?lineUserId:null,
+        registeredAt:registeredAt};
+      }),
+      pending:requests.filter(function(r){return r[3]==='pending';}).map(function(r){return {requestId:str_(r[0]),name:str_(r[2]),requestedAt:str_(r[4])};}),
       withdrawn:withdrawn}};
   }
   var opId=checkOpId_(payload);
