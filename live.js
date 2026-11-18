@@ -466,6 +466,8 @@ function renderCash(){
     yen(actual-snap.bookBalance)+' (不足)'):'—';
  difference.className=!valid?'':actual===snap.bookBalance?'cash-same':
     actual>snap.bookBalance?'cash-surplus':'cash-shortage';
+ status.classList.toggle('stage-system-message--info',!snap);
+ status.classList.toggle('stage-system-message--warning',!!snap);
  status.textContent=!snap?'帳簿残金を読み込んでいます…':
   !snap.found?'⚠️ 指定された日付の行が「全体収支管理表」に見つかりません。':
   snap.updatedBy&&snap.savedBookBalance!==null&&snap.savedBookBalance!==snap.bookBalance?
@@ -563,7 +565,8 @@ function scheduleFormPayload_(){
 function renderScheduleMaster_(){
  const list=$('scheduleList');list.replaceChildren();
  if(!SC.rows.length){
-  const e=document.createElement('p');e.className='schedule-note';
+  const e=document.createElement('p');e.className='schedule-note stage-system-message stage-system-message--info';
+  e.setAttribute('role','status');e.setAttribute('aria-live','polite');
   e.textContent='本日以降の開催予定はありません。';list.append(e);return;
  }
  for(const row of SC.rows){
@@ -780,9 +783,9 @@ function renderParticipantManager_(){
   PM.uncertain?'保存結果が不明です。更新してから操作してください':'';
  notice.hidden=!notice.textContent;
  if(!PM.people.length){
-  const empty=document.createElement('p');empty.className='schedule-note';
+  const empty=document.createElement('p');empty.className='schedule-note stage-system-message stage-system-message--info';
+  empty.setAttribute('role','status');empty.setAttribute('aria-live','polite');
   empty.textContent='この開催日の回答データはありません。';
-  empty.style.textAlign='center';empty.style.padding='20px 0';
   list.append(empty);return;
  }
  for(const p of PM.people){

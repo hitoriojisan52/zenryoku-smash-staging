@@ -12,6 +12,13 @@ on:
       - 'tests/check-stage-participant-v7-layout-v1638f.cjs'
       - 'tests/check-stage-match-delete-v1639.cjs'
       - 'tests/check-stage-match-create-v1639a.cjs'
+      - 'tests/check-stage-system-messages-v1639b.cjs'
+      - 'guest.js'
+      - 'guest.html'
+      - 'match-view.js'
+      - 'match-view.html'
+      - 'access-ui.js'
+      - 'stage-ui.css'
       - 'match.js'
       - 'match.html'
       - 'match.css'
@@ -55,6 +62,8 @@ jobs:
         run: node tests/check-stage-match-delete-v1639.cjs
       - name: Verify match creation requires registered roster and delete control placement
         run: node tests/check-stage-match-create-v1639a.cjs
+      - name: Verify shared system messages across all staging screens
+        run: node tests/check-stage-system-messages-v1639b.cjs
       - name: Verify frontend financial state and Worker gating
         run: node tests/check-stage-finance-v1636c.cjs
       - name: Verify common UI standards

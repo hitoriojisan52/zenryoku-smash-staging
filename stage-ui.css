@@ -83,3 +83,32 @@
  border:0!important;
  box-shadow:0 5px 25px rgba(0,0,0,.22)!important;
 }
+
+/* v0.16.39b — one inline system-message convention for ALL staging screens.
+ * Warnings/empty states are not modal errors, toasts, or data/status headings.
+ * Use role=status + polite updates; errors may opt into role=alert.
+ */
+.stage-ui .stage-system-message{
+ display:block;box-sizing:border-box;width:100%;max-width:100%;
+ padding:8px 10px;margin:7px 0 10px;border:1px solid #e6d19c;
+ border-radius:6px;background:#fff8df;color:#745217;
+ font-size:13px;line-height:1.55;font-weight:500;text-align:left;
+ white-space:pre-line;overflow-wrap:anywhere;word-break:normal;
+}
+.stage-ui .stage-system-message[hidden],
+.stage-ui .stage-system-message:empty{display:none!important}
+.stage-ui .stage-system-message--info{
+ background:#eef5fb;border-color:#bfdaee;color:#2d506d;
+}
+.stage-ui .stage-system-message--warning{
+ background:#fff8df;border-color:#e6d19c;color:#745217;
+}
+.stage-ui .stage-system-message--error{
+ background:#fff0ed;border-color:#e7bcb5;color:#902d27;
+}
+/* Cash notes were previously truncated to a single line on narrow phones. */
+.stage-ui #cashStatus.stage-system-message{
+ font-size:13px!important;min-height:0!important;
+ white-space:pre-line!important;overflow:visible!important;
+ text-overflow:clip!important;
+}

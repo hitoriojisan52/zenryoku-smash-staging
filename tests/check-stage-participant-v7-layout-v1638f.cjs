@@ -36,7 +36,7 @@ const cssChecks=[
  'min-height:40px'
 ];
 for(const rule of cssChecks)ok(html.includes(rule),'old-v7 visual baseline: '+rule);
-ok(html.includes('live.js?v=1638f'),'new UI cache version');
+ok(html.includes('live.js?v=1639b'),'new UI cache version');
 const begin=ui.indexOf('function renderParticipantManager_(){'),end=ui.indexOf('async function loadParticipants_(){',begin);
 ok(begin>=0&&end>begin,'render participant routine still present');
 const code=ui.slice(begin,end);
@@ -45,6 +45,7 @@ class Element {
  constructor(tag){this.tag=tag;this.children=[];this.className='';this.textContent='';this.disabled=false;this.hidden=false;this.style={};this.listeners={};}
  append(...children){this.children.push(...children);}
  replaceChildren(...children){this.children=[...children];}
+ setAttribute(name,value){this[name]=String(value);}
  addEventListener(name,fn){this.listeners[name]=fn;}
 }
 const node={participantCards:new Element('div'),participantNotice:new Element('p')};
