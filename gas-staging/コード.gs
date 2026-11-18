@@ -614,7 +614,7 @@ function cashGet_(ss,member,payload){
  var saved=match[0],counts={};
  SM_CASH_DENOMINATIONS_.forEach(function(n){counts[String(n)]=0;});
  if(saved){
-  if(str_(saved[1])!==p.date)fail_('CONFLICT','保存された現金確認の日付が異なります');
+  if(ledgerDate_(saved[1])!==p.date)fail_('CONFLICT','保存された現金確認の日付が異なります');
   var raw;try{raw=JSON.parse(str_(saved[2]));}catch(_){fail_('SETUP','保存された金種枚数が不正です');}
   counts=cashCounts_(raw).counts;
  }
@@ -632,7 +632,7 @@ function cashSave_(ss,member,payload){
  if(indexes.length>1)fail_('SETUP','現金確認記録に重複データがあります');
  var ix=indexes.length?indexes[0]:-1,old=ix>=0?all[ix]:null,current=old?(Number(old[6])||0):0;
  expectVersion_(current,payload.expectedVersion);
- if(old&&str_(old[1])!==p.date)fail_('CONFLICT','保存済みの日付と開催日が異なります');
+ if(old&&ledgerDate_(old[1])!==p.date)fail_('CONFLICT','保存済みの日付と開催日が異なります');
  var version=current+1,difference=checked.total-ledger.balance;
  if(!Number.isSafeInteger(difference))fail_('BAD_REQUEST','現金差額が大きすぎます');
  var next=[id,p.date,JSON.stringify(checked.counts),checked.total,ledger.balance,
