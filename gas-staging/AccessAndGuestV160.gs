@@ -135,6 +135,10 @@ function accessManagement16_(ss,member,op,payload){
   accessAdmin16_(member);
   // v0.16.36: stage-only synthetic target; defaults fail closed on both servers.
   // No target exists in the original stage, and any real member is excluded.
+  // v0.16.50: separate, default-OFF stage-only real member withdrawal.
+  // The original synthetic-only withdrawal route remains unchanged.
+  if(op==='member.manage.withdraw.member')
+    return accessMemberWithdrawalV1650_(ss,member,payload);
   if(op==='member.manage.withdraw')
     return accessStageWithdrawalV1636_(ss,member,payload);
   if(op==='member.manage.withdraw.check')
@@ -163,7 +167,10 @@ function accessManagement16_(ss,member,op,payload){
         registeredAt:registeredAt};
       }),
       pending:requests.filter(function(r){return r[3]==='pending';}).map(function(r){return {requestId:str_(r[0]),name:str_(r[2]),requestedAt:str_(r[4])};}),
-      withdrawn:withdrawn}};
+      withdrawn:withdrawn,
+      // Separate server capability; frontend must keep withdrawal disabled
+      // until the stage-only double gate has been explicitly configured.
+      withdrawMemberEnabled:accessMemberWithdrawalGateV1650_(ss)}};
   }
   var opId=checkOpId_(payload);
   return withLock_(function(){
@@ -374,6 +381,91 @@ function accessStageWithdrawalV1636_(ss,member,payload){
     return result;
   });
 }
+/** v0.16.50 — ordinary-member withdrawal, staging ONLY and default-OFF.
+ * Does not alter the v0.16.36 synthetic-only operation. Enabling requires
+ * explicit Worker AND GAS configuration and a complete backup/QA approval.
+ * Never auto-retry an uncertain destructive operation.
+ */
+var SMA_MEMBER_WITHDRAW_PURPOSE_V1650='staging-member-withdraw-v1650';
+function accessMemberWithdrawalGateV1650_(ss){
+ return conf_('SPREADSHEET_ID')===SMA_STAGE_WITHDRAW_ID_V1636&&
+  !!ss&&ss.getId()===SMA_STAGE_WITHDRAW_ID_V1636&&
+  conf_('WITHDRAW_MEMBER_ENABLED')==='true'&&
+  conf_('STAGING_WITHDRAW_MEMBER_PURPOSE')===SMA_MEMBER_WITHDRAW_PURPOSE_V1650;
+}
+function accessMemberWithdrawalV1650_(ss,member,payload){
+ accessAdmin16_(member);
+ accessStageBindingV1636_(ss);
+ if(!accessMemberWithdrawalGateV1650_(ss))
+  fail_('WITHDRAW_DISABLED','退会処理は現在無効です。管理者に確認してください');
+ payload=payload||{};
+ var id=str_(payload.memberId),confirmId=str_(payload.confirmMemberId),
+     confirmName=str_(payload.confirmName),opId=str_(payload.operationId);
+ if(!/^M-[A-Za-z0-9_-]{8,100}$/.test(id)||id!==confirmId||
+    !confirmName||confirmName.length>60)
+  fail_('BAD_REQUEST','退会対象が一致しません');
+ if(!SMA_STAGE_UUID4_RE_V1636.test(opId))
+  fail_('BAD_REQUEST','操作IDが不正です');
+ if(id===str_(member.memberId))fail_('FORBIDDEN','自分自身は退会できません');
+ return withLock_(function(){
+  // Verify all gates again under LockService, not only the UI.
+  if(!accessMemberWithdrawalGateV1650_(ss))
+   fail_('WITHDRAW_DISABLED','退会処理は現在無効です');
+  var memberSheet=accessSheet16_(ss,'メンバー',SM.headers['メンバー']);
+  var teamSheet=accessSheet16_(ss,'チーム所属',SM.headers['チーム所属']);
+  var reg=accessSheet16_(ss,SMA16.registrations,SMA16.regHeader);
+  var links=accessSheet16_(ss,SMA16.links,SMA16.linkHeader);
+  var history=accessSheet16_(ss,'退会履歴',SMA_STAGE_WITHDRAW_HEADER_V1636);
+  accessSheet16_(ss,'操作履歴',SM.headers['操作履歴']);
+  var members=sheetRows_(ss,'メンバー'),roles=sheetRows_(ss,'当番チーム'),
+      memberships=sheetRows_(ss,'チーム所属');
+  var actors=members.filter(function(r){return str_(r[0])===str_(member.memberId);});
+  if(actors.length!==1||!bool_(actors[0][3])||!bool_(actors[0][4])||
+     !/^U[0-9a-f]{32}$/i.test(str_(actors[0][2]))||
+     members.filter(function(r){return str_(r[2])===str_(actors[0][2]);}).length!==1)
+   fail_('FORBIDDEN','管理者権限を確認できません');
+  if(sheetRows_(ss,'操作履歴').some(function(r){return str_(r[0])===opId;}))
+   fail_('CONFLICT','操作が記録済みです。更新して確認してください');
+  var targets=members.map(function(row,i){return {row:row,index:i};})
+   .filter(function(x){return str_(x.row[0])===id;});
+  if(targets.length!==1)fail_('NOT_FOUND','退会対象を一意に確認できません');
+  var t=targets[0].row,ix=targets[0].index,line=str_(t[2]);
+  if(!bool_(t[3])||accessRole16_(t,roles,memberships)==='admin'||bool_(t[4]))
+   fail_('FORBIDDEN','管理者・停止中メンバーは退会できません');
+  if(str_(t[1])!==confirmName)
+   fail_('CONFLICT','表示名が変更されています。更新して確認してください');
+  if(!/^U[0-9a-f]{32}$/i.test(line)||
+     members.filter(function(r){return str_(r[2])===line;}).length!==1)
+   fail_('CONFLICT','LINEユーザーIDが不正または重複しています');
+  var records=accessRows16_(history,6);
+  if(records.some(function(h){return str_(h[0])===id;}))
+   fail_('CONFLICT','退会履歴があります。自動再実行しないでください');
+  var teams=sheetRows_(ss,'チーム所属'),
+      requests=accessRows16_(reg,8),
+      guestLinks=accessRows16_(links,6);
+  // All headers, roles, references and expectations validated before mutation.
+  // Keep attendance, payment, financial ledger, match and historical audits.
+  history.appendRow([id,safeCell_(str_(t[1])),accessTime16_(),
+    str_(member.memberId),'processing',opId]);
+  var histRow=history.getLastRow();
+  memberSheet.getRange(ix+2,4).setValue(false);
+  SpreadsheetApp.flush(); // immediately revoke the subject's GAS access
+  for(var qi=0;qi<guestLinks.length;qi++)
+   if(str_(guestLinks[qi][4])===id&&!guestLinks[qi][3])
+    links.getRange(qi+2,4).setValue(accessTime16_());
+  for(var ti=teams.length-1;ti>=0;ti--)
+   if(str_(teams[ti][1])===id)teamSheet.deleteRow(ti+2);
+  for(var ri=requests.length-1;ri>=0;ri--)
+   if(str_(requests[ri][1])===line)reg.deleteRow(ri+2);
+  history.getRange(histRow,5).setValue('completed');
+  SpreadsheetApp.flush();
+  memberSheet.deleteRow(ix+2);
+  var result={ok:true,data:{memberId:id,status:'withdrawn'}};
+  audit_(ss,opId,'member.manage.withdraw.member',member,id,result);
+  return result;
+ });
+}
+
 /** Editor-only, READ-ONLY stage preflight. It cannot be routed through doPost. */
 function accessStageWithdrawPreflightV1636(){
   var ss=ss_();accessStageBindingV1636_(ss);
