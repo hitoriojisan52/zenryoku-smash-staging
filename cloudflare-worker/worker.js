@@ -14,7 +14,8 @@ const VALID_PATHS = Object.freeze({
   '/api/member/manage/list':'member.manage.list',
   '/api/member/manage/decide':'member.manage.decide',
   '/api/member/manage/role':'member.manage.role',
-  '/api/member/manage/withdraw':'member.manage.withdraw', // v0.16.26: always blocked; never forwarded to GAS
+  '/api/member/manage/withdraw':'member.manage.withdraw', // legacy synthetic-only route (unchanged)
+  '/api/member/manage/withdraw-member':'member.manage.withdraw.member', // v0.16.50 opt-in real member
   '/api/member/manage/withdraw/check':'member.manage.withdraw.check', // v0.16.27: read-only and admin-checked by GAS
   '/api/match/share':'match.share.issue',
   '/api/match/share/revoke':'match.share.revoke',
@@ -161,7 +162,7 @@ export async function handleRequest(request,env){
     // Public LIFF channel prefix (not a secret); disclose only a boolean,
     // never the configured environment value or any LINE token.
     const channelMatchesLiveLiff=env.LINE_LOGIN_CHANNEL_ID==='2012602642';
-    return json({ok:true,status:'deployed',version:'0.16.45-stage-attendance',
+    return json({ok:true,status:'deployed',version:'0.16.50-stage-member-withdraw-ready',
       configured,channelMatchesLiveLiff});
   }
   const origin=request.headers.get('Origin')||'';
@@ -207,6 +208,25 @@ export async function handleRequest(request,env){
     const lineMs=Math.max(0,Math.round(performance.now()-lineStart));
     // v0.16.36 connected-staging TEST-ONLY gate. No normal member can ever pass.
     // Two independent server flags must agree; authorization is rechecked by GAS.
+    if(op==='member.manage.withdraw.member'){
+      // Independent opt-in: old synthetic gate remains untouched.
+      // Never use public browser flags to authorize a real withdrawal.
+      const stageId='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac';
+      const allowed=env.WITHDRAW_MEMBER_ENABLED==='true' &&
+        env.WITHDRAW_STAGE_SPREADSHEET_ID===stageId &&
+        env.WORKER_PURPOSE==='staging-member-withdraw-v1650';
+      if(!allowed)return failure('退会処理は現在無効です。管理者に確認してください',
+        403,origin,'WITHDRAW_DISABLED');
+      if(typeof payload.memberId!=='string'||
+         !/^M-[A-Za-z0-9_-]{8,100}$/.test(payload.memberId)||
+         payload.confirmMemberId!==payload.memberId||
+         typeof payload.confirmName!=='string'||
+         !payload.confirmName.trim()||payload.confirmName.length>60||
+         typeof payload.operationId!=='string'||
+         !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.operationId)||
+         Object.keys(payload).some(k=>!['memberId','confirmMemberId','confirmName','operationId'].includes(k)))
+        return failure('退会対象の確認が一致しません',400,origin,'BAD_REQUEST');
+    }
     if(op==='member.manage.withdraw'){
       const stageId='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac';
       const target=String(env.WITHDRAW_TEST_MEMBER_ID||'');
