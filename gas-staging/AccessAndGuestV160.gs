@@ -190,6 +190,44 @@ function accessManagement16_(ss,member,op,payload){
       reg.getRange(idx+2,4).setValue(accept?'approved':'rejected');
       reg.getRange(idx+2,6,1,3).setValues([[str_(member.memberId),accessTime16_(),newId]]);
       result={ok:true,data:{requestId:id,status:accept?'approved':'rejected'}};
+    }else if(op==='member.manage.edit'){
+      // Only registered displayName can be edited. The member ID, LINE ID,
+      // privileges, approved registration ID/date, and all historical records
+      // are immutable. Update both the active master and its unique approved
+      // application under the same existing ScriptLock.
+      var targetId=str_(payload.memberId),name=str_(payload.displayName).normalize('NFKC').trim();
+      var expected=str_(payload.expectedName);
+      if(!name||name.length>30||/[\r\n<>]/.test(name))
+        fail_('BAD_REQUEST','氏名を1～30文字で入力してください');
+      var members=sheetRows_(ss,'メンバー');
+      var actorRows=members.filter(function(r){return str_(r[0])===str_(member.memberId);});
+      if(actorRows.length!==1||!bool_(actorRows[0][3])||!bool_(actorRows[0][4]))
+        fail_('FORBIDDEN','管理者の登録が確認できません');
+      var targets=members.map(function(r,i){return {row:r,index:i};})
+        .filter(function(x){return str_(x.row[0])===targetId;});
+      if(targets.length!==1||!bool_(targets[0].row[3]))
+        fail_('NOT_FOUND','有効な利用者が見つかりません');
+      var target=targets[0],lineId=str_(target.row[2]);
+      if(!/^U[0-9a-f]{32}$/i.test(lineId)||
+         members.filter(function(r){return str_(r[2])===lineId;}).length!==1)
+        fail_('CONFLICT','LINE登録情報を一意に確認できません');
+      if(str_(target.row[1])!==expected)
+        fail_('CONFLICT','利用者情報が変更されています。更新してから再操作してください');
+      // Never patch an unrelated/duplicate/withdrawn registration record.
+      var requests=accessRows16_(reg,8),matched=[];
+      requests.forEach(function(r,i){
+        if(str_(r[7])===targetId)matched.push({row:r,index:i});
+      });
+      if(matched.length>1||(matched.length===1&&
+        (str_(matched[0].row[3])!=='approved'||str_(matched[0].row[1])!==lineId)))
+        fail_('CONFLICT','利用申請の紐付けが一致しません');
+      if(name!==expected){
+        if(matched.length===1)
+          reg.getRange(matched[0].index+2,3).setValue(safeCell_(name));
+        sheet_(ss,'メンバー').getRange(target.index+2,2).setValue(safeCell_(name));
+      }
+      result={ok:true,data:{memberId:targetId,displayName:name,
+        registrationUpdated:matched.length===1}};
     }else if(op==='member.manage.role'){
       var memberId=str_(payload.memberId),role=str_(payload.role);
       if(['admin','duty','member'].indexOf(role)<0)fail_('BAD_REQUEST','権限が不正です');
