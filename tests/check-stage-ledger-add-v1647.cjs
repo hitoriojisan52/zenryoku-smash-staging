@@ -49,6 +49,7 @@ async function scenario(role){
    throw new Error('unexpected endpoint '+endpoint);
   }
  };
+ env.window.liff=env.liff; // real boot checks both window.liff and the LIFF instance
  const boot=makeBoot($,env.config,env.window,env.liff,state,env.call,
   env.gateEdit,env.reload,()=>{calls.push('interval')},()=>{},
   false,env.document,VIS,x=>x.practices);
