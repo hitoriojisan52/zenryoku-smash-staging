@@ -46,7 +46,7 @@ class Element {
  constructor(tag,cls='',text=''){
   this.tag=tag;this.className=cls;this.textContent=text;
   this.children=[];this.hidden=false;this.disabled=false;this.attrs={};this.handlers={};
-  this.options=[];this.value='';
+  this.options=[];this.value='';this.classList={add:()=>{}};
  }
  append(...children){this.children.push(...children);}
  replaceChildren(...children){this.children=[...children];}
@@ -86,11 +86,11 @@ const traverse=(root)=>[root,...root.children.flatMap(traverse)];
 const adminNodes=traverse(cards[0]),memberNodes=traverse(cards[1]),
  inactiveNodes=traverse(cards[2]);
 const adminSelect=adminNodes.find(e=>e.tag==='select'),
- adminChange=adminNodes.find(e=>e.tag==='button'&&e.textContent==='変更'),
+ adminChange=adminNodes.find(e=>e.tag==='button'&&e.textContent==='権限変更'),
  memberSelect=memberNodes.find(e=>e.tag==='select'),
- memberChange=memberNodes.find(e=>e.tag==='button'&&e.textContent==='変更'),
+ memberChange=memberNodes.find(e=>e.tag==='button'&&e.textContent==='権限変更'),
  inactiveSelect=inactiveNodes.find(e=>e.tag==='select'),
- inactiveChange=inactiveNodes.find(e=>e.tag==='button'&&e.textContent==='変更');
+ inactiveChange=inactiveNodes.find(e=>e.tag==='button'&&e.textContent==='権限変更');
 ok(adminSelect?.value==='admin'&&adminSelect.disabled&&adminChange?.disabled,
  'sole admin dropdown displays 管理者; dropdown and Change button are disabled');
 ok(!adminNodes.some(e=>e.textContent==='変更不可'),
@@ -121,10 +121,20 @@ names.renderHistory(undefined);
 ok(elements.memberAccessHistoryV2.hidden===true,
  'unsupported history API hides disclosure rather than showing empty history');
 ok(traverse(cards[1]).some(e=>e.tag==='button'&&e.textContent==='退会'&&e.disabled),
- 'member-specific withdrawal remains disabled while server permits synthetic targets only');
+ 'member-specific withdrawal remains disabled while dual gates are unconfirmed');
+for(const [index,label] of [[0,'admin'],[1,'member'],[2,'inactive']]){
+ const nodes=traverse(cards[index]);
+ ok(['修正','権限変更','退会'].every(name=>nodes.some(e=>e.tag==='button'&&e.textContent===name)),
+  label+' card keeps all three visible operation buttons');
+}
+ok(adminNodes.some(e=>e.tag==='button'&&e.textContent==='退会'&&e.disabled),
+ 'sole administrator sees a disabled withdrawal button');
+ok(adminNodes.some(e=>e.tag==='button'&&e.textContent==='修正'&&!e.disabled),
+ 'administrator display name can be edited even if old seed has no approved application');
 // Finance actions: original editor, role gate and compact bracketed prompts.
 ok(ui.includes("const slots=[['修正','edit',canEdit]")&&
- ui.includes("btn.disabled=!enabled")&&ui.includes("tr.classList.add('carry-row')"),
+ ui.includes("btn.disabled=!enabled")&&ui.includes("tr.classList.add('carry-row')")&&
+ ui.includes("btn.className=act==='delete'?'btn-danger'"),
  'v15 fixed ledger buttons, disabled Edit slot and carry row restored');
 ok(ui.includes("group.className='ledger-action-group'")&&
  css.includes('justify-content:flex-start')&&css.includes('td.ledger-row-actions'),
