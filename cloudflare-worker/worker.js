@@ -7,6 +7,8 @@
 // v0.16.36: first Git-connected staging build trigger (no functional changes).
 const VALID_PATHS = Object.freeze({
   '/api/session':'session',
+  '/api/attendance/mine':'attendance.mine',
+  '/api/attendance/submit':'attendance.submit',
   '/api/member/status':'member.status',
   '/api/member/apply':'member.apply',
   '/api/member/manage/list':'member.manage.list',
