@@ -165,7 +165,7 @@ export async function handleRequest(request,env){
     const withdrawMemberConfigured=
       env.WITHDRAW_MEMBER_ENABLED==='true' &&
       env.WITHDRAW_STAGE_SPREADSHEET_ID==='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac' &&
-      env.WORKER_PURPOSE==='staging-member-withdraw-v1650';
+      env.WITHDRAW_MEMBER_PURPOSE==='staging-member-withdraw-v1650';
     return json({ok:true,status:'deployed',version:'0.16.50-stage-member-withdraw-ready',
       configured,channelMatchesLiveLiff,withdrawMemberConfigured});
   }
@@ -218,7 +218,7 @@ export async function handleRequest(request,env){
       const stageId='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac';
       const allowed=env.WITHDRAW_MEMBER_ENABLED==='true' &&
         env.WITHDRAW_STAGE_SPREADSHEET_ID===stageId &&
-        env.WORKER_PURPOSE==='staging-member-withdraw-v1650';
+        env.WITHDRAW_MEMBER_PURPOSE==='staging-member-withdraw-v1650';
       if(!allowed)return failure('退会処理は現在無効です。管理者に確認してください',
         403,origin,'WITHDRAW_DISABLED');
       if(typeof payload.memberId!=='string'||
