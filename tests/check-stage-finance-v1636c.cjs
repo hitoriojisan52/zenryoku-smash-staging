@@ -23,7 +23,7 @@ ok(ui.includes("phase('gas_content')"),'GAS GET diagnostics surfaced');
 ok(ui.includes("PERF_MODE?4200:2500"),'normal toast duration unchanged');
 const payment=span('async function setPayment(','\nfunction setupLongPress(');
 ok(!payment.includes('reload('),'no forced overview round trip after payment');
-ok(payment.includes("saved.version!==version+1"),'optimistic concurrency result validated');
+ok(payment.includes("result.version!==version+1"),'optimistic concurrency result validated');
 ok(payment.includes("saved.ledgerVersion>ledger.version"),'older concurrent response cannot override newer ledger balance');
 ok(payment.includes("saved.ledgerVersion"),'server ledger version used');
 ok(payment.includes("S.pending.delete(id)"),'pending cleaned up');
