@@ -54,6 +54,8 @@ jobs:
         run: node tests/check-gas-payment-fastpath.cjs
       - name: Test opt-in GAS phase profile
         run: node tests/check-gas-payment-profile.cjs
+      - name: Verify cash audit is independent and version checked
+        run: node tests/check-stage-cash-reconcile-v1637.cjs
       - name: Verify compact operation-history scan preserves idempotency
         run: node tests/check-gas-audit-ids-v1636h.cjs
       - name: Install pinned official Google clasp

@@ -3,7 +3,7 @@
  */
 (function(root){
  'use strict';
- const DENOMINATIONS=Object.freeze([10000,5000,2000,1000,500,100,50,10,5,1]);
+ const DENOMINATIONS=Object.freeze([10000,5000,1000,500,100,50,10,5,1]); // legacy v7: exactly nine denominations
  const LIMIT=9999;
  function validDate(date){
   if(typeof date!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date))return false;
