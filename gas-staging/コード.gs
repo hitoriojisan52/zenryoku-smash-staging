@@ -440,7 +440,7 @@ function entries_(ss){return sheetRows_(ss,'全体収支管理表').filter(funct
  confirmedBy:str_(r[5]),rowId:str_(r[6]),kind:str_(r[7]),practiceId:str_(r[8]),status:str_(r[9])||'open',
  version:Number(r[10])||0,adjustment:Number(r[11])||0,item:str_(r[12]),payee:norm_(r[13]),receiptFileId:str_(r[14]),createdBy:str_(r[15])
 };});}
-function fee_(cat,hours){var base=SM.fees[cat];var factor={2:6/8,3:7/8,4:1}[hours];if(base===undefined||factor===undefined)fail_('BAD_REQUEST','料金設定または練習時間が不正です');return Math.ceil(base*factor/100)*100;}
+function fee_(cat,hours){var base=SM.fees[cat];var factor={2:6/8,3:7/8,4:1}[hours];if(base===undefined||factor===undefined)fail_('BAD_REQUEST','料金設定または時間区分が不正です');return Math.ceil(base*factor/100)*100;}
 function practices_(ss){return sheetRows_(ss,'練習日程').map(function(r){return {practiceId:str_(r[0]),date:ledgerDate_(r[1]),place:str_(r[2]),startTime:scheduleTime_(r[3]),endTime:scheduleTime_(r[4]),hours:Number(r[5]),enabled:bool_(r[6])};}).filter(function(p){return p.practiceId&&p.enabled;});}
 function practice_(ss,id){var found=practices_(ss).filter(function(p){return p.practiceId===id;});if(found.length!==1)fail_('NOT_FOUND','練習日程が見つかりません');return found[0];}
 function attendees_(ss,id){return sheetRows_(ss,'出欠回答').filter(function(r){return str_(r[0])===id&&bool_(r[5]);}).map(function(r){return {practiceId:id,participantId:str_(r[1]),name:norm_(r[2]),nameKana:norm_(r[3]),category:str_(r[4]),attending:true,memo:str_(r[6]),categoryVersion:Number(r[7])||0};});}
@@ -668,9 +668,9 @@ function scheduleData_(payload){
      hours=Number(payload.hours),remark=str_(payload.remark);
  if(!iso_(date)||date<today_())fail_('BAD_REQUEST','本日以降の開催日を指定してください');
  if(!place||place.length>100||remark.length>200)fail_('BAD_REQUEST','開催場所・備考を確認してください');
- if([2,3,4].indexOf(hours)<0||!Number.isSafeInteger(hours))fail_('BAD_REQUEST','時間は2・3・4時間から選択してください');
+ if([2,3,4].indexOf(hours)<0||!Number.isSafeInteger(hours))fail_('BAD_REQUEST','時間区分は2・3・4から選択してください');
  var start=scheduleTimeMinutes_(startTime),end=scheduleTimeMinutes_(endTime);
- if(end-start!==hours*60)fail_('BAD_REQUEST','時間帯と時間数が一致しません');
+ if(end<=start)fail_('BAD_REQUEST','終了時刻は開始時刻より後にしてください'); // 時間区分は料金用、実際の練習時間とは独立
  return {date:date,place:place,startTime:startTime,endTime:endTime,hours:hours,remark:remark};
 }
 function scheduleRows_(ss){
@@ -763,6 +763,42 @@ function monthLedger_(ss,member,payload){var month=str_(payload.month)||today_()
  var prior=sorted.filter(function(r){return r.date<month+'-01';});var within=sorted.filter(function(r){return r.date.slice(0,7)===month;});
  var carried=prior.length?prior[prior.length-1].balance:0;return {ok:true,data:{month,carried,rows:within,closingBalance:within.length?within[within.length-1].balance:carried,role:member.role}};
 }
+
+/* v0.16.38b: member-authenticated visitor proxy registration.
+ * Registered club members may register visitors without a LINE identity for
+ * the visitor. All records are fixed IDs with original registrar attribution.
+ * Financial ledger/payment records and existing match rounds are untouched.
+ */
+function visitorAvailablePractices_(ss,member,payload){
+ var rows=practices_(ss).filter(function(p){return p.date>=today_();})
+ .sort(function(a,b){return a.date.localeCompare(b.date)||a.startTime.localeCompare(b.startTime);});
+ return {ok:true,data:{practices:rows}};
+}
+function visitorRegister_(ss,member,payload){
+ var practiceId=str_(payload.practiceId),participantId=str_(payload.participantId);
+ if(!/^PV-[A-Za-z0-9_-]{8,96}$/.test(participantId))fail_('BAD_REQUEST','参加者IDが不正です');
+ var p=practice_(ss,practiceId);
+ if(p.date<today_())fail_('BAD_REQUEST','過去の開催日は登録できません');
+ var ledger=entries_(ss).filter(function(r){return r.rowId==='P-'+practiceId;});
+ if(ledger.length>1)fail_('SETUP','収支に重複した開催行があります');
+ if(ledger.length===1&&ledger[0].status==='confirmed')
+  fail_('CONFLICT','収支確定済みの開催日は登録できません');
+ var name=norm_(payload.name),kana=norm_(payload.nameKana),memo=str_(payload.memo);
+ if(!name||name.length>60||/^[=+@]/.test(name)||kana.length>100||/^[=+@]/.test(kana)||
+    memo.length>200||/[\u0000-\u001f]/.test(memo))
+  fail_('BAD_REQUEST','お名前・カナ・備考を確認してください');
+ // The registerer's member ID is obtained server-side from the verified LINE user ID,
+ // never from the caller. Same-named people receive independent participant IDs.
+ var existing=sheetRows_(ss,'出欠回答');
+ if(existing.some(function(r){return str_(r[1])===participantId}))
+  fail_('CONFLICT','参加者IDが既に使われています');
+ var row=[practiceId,participantId,safeCell_(name),safeCell_(kana),
+    'visitor',true,safeCell_(memo),0,member.memberId];
+ sheet_(ss,'出欠回答').appendRow(row);
+ return {ok:true,data:{practiceId:practiceId,participantId:participantId,
+  name:name,category:'visitor',attending:true,registeredBy:member.memberId}};
+}
+
 function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||!conf_('BACKEND_SECRET'))fail_('UNAUTHORIZED','API接続を確認できません');
  // Guest sharing verifies a short-lived token; LINE login is not required.
  if(body.op==='match.guest.get')return accessGuestGet16_(ss_(),body.guestToken);
@@ -786,6 +822,17 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
  if(op==='match.share.revoke')return accessShareRevoke16_(ss,member,payload);
  // Match reads and roster reads are allowed for registered LINE members.
  if(op==='roster.line')return {ok:true,data:{text:formatRosterForLine_(ss,str_(payload.practiceId))}};
+ // Member-level proxy visitor registration is deliberately before requireDuty_.
+ if(op==='visitor.practices')return withLock_(function(){return visitorAvailablePractices_(ss,member,payload);});
+ if(op==='visitor.register'){
+   var visitorOpId=checkOpId_(payload);
+   return withLock_(function(){
+     var replay=auditExisting_(ss,visitorOpId,op,member);if(replay)return replay;
+     var result=visitorRegister_(ss,member,payload);
+     audit_(ss,visitorOpId,op,member,str_(payload.participantId),result);
+     return result;
+   });
+ }
  // v0.15.8 起動専用・読み取りAPI（操作ID不要。認証・利用登録確認後に実行）
  if(op==='match.bootstrap'){
    var smResult=matchBootstrapV158_(ss,member,payload);

@@ -5,6 +5,7 @@ on:
     paths:
       - 'gas-staging/**'
       - 'tests/check-stage-schedule-v1638.cjs'
+      - 'tests/check-stage-visitor-v1638b.cjs'
       - 'scripts/gas-staging-guard.cjs'
       - 'scripts/gas-staging-deploy.sh'
       - 'tests/check-gas-staging-ci.cjs'
@@ -25,5 +26,6 @@ jobs:
       - run: node tests/check-gas-payment-profile.cjs
       - run: node tests/check-stage-cash-reconcile-v1637.cjs
       - run: node tests/check-stage-schedule-v1638.cjs
+      - run: node tests/check-stage-visitor-v1638b.cjs
       - run: node tests/check-gas-audit-ids-v1636h.cjs
       - run: bash -n scripts/gas-staging-deploy.sh

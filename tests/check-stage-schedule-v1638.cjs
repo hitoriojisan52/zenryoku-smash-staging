@@ -71,7 +71,11 @@ ok(list()[0].date==='2026-11-22'&&list()[0].remark==='練習確認','list shows 
 fails(()=>add(id,'2026-11-23'),'BAD_REQUEST');
 fails(()=>add('PR-test-create-00000002','2026-11-22'),'CONFLICT');
 fails(()=>add('PR-test-create-00000002','2026-11-17'),'BAD_REQUEST');
-fails(()=>add('PR-test-create-00000002','2026-11-24',{hours:3}),'BAD_REQUEST');
+const feeCategory=funcs.scheduleData_({date:'2026-11-24',place:'曽谷公民館',
+ startTime:'09:00',endTime:'11:30',hours:3,remark:''});
+ok(feeCategory.hours===3&&feeCategory.endTime==='11:30','2.5-hour practice accepts 3-hour fee category');
+fails(()=>add('PR-test-create-00000002','2026-11-24',{hours:5}),'BAD_REQUEST');
+fails(()=>add('PR-test-create-00000002','2026-11-24',{startTime:'13:00',endTime:'12:30',hours:3}),'BAD_REQUEST');
 fails(()=>add('PR-test-create-00000002','2026-11-24',{startTime:'25:00'}),'BAD_REQUEST');
 fails(()=>add('PR-test-create-00000002','2026-11-24',{place:''}),'BAD_REQUEST');
 const edited=funcs.scheduleChange_(ss,member,{
@@ -111,13 +115,18 @@ ok(gas.includes("'schedule.change'")&&gas.includes("auditExisting_(ss,opId,op,me
  'schedule writes protected by existing script lock and op audit');
 ok(worker.includes("'/api/schedule/list':'schedule.list'")&&worker.includes("'/api/schedule/change':'schedule.change'"),
  'Worker protects schedule routes using existing authentication');
-for(const key of ['scheduleDialog','scheduleAdd','scheduleFormSync','scheduleList','scheduleEditDialog',
+for(const key of ['scheduleDialog','scheduleAdd','scheduleWeekday','scheduleList','scheduleEditDialog',
  'scheduleDate','scheduleTimeSlot','scheduleHours','schedulePlace','scheduleRemark',
  'scheduleActionDialog','scheduleActionSubmit']){
  ok(html.includes('id="'+key+'"'),'legacy schedule component: '+key);
 }
-ok(html.includes('id="scheduleFormSync" type="button" class="btn-outline" disabled'),
- 'legacy Google Form sync cannot be falsely promised as a live action');
+ok(!html.includes('id="scheduleFormSync"'),'old Google Form sync button removed');
+ok(!html.includes('確定すると新システムの日程一覧に反映します'),'old explanatory sentence removed');
+ok(html.includes('id="scheduleDate" class="dialog-input" type="date"'),'native calendar input');
+ok(html.includes('id="scheduleWeekday"'),'selected weekday shown');
+ok(html.includes('id="scheduleHours" class="dialog-select"')&&html.includes('時間区分'),
+ 'fee category label replaces actual practice duration');
+ok(!html.includes('部内戦候補日 など'),'remark placeholder removed');
 ok(ui.includes("'/api/schedule/list'")&&ui.includes("'/api/schedule/change'"),'UI calls schedule APIs');
 ok(ui.includes("SC.rows=d.schedules.slice()"),'schedule UI uses server result, not demo data');
 ok(ui.includes("btn.disabled=row.enabled"),'confirmed schedule controls disabled');
@@ -127,4 +136,7 @@ ok(!ui.includes('前回の現金確認後に帳簿残金が変更されていま
  'unnecessary cash follow-up removed');
 ok(html.includes('white-space:nowrap;overflow:hidden;text-overflow:ellipsis'),
  'cash warning fits one line without overlap');
+scheduleRows.push(['PR-test-today-00001','2026-11-18','曽谷公民館','09:00','11:30',3,false,'',1]);
+ok(list().some(x=>x.date===today_()),'schedule list includes TODAY exactly');
+ok(!list().some(x=>x.date<'2026-11-18'),'past dates still excluded');
 console.log('PASS '+n+'/'+n+' legacy-v7 schedule, cash wording, auth, and financial isolation');
