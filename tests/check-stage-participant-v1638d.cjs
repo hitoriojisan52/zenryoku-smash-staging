@@ -54,6 +54,7 @@ const sheet_=(_ss,name)=>{
   appendRow:record=>{rows[name].push([...record]);writes.push(name+'.append')},
   deleteRow:i=>{rows[name].splice(i-2,1);writes.push(name+'.delete')},
   getRange:(i,j,h=1,w=1)=>({
+   getValues:()=>rows[name].slice(i-2,i-2+h).map(r=>r.slice(j-1,j-1+w)),
    setValues:values=>{for(let a=0;a<values.length;a++){
     let r=rows[name][i-2+a]||[];
     for(let b=0;b<values[a].length;b++)r[j-1+b]=values[a][b];
