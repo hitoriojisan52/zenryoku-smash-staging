@@ -58,11 +58,15 @@ for(const [,id,body] of blocks){
 const allIds=[...html.matchAll(/\bid="([^"]+)"/g)].map(x=>x[1]);
 ok(new Set(allIds).size===allIds.length,'entire management page has no duplicate IDs');
 for(const id of ['scheduleAdd','scheduleReload','participantReload','memberAccessRefresh',
- 'visitorAdminRefresh','newLedgerRow']){
+ 'visitorAdminRefresh']){
  ok(js.includes("'"+id+"'"),'shared toolbar has explicit original action: '+id);
  ok((ui+access+vis).includes("'"+id+"'"),
   'reparented action remains bound by application logic: '+id);
 }
+ok(js.includes("!screenIds.has(dialog.id)")&&!js.includes("'ledgerDialog'"),
+ 'v15 ledger preserves its original wide toolbar and footer rather than generic Close');
+ok(html.includes('class="ledger-controls"')&&html.includes('id="newLedgerRow"')&&
+ html.includes('id="closeLedger"'), 'v15 Add and Close remain on original surfaces');
 for(const id of ['scheduleAdd','participantClose','visitorMineRefresh','memberAccessRefresh',
  'visitorAdminRefresh','participantReload','attendanceReload','newLedgerRow']){
  ok(html.includes('id="'+id+'"'),'critical originally-visible control still exists: '+id);
