@@ -156,7 +156,9 @@ async function boot(){
   }
   gateEdit();
   window.SMLiveAccess?.setup({api:call,actor:S.actor});
-  for(const id of ['reimbursementBtn','manageBtn','refresh','adjustment','expense'])$(id).disabled=false;
+  // All management actions disabled at startup are restored only after
+  // verified duty/admin login. Keep the ledger Add button in this same list.
+  for(const id of ['reimbursementBtn','manageBtn','refresh','adjustment','expense','newLedgerRow'])$(id).disabled=false;
   await reload(true);setInterval(()=>{if(!document.hidden&&!S.paymentNeedsRefresh&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
   toast('接続しました');
  }catch(e){
