@@ -103,3 +103,36 @@ body.access-v2-active #memberAccessDialog .member-role-actions select:disabled{
  background:#eef2f7;color:#717b86;border-color:#cfd8df;
  cursor:not-allowed;opacity:1;
 }
+
+/* v0.16.50: original collapsed/simple withdrawal history and typed confirmation. */
+body.access-v2-active #memberAccessDialog details.access-history-v2{
+ margin-top:15px;padding:12px 0;border-top:1px solid #d7e1e9;
+}
+body.access-v2-active #memberAccessDialog details.access-history-v2 summary{
+ display:list-item;cursor:pointer;font-weight:700;
+ color:#0d47a1;min-height:44px;padding:9px 6px;font-size:15px;
+}
+body.access-v2-active #memberAccessDialog details.access-history-v2[hidden]{
+ display:none!important;
+}
+body.access-v2-active #memberAccessDialog .access-withdraw-row{
+ display:flex;flex-direction:column;align-items:flex-start;gap:3px;
+ border-bottom:1px solid #e2eaf0;padding:8px 2px;font-size:14px;
+}
+body.access-v2-active #memberAccessDialog .access-withdraw-row .live-access-name{
+ font-size:14px;font-weight:600;overflow-wrap:anywhere;
+}
+body.access-v2-active #memberAccessDialog .access-withdraw-date,
+body.access-v2-active #memberAccessDialog .access-withdraw-status{
+ font-size:12px;color:#64748b;
+}
+#accessConfirmV2 #accessWithdrawConfirmNameV1650[hidden],
+#accessConfirmV2 #accessWithdrawConfirmNameLabelV1650[hidden]{
+ display:none!important;
+}
+#accessConfirmV2 #accessWithdrawConfirmNameV1650{
+ margin-bottom:6px;
+}
+body.access-v2-active #memberAccessDialog .member-role-actions .btn-danger{
+ min-width:70px;
+}
