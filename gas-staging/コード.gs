@@ -907,7 +907,13 @@ function monthLedger_(ss,member,payload){var month=str_(payload.month)||today_()
  * roster: expose null rather than guessing or fabricating contact data.
  */
 function participantMatchLocked_(ss,id){
- return sheetRows_(ss,'試合セッション').some(function(r){return str_(r[0])===id;});
+ // Match sheets use their own schema (not SM.headers). Reading them with
+ // sheetRows_ dereferences SM.headers['試合セッション'] and throws TypeError.
+ // Only the practice ID column is needed for this access guard.
+ var sh=sheet_(ss,'試合セッション'),last=sh.getLastRow();
+ return last>1&&sh.getRange(2,1,last-1,1).getValues().some(function(r){
+   return str_(r[0])===id;
+ });
 }
 function participantRows_(ss,practiceId){
  var rows=sheetRows_(ss,'出欠回答').filter(function(r){return str_(r[0])===practiceId;}),

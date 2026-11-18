@@ -6,7 +6,7 @@
 'use strict';
 const M=window.SmashModel,$=id=>document.getElementById(id),yen=n=>Number(n).toLocaleString('ja-JP')+'円';
 const CONFIG=window.SMASH_CONFIG||{};
-const S={token:'',actor:null,overview:null,practiceId:'',loading:false,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false};
+const S={token:'',actor:null,overview:null,practiceId:'',loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false};
 const PERF_MODE=(()=>{
  const q=new URLSearchParams(location.search||'');let state=q.get('liff.state')||'';
  if(state.includes('?'))state=state.slice(state.indexOf('?')+1);
@@ -154,15 +154,26 @@ async function boot(){
  }
 }
 async function reload(refreshDates){
- if(S.loading||S.pending.size)return;S.loading=true;
- const epoch=S.updateEpoch,selected=S.practiceId;
- try{
+ if(S.pending.size)return;
+ if(S.loading){
+   // A manual refresh is never dropped just because the 8-second silent
+   // automatic poll already owns the request slot. Wait for that read and
+   // then force a fresh date/roster fetch, leaving the busy dialog visible.
+   if(!refreshDates)return;
+   const inFlight=S.reloadPromise;
+   if(inFlight){try{await inFlight;}catch(_){/* manual retry fetches latest */}}
+   if(S.pending.size)return;
+   return reload(true);
+ }
+ S.loading=true;
+ const task=(async()=>{
+   const epoch=S.updateEpoch,selected=S.practiceId;
    let d,notFound=false;
    try{d=await call('/api/overview',{practiceId:S.practiceId});}
    catch(e){
-    // A second device may have deleted the previously selected schedule.
-    if(e.status!==404||!selected)throw e;
-    d=await call('/api/overview',{});notFound=true;
+     // A second device may have deleted the previously selected schedule.
+     if(e.status!==404||!selected)throw e;
+     d=await call('/api/overview',{});notFound=true;
    }
    if(epoch!==S.updateEpoch||S.pending.size||(!notFound&&selected!==S.practiceId))return;
    if(refreshDates||!S.practiceId||notFound){
@@ -171,7 +182,13 @@ async function reload(refreshDates){
    S.practiceId=d.practice?.practiceId||'';$('date').value=S.practiceId;S.overview=d;
    S.paymentNeedsRefresh=false;
    renderHome();syncPaymentControls();
- }finally{S.loading=false;}
+ })();
+ S.reloadPromise=task;
+ try{return await task;}
+ finally{
+   if(S.reloadPromise===task)S.reloadPromise=null;
+   S.loading=false;
+ }
 }
 function renderHome(){const v=S.overview;if(!v)return;const {practice,ledger,participants}=v;
  if(!practice){
@@ -888,7 +905,13 @@ async function deleteParticipant_(){
 }
 
 function bind(){
- $('date').addEventListener('change',()=>{S.practiceId=$('date').value;guard(()=>reload(false));});$('refresh').addEventListener('click',()=>guard(()=>reload(true)));
+ $('date').addEventListener('change',()=>{S.practiceId=$('date').value;guard(()=>reload(false),'開催日を読み込んでいます…');});
+ $('refresh').addEventListener('click',()=>guard(async()=>{
+  // Ensure the full-screen spinner is painted even if a warm cached read
+  // or an overlapping automatic poll completes during the same frame.
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  await reload(true);
+ },'データを更新しています…'));
  $('categoryDialog').addEventListener('close',()=>{S.modalTarget=null;});$('cancelCategory').addEventListener('click',()=>close('categoryDialog'));$('saveCategory').addEventListener('click',saveCategory);
  $('adjustment').addEventListener('change',()=>saveAmount('adjustment'));$('expense').addEventListener('change',()=>saveAmount('expense'));
  $('receiptBtn').addEventListener('click',()=>toast('領収書アップロードは未接続です'));
