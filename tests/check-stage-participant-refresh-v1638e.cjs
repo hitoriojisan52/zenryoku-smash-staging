@@ -25,19 +25,20 @@ const sh={
   return {getValues:()=>sessions.map(r=>[r[0]])};
  }
 };
-const memberMatch=new Function('sheet_','str_','sheetRows_',
+const memberMatch=new Function('sheet_','str_','sheetRows_','matchDeleteArchiveStatus_',
  gas.slice(start,end)+'\nreturn participantMatchLocked_;')(
  (_ss,name)=>{ok(name==='試合セッション','actual match sheet selected');return sh;},
  v=>String(v??'').trim(),
- ()=>{throw new Error('Regression: generic sheetRows_ on independently owned match sheet');}
+ ()=>{throw new Error('Regression: generic sheetRows_ on independently owned match sheet');},
+ ()=>false
 );
 ok(memberMatch({},'P-TEST')===true,'practice with match revisions locked');
 ok(memberMatch({},'P-OTHER')===false,'practice without match revisions editable');
 ok(rangeReads===2,'no full session JSON/rows loaded');
 const emptySh={getLastRow:()=>1};
-ok(new Function('sheet_','str_','sheetRows_',gas.slice(start,end)+
+ok(new Function('sheet_','str_','sheetRows_','matchDeleteArchiveStatus_',gas.slice(start,end)+
  '\nreturn participantMatchLocked_;')((ss,name)=>emptySh,
- String,()=>{throw Error('must not read generic schema')})({},'P-EMPTY')===false,
+ String,()=>{throw Error('must not read generic schema')},()=>false)({},'P-EMPTY')===false,
  'match sheet header-only case returns false without getRange');
 ok(ui.includes("'/api/participant/list'")&&ui.includes('openParticipantManager_'),
  'participant list UI remains connected to authenticated backend');
