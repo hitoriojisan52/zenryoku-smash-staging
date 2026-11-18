@@ -43,7 +43,12 @@ const practiceId='PR-SYNTHETIC-1121',rows=[
   requestedAt:old,status:'rejected',version:2,requestedByName:'一般メンバー'}
 ];
 w.SMVisitor.setup({api:async path=>({requests:rows}),actor:{role:'admin'}});
-const find=(e,cls)=>e.children.find(x=>x.className===cls);
+const find=(e,cls)=>{
+ if(String(e.className).split(' ').includes(cls))return e;
+ for(const child of e.children){const match=find(child,cls);if(match)return match;}
+ return null;
+};
+const deepText=e=>[e.textContent,...e.children.map(deepText)].filter(Boolean).join(' ');
 (async()=>{
  const own=await w.SMVisitor.loadMine();
  ok(own.length===3&&elements.visitorMineCards.children.length===3,
@@ -55,7 +60,7 @@ const find=(e,cls)=>e.children.find(x=>x.className===cls);
   'administrator review list renders all request states');
  const cards=elements.visitorAdminCards.children;
  for(const card of cards){
-  const text=find(card,'visitor-review-info')?.textContent||'';
+  const text=deepText(find(card,'visitor-review-info')||card);
   ok(text.includes('申請日時：'+expected),'rendered application date is yyyy/MM/dd HH:mm JST');
   ok(!text.includes('GMT+')&&!text.includes('Wed Nov'),
    'no raw Date.toString / GMT English timestamp in UI');
@@ -83,11 +88,24 @@ const find=(e,cls)=>e.children.find(x=>x.className===cls);
   html.includes('id="visitorForm"')&&
   html.includes('新しいビジターを申請'),
   'two sections clearly labeled within same visitor registration screen');
+ ok(html.includes('<details id="visitorNewFormSection"')&&
+  html.indexOf('<details id="visitorNewFormSection"')<html.indexOf('<form id="visitorForm"')&&
+  !html.includes('<details id="visitorNewFormSection" open'),
+  'new visitor form is collapsible and initially closed');
+ ok(html.includes('id="visitorMinePractice"')&&html.includes('id="visitorAdminPractice"'),
+  'requester and administrator both have date dropdowns');
+ ok(!deepText(elements.visitorAdminCards).includes('📧'),
+  'visitor cards, including admin review, never display email');
+ ok(find(elements.visitorMineCards.children[1],'visitor-status')!==null&&
+  find(elements.visitorAdminCards.children[1],'visitor-status')===null,
+  'approval status badge only shown on requester's visitor registration screen');
+ ok(find(elements.visitorMineCards.children[1],'participant-card-content')!==null,
+  'visitor cards share participant list layout');
  for(const oldId of ['visitorMineMenu','visitorMineDialog','visitorMemberRefresh','visitorMineList']){
   ok(!html.includes('id="'+oldId+'"'),'obsolete standalone element removed: '+oldId);
   ok(!ui.includes("$('"+oldId+"')"),'no stale listener or DOM reference: '+oldId);
  }
- ok(ui.includes("render('visitorMineCards',result.requests,false)")&&
+ ok(ui.includes("render('visitorMineCards',optionsFor(mineRows,'visitorMinePractice'),false)")&&
   !ui.includes("render('visitorMineList'"),
   'request status refreshed only in integrated screen');
  ok(liveJs.includes("const [response]=await Promise.all([call('/api/visitor/practices'),window.SMVisitor.loadMine()])"),
@@ -116,10 +134,10 @@ const find=(e,cls)=>e.children.find(x=>x.className===cls);
   ok(match&&match[0].includes('class="btn-outline"'),'close button is secondary grey: '+id);
  }
  for(const page of ['live.html','match.html','guest.html','match-view.html']){
-  ok(read(page).includes('stage-ui.css?v=1641'),'same shared button CSS cache applied: '+page);
+  ok(read(page).includes('stage-ui.css?v=1642'),'same shared button CSS cache applied: '+page);
  }
- ok(html.includes('date-format.js?v=1641')&&html.includes('visitor-approval.js?v=1641')&&
-  html.includes('live.js?v=1641')&&html.includes('live-access-v2.js?v=1641'),
+ ok(html.includes('date-format.js?v=1641')&&html.includes('visitor-approval.js?v=1642')&&
+  html.includes('live.js?v=1642')&&html.includes('live-access-v2.js?v=1641'),
   'staging LIFF refreshes all modified JavaScript assets');
  ok(matchConfirm.includes('match-modal-is-error')&&matchCss.includes('.match-modal-is-error .match-modal-box{border-top:4px solid #c62828}'),
   'intentional confirmation versus error popup distinction remains unchanged');
