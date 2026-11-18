@@ -375,21 +375,49 @@ async function loadLedger(){const month=$('ledgerMonth').value,ledger=await call
  const rows=[{rowId:'CARRY-'+month,date:month+'-01',label:'前月繰越',income:0,expense:0,balance:ledger.carried,confirmedBy:'',kind:'carry',status:'confirmed'},...ledger.rows.filter(r=>r.kind!=='opening')];
  for(const r of rows){const tr=document.createElement('tr');
   for(const v of [window.SMDate.date(r.date),r.label,yen(r.income),yen(r.expense),yen(r.balance),r.confirmedBy||'']){const td=document.createElement('td');td.textContent=v;tr.append(td);}
-  const actions=document.createElement('td');const buttons=[];
-  if(r.kind!=='carry'){
+  const actions=document.createElement('td');actions.className='ledger-row-actions';
+  const buttons=[],future=r.date>today();
+  if(r.kind!=='carry'&&!future){
     if(r.status==='confirmed'&&S.actor.role==='admin')buttons.push(['解除','unlock']);
     else if(r.status!=='confirmed'){
       if(r.kind!=='practice')buttons.push(['修正','edit']);
       buttons.push(['削除','delete'],['確定','confirm']);
     }
   }
-  for(const [label,act] of buttons){const btn=document.createElement('button');btn.type='button';btn.className=act==='delete'?'btn-danger':'btn-outline';btn.textContent=label;btn.addEventListener('click',()=>ledgerAction(act,r));actions.append(btn);}
-  if(!buttons.length){const label=document.createElement('small');label.textContent=r.kind==='carry'?'－':r.status==='confirmed'?'確定済み':'操作不可';label.className='muted';actions.append(label);}
+  if(buttons.length){
+   const group=document.createElement('div');group.className='ledger-action-group';
+   for(const [label,act] of buttons){
+    const btn=document.createElement('button');btn.type='button';
+    btn.className=act==='delete'?'btn-danger':act==='confirm'?'btn-green':
+      act==='edit'?'btn-blue':'btn-outline';
+    btn.textContent=label;
+    btn.addEventListener('click',()=>ledgerAction(act,r));group.append(btn);
+   }
+   actions.append(group);
+  }else{
+   const label=document.createElement('small');
+   label.textContent=r.kind==='carry'?'－':future?'開催日前':
+     r.status==='confirmed'?'確定済み':'操作不可';
+   label.className='muted';actions.append(label);
+  }
   tr.append(actions);b.append(tr);
  }
- $('ledgerTotal').textContent='残金：'+yen(ledger.closingBalance);$('nextMonth').disabled=month>=today().slice(0,7);
+ $('ledgerTotal').textContent='残金：'+yen(ledger.closingBalance);
+ $('nextMonth').disabled=month>=(ledger.maxMonth||today().slice(0,7));
 }
-function ledgerAction(act,row){if(act==='edit'){openEditor(row);return;}S.modalTarget={act,row};$('confirmActionTitle').textContent=act==='confirm'?'収支を確定':act==='unlock'?'確定解除':'収支を削除';$('confirmActionText').textContent=row.label;dialog('confirmActionDialog');}
+function ledgerAction(act,row){
+ if(act==='edit'){openEditor(row);return;}
+ S.modalTarget={act,row};
+ const titles={confirm:'【収支の確定】',delete:'【収支の削除】',unlock:'【確定の解除】'};
+ const verbs={confirm:'確定',delete:'削除',unlock:'確定解除'};
+ $('confirmActionTitle').textContent=titles[act]||'【収支の確認】';
+ $('confirmActionText').textContent=window.SMDate.date(row.date)+'　'+row.label+
+  '\n'+verbs[act]+'しますか？';
+ $('doConfirmAction').textContent=act==='confirm'?'確定する':
+   act==='delete'?'削除する':'解除する';
+ $('doConfirmAction').className=act==='delete'?'btn-danger':'btn-green';
+ dialog('confirmActionDialog');
+}
 async function executeLedgerAction(){close('confirmActionDialog');await guard(async()=>{
  const {act,row}=S.modalTarget;await call('/api/ledger/change',{operationId:uuid(),action:act,rowId:row.rowId,expectedVersion:row.version});
  toast((act==='confirm'?'確定':act==='unlock'?'確定解除':'削除')+'しました');if($('ledgerDialog').open)await loadLedger();await reload(false);
@@ -403,15 +431,30 @@ function openEditor(row=null,kind='reimbursement'){
  $('ledgerReimbursementReceipt').disabled=true;$('ledgerCurrentReceipt').textContent='';
  const choices=$('ledgerPractice');choices.replaceChildren();
  const existing=new Set((S.ledger?.rows||[]).filter(r=>r.kind==='practice').map(r=>r.practiceId));
- for(const p of S.overview?.practices||[]){if(p.date<=today()&&!existing.has(p.practiceId))choices.append(new Option(window.SMDate.date(p.date)+' '+p.place,p.practiceId));}
- if(targetKind==='practice'&&!choices.length){toast('再登録できる練習日はありません');return;}
+ for(const p of S.overview?.practices||[]){
+  if(p.date<=today()&&!existing.has(p.practiceId))
+   choices.append(new Option(window.SMDate.date(p.date)+' '+p.place,p.practiceId));
+ }
+ // Only enable the re-registration category when there is a deleted, enabled
+ // practice whose ledger can be recreated. A disabled option cannot be
+ // selected from the dropdown.
+ const available=choices.options.length>0;
+ $('ledgerKind').querySelector('option[value="practice"]').disabled=!available;
+ if(!available&&targetKind==='practice')$('ledgerKind').value='reimbursement';
+ choices.disabled=!available;
  updateEditorKind();dialog('ledgerEditDialog');
 }
 function updateEditorKind(){const kind=$('ledgerKind').value,practice=kind==='practice',reimb=kind==='reimbursement';
  $('ledgerReimbursementFields').hidden=!reimb;$('ledgerGeneralFields').hidden=reimb;$('practiceChoice').hidden=!practice;
  for(const id of ['ledgerPayoutDate','ledgerReimbursementItem','ledgerReimbursementPayee','ledgerReimbursementAmount'])$(id).required=reimb;
  for(const id of ['ledgerEditDate','ledgerEditLabel','ledgerEditIncome','ledgerEditExpense'])$(id).disabled=practice;
- if(practice){const id=$('ledgerPractice').value,info=S.overview.practices.find(x=>x.practiceId===id);if(info){$('ledgerEditDate').value=info.date;$('ledgerEditLabel').value=info.place;$('ledgerEditIncome').value='0';$('ledgerEditExpense').value='0';}}
+ if(practice){
+  const id=$('ledgerPractice').value,info=(S.overview?.practices||[]).find(x=>x.practiceId===id);
+  if(!info){$('submitLedgerEdit').disabled=true;return;}
+  $('ledgerEditDate').value=info.date;$('ledgerEditLabel').value=info.place;
+  $('ledgerEditIncome').value='0';$('ledgerEditExpense').value='0';
+ }
+ $('submitLedgerEdit').disabled=false;
  $('submitLedgerEdit').textContent=practice?'再登録する':reimb?'精算を登録':S.mode==='edit'?'変更する':'登録する';
 }
 function getReimbursementPayload(prefix){return {date:$(prefix==='ledger'?'ledgerPayoutDate':'payoutDate').value,
@@ -420,6 +463,8 @@ function getReimbursementPayload(prefix){return {date:$(prefix==='ledger'?'ledge
  amount:Number($(prefix==='ledger'?'ledgerReimbursementAmount':'reimbursementAmount').value)};}
 async function submitEditor(event){event.preventDefault();await guard(async()=>{
  gateEdit();const kind=$('ledgerKind').value;let payload={operationId:uuid(),action:S.mode==='edit'?'edit':'add',kind};
+ if(kind==='practice'&&(!$('ledgerPractice').value||$('ledgerPractice').disabled))
+  throw new Error('再登録できる練習日がありません');
  if(S.mode==='edit'){payload.rowId=S.ledgerRow.rowId;payload.expectedVersion=S.ledgerRow.version;}
  else if(kind!=='practice')payload.rowId=(kind==='reimbursement'?'R-':'O-')+uuid();
  if(kind==='reimbursement')Object.assign(payload,getReimbursementPayload('ledger'));
@@ -659,7 +704,7 @@ async function saveScheduleMaster_(event){
  },'日程を保存しています…');
 }
 async function confirmScheduleAction_(action,row){
- let description=scheduleDateLabel_(row.date)+' の日程を受付対象に確定しますか？';
+ let description=scheduleDateLabel_(row.date)+'　'+row.place+'\n日程を確定しますか？';
  if(action==='delete'){
   let preview=null;
   await guard(async()=>{
@@ -672,11 +717,11 @@ async function confirmScheduleAction_(action,row){
   if(!preview)return;
   const counts=preview.counts,group=n=>Number(counts[n]||0);
   const match=group('試合セッション')+group('試合版管理')+group('試合操作履歴');
-  description=scheduleDateLabel_(row.date)+' を削除します。参加 '+group('出欠回答')+
-    '件、集金 '+group('集金記録')+'件、収支 '+group('全体収支管理表')+
-    '件、現金確認 '+group('現金確認記録')+'件、試合 '+match+
-    '件、閲覧リンク '+group('閲覧リンク')+
-    '件も削除します。復旧用の記録を残しますが、画面から元には戻せません。よろしいですか？';
+  description=scheduleDateLabel_(row.date)+'　'+row.place+
+    '\n参加'+group('出欠回答')+'件／集金'+group('集金記録')+
+    '件／収支'+group('全体収支管理表')+'件／現金'+group('現金確認記録')+
+    '件／試合'+match+'件／QR'+group('閲覧リンク')+
+    '件も削除します。\n復旧用の記録は残します。削除しますか？';
  }
  SC.action={action,row};
  $('scheduleActionTitle').textContent=action==='delete'?'【日程の削除】':'【日程の確定】';
@@ -1122,7 +1167,12 @@ function bind(){
  $('cancelConfirmAction').addEventListener('click',()=>close('confirmActionDialog'));$('doConfirmAction').addEventListener('click',executeLedgerAction);
  $('closeModal').addEventListener('click',()=>close('modal'));
 }
-function shiftMonth(amount){const [year,month]=$('ledgerMonth').value.split('-').map(Number);const dt=new Date(Date.UTC(year,month-1+amount,1));const next=dt.toISOString().slice(0,7);if(next>today().slice(0,7))return;$('ledgerMonth').value=next;guard(loadLedger);}
+function shiftMonth(amount){
+ const [year,month]=$('ledgerMonth').value.split('-').map(Number);
+ const dt=new Date(Date.UTC(year,month-1+amount,1)),next=dt.toISOString().slice(0,7);
+ if(next>(S.ledger?.maxMonth||today().slice(0,7)))return;
+ $('ledgerMonth').value=next;guard(loadLedger);
+}
 bind();
 window.SMStageUX.run('読み込み中です…',boot)
  .then(()=>window.SMLiveAccess?.openFromCheckLink?.())
