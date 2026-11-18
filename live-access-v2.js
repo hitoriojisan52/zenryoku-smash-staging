@@ -7,9 +7,11 @@
  'use strict';
  if(window.SM_STAGE_ACCESS_V2!==true)return;
  const $=id=>document.getElementById(id);
- const dialog=$('memberAccessDialog'),confirmDialog=$('accessConfirmV2');
+ const dialog=$('memberAccessDialog'),confirmDialog=$('accessConfirmV2'),
+  editDialog=$('memberAccessEditV1656'),editForm=$('memberAccessEditFormV1656');
  const cancel=$('accessConfirmCancelV2'),okay=$('accessConfirmOkayV2'),toastEl=$('toast');
- let api=null,actorRole='',actorMemberId='',busy=false,prompt=null,toastTimer=null;
+ let api=null,actorRole='',actorMemberId='',busy=false,prompt=null,toastTimer=null,
+  editingMember=null;
  const status=s=>{$('memberAccessStatus').textContent=String(s||'');};
  function item(tag,cls,label){
    const x=document.createElement(tag);if(cls)x.className=cls;
@@ -30,6 +32,10 @@
  confirmDialog.addEventListener('close',closePrompt);
  confirmDialog.addEventListener('cancel',event=>{if(prompt?.error)event.preventDefault();});
  cancel.addEventListener('click',()=>confirmDialog.close('no'));
+ editDialog.addEventListener('cancel',event=>{if(busy||prompt)event.preventDefault();});
+ $('memberAccessEditCancelV1656').addEventListener('click',()=>{
+  if(!busy&&!prompt)editDialog.close();
+ });
  okay.addEventListener('click',()=>confirmDialog.close('yes'));
  dialog.addEventListener('cancel',event=>{if(busy||prompt)event.preventDefault();});
  function ask(o,error){
@@ -94,7 +100,7 @@
   info.append(details);
   const actions=item('div','participant-card-buttons member-role-actions');
   content.append(info,actions);card.append(head,content);
-  return {card,details,actions};
+  return {card,head,details,actions};
  }
  function renderHistory(list){
   const section=$('memberAccessHistoryV2'),history=$('memberAccessWithdrawnV2');
@@ -107,11 +113,13 @@
   }
   for(const m of list){
    const completed=m.state==='completed';
-   const line=item('div','live-access-row');
+   const line=item('div','live-access-row access-history-line');
    line.append(item('span','live-access-name',String(m.name||'名前なし')+
     (completed?'（退会済み）':'（確認中）')));
-   if(m.withdrawnAt)line.append(item('span','access-help','退会日：'+
-    (window.SMDate?.dateTimeJst?.(m.withdrawnAt,false)||String(m.withdrawnAt))));
+   if(m.withdrawnAt){
+    const formatted=window.SMDate?.dateTimeJst?.(m.withdrawnAt,false)||String(m.withdrawnAt);
+    line.append(item('span','access-history-date','退会日：'+String(formatted).split(' ')[0]));
+   }
    history.append(line);
   }
  }
@@ -132,48 +140,49 @@
   }
   const adminCount=snapshot.members.filter(m=>m.active&&m.role==='admin').length;
   for(const m of snapshot.members){
-   const frame=cardFrame(String(m.name||'名前なし'),ROLE_LABEL[m.role]||m.role,
-    m.active?'':'停止中');
+   const frame=cardFrame(String(m.name||'名前なし'),'',m.active?'':'停止中');
+   frame.card.classList.add('member-access-card-v1656');
    frame.details.append(cardLine('LINE ID：'+(m.lineUserId||'未紐付け')));
    frame.details.append(cardLine('📅 利用登録日：'+(
     m.registeredAt?(window.SMDate?.dateTimeJst?.(m.registeredAt,false)||String(m.registeredAt)):'未記録')));
    const isSelf=m.memberId===actorMemberId;
    const soleAdmin=m.role==='admin'&&adminCount<=1;
-   // Always show the actual role in the same dropdown. The last
-   // administrator, current actor, and stopped accounts have both controls
-   // disabled instead of replacing them with an unhelpful "変更不可" label.
-   const locked=isSelf||!m.active||soleAdmin;
+   // Keep every control visible. Do not allow role changes to the signed-in
+   // admin or the sole admin, and never withdraw any administrator.
+   const roleLocked=isSelf||!m.active||soleAdmin;
    const select=item('select','live-access-select');
    select.setAttribute('aria-label',m.name+' さんの権限');
    for(const [value,label] of Object.entries(ROLE_LABEL))
     select.add(new Option(label,value));
    select.value=m.role;
-   select.disabled=locked;
-   const change=item('button','btn-blue','変更');
+   select.disabled=roleLocked;
+   frame.head.append(select); // upper-right of the participant-style card
+
+   const edit=item('button','btn-blue','修正');
+   edit.type='button';edit.disabled=!m.active;
+   edit.addEventListener('click',()=>{
+    if(edit.disabled||busy||prompt)return;
+    openMemberEditor(m);
+   });
+   const change=item('button','btn-blue','権限変更');
    change.type='button';change.disabled=true;
    select.addEventListener('change',()=>{
-    change.disabled=locked||select.value===m.role;
+    change.disabled=roleLocked||select.value===m.role;
    });
    change.addEventListener('click',()=>{
-    if(locked||select.disabled||change.disabled)return;
+    if(roleLocked||select.disabled||change.disabled||busy||prompt)return;
     setRole(m,select);
    });
-   frame.actions.append(select,change);
-   // The full roster comes from GAS after LINE ID verification. The Worker
-   // additionally intersects its own stage-only flag with GAS readiness.
-   // Never rely on a client flag to authorize a destructive operation.
-   if(!isSelf&&m.active&&m.role!=='admin'){
-    const withdraw=item('button','btn-outline','退会');
-    withdraw.type='button';
-    withdraw.disabled=snapshot.withdrawEnabled!==true;
-    if(withdraw.disabled)withdraw.title='検証用退会機能の接続準備中です';
-    withdraw.setAttribute('aria-label',m.name+' さんの退会');
-    withdraw.addEventListener('click',()=>{
-     if(withdraw.disabled||busy||prompt)return;
-     withdrawMember(m);
-    });
-    frame.actions.append(withdraw);
-   }
+   const withdraw=item('button','btn-danger','退会');
+   withdraw.type='button';
+   withdraw.disabled=isSelf||!m.active||m.role==='admin'||snapshot.withdrawEnabled!==true;
+   if(withdraw.disabled)withdraw.title='退会できません';
+   withdraw.setAttribute('aria-label',m.name+' さんの退会');
+   withdraw.addEventListener('click',()=>{
+    if(withdraw.disabled||busy||prompt)return;
+    withdrawMember(m);
+   });
+   frame.actions.append(edit,change,withdraw);
    members.append(frame.card);
   }
   renderHistory(snapshot.withdrawn);
@@ -264,20 +273,42 @@
      approve?'承認':'却下',
      data=>!data.pending.some(x=>x.requestId===p.requestId));
  }
+ // The registered member name is the only editable application field.
+ // Never edit LINE identity, memberId, roles, historical attendance or money.
+ function openMemberEditor(m){
+   if(busy||prompt||!m.active||actorRole!=='admin')return;
+   editingMember=m;
+   $('memberAccessEditNameV1656').value=m.name||'';
+   $('memberAccessEditStatusV1656').textContent='';
+   editDialog.showModal();
+   $('memberAccessEditNameV1656').focus({preventScroll:true});
+ }
+ editForm.addEventListener('submit',async event=>{
+   event.preventDefault();
+   if(busy||prompt||!editingMember)return;
+   const m=editingMember;
+   const name=$('memberAccessEditNameV1656').value.normalize('NFKC').trim();
+   if(!name||name.length>30||/[\\r\\n<>]/.test(name)){
+    $('memberAccessEditStatusV1656').textContent='氏名を1～30文字で入力してください。';
+    return;
+   }
+   editDialog.close();editingMember=null;
+   if(name===m.name)return;
+   await mutate('/api/member/manage/edit',{
+      memberId:m.memberId,displayName:name,expectedName:m.name,
+      operationId:crypto.randomUUID()
+     },'修正',data=>data.members.some(x=>x.memberId===m.memberId&&x.name===name));
+ });
  /** v0.16.53: only the verified administrator may withdraw another
   * active nonadmin member from the connected test workbook. Never retry
   * automatically after a network/timeout/error/processing state. */
  async function withdrawMember(m){
    if(busy||prompt||actorRole!=='admin'||!m.active||
       m.role==='admin'||m.memberId===actorMemberId)return;
-   const first=await ask({title:'【退会確認（1/2）】',
-     message:m.name+' さんの登録情報を削除します。\n過去の出欠・集金・試合履歴は残します。',
-     label:'次へ',danger:true});
-   if(!first)return;
-   const second=await ask({title:'【退会確認（2/2）】',
-     message:m.name+' さんを退会させますか？',
+   const confirmed=await ask({title:'【退会確認】',
+     message:m.name+' さんを退会させますか？\n過去の記録は保持します。',
      label:'退会する',danger:true});
-   if(!second)return;
+   if(!confirmed)return;
    const operationId=crypto.randomUUID();
    await mutate('/api/member/manage/withdraw',
      {memberId:m.memberId,confirmMemberId:m.memberId,operationId},
