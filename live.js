@@ -182,35 +182,54 @@ function updateFooter(){const v=S.overview;if(!v)return;const rows=v.participant
  $('completedCount').textContent='集金完了：'+complete.length+'名';
 }
 async function setPayment(p,cb,card){
- gateEdit();const id=p.participantId;if(S.pending.has(id))return;
+ gateEdit();const id=p.participantId;
+ if(S.pending.has(id))return;
+ if(S.paymentNeedsRefresh){
+   cb.checked=!!p.collectionCompleted;toast('保存状態を確認するため「更新」を押してください。');return;
+ }
  const before=p.collectionCompleted,checked=cb.checked,version=p.paymentVersion;
- S.pending.add(id);cb.disabled=true;
+ const practiceId=S.practiceId,request={operationId:uuid(),practiceId,participantId:id,
+   completed:checked,expectedVersion:version,profileTimings:PERF_MODE};
+ S.pending.add(id);cb.disabled=true;card.classList.add('payment-saving');
+ const state=card.querySelector('.payment-checkbox-state');
+ if(state){state.hidden=false;state.textContent='順番待ち…';}
+ syncPaymentControls();
  p.collectionCompleted=checked;card.classList.toggle('checked',checked);updateFooter();
  try{
-   // Saving must not wait for another full overview. Backend returns authoritative versions and balance.
-   const saved=await call('/api/payment',{operationId:uuid(),practiceId:S.practiceId,participantId:id,completed:checked,expectedVersion:version,profileTimings:PERF_MODE});
-   if(saved?.practiceId!==S.practiceId||saved?.participantId!==id||saved.completed!==checked||
-     saved.version!==version+1||!Number.isSafeInteger(saved.ledgerVersion)||!Number.isSafeInteger(saved.balance)){
+   // Only two requests in flight. GAS still serializes financial mutations.
+   const saved=await paymentCall_(
+     ()=>call('/api/payment',request),
+     ()=>{if(state)state.textContent='保存中…';}
+   );
+   if(saved?.practiceId!==practiceId||saved?.participantId!==id||saved.completed!==checked||
+      saved.version!==version+1||!Number.isSafeInteger(saved.ledgerVersion)||
+      !Number.isSafeInteger(saved.balance)||!Number.isSafeInteger(saved.income)){
      const e=new Error('保存結果を確認できませんでした。「更新」で最新状態をご確認ください。');
      e.appliedButRefreshFailed=true;throw e;
    }
    p.paymentVersion=saved.version;
    const ledger=S.overview?.ledger;
-   if(ledger){
-     ledger.version=saved.ledgerVersion;
-     ledger.income=Number.isSafeInteger(saved.income)?saved.income:ledger.income+(Number(checked)-Number(before))*p.fee;
-     ledger.balance=saved.balance;
+   // Responses may arrive in a different order than committed financial writes.
+   if(ledger&&saved.ledgerVersion>ledger.version){
+     ledger.version=saved.ledgerVersion;ledger.income=saved.income;ledger.balance=saved.balance;
    }
    updateFooter();renderGasProfile_(saved.gasTimings);toast('集金処理を更新しました');
  }catch(e){
-   // Unknown outcome: do not automatically replay a financial write.
-   if(!e.appliedButRefreshFailed){
-     p.collectionCompleted=before;cb.checked=before;card.classList.toggle('checked',before);updateFooter();
+   S.paymentNeedsRefresh=true;
+   // A failed POST may already have committed. Revert only known rejection or
+   // unsent queued actions, never an ambiguous network failure.
+   const definitelyNotSaved=e.notSent||(Number.isInteger(e.status)&&e.status>=400&&e.status<500);
+   if(definitelyNotSaved){
+     p.collectionCompleted=before;cb.checked=before;card.classList.toggle('checked',before);
    }
+   updateFooter();
+   drainPaymentQueue_(); // Stop the queued, unsubmitted financial writes.
    throw e;
  }finally{
-   S.pending.delete(id);
-   cb.disabled=S.overview?.ledger?.status==='confirmed';
+   S.pending.delete(id);card.classList.remove('payment-saving');
+   if(state){state.textContent='';state.hidden=true;}
+   cb.disabled=S.paymentNeedsRefresh||S.overview?.ledger?.status==='confirmed';
+   syncPaymentControls();
  }
 }
 function setupLongPress(element,p){let timer=null,started=false;
