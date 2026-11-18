@@ -57,6 +57,6 @@ assert(accessV2.includes('await open();'),'check deep link must await member man
 assert(liveJs.includes(".then(()=>window.SMLiveAccess?.openFromCheckLink?.())"),'manager opens only after initial busy loading');
 assert(accessV2.includes("checkButton.scrollIntoView?.({block:'center'})"),'check button should be visible on deep-linked modal');
 assert(stagingLive.includes('live-access-v2.js?v=1636a'),'management script cache must refresh');
-assert(stagingLive.includes('live.js?v=1636f'),'startup script cache must refresh');
+assert(stagingLive.includes('live.js?v=1636g'),'startup script cache must refresh');
 assert(v2Mode.includes("direct.get('withdrawCheck')==='1'"),'check deep link flag missing');
 console.log('PASS: '+checked+' UI standard checks');
