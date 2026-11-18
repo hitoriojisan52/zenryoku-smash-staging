@@ -88,14 +88,24 @@ GitHub **Actions → Staging GAS - GitHub / clasp → Run workflow**
 - 対象の架空一郎・架空次郎の集金状態が意図どおり
 - その後で診断用LIFF（`?accessUi=v2&perf=1&v=1636c`）で一人ずつON→OFFして所要時間を測定。異常時の連打・自動再送をしない
 
-## 運用に慣れた後：GitHubへのコミットで自動更新
+## 自動デプロイ：検証環境はChatGPTが反映・結果確認
 
-初期状態では**自動デプロイOFF**です。上記の事前確認・初回更新・実機回帰検証が終わった後、GitHub → Settings → Secrets and variables → Actions → **Variables** に次を設定すると有効になります。
+2026-11-18のユーザー承認により、**検証環境に限りGitHub Actionsの自動デプロイを有効化**。
+初回のpreflight・手動deployは成功済み。通常、ユーザーのRun workflow操作は不要。
 
-- Name: `GAS_STAGE_AUTODEPLOY`
-- Value: `enabled`
+1. ChatGPTが変更を検証し、GitHubの作業ブランチ・PRを作成する。
+2. 検証テスト合格後、ChatGPTがPRを`main`へマージする。
+3. `gas-staging/*.gs`、GAS用デプロイスクリプト、またはこのワークフローの更新によりGitHub Actionsが**既存ステージングGASへ自動デプロイ**する。
+4. ChatGPTがGitHub Actionsの成功/失敗ログ、GASへのソース照合、Google Sheetの保全状態を確認し、結果・確認用LIFFリンクを報告する。実機でしか確認できない操作だけユーザーが行う。
 
-有効時だけ、`main` の `gas-staging/*.gs`（GASソース）またはデプロイスクリプトの変更がGitHubに入ると、GASデプロイが自動で走ります。通常のフロントエンド、対戦表、Workerのみの変更ではGASデプロイしません。GitHubのレビューを通したコードだけが反映されます。
+GitHub Actionsは既存の`GAS_STAGE_SCRIPT_ID` / `GAS_STAGE_DEPLOYMENT_ID` / `GAS_STAGE_CLASPRC_JSON` Secretsを使用し、`clasp pull` → ドリフト検査 → 二つのGASファイルの上書き → `clasp push` → 再取得・一致検査 → **既存のデプロイIDを更新**の順で処理する。
+スプレッドシートのバックアップや整合性検証は必要に応じて実施する。
+
+**本番環境は別管理・別承認制**とし、ステージングのSecretsとデプロイワークフローを本番に再利用してはいけない。
+本番への変更は、ユーザーが対象版と変更内容を明示的に承認し、手動起動・GitHub EnvironmentのRequired reviewersにより承認されてから反映する。
+本リポジトリには本番用デプロイ処理を設けない。
+
+`gas-staging/README.md` などのドキュメントだけの変更では自動デプロイされません。
 
 ## 2026-11-18 preflight初回実行で見つかったclaspのファイル拡張子差異
 
