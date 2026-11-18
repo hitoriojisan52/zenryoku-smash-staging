@@ -730,7 +730,8 @@ function scheduleDeletePlan_(ss,existing){
   fail_('SETUP','引継行は日程削除の対象にできません');
  if(affected.some(function(r){return r.status==='confirmed';}))
   fail_('LOCKED','収支確定済みです。確定解除してから削除してください');
- var retained=original.filter(function(r){return affected.indexOf(r)===-1;});
+ var retained=original.filter(function(r){return affected.indexOf(r)===-1;})
+  .map(function(r){return Object.assign({},r);}); // independent copies: preserve finalized-row balance baseline
  // Existing finalized balances must remain exactly unchanged.
  balanceRecalc_(retained,original);
  var targets=scheduleDeleteTargets_(ss,id),counts={};
