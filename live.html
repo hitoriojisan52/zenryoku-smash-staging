@@ -114,6 +114,9 @@ body.visitor-member #visitorMemberHome button{width:100%}
   <div class="expense-box"><label for="expense">当日支出</label><div class="expense-actions"><button id="receiptBtn" type="button" class="btn-blue receipt-btn">🧾 領収書</button><span><input id="expense" type="number" value="0" min="0" step="1" inputmode="numeric"> 円</span></div></div>
   <div class="home-footer-bar"><div class="home-footer-row"><div class="income-block"><span id="income">集金額：0円 / 0円</span><span id="adjustmentDisplay">当日補正：(+0円)</span></div><span id="expenseDisplay">支出：0円</span></div><div class="home-footer-action"><strong id="balance">残金：0円</strong><button id="confirm" class="btn-green" type="button">収支を確定</button></div></div>
  <div id="visitorMemberHome" hidden>
+ <h2>📨 LINE参加連絡（検証）</h2>
+ <p class="stage-system-message stage-system-message--info">ご自身の練習出欠を送信・修正できます。送信日時はサーバー側で記録します。</p>
+ <button id="memberAttendanceStart" class="btn-blue" type="button">参加連絡・予定修正</button>
  <h2>👤 ビジター登録・申請状況</h2>
  <p class="stage-system-message stage-system-message--info">ビジターの参加希望を受けたメンバーが申請します。管理者の承認後に参加者一覧へ反映されます。</p>
  <button id="visitorMemberStart" class="btn-green" type="button">＋ ビジター登録</button>
@@ -124,7 +127,7 @@ body.visitor-member #visitorMemberHome button{width:100%}
 <dialog id="modal"><h2 id="modalTitle"></h2><p id="modalText"></p><div class="modal-actions"><button id="closeModal" class="btn-outline" type="button">閉じる</button></div></dialog>
 <dialog id="categoryDialog"><h2>参加区分の変更</h2><p id="categoryPerson" class="modal-subtitle"></p><label class="dialog-label" for="categorySelect">参加区分</label><select id="categorySelect" class="dialog-select"><option value="member">メンバー</option><option value="student">学生</option><option id="categorySelectVisitor" value="visitor">ビジター</option><option value="duty">当番担当</option><option value="shuttle">シャトル担当</option></select><div class="modal-actions"><button id="cancelCategory" class="btn-outline" type="button">キャンセル</button><button id="saveCategory" class="btn-green" type="button">変更する</button></div></dialog>
 <dialog id="reimbursementDialog"><h2>💴 立替精算</h2><form id="reimbursementForm"><label class="dialog-label" for="payoutDate">精算日（現金を渡した日）</label><input class="dialog-input" id="payoutDate" type="date" required><label class="dialog-label" for="reimbursementItem">費目</label><input class="dialog-input" id="reimbursementItem" maxlength="80" type="text" placeholder="例：シャトル購入代" required><label class="dialog-label" for="reimbursementPayee">立替者</label><input class="dialog-input" id="reimbursementPayee" maxlength="60" type="text" placeholder="例：全力太郎" required><label class="dialog-label" for="reimbursementAmount">精算額（円）</label><input class="dialog-input" id="reimbursementAmount" type="number" min="1" step="1" required inputmode="numeric"><label class="dialog-label" for="reimbursementReceipt">領収書</label><input class="dialog-input" id="reimbursementReceipt" type="file" accept="image/*,.pdf,application/pdf"><div class="modal-actions"><button id="cancelReimbursement" type="button" class="btn-outline">キャンセル</button><button type="submit" class="btn-green">精算を登録</button></div></form></dialog>
-<dialog id="manageDialog"><h2>⚙ 運用管理</h2><div class="manage-grid"><button id="cashCounter" type="button" class="btn-outline">💰 現金確認</button><button id="openLedger" type="button" class="btn-blue">📊 収支表</button><button id="manageSchedules" type="button" class="btn-outline">📅 練習日程</button><button id="managePeople" type="button" class="btn-outline">👥 参加者一覧</button><button id="visitorRegisterMenu" type="button" class="btn-outline">＋ ビジター申請</button><button id="visitorAdminMenu" type="button" class="btn-blue" hidden>👤 ビジター管理</button><button id="matchManage" type="button" class="btn-blue">🏸 対戦表</button><button id="manageAccess" type="button" class="btn-blue" hidden>🔐 メンバー・権限管理</button></div><div class="modal-actions"><button id="closeManage" class="btn-outline" type="button">閉じる</button></div></dialog>
+<dialog id="manageDialog"><h2>⚙ 運用管理</h2><div class="manage-grid"><button id="cashCounter" type="button" class="btn-outline">💰 現金確認</button><button id="openLedger" type="button" class="btn-blue">📊 収支表</button><button id="manageSchedules" type="button" class="btn-outline">📅 練習日程</button><button id="managePeople" type="button" class="btn-outline">👥 参加者一覧</button><button id="manageAttendance" type="button" class="btn-blue">📨 自分の参加連絡</button><button id="visitorRegisterMenu" type="button" class="btn-outline">＋ ビジター申請</button><button id="visitorAdminMenu" type="button" class="btn-blue" hidden>👤 ビジター管理</button><button id="matchManage" type="button" class="btn-blue">🏸 対戦表</button><button id="manageAccess" type="button" class="btn-blue" hidden>🔐 メンバー・権限管理</button></div><div class="modal-actions"><button id="closeManage" class="btn-outline" type="button">閉じる</button></div></dialog>
 <dialog id="memberAccessDialog" aria-labelledby="memberAccessTitle">
     <h2 id="memberAccessTitle">🔐 メンバー・権限管理</h2>
     <p class="access-help">管理者専用です。新規登録の承認時には一般メンバーとして登録します。</p>
@@ -222,6 +225,22 @@ body.visitor-member #visitorMemberHome button{width:100%}
  <p id="visitorMineDeleteText"></p>
  <div class="modal-actions"><button id="visitorMineDeleteCancel" type="button" class="btn-outline">キャンセル</button><button id="visitorMineDeleteSave" type="button" class="btn-danger">削除する</button></div>
 </dialog>
+<dialog id="attendanceDialog" aria-labelledby="attendanceDialogTitle">
+ <h2 id="attendanceDialogTitle">📨 LINE参加連絡・予定修正（検証）</h2>
+ <p class="stage-system-message stage-system-message--info">利用登録した本人の出欠だけを変更できます。ビジターの登録は別の申請画面をご利用ください。</p>
+ <form id="attendanceForm">
+  <label for="attendancePractice" class="dialog-label">練習日（開催場所）</label>
+  <select id="attendancePractice" class="dialog-select" required></select>
+  <label for="attendanceAttending" class="dialog-label">出欠</label>
+  <select id="attendanceAttending" class="dialog-select"><option value="attend">参加</option><option value="absent">欠席</option></select>
+  <label for="attendanceMemo" class="dialog-label">備考（任意）</label>
+  <input id="attendanceMemo" class="dialog-input" maxlength="200" type="text">
+  <p id="attendanceLastDate" class="schedule-note" aria-live="polite"></p>
+  <p id="attendanceNotice" class="stage-system-message stage-system-message--warning" role="status" aria-live="polite" hidden></p>
+  <div class="modal-actions"><button id="attendanceCancel" class="btn-outline" type="button">キャンセル</button>
+   <button id="attendanceSave" class="btn-green" type="submit">参加連絡を送信</button></div>
+ </form>
+</dialog>
 <dialog id="participantDialog" aria-labelledby="participantTitle">
  <div class="participant-heading"><h2 id="participantTitle">👥 参加者一覧</h2><button id="participantClose" class="btn-outline" type="button">✕ 閉じる</button></div>
  <div class="participant-controls"><select id="participantPractice" class="dialog-select" aria-label="開催日を選択"></select><button id="participantReload" class="btn-blue" type="button">更新</button></div>
@@ -315,7 +334,12 @@ body.visitor-member #visitorMemberHome button{width:100%}
 </dialog>
 <dialog id="stageErrorDialog" aria-labelledby="stageErrorTitle" aria-describedby="stageErrorMessage" role="alertdialog">
  <h2 id="stageErrorTitle">操作できませんでした</h2><p id="stageErrorMessage"></p>
+ <p id="stageLineAuthHelp" class="stage-system-message stage-system-message--info" hidden>
+  LINE認証を確認できません。LINEアプリのトークから検証用LIFFを開き直してください。
+  解消しない場合は、LIFFの所属チャネルとWorkerのLINE_LOGIN_CHANNEL_IDが一致しているかを確認してください。
+  <a id="stageLineReopen" href="https://liff.line.me/2012602642-XBSkXduO">検証用LIFFを開く</a>
+ </p>
  <div class="modal-actions"><button id="stageErrorOkay" class="btn-outline" type="button">閉じる</button></div>
 </dialog>
-<script src="date-format.js?v=1641"></script><script src="model.js"></script><script src="access-v2-mode.js?v=1627a"></script><script src="live-access.js?v=162e"></script><script src="stage-ui.js?v=1620a"></script><script src="dialog-close.js?v=1644"></script><script src="live-access-v2.js?v=1641"></script><script src="runtime-config.js?v=164a"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script src="cash-reconcile.js?v=1637b"></script><script src="visitor-approval.js?v=1642"></script><script type="module" src="live.js?v=1644"></script>
+<script src="date-format.js?v=1641"></script><script src="model.js"></script><script src="access-v2-mode.js?v=1627a"></script><script src="live-access.js?v=162e"></script><script src="stage-ui.js?v=1620a"></script><script src="dialog-close.js?v=1644"></script><script src="live-access-v2.js?v=1641"></script><script src="runtime-config.js?v=164a"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script src="cash-reconcile.js?v=1637b"></script><script src="visitor-approval.js?v=1642"></script><script type="module" src="live.js?v=1645"></script>
 </body></html>
