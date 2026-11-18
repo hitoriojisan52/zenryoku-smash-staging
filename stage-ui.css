@@ -145,3 +145,57 @@
 }
 .stage-ui #visitorDialog .visitor-review-list{max-height:34dvh;overflow-y:auto;overscroll-behavior:contain}
 .stage-ui .visitor-form-section-heading{font-size:15px;color:#263746;font-weight:700;margin:10px 0 7px;}
+
+/* v0.16.42 shared v7 participant/visitor card and collapsible application form */
+.stage-ui .participant-card-content{
+ display:flex;gap:8px;justify-content:space-between;align-items:stretch;min-width:0;
+}
+.stage-ui .participant-card-info{flex:1;min-width:0;overflow-wrap:anywhere}
+.stage-ui .participant-card-buttons{
+ display:flex;flex:none;justify-content:flex-end;align-items:flex-end;
+ align-self:flex-end;gap:5px;
+}
+.stage-ui .participant-card-buttons button{
+ min-height:44px;min-width:48px;padding:7px 9px;border-radius:6px;font-size:12px;
+}
+.stage-ui #visitorDialog,.stage-ui #visitorAdminDialog{
+ max-width:480px;width:calc(100% - 18px);
+ max-height:calc(100dvh - 24px);overflow-y:auto;
+}
+.stage-ui #visitorDialog .visitor-review-list{
+ max-height:36dvh;overflow:auto;overscroll-behavior:contain;
+}
+.stage-ui #visitorAdminDialog .visitor-review-list{
+ max-height:63dvh;overflow:auto;overscroll-behavior:contain;
+}
+.stage-ui .visitor-new-form-section{
+ margin:12px 0 2px;border:1px solid #cfd8df;border-radius:7px;
+ background:#f8fafc;overflow:hidden;
+}
+.stage-ui .visitor-new-form-section summary{
+ cursor:pointer;list-style:revert;padding:11px 12px;
+ color:#1976d2;font-size:15px;font-weight:700;min-height:44px;
+}
+.stage-ui .visitor-new-form-section[open] summary{
+ border-bottom:1px solid #d7e1e9;background:#eef5fb;
+}
+.stage-ui .visitor-new-form-section form{padding:8px 12px 12px;background:#fff}
+.stage-ui .visitor-review-card{
+ background:#fafafa;border:1px solid #ddd;border-radius:6px;
+ padding:8px 10px;margin:0 0 6px;
+}
+.stage-ui .visitor-review-card .visitor-review-info{
+ display:flex;flex-direction:column;gap:2px;margin:0 0 4px;
+ font-size:12px;line-height:1.5;color:#555;
+}
+.stage-ui .visitor-review-card .visitor-review-actions{
+ margin:0;padding:0;border:none;min-width:0;
+}
+.stage-ui .visitor-review-card .visitor-review-actions button{min-width:50px;min-height:44px}
+.stage-ui .visitor-review-card .participant-card-memo{margin:0;font-size:11.5px}
+.stage-ui .visitor-review-card .participant-card-title{margin:0 0 4px}
+@media(max-width:350px){
+ .stage-ui .participant-card-content{gap:4px}
+ .stage-ui .participant-card-buttons{gap:3px}
+ .stage-ui .participant-card-buttons button{padding:6px 7px;min-width:44px}
+}
