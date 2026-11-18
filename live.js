@@ -716,7 +716,7 @@ function renderVisitorPracticeOptions_(){
 async function openVisitorForm_(){
  let loaded=false;
  await guard(async()=>{
-  const response=await call('/api/visitor/practices');
+  const [response]=await Promise.all([call('/api/visitor/practices'),window.SMVisitor.loadMine()]);
   VIS.practices=validateVisitorPractices_(response);
   VIS.draft=null;VIS.unknownResult=false;
   $('visitorName').value='';$('visitorKana').value='';$('visitorMemo').value='';
@@ -767,8 +767,13 @@ async function registerVisitor_(){
    throw new Error('申請結果が不明です。申請状況を更新して確認してください。');
   }
   VIS.draft=null;
-  close('visitorDialog');
-  await window.SMVisitor.loadMine();
+  $('visitorName').value='';$('visitorKana').value='';$('visitorMemo').value='';
+  // Keep the integrated screen open: the newly submitted request must be
+  // visible ABOVE the next empty registration form.
+  try{await window.SMVisitor.loadMine();}
+  catch(_){
+   $('visitorStatus').textContent='申請は受け付けられました。申請状況を「更新」で確認してください。';
+  }
   toast(d.name+'さんのビジター申請を受け付けました');
  },'ビジターの登録申請を送信しています…');
 }
