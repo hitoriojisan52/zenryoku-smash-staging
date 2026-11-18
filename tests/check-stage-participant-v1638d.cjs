@@ -101,6 +101,18 @@ ok(baseline.participants[0].lineUserId==='U'+'a'.repeat(32)&&
  'attendee's own memberId resolves LINE subject, not registering duty member or visitor sponsor');
 ok(!baseline.financeLocked&&!baseline.matchLocked,'not finalized and no match allows editing');
 ok(baseline.practices.length===2,'all enabled schedules returned for date selector');
+const catStart=gas.indexOf('function setCategory_('),catEnd=gas.indexOf('function mutateLedger_(',catStart);
+ok(catStart>=0&&catEnd>catStart,'direct fee-category operation present');
+const setCategory=new Function('str_','practice_','SM','fail_','entries_','row_','unlockable_',
+ 'sheet_','sheetRows_','bool_','expectVersion_','paymentRows_','fee_','balanceRecalc_','writeLedger_',
+ gas.slice(catStart,catEnd)+'\nreturn setCategory_;')(
+ str_,(_ss,id)=>practices.find(x=>x.practiceId===id),SM,fail_,entries_,
+ (xs,id)=>xs.find(x=>x.rowId===id),()=>{},sheet_,sheetRows_,bool_,expectVersion_,
+ (_ss,id)=>rows['集金記録'].filter(x=>x[0]===id),fee_,balanceRecalc_,writeLedger_);
+fails(()=>setCategory({},member,{practiceId:'P-TODAY',participantId:'M-A',
+ category:'visitor',expectedVersion:0}),'LOCKED');
+ok(writes.length===0,'direct fee-category endpoint cannot turn a member into a visitor');
+
 fails(()=>fn.participantChange_({},member,{action:'edit',practiceId:'P-TODAY',
  participantId:'M-A',expectedVersion:77}),'CONFLICT');
 ok(writes.length===0,'stale edit writes nothing');
