@@ -71,6 +71,8 @@ const find=(e,cls)=>e.children.find(x=>x.className===cls);
  p[1].listeners.click();
  ok(elements.visitorDecisionConfirm.className==='btn-danger'&&elements.visitorDecisionDialog.open,
   'rejection confirmation button explicitly uses destructive red');
+ elements.visitorDecisionCancel.listeners.click();
+ ok(!elements.visitorDecisionDialog.open,'confirmation cancellation closes the dialog');
  p[0].listeners.click();
  ok(elements.visitorDecisionConfirm.className==='btn-green',
   'approval confirmation button explicitly uses positive green');
