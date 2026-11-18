@@ -113,7 +113,7 @@ conf.SPREADSHEET_ID=STAGE;
 blocked(()=>withdraw({memberId:OLD,role:'member'},ADMIN),'FORBIDDEN',
  'only authenticated administrators can initiate withdrawal');
 blocked(()=>withdraw(member,ADMIN),'FORBIDDEN','cannot withdraw the actor');
-blocked(()=>withdraw(member,'M-UNKNOWN'),'WITHDRAW_DISABLED','unknown IDs blocked at gate');
+blocked(()=>withdraw(member,'M-UNKNOWN'),'NOT_FOUND','unknown IDs rejected by unique member lookup');
 blocked(()=>withdraw(member,OLD,'not-an-id'),'BAD_REQUEST','UUID v4 mandatory');
 ok(writes===0,'invalid and unsafe requests performed zero writes');
 const result=withdraw();
