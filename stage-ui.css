@@ -298,3 +298,20 @@
  font-size:13px;white-space:nowrap;font-weight:700;
 }
 .stage-ui .ledger-table .ledger-row-actions .muted{display:block;text-align:right}
+
+/* v0.16.50: restore the v15 ledger proportions and fixed left action column. */
+.stage-ui .ledger-dialog{width:calc(100% - 20px);max-width:1200px}
+.stage-ui .ledger-table{min-width:880px;width:100%;font-size:13px}
+.stage-ui .ledger-table tr.carry-row{background:#fff9e5!important}
+.stage-ui .ledger-table tr.confirmed:not(.carry-row){background:#f5f7f9}
+.stage-ui .ledger-table td.ledger-row-actions{
+ text-align:left;vertical-align:middle;min-width:180px;
+}
+.stage-ui .ledger-table .ledger-action-group{
+ display:flex;align-items:center;justify-content:flex-start;
+ flex-wrap:nowrap;gap:5px;
+}
+.stage-ui .ledger-table .ledger-action-group button{
+ min-width:46px;min-height:40px;padding:6px 8px;font-size:12px;
+}
+.stage-ui .ledger-table .ledger-row-actions .muted{display:block;text-align:left}

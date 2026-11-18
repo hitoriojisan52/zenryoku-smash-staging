@@ -1,6 +1,6 @@
 /* v0.16.19 opt-in member administration UI for the existing staging LIVE page.
  * Enabled ONLY when ?accessUi=v2 is present. Original stage UI stays unchanged.
- * No withdrawal mutation endpoint, no rich-menu sync, no test fixture member IDs.
+ * Withdrawal remains disabled until the staging backend is safely approved; no rich-menu sync.
  */
 (function () {
  'use strict';
@@ -97,22 +97,21 @@
  }
  function renderHistory(list){
   const section=$('memberAccessHistoryV2'),history=$('memberAccessWithdrawnV2');
-  section.hidden=false;history.replaceChildren();
-  if(!Array.isArray(list)){
-   history.append(item('p','stage-system-message stage-system-message--warning','退会履歴を取得できません。'));
-   return;
-  }
+  // v0.16.23: do not confuse an unsupported history API with an empty history.
+  section.hidden=!Array.isArray(list);history.replaceChildren();
+  if(!Array.isArray(list))return;
   if(!list.length){
-   history.append(item('p','access-help','退会者はいません。'));
+   history.append(item('p','access-help','退会履歴はありません。'));
    return;
   }
   for(const m of list){
    const completed=m.state==='completed';
-   const frame=cardFrame(String(m.name||'名前なし'),completed?'退会済み':'退会処理中',
-    completed?'退会済み':'確認中');
-   frame.details.append(cardLine('📅 退会日：'+(
-    m.withdrawnAt?(window.SMDate?.dateTimeJst?.(m.withdrawnAt,false)||String(m.withdrawnAt)):'未記録')));
-   history.append(frame.card);
+   const line=item('div','live-access-row');
+   line.append(item('span','live-access-name',String(m.name||'名前なし')+
+    (completed?'（退会済み）':'（確認中）')));
+   if(m.withdrawnAt)line.append(item('span','access-help','退会日：'+
+    (window.SMDate?.dateTimeJst?.(m.withdrawnAt,false)||String(m.withdrawnAt))));
+   history.append(line);
   }
  }
  function render(snapshot){
@@ -159,6 +158,18 @@
     setRole(m,select);
    });
    frame.actions.append(select,change);
+   // The existing staging withdrawal endpoint is deliberately test-gated.
+   // Do not advertise a live destructive action until its server policy
+   // permits real members. Keep the target identifiable and the control
+   // present for the later reviewed backend rollout.
+   if(!isSelf&&m.active&&m.role!=='admin'){
+    const withdraw=item('button','btn-outline','退会');
+    withdraw.type='button';
+    withdraw.disabled=true;
+    withdraw.title='退会機能の接続準備中です';
+    withdraw.setAttribute('aria-label',m.name+' さんの退会（準備中）');
+    frame.actions.append(withdraw);
+   }
    members.append(frame.card);
   }
   renderHistory(snapshot.withdrawn);
@@ -267,10 +278,11 @@
    await refresh(true);
  }
  $('memberAccessTitle').textContent='🔐 メンバー権限管理';
- // Show withdrawal history directly; the old collapsed details hid records.
+ // v0.16.23: collapsed disclosure, shown only when history is supported.
  const actions=dialog.querySelector('.modal-actions');
- const detail=item('section','access-history-v2');detail.id='memberAccessHistoryV2';
- detail.append(item('h3','','退会者一覧'));
+ const detail=item('details','access-history-v2');detail.id='memberAccessHistoryV2';
+ detail.hidden=true;
+ detail.append(item('summary','','退会履歴を見る'));
  const history=item('div','');history.id='memberAccessWithdrawnV2';
  detail.append(history);
  dialog.insertBefore(detail,actions);

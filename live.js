@@ -376,29 +376,36 @@ async function loadLedger(){const month=$('ledgerMonth').value,ledger=await call
  for(const r of rows){const tr=document.createElement('tr');
   for(const v of [window.SMDate.date(r.date),r.label,yen(r.income),yen(r.expense),yen(r.balance),r.confirmedBy||'']){const td=document.createElement('td');td.textContent=v;tr.append(td);}
   const actions=document.createElement('td');actions.className='ledger-row-actions';
-  const buttons=[],future=r.date>today();
-  if(r.kind!=='carry'&&!future){
-    if(r.status==='confirmed'&&S.actor.role==='admin')buttons.push(['解除','unlock']);
-    else if(r.status!=='confirmed'){
-      if(r.kind!=='practice')buttons.push(['修正','edit']);
-      buttons.push(['削除','delete'],['確定','confirm']);
-    }
-  }
-  if(buttons.length){
+  const future=r.date>today(),carry=r.kind==='carry',confirmed=r.status==='confirmed';
+  if(carry)tr.classList.add('carry-row');
+  if(confirmed&&!carry)tr.classList.add('confirmed');
+  // v15: fixed left-aligned action slots. A disabled Edit button remains visible
+  // for practice rows, future rows, and other non-editable entries.
+  if(!carry){
    const group=document.createElement('div');group.className='ledger-action-group';
-   for(const [label,act] of buttons){
+   const canEdit=!future&&!confirmed&&r.kind!=='practice';
+   const canDelete=!future&&!confirmed;
+   const canConfirm=!future&&!confirmed;
+   const slots=[['修正','edit',canEdit],['削除','delete',canDelete],
+     [confirmed?'確定済み':'確定','confirm',canConfirm]];
+   for(const [label,act,enabled] of slots){
     const btn=document.createElement('button');btn.type='button';
-    btn.className=act==='delete'?'btn-danger':act==='confirm'?'btn-green':
-      act==='edit'?'btn-blue':'btn-outline';
-    btn.textContent=label;
-    btn.addEventListener('click',()=>ledgerAction(act,r));group.append(btn);
+    btn.className=act==='delete'?'btn-outline':act==='confirm'?'btn-green':'btn-blue';
+    btn.textContent=label;btn.disabled=!enabled;
+    if(enabled)btn.addEventListener('click',()=>ledgerAction(act,r));
+    group.append(btn);
+   }
+   // Confirmed rows are immutable, but administrators can unlock them.
+   if(confirmed&&S.actor.role==='admin'&&!future){
+    const unlock=document.createElement('button');unlock.type='button';
+    unlock.className='btn-outline';unlock.textContent='確定解除';
+    unlock.addEventListener('click',()=>ledgerAction('unlock',r));
+    group.append(unlock);
    }
    actions.append(group);
   }else{
-   const label=document.createElement('small');
-   label.textContent=r.kind==='carry'?'－':future?'開催日前':
-     r.status==='confirmed'?'確定済み':'操作不可';
-   label.className='muted';actions.append(label);
+   const label=document.createElement('small');label.className='muted';
+   label.textContent='－';actions.append(label);
   }
   tr.append(actions);b.append(tr);
  }

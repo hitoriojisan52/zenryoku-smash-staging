@@ -110,23 +110,25 @@ ok(inactiveNodes.some(e=>e.textContent==='停止中'),
  'stopped state is still distinguished without an active/inactive switch');
 ok(elements.memberAccessHistoryV2.hidden===false &&
  elements.memberAccessWithdrawnV2.children.length===1,
- 'withdrawn member cards are visible without expanding a disclosure');
-ok(traverse(elements.memberAccessWithdrawnV2).some(e=>e.textContent==='👤 退会者'),
- 'withdrawn record is actually rendered');
+ 'supported withdrawal history is available as a collapsible disclosure');
+ok(traverse(elements.memberAccessWithdrawnV2).some(e=>e.textContent==='退会者（退会済み）'),
+ 'withdrawn history uses compact v15-era rows');
 names.renderHistory([]);
 ok(elements.memberAccessHistoryV2.hidden===false &&
- traverse(elements.memberAccessWithdrawnV2).some(e=>e.textContent==='退会者はいません。'),
- 'even empty history visibly distinguishes no records from hidden records');
+ traverse(elements.memberAccessWithdrawnV2).some(e=>e.textContent==='退会履歴はありません。'),
+ 'legacy empty history message restored');
 names.renderHistory(undefined);
-ok(traverse(elements.memberAccessWithdrawnV2).some(e=>/取得できません/.test(e.textContent)),
- 'missing backend history reports an error instead of silently hiding it');
+ok(elements.memberAccessHistoryV2.hidden===true,
+ 'unsupported history API hides disclosure rather than showing empty history');
+ok(traverse(cards[1]).some(e=>e.tag==='button'&&e.textContent==='退会'&&e.disabled),
+ 'member-specific withdrawal remains disabled while server permits synthetic targets only');
 // Finance actions: original editor, role gate and compact bracketed prompts.
-ok(ui.includes("btn.className=act==='delete'?'btn-danger':act==='confirm'?'btn-green'")&&
- ui.includes("act==='edit'?'btn-blue':'btn-outline'"),
- 'edit blue, confirm green, delete red');
+ok(ui.includes("const slots=[['修正','edit',canEdit]")&&
+ ui.includes("btn.disabled=!enabled")&&ui.includes("tr.classList.add('carry-row')"),
+ 'v15 fixed ledger buttons, disabled Edit slot and carry row restored');
 ok(ui.includes("group.className='ledger-action-group'")&&
- css.includes('justify-content:flex-end')&&css.includes('td.ledger-row-actions'),
- 'finance action cells align right');
+ css.includes('justify-content:flex-start')&&css.includes('td.ledger-row-actions'),
+ 'v15 finance action cells align left');
 ok(ui.includes("const titles={confirm:'【収支の確定】'")&&
  ui.includes('window.SMDate.date(row.date)'),
  'finance confirm includes bracketed title and meeting date');
