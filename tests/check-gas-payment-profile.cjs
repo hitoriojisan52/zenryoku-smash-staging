@@ -9,7 +9,7 @@ const html=fs.readFileSync(path.join(root,'live.html'),'utf8');
 let n=0;const ok=(v,m)=>{assert.ok(v,m);n++;};
 new vm.Script(gas);ok(true,'GAS syntax compiles');
 new vm.Script(ui);ok(true,'client syntax compiles');
-ok(html.includes('live.js?v=1636g'),'updated diagnostic JS cache');
+ok(html.includes('live.js?v=1637a'),'updated diagnostic JS cache');
 ok(html.includes('id="perfBreakdown" hidden'),'diagnostics hidden by default');
 ok(ui.includes('if(!PERF_MODE||!timings'),'panel disabled in normal mode');
 ok(ui.includes('profileTimings:PERF_MODE'),'opt-in request only');
