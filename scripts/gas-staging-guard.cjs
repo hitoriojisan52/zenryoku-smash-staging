@@ -8,7 +8,9 @@ const [repo,remote,mode]=process.argv.slice(2);
 if(!repo||!remote||!['preflight','deploy','verify'].includes(mode))
   throw Error('Usage: gas-staging-guard REPO PULLED_DIR preflight|deploy|verify');
 const STAGE_ID='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac';
-const files=['コード.gs','AccessAndGuestV160.gs'];
+// clasp v3 pulls Apps Script server files as .js, even when tracked sources are .gs.
+// Map by exact GAS file BASE name; never create a duplicate file on the server.
+const files=['コード','AccessAndGuestV160'];
 const baseline={
  'コード.gs':[
   '42441158bd229fdbea8cb097f11fd19a12ae6cfd430e70def829f4d2a6888008', // reviewed v0.16.27
@@ -39,14 +41,19 @@ function history(file){
 const manifestPath=path.join(remote,'appsscript.json');
 if(!fs.existsSync(manifestPath))throw Error('Remote Apps Script manifest is missing; refusing push');
 try{JSON.parse(textFile(manifestPath));}catch(e){throw Error('Remote manifest is not valid JSON');}
-for(const file of files){
- const source=path.join(repo,'gas-staging',file),pulled=path.join(remote,file);
- if(!fs.existsSync(source)||!fs.existsSync(pulled))throw Error('Required existing script file missing: '+file);
+const overlay=[];
+for(const base of files){
+ const file=base+'.gs';
+ const source=path.join(repo,'gas-staging',file),pulled=path.join(remote,base+'.js');
+ if(!fs.existsSync(source)||!fs.existsSync(pulled))
+   throw Error('Required existing script file missing: '+base+' (clasp pull should create .js)');
+ if(fs.existsSync(path.join(remote,file)))
+   throw Error('Ambiguous .gs/.js duplicate for '+base+'; refusing push');
  const src=textFile(source),existing=textFile(pulled);
  if(!src.includes(STAGE_ID))throw Error('Staging ID guard missing in tracked source: '+file);
- if(file==='AccessAndGuestV160.gs' && !src.includes('logStageWithdrawPreflightV1636'))
+ if(base==='AccessAndGuestV160' && !src.includes('logStageWithdrawPreflightV1636'))
    throw Error('Required withdrawal safety preflight absent');
- if(file==='コード.gs' && !src.includes('function ledgerDate_'))
+ if(base==='コード' && !src.includes('function ledgerDate_'))
    throw Error('Required finance typed-date fix absent');
  const desired=checksum(src),current=checksum(existing);
  if(mode==='verify'){
@@ -60,8 +67,10 @@ for(const file of files){
   throw Error('Remote GAS was edited outside reviewed Git history. No push performed.');
  }
  console.log('PREFLIGHT OK: '+file+' remote_sha='+current.slice(0,12)+' target_sha='+desired.slice(0,12));
- if(mode==='deploy')fs.writeFileSync(pulled,src,'utf8');
+ overlay.push({pulled,src});
 }
+// Validate *all* tracked sources before writing any local pulled file.
+if(mode==='deploy')for(const {pulled,src} of overlay)fs.writeFileSync(pulled,src,'utf8');
 if(mode==='preflight')console.log('Read-only preflight PASS: no GAS files or deployments were changed.');
 else if(mode==='deploy')console.log('Overlay ready: only the two tracked GAS files were changed; remote manifest and other files retained.');
 else console.log('GitHub source verification PASS.');
