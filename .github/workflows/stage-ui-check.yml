@@ -10,6 +10,10 @@ on:
       - 'tests/check-stage-participant-v1638d.cjs'
       - 'tests/check-stage-participant-refresh-v1638e.cjs'
       - 'tests/check-stage-participant-v7-layout-v1638f.cjs'
+      - 'tests/check-stage-match-delete-v1639.cjs'
+      - 'match.js'
+      - 'match.html'
+      - 'match.css'
       - 'cash-reconcile.js'
       - 'cloudflare-worker/worker.js'
       - 'tests/check-stage-cash-reconcile-v1637.cjs'
@@ -46,6 +50,8 @@ jobs:
         run: node tests/check-stage-participant-refresh-v1638e.cjs
       - name: Verify original-v7 participant rows and absence of visitor add
         run: node tests/check-stage-participant-v7-layout-v1638f.cjs
+      - name: Verify match deletion is confirmed, backed up and attendance-safe
+        run: node tests/check-stage-match-delete-v1639.cjs
       - name: Verify frontend financial state and Worker gating
         run: node tests/check-stage-finance-v1636c.cjs
       - name: Verify common UI standards
