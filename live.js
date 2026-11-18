@@ -58,7 +58,7 @@ async function call(path,payload={}){
  if(!S.token||!CONFIG.apiBaseUrl)throw new Error('LINE認証またはAPI設定がありません');
  const url=CONFIG.apiBaseUrl.replace(/\/$/,'')+path;
  // Invalidate responses from reads that started before a write.
- if(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change','/api/schedule/change','/api/visitor/register','/api/visitor/request','/api/visitor/decide','/api/participant/change'].includes(path))S.updateEpoch++;
+ if(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change','/api/schedule/change','/api/visitor/register','/api/visitor/request','/api/visitor/decide','/api/visitor/modify','/api/participant/change'].includes(path))S.updateEpoch++;
  const startedAt=performance.now();
  const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},body:JSON.stringify(payload),cache:'no-store'});
  if(PERF_MODE){
@@ -719,6 +719,7 @@ async function openVisitorForm_(){
   const [response]=await Promise.all([call('/api/visitor/practices'),window.SMVisitor.loadMine()]);
   VIS.practices=validateVisitorPractices_(response);
   VIS.draft=null;VIS.unknownResult=false;
+  $('visitorNewFormSection').open=false;
   $('visitorName').value='';$('visitorKana').value='';$('visitorMemo').value='';
   renderVisitorPracticeOptions_();loaded=true;
  },'開催日を読み込んでいます…');
@@ -770,7 +771,7 @@ async function registerVisitor_(){
   $('visitorName').value='';$('visitorKana').value='';$('visitorMemo').value='';
   // Keep the integrated screen open: the newly submitted request must be
   // visible ABOVE the next empty registration form.
-  try{await window.SMVisitor.loadMine();}
+  try{await window.SMVisitor.loadMine();$('visitorNewFormSection').open=false;}
   catch(_){
    $('visitorStatus').textContent='申請は受け付けられました。申請状況を「更新」で確認してください。';
   }
@@ -807,8 +808,8 @@ function renderParticipantManager_(){
   list.append(empty);return;
  }
  for(const p of PM.people){
-  // Old v7 "resp-row-card": header (name/type + participation),
-  // contact/timestamp, optional note, dashed action footer.
+  // Shared v7 card: name/status header, details and memo on the left,
+  // edit/delete actions bottom-aligned on the right (all participant types).
   // Use textContent, never innerHTML with user-supplied names/notes.
   const card=document.createElement('div');card.className='participant-card-item';
   const head=document.createElement('div');head.className='participant-card-title';
@@ -822,17 +823,18 @@ function renderParticipantManager_(){
   attending.className='participant-card-attendance '+(p.attending?'is-attending':'is-absent');
   attending.textContent=p.attending?'参加':'欠席';
   head.append(person,attending);
+  const content=document.createElement('div');content.className='participant-card-content';
+  const info=document.createElement('div');info.className='participant-card-info';
   const details=document.createElement('div');details.className='participant-card-details';
   const email=document.createElement('span');email.textContent='📧 '+(p.email||'未記録');
   const registered=document.createElement('span');
   registered.textContent='📅 登録: '+(p.registeredAt||'未記録');
   details.append(email,registered);
-  card.append(head,details);
+  info.append(details);
   if(p.memo){
    const note=document.createElement('div');note.className='participant-card-memo';
-   note.textContent='📝 備考: '+p.memo;card.append(note);
+   note.textContent='📝 備考: '+p.memo;info.append(note);
   }
-  const footer=document.createElement('div');footer.className='participant-card-footer';
   const actions=document.createElement('div');actions.className='participant-card-buttons';
   for(const [action,label,style] of [
     ['edit','修正','participant-btn-edit'],
@@ -844,7 +846,7 @@ function renderParticipantManager_(){
      openParticipantEditor_(p):confirmParticipantDelete_(p));
    actions.append(btn);
   }
-  footer.append(actions);card.append(footer);list.append(card);
+  content.append(info,actions);card.append(head,content);list.append(card);
  }
 }
 async function loadParticipants_(){
