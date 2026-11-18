@@ -311,14 +311,20 @@ async function setPayment(p,cb,card){
 }
 function setupLongPress(element,p){let timer=null,started=false;
  const stop=()=>{if(timer)clearTimeout(timer);timer=null;};
- element.addEventListener('pointerdown',event=>{if(event.button!==0)return;started=true;stop();timer=setTimeout(()=>{if(started&&!S.pending.size&&!S.paymentNeedsRefresh&&S.overview?.ledger?.status==='open'){$('categoryPerson').textContent=M.normalizeName(p.name);$('categorySelect').value=p.category;S.modalTarget=p;dialog('categoryDialog');}},650);});
+ element.addEventListener('pointerdown',event=>{if(event.button!==0)return;started=true;stop();timer=setTimeout(()=>{if(started&&!S.pending.size&&!S.paymentNeedsRefresh&&S.overview?.ledger?.status==='open'){$('categoryPerson').textContent=M.normalizeName(p.name);
+const visitorOption=$('categorySelectVisitor');
+visitorOption.hidden=p.category!=='visitor';visitorOption.disabled=p.category!=='visitor';
+$('categorySelect').value=p.category;S.modalTarget=p;dialog('categoryDialog');}},650);});
  for(const ev of ['pointerup','pointercancel','pointerleave'])element.addEventListener(ev,()=>{started=false;stop();});
  element.addEventListener('contextmenu',event=>event.preventDefault());
 }
 async function saveCategory(){
  await guard(async()=>{
    gateEdit();const p=S.modalTarget;if(!p)return;
-   const category=$('categorySelect').value;close('categoryDialog');
+   const category=$('categorySelect').value;
+   if((category==='visitor')!==(p.category==='visitor'))
+    throw new Error('ビジターへの変更はできません。ビジター申請を使用してください');
+   close('categoryDialog');
    const key='category:'+p.participantId;
    S.pending.add(key);
    try{
@@ -780,8 +786,8 @@ async function registerVisitor_(){
 }
 
 
-// v0.16.38d: legacy participant roster/edit/delete, keyed only by fixed IDs.
-// Email/registered timestamp are not present in the existing v0.15 roster.
+// v0.16.43: stable member identity is read-only in participant edits.
+// Unlinked LINE subject is shown explicitly; visitor identities remain separately editable.
 const PM={practices:[],practiceId:'',people:[],editing:null,deleting:null,
   matchLocked:false,financeLocked:false,uncertain:false};
 const PM_CATEGORIES={member:'メンバー',visitor:'ビジター',student:'学生',
@@ -826,10 +832,9 @@ function renderParticipantManager_(){
   const content=document.createElement('div');content.className='participant-card-content';
   const info=document.createElement('div');info.className='participant-card-info';
   const details=document.createElement('div');details.className='participant-card-details';
-  if(p.category!=='visitor'){
-   const email=document.createElement('span');email.textContent='📧 '+(p.email||'未記録');
-   details.append(email);
-  }
+  const line=document.createElement('span');
+  line.textContent='LINE ID：'+(p.category==='visitor'?'なし（ビジター）':(p.lineUserId||'未紐付け'));
+  details.append(line);
   const registered=document.createElement('span');
   registered.textContent='📅 登録: '+(p.registeredAt||'未記録');
   details.append(registered);
@@ -882,13 +887,17 @@ async function switchParticipantDate_(){
 }
 function openParticipantEditor_(p){
  if(PM.uncertain||PM.financeLocked||PM.matchLocked)return;
- PM.editing=p;$('participantName').value=p.name;
- $('participantKana').value=p.nameKana||'';
+ PM.editing=p;
  const isVisitor=p.category==='visitor';
- $('participantEmailField').hidden=isVisitor;
- $('participantEmailNote').hidden=isVisitor;
- $('participantEmail').value=isVisitor?'':p.email||'';
+ $('participantVisitorIdentity').hidden=!isVisitor;
+ $('participantMemberIdentity').hidden=isVisitor;
+ $('participantMemberName').textContent=p.name;
+ $('participantMemberKana').textContent=p.nameKana||'未登録';
+ $('participantName').value=isVisitor?p.name:'';
+ $('participantKana').value=isVisitor?(p.nameKana||''):'';
  $('participantAttendance').value=p.attending?'attend':'absent';
+ const visitorOption=$('participantCategoryVisitor');
+ visitorOption.hidden=!isVisitor;visitorOption.disabled=!isVisitor;
  $('participantCategory').value=p.category;
  $('participantCategory').disabled=isVisitor;
  $('participantMemo').value=p.memo||'';
@@ -897,10 +906,13 @@ function openParticipantEditor_(p){
 function participantEditData_(){
  const p=PM.editing;
  if(!p)throw new Error('修正対象が見つかりません');
- const name=$('participantName').value.normalize('NFKC').replace(/[\s\u3000]+/g,'');
- const nameKana=$('participantKana').value.normalize('NFKC').replace(/[\s\u3000]+/g,'');
+ const isVisitor=p.category==='visitor';
+ const name=isVisitor?$('participantName').value.normalize('NFKC').replace(/[\s\u3000]+/g,''):p.name;
+ const nameKana=isVisitor?$('participantKana').value.normalize('NFKC').replace(/[\s\u3000]+/g,''):(p.nameKana||'');
  const category=$('participantCategory').value;
  const memo=$('participantMemo').value.trim();
+ if((category==='visitor')!==isVisitor)
+  throw new Error('ビジターへの変更はできません。ビジター申請を使用してください');
  if(!name||name.length>60||nameKana.length>100||!PM_CATEGORIES[category]||
     memo.length>200||/^[=+@]/.test(name)||/^[=+@]/.test(nameKana))
   throw new Error('お名前・区分・備考を確認してください');
