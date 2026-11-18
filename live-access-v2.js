@@ -83,7 +83,10 @@
   const person=item('span','participant-card-person');
   person.append(item('span','participant-card-name','👤 '+name));
   if(badge)person.append(item('span','participant-card-category',badge));
-  head.append(person,item('span','participant-card-attendance',status||''));
+  head.append(person);
+  // The member roster has no active/inactive switch. Do not draw an empty
+  // status badge for an active member; preserve meaningful stopped/history states.
+  if(status)head.append(item('span','participant-card-attendance',status));
   const content=item('div','participant-card-content');
   const info=item('div','participant-card-info');
   const details=item('div','participant-card-details');
@@ -130,26 +133,32 @@
   const adminCount=snapshot.members.filter(m=>m.active&&m.role==='admin').length;
   for(const m of snapshot.members){
    const frame=cardFrame(String(m.name||'名前なし'),ROLE_LABEL[m.role]||m.role,
-    m.active?'有効':'停止中');
+    m.active?'':'停止中');
    frame.details.append(cardLine('LINE ID：'+(m.lineUserId||'未紐付け')));
    frame.details.append(cardLine('📅 利用登録日：'+(
     m.registeredAt?(window.SMDate?.dateTimeJst?.(m.registeredAt,false)||String(m.registeredAt)):'未記録')));
    const isSelf=m.memberId===actorMemberId;
    const soleAdmin=m.role==='admin'&&adminCount<=1;
-   if(isSelf||!m.active||soleAdmin){
-    frame.actions.append(item('span','stage-role-readonly','変更不可'));
-   }else{
-    const select=item('select','live-access-select');
-    select.setAttribute('aria-label',m.name+' さんの権限');
-    for(const [value,label] of Object.entries(ROLE_LABEL))
-     select.add(new Option(label,value));
-    select.value=m.role;
-    const change=item('button','btn-blue','変更');
-    change.type='button';change.disabled=true;
-    select.addEventListener('change',()=>{change.disabled=select.value===m.role;});
-    change.addEventListener('click',()=>setRole(m,select));
-    frame.actions.append(select,change);
-   }
+   // Always show the actual role in the same dropdown. The last
+   // administrator, current actor, and stopped accounts have both controls
+   // disabled instead of replacing them with an unhelpful "変更不可" label.
+   const locked=isSelf||!m.active||soleAdmin;
+   const select=item('select','live-access-select');
+   select.setAttribute('aria-label',m.name+' さんの権限');
+   for(const [value,label] of Object.entries(ROLE_LABEL))
+    select.add(new Option(label,value));
+   select.value=m.role;
+   select.disabled=locked;
+   const change=item('button','btn-blue','変更');
+   change.type='button';change.disabled=true;
+   select.addEventListener('change',()=>{
+    change.disabled=locked||select.value===m.role;
+   });
+   change.addEventListener('click',()=>{
+    if(locked||select.disabled||change.disabled)return;
+    setRole(m,select);
+   });
+   frame.actions.append(select,change);
    members.append(frame.card);
   }
   renderHistory(snapshot.withdrawn);
