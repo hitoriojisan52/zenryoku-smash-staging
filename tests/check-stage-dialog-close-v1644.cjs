@@ -34,7 +34,7 @@ const dialogs=[
 ];
 const document={
  querySelectorAll(sel){assert.equal(sel,'dialog');return dialogs;},
- createElement(tag){assert.equal(tag,'div');return new Div();}
+ createElement(tag){if(tag==='div')return new Div();if(tag==='button')return new Button('');throw Error('unexpected '+tag);}
 };
 vm.runInNewContext(script,{document});
 ok(dialogs[0].children.length===1&&dialogs[0].children[0].children[0]===existing,
