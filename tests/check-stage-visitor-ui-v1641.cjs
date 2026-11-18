@@ -204,10 +204,10 @@ const deepText=e=>[e.textContent,...e.children.map(deepText)].filter(Boolean).jo
   ok(match&&match[0].includes('class="btn-outline"'),'close button is secondary grey: '+id);
  }
  for(const page of ['live.html','match.html','guest.html','match-view.html']){
-  ok(read(page).includes('stage-ui.css?v=1646'),'same shared button CSS cache applied: '+page);
+  ok(read(page).includes('stage-ui.css?v=1648'),'same shared button CSS cache applied: '+page);
  }
  ok(html.includes('date-format.js?v=1641')&&html.includes('visitor-approval.js?v=1642')&&
-  html.includes('live.js?v=1647')&&html.includes('live-access-v2.js?v=1641'),
+  html.includes('live.js?v=1648')&&html.includes('live-access-v2.js?v=1648'),
   'staging LIFF refreshes all modified JavaScript assets');
  ok(matchConfirm.includes('match-modal-is-error')&&matchCss.includes('.match-modal-is-error .match-modal-box{border-top:4px solid #c62828}'),
   'intentional confirmation versus error popup distinction remains unchanged');
