@@ -21,7 +21,7 @@ const management=read('live-access-v2.js'),
 expect(management.includes("'/api/member/manage/withdraw/check'"),
  'read-only condition check retained');
 expect(management.includes('renderHistory('),'history rendering retained');
-expect((management.match(/api\('\/api\/member\/manage\/withdraw',/g)||[]).length===1,
+expect((management.match(/mutate\('\/api\/member\/manage\/withdraw',/g)||[]).length===1,
  'exactly one admin UI mutation call: no duplicate send');
 expect(management.includes("const first=await ask({title:'【退会確認（1/2）】'")&&
  management.includes("const second=await ask({title:'【退会確認（2/2）】'"),
