@@ -27,6 +27,7 @@ on:
       - 'dialog-close.js'
       - 'match-confirm.js'
       - 'tests/check-stage-dialog-close-v1644.cjs'
+      - 'tests/check-stage-line-attendance-v1645.cjs'
       - 'match.js'
       - 'match.html'
       - 'match.css'
@@ -80,6 +81,8 @@ jobs:
         run: node tests/check-stage-finance-v1636c.cjs
       - name: Verify common UI standards
         run: node tests/check-ui-standards.cjs
+      - name: Verify member-only LINE attendance timestamp and auth recovery
+        run: node tests/check-stage-line-attendance-v1645.cjs
       - name: Verify top-right Close controls and safe confirmation cancellation
         run: node tests/check-stage-dialog-close-v1644.cjs
       - name: Verify staging withdrawal remains isolated
