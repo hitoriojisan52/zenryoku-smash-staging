@@ -879,7 +879,9 @@ function requireCollection_(ss,p,ledgerRows){
 }
 
 function overview_(ss,member,payload){var all=practices_(ss).sort(function(a,b){return a.date.localeCompare(b.date)||a.startTime.localeCompare(b.startTime);});
- var id=str_(payload.practiceId)|| (all.length?all[all.length-1].practiceId:'');if(!id)fail_('NOT_FOUND','日程がありません');var p=practice_(ss,id),ledgerRows=ensureCollectionLedger_(ss,member,p,entries_(ss)),access=collectionState_(ss,p,ledgerRows),pay=paymentRows_(ss,id),pm={};pay.forEach(function(r){pm[str_(r[1])]={completed:bool_(r[2]),version:Number(r[3])||0};});
+ var id=str_(payload.practiceId)|| (all.length?all[all.length-1].practiceId:'');
+ if(!id)return {ok:true,data:{role:member.role,actorName:member.name,practice:null,practices:[],participants:[],ledger:null,collectionAccess:{canCollect:false,reason:'開催日がありません'},expected:0,completedFee:0,completedCount:0,attendingCount:0}};
+ var p=practice_(ss,id),ledgerRows=ensureCollectionLedger_(ss,member,p,entries_(ss)),access=collectionState_(ss,p,ledgerRows),pay=paymentRows_(ss,id),pm={};pay.forEach(function(r){pm[str_(r[1])]={completed:bool_(r[2]),version:Number(r[3])||0};});
  var roster=attendees_(ss,id).map(function(a){var o=pm[a.participantId]||{completed:false,version:0};return {participantId:a.participantId,name:a.name,nameKana:a.nameKana,category:a.category,fee:fee_(a.category,p.hours),attending:true,memo:a.memo,collectionCompleted:o.completed,paymentVersion:o.version,categoryVersion:a.categoryVersion};});
  // Shared dynamic numbering: sorted every read, never a mutation key.
  roster=SMMatchCore.numbered(roster).map(function(a){a.participantId=a.participationId;return a;});
