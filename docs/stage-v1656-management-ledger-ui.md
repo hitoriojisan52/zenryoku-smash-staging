@@ -38,3 +38,14 @@
 - 検証用GitHubでPR→UI/GAS CI成功→`main`統合→Pages/GAS/Workers Buildsの各実反映結果を確認。本番反映は禁止。
 - Workerのコード反映時は公開`/health`で`version=0.16.56-stage-member-edit`、`codeRevision=stage-v1656-member-editor-20261119`を確認する。既存Worker/GAS環境変数は変更不要。
 - 登録名を修正した後も、過去に表示された氏名と旧会員IDは**履歴としてそのまま保持**する。
+
+## 2026/11/19 デプロイ・試験用メンバーの追記（PR #50）
+
+- [検証用PR #50](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/50) のUI・GAS・仕様引継ぎのCIは**すべて成功**。`main`統合SHA：`9308a43feb5ef9e2d999ebdc915edc38c98af026`。
+- 当該SHAの[GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44390490010)と[GAS既存デプロイ更新](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44390493092)は**成功**。
+- 当該SHAの[Cloudflare Workers Builds](https://dash.cloudflare.com/5817f07a73dbb56011012074ce1b11c5/workers/services/view/zenryoku-smash-staging-api/production/builds/281e71cc-43aa-46d3-927e-eeef67f680bb)も**成功**。公開`/health`の新バージョン応答はこの更新時点で**未直接確認**。確認できない場合は[公開URL](https://zenryoku-smash-staging-api.hitori-ojisan-52.workers.dev/health)でユーザーに`version:`と`codeRevision:`だけ確認を依頼。
+- **メンバー権限管理の氏名修正・権限変更・退会１回確認の実機試験、および当番担当側の確定済み行表示は未実機確認**。実GAS関数とDOM操作を使ったCI回帰試験は成功済み。上記と区別する。
+- 既存の接続検証用スプレッドシートに、**一般メンバー`M-TEST-MEMBER-V1656-001`、表示名「架空利用者修正1656」**を作成。擬似LINE IDと同じIDを参照する承認済み申請`REQ-TEST-MEMBER-V1656-001`も作成。両シートの行と状態を実際に再取得して確認済み。
+- データ追加前に[バックアップ](https://docs.google.com/spreadsheets/d/1URqlxdT40hMColzRIK4m4iyF61Cjw25HrQUxZXm-hfY/edit)を複製済み。現在の退会履歴、出欠・集金・収支データを壊さず、テスト用の２行だけ追加。
+- **次の手順**：管理者LINEから[運用管理LIFF](https://liff.line.me/2012602642-XBSkXduO)→`メンバー権限管理`→`利用者一覧`→「架空利用者修正1656」の`修正`で氏名変更・保存。成功が確認されたらChatGPTがスプレッドシートの`メンバー`と`登録申請`を再読取し、過去の履歴への影響なしを確認する。管理者の権限プルダウン・権限変更・退会は非活性として残ることを確認する。
+- 本番反映、既存Secrets/プロパティ再設定、手動Workerコードコピーは**不要**。
