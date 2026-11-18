@@ -114,3 +114,8 @@ button:disabled{opacity:.45!important;background:#d6d6d6!important;color:#777!im
 @keyframes match-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.match-busy-spinner{animation:none;border-top-color:#1976d2}}
 body.match-is-processing .match-container{opacity:.76;pointer-events:none}
+
+/* v0.16.39: destructive match removal is distinct from match progression. */
+.match-delete-row{display:flex;justify-content:flex-end;gap:8px;margin-top:7px}
+.match-delete-row #deleteMatch{flex:none;min-width:128px;min-height:44px;padding:8px 13px;background:#c62828;color:#fff;border-radius:6px;font-weight:700;font-size:13px}
+.match-delete-row #deleteMatch:disabled{background:#d4d8dc!important;color:#777f87!important}
