@@ -89,7 +89,12 @@ function drainPaymentQueue_(){
    const job=S.paymentQueue.shift();
    S.paymentActive++;
    Promise.resolve().then(()=>{job.onStart();return job.action();})
-     .then(job.resolve,job.reject).finally(()=>{S.paymentActive--;drainPaymentQueue_();});
+     .then(job.resolve,error=>{
+       // Set the fault BEFORE freeing the slot; otherwise a queued third write
+       // could start between an HTTP error and the caller's catch handler.
+       S.paymentNeedsRefresh=true;
+       job.reject(error);
+     }).finally(()=>{S.paymentActive--;drainPaymentQueue_();});
  }
 }
 function paymentCall_(action,onStart){
