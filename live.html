@@ -4,6 +4,24 @@
 .payment-checkbox-state{color:#674a00;font-size:10px;white-space:nowrap}
 .payment-checkbox-state[hidden]{display:none!important}
 .participant-card.payment-saving{outline:1px solid #bed5e8;outline-offset:-1px}
+
+/* Cash counting is optional and never adjusts the ledger. */
+.stage-ui dialog#cashDialog{max-width:440px;width:calc(100% - 20px);max-height:calc(100dvh - 32px);overflow-y:auto}
+.cash-date-controls{display:flex;align-items:end;gap:8px}
+.cash-date-controls label{flex:1;min-width:0}
+.cash-date-controls input{width:100%;border:1px solid #ccd6df;border-radius:6px;padding:8px}
+.cash-date-controls button{flex-shrink:0}
+.cash-denominations{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
+.cash-denom{display:flex;align-items:center;justify-content:space-between;gap:5px;padding:6px 8px;border:1px solid #d7e1e9;border-radius:7px;background:#f8fafc;font-size:14px}
+.cash-denom label{font-weight:700;white-space:nowrap}
+.stage-ui .cash-denom input{width:73px;min-width:0;min-height:40px!important;padding:6px;text-align:right;border:1px solid #b9cbd8;border-radius:5px}
+.cash-money-row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #e0e7ef;font-size:15px}
+.cash-money-row strong{white-space:nowrap;font-size:17px}
+.cash-money-row .cash-same{color:#197343}
+.cash-money-row .cash-diff{color:#b43f26}
+.cash-guidance{color:#5b6975;font-size:13px!important;margin:7px 0}
+.cash-status{font-size:13px!important;margin:7px 0;color:#88600d;min-height:1em}
+@media(max-width:365px){.cash-denominations{gap:5px}.cash-denom{padding:5px}.stage-ui .cash-denom input{width:61px}}
 </style></head>
 <body class="stage-ui">
 <main class="container">
@@ -44,6 +62,17 @@
     </section>
     <div class="modal-actions"><button id="memberAccessRefresh" type="button" class="btn-outline">更新</button><button id="memberAccessClose" type="button" class="btn-blue">閉じる</button></div>
   </dialog>
+<dialog id="cashDialog" aria-labelledby="cashDialogTitle">
+  <h2 id="cashDialogTitle">💰 現金確認</h2>
+  <p class="cash-guidance">金種の枚数を入力すると、実際の現金と帳簿残金を比較できます。入力内容は保存されず、収支も変更されません。</p>
+  <div class="cash-date-controls"><label class="dialog-label" for="cashDate">確認対象日<input id="cashDate" class="dialog-input" type="date"></label><button id="cashRefresh" type="button" class="btn-outline">再読込</button></div>
+  <p id="cashStatus" class="cash-status" role="status" aria-live="polite"></p>
+  <div class="cash-money-row"><span>帳簿残金</span><strong id="cashBook">—</strong></div>
+  <div id="cashDenominations" class="cash-denominations" aria-label="金種別枚数"></div>
+  <div class="cash-money-row"><span>実査合計</span><strong id="cashActual">—</strong></div>
+  <div class="cash-money-row"><span>差額（実査 − 帳簿）</span><strong id="cashDifference">—</strong></div>
+  <div class="modal-actions"><button id="cashReset" type="button" class="btn-outline">枚数リセット</button><button id="cashClose" type="button" class="btn-blue">閉じる</button></div>
+</dialog>
 <dialog id="ledgerDialog" class="ledger-dialog"><h2>📊 全体収支管理表</h2><div class="ledger-controls"><label for="ledgerMonth">対象月</label><input id="ledgerMonth" type="month"><button id="prevMonth" class="btn-outline" type="button">前月</button><button id="nextMonth" class="btn-outline" type="button">翌月</button><button id="newLedgerRow" class="btn-green" type="button">＋追加</button></div><div class="role-controls"><label for="demoRole">権限（デモ）</label><select id="demoRole"><option value="duty">当番チーム所属</option><option value="admin">システム管理者</option></select></div><div class="ledger-scroll"><table class="ledger-table"><thead><tr><th>日付</th><th>開催場所・費目名</th><th>集金額</th><th>支出</th><th>残金</th><th>確認者</th><th>操作</th></tr></thead><tbody id="ledgerBody"></tbody></table></div><div class="ledger-total" id="ledgerTotal"></div><div class="modal-actions"><button id="closeLedger" class="btn-blue" type="button">閉じる</button></div></dialog>
 <dialog id="ledgerEditDialog"><h2 id="ledgerEditTitle">収支を追加</h2>
 <form id="ledgerEditForm">
@@ -79,5 +108,5 @@
  <h2 id="stageErrorTitle">操作できませんでした</h2><p id="stageErrorMessage"></p>
  <div class="modal-actions"><button id="stageErrorOkay" class="btn-blue" type="button">閉じる</button></div>
 </dialog>
-<script src="date-format.js?v=163c"></script><script src="model.js"></script><script src="access-v2-mode.js?v=1627a"></script><script src="live-access.js?v=162e"></script><script src="stage-ui.js?v=1620a"></script><script src="live-access-v2.js?v=1636a"></script><script src="runtime-config.js?v=164a"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script type="module" src="live.js?v=1636g"></script>
+<script src="date-format.js?v=163c"></script><script src="model.js"></script><script src="access-v2-mode.js?v=1627a"></script><script src="live-access.js?v=162e"></script><script src="stage-ui.js?v=1620a"></script><script src="live-access-v2.js?v=1636a"></script><script src="runtime-config.js?v=164a"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script src="cash-reconcile.js?v=1637a"></script><script type="module" src="live.js?v=1637a"></script>
 </body></html>

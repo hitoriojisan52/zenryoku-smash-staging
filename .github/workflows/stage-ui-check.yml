@@ -4,6 +4,8 @@ on:
     branches: [main]
     paths:
       - 'live.js'
+      - 'cash-reconcile.js'
+      - 'tests/check-stage-cash-reconcile-v1637.cjs'
       - 'live.html'
       - 'stage-ui.js'
       - 'tests/check-stage-payment-parallel-v1636f.cjs'
@@ -23,6 +25,8 @@ jobs:
           node-version: '22'
       - name: Simulate simultaneous checkboxes, inverse responses, errors and undo
         run: node tests/check-stage-payment-parallel-v1636f.cjs
+      - name: Verify cash count, exact-date ledger reconciliation and read-only isolation
+        run: node tests/check-stage-cash-reconcile-v1637.cjs
       - name: Verify frontend financial state and Worker gating
         run: node tests/check-stage-finance-v1636c.cjs
       - name: Verify common UI standards
