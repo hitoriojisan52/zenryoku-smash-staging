@@ -162,8 +162,12 @@ export async function handleRequest(request,env){
     // Public LIFF channel prefix (not a secret); disclose only a boolean,
     // never the configured environment value or any LINE token.
     const channelMatchesLiveLiff=env.LINE_LOGIN_CHANNEL_ID==='2012602642';
+    const withdrawMemberConfigured=
+      env.WITHDRAW_MEMBER_ENABLED==='true' &&
+      env.WITHDRAW_STAGE_SPREADSHEET_ID==='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac' &&
+      env.WORKER_PURPOSE==='staging-member-withdraw-v1650';
     return json({ok:true,status:'deployed',version:'0.16.50-stage-member-withdraw-ready',
-      configured,channelMatchesLiveLiff});
+      configured,channelMatchesLiveLiff,withdrawMemberConfigured});
   }
   const origin=request.headers.get('Origin')||'';
   // Reject any browser origin other than the one approved GitHub Pages site.
