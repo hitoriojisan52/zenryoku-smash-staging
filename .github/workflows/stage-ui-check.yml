@@ -6,6 +6,7 @@ on:
       - 'live.js'
       - 'tests/check-stage-schedule-v1638.cjs'
       - 'tests/check-stage-visitor-v1638b.cjs'
+      - 'tests/check-stage-cascade-v1638c.cjs'
       - 'cash-reconcile.js'
       - 'cloudflare-worker/worker.js'
       - 'tests/check-stage-cash-reconcile-v1637.cjs'
@@ -34,6 +35,8 @@ jobs:
         run: node tests/check-stage-schedule-v1638.cjs
       - name: Verify authenticated visitor proxy and time-category screens
         run: node tests/check-stage-visitor-v1638b.cjs
+      - name: Verify schedule cascade preview, deletion and collection gating
+        run: node tests/check-stage-cascade-v1638c.cjs
       - name: Verify frontend financial state and Worker gating
         run: node tests/check-stage-finance-v1636c.cjs
       - name: Verify common UI standards
