@@ -389,7 +389,7 @@ function accessStageWithdrawalV1636_(ss,member,payload){
 var SMA_MEMBER_WITHDRAW_PURPOSE_V1650='staging-member-withdraw-v1650';
 function accessMemberWithdrawalGateV1650_(ss){
  return conf_('SPREADSHEET_ID')===SMA_STAGE_WITHDRAW_ID_V1636&&
-  !!ss&&ss.getId()===SMA_STAGE_WITHDRAW_ID_V1636&&
+  !!ss&&typeof ss.getId==='function'&&ss.getId()===SMA_STAGE_WITHDRAW_ID_V1636&&
   conf_('WITHDRAW_MEMBER_ENABLED')==='true'&&
   conf_('STAGING_WITHDRAW_MEMBER_PURPOSE')===SMA_MEMBER_WITHDRAW_PURPOSE_V1650;
 }
