@@ -29,6 +29,22 @@ function toast(message){
  e.textContent=label;e.classList.add('show');
  clearTimeout(S.timer);S.timer=setTimeout(()=>e.classList.remove('show'),PERF_MODE?4200:2500);
 }
+function renderGasProfile_(timings){
+ if(!PERF_MODE||!timings||typeof timings!=='object')return;
+ const panel=$('perfBreakdown'),out=$('perfBreakdownText');if(!panel||!out)return;
+ const ms=key=>Number.isSafeInteger(timings[key])&&timings[key]>=0?timings[key]+'ms':'—';
+ const phases=[
+  ['スプレッドシート取得','spreadsheetOpenMs'],['会員確認','memberAuthMs'],
+  ['ロック待ち','lockWaitMs'],['操作履歴照合','auditReadMs'],
+  ['日程読込','practiceReadMs'],['収支表読込','ledgerReadMs'],
+  ['参加者読込','attendeeReadMs'],['集金記録読込','paymentReadMs'],
+  ['整合性・計算','validationMs'],['集金記録保存','paymentWriteMs'],
+  ['収支表保存','ledgerWriteMs'],['操作履歴保存','auditWriteMs'],
+  ['GAS処理計','handlerMs']
+ ];
+ out.textContent=phases.map(([name,key])=>name+'：'+ms(key)).join('\n');
+ panel.hidden=false;panel.open=true;
+}
 function dialog(id){const e=$(id);if(e&&!e.open)e.showModal();}
 function close(id){if($(id)?.open)$(id).close();}
 function gateEdit(){if(!S.actor||!['duty','admin'].includes(S.actor.role))throw new Error('当番チームの権限がありません');}
@@ -127,7 +143,7 @@ async function setPayment(p,cb,card){
  p.collectionCompleted=checked;card.classList.toggle('checked',checked);updateFooter();
  try{
    // Saving must not wait for another full overview. Backend returns authoritative versions and balance.
-   const saved=await call('/api/payment',{operationId:uuid(),practiceId:S.practiceId,participantId:id,completed:checked,expectedVersion:version});
+   const saved=await call('/api/payment',{operationId:uuid(),practiceId:S.practiceId,participantId:id,completed:checked,expectedVersion:version,profileTimings:PERF_MODE});
    if(saved?.practiceId!==S.practiceId||saved?.participantId!==id||saved.completed!==checked||
      saved.version!==version+1||!Number.isSafeInteger(saved.ledgerVersion)||!Number.isSafeInteger(saved.balance)){
      const e=new Error('保存結果を確認できませんでした。「更新」で最新状態をご確認ください。');
@@ -140,7 +156,7 @@ async function setPayment(p,cb,card){
      ledger.income=Number.isSafeInteger(saved.income)?saved.income:ledger.income+(Number(checked)-Number(before))*p.fee;
      ledger.balance=saved.balance;
    }
-   updateFooter();toast('集金処理を更新しました');
+   updateFooter();renderGasProfile_(saved.gasTimings);toast('集金処理を更新しました');
  }catch(e){
    // Unknown outcome: do not automatically replay a financial write.
    if(!e.appliedButRefreshFailed){
