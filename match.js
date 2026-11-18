@@ -111,6 +111,7 @@ function render(){const v=S.view,s=v?.session,editable=isDuty();const body=$('ma
  $('undoMatch').disabled=s?!(Array.isArray(s.undoHistory)?s.undoHistory.length:(s.lastAction?.before?1:0)):
    !(S.draftUndo.get(S.practiceId)||[]).length;
  $('finishMatch').disabled=!s||finished;$('regenerateMatch').disabled=!s||finished;
+ $('deleteMatch').disabled=!s; // Deletion also works after progression has finished.
  $('lookahead').value=cfg.lookaheadCount;
  const courts=$('courtChips');courts.replaceChildren();for(let n=1;n<=4;n++){const chip=el('label'),box=document.createElement('input');box.type='checkbox';box.value=n;box.checked=cfg.enabledCourts.includes(n);box.disabled=finished;chip.append(box,document.createTextNode(n+'面'));courts.append(chip);}
  $('saveLookahead').disabled=$('saveCourts').disabled=$('addFixedGroup').disabled=finished;
@@ -300,6 +301,31 @@ $('undoMatch').addEventListener('click',()=>guard(async()=>{
 }));
 $('finishMatch').addEventListener('click',async()=>{if(S.busy)return;const ok=await SMMatchConfirm.ask({title:'【進行終了の確認】',message:'対戦表を閉じて進行を終了しますか？\n未開始の試合は実施済みに含まれません。',confirmLabel:'進行終了',danger:true});if(!ok)return;await guard(async()=>{await change('finish');notice('進行を終了しました');});});
 $('regenerateMatch').addEventListener('click',async()=>{if(S.busy)return;const ok=await SMMatchConfirm.ask({title:'【対戦表再生成の確認】',message:'未開始の試合をすべて再生成しますか？\n現在進行中・完了済みの試合は維持します。',confirmLabel:'再生成する'});if(!ok)return;await guard(async()=>{await change('regenerate');notice('対戦表を再生成しました');});});
+// A deleted match must reopen participant editing, without touching money or
+// attendance. Do not retry an ambiguous POST with a new operationId.
+$('deleteMatch').addEventListener('click',async()=>{
+ if(S.busy||!isDuty()||!S.view?.session)return;
+ const current=S.view.session,practiceId=S.practiceId;
+ const confirmed=await SMMatchConfirm.ask({
+  title:'【対戦表の削除】',
+  message:'この開催日の対戦表を削除しますか？\n試合進行状況・作成履歴・閲覧リンクも削除または無効化します。\n参加者・集金・収支データは残します。\n削除後は参加者を修正し、対戦表を作り直せます。',
+  confirmLabel:'削除する',danger:true
+ });
+ if(!confirmed)return;
+ await guard(async()=>{
+  if(practiceId!==S.practiceId)throw Error('開催日が変わりました。もう一度確認してください');
+  const next=await mutation('/api/match/delete',{
+   practiceId,expectedSessionVersion:current.sessionVersion,
+   expectedSettingsVersion:current.settingsVersion,operationId:operationId()
+  });
+  if(next?.practiceId!==practiceId||next?.session){
+   throw Error('対戦表の削除結果が確認できません。更新して確認してください');
+  }
+  S.view=next;S.drafts.delete(practiceId);S.draftUndo.delete(practiceId);
+  render();notice('対戦表を削除しました');
+ });
+});
+
 $('saveLookahead').addEventListener('click',()=>guard(async()=>{const count=Number($('lookahead').value);if(safeState()){await change('lookahead',{count});notice('先行生成数を変更しました');}else draftEdit(d=>{d.lookaheadCount=count;});}));
 $('saveCourts').addEventListener('click',()=>guard(async()=>{const enabledCourts=Array.from($('courtChips').querySelectorAll('input:checked')).map(x=>Number(x.value));if(safeState()){await change('courts',{enabledCourts});notice('コート設定を変更しました');}else draftEdit(d=>{d.enabledCourts=enabledCourts;});}));
 $('addFixedGroup').addEventListener('click',()=>guard(async()=>{
