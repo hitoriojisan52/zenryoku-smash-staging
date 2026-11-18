@@ -387,7 +387,9 @@ var SM = {
     '現金確認記録':['practiceId','auditDate','countsJson','cashTotal','bookBalance','difference','version','updatedBy','updatedAt'],
     '日程削除アーカイブ':['operationId','practiceId','archivedAt','archivedBy','chunkIndex','chunkCount','snapshotChunk','status'],
     '参加者操作アーカイブ':['operationId','practiceId','participantId','action','beforeJson','createdAt','actorMemberId','status'],
-    '試合削除アーカイブ':['operationId','practiceId','archivedAt','archivedBy','chunkIndex','chunkCount','snapshotChunk','status']
+    '試合削除アーカイブ':['operationId','practiceId','archivedAt','archivedBy','chunkIndex','chunkCount','snapshotChunk','status'],
+    'ビジター申請':['requestId','practiceId','participantId','name','nameKana','memo','requestedByMemberId','status','version','requestedAt','reviewedAt','reviewedBy','lastOperationId'],
+    'ビジター審査アーカイブ':['operationId','requestId','practiceId','actorMemberId','action','beforeJson','createdAt','status']
   },
   fees: {member:800,student:400,visitor:1000,duty:400,shuttle:400}
 };
@@ -541,6 +543,8 @@ function setPayment_(ss,member,payload,profile){
 }
 function setCategory_(ss,member,payload){
  var id=str_(payload.practiceId),person=str_(payload.participantId),p=practice_(ss,id),cat=str_(payload.category);if(SM.fees[cat]===undefined)fail_('BAD_REQUEST','参加区分が不正です');
+ if(cat!=='visitor'&&/^PV-/.test(person)&&visitorHasApproved_(ss,id,person))
+  fail_('LOCKED','承認済みビジターの参加区分は変更できません');
  var ledgerRows=entries_(ss),ledger=row_(ledgerRows,'P-'+id);unlockable_(ledger);
  var sh=sheet_(ss,'出欠回答'),arr=sheetRows_(ss,'出欠回答'),ix=arr.findIndex(function(r){return str_(r[0])===id&&str_(r[1])===person;});
  if(ix<0||!bool_(arr[ix][5]))fail_('NOT_FOUND','参加者が見つかりません');var record=arr[ix],current=Number(record[7])||0;expectVersion_(current,payload.expectedVersion);
@@ -705,7 +709,7 @@ function scheduleList_(ss,member,payload){
 var SCHEDULE_DELETE_TABS_=[
  ['出欠回答',0,9],['集金記録',0,6],['現金確認記録',0,9],
  ['試合セッション',0,5],['試合版管理',1,9],['試合操作履歴',1,7],
- ['閲覧リンク',1,6]
+ ['閲覧リンク',1,6],['ビジター申請',1,13]
 ];
 function scheduleDeleteTargets_(ss,id){
  var found={};
@@ -955,10 +959,35 @@ function participantArchivePending_(ss,id){
   return str_(r[2])===id&&str_(r[7])!=='completed';
  });
 }
-function participantChange_(ss,member,payload){
+function participantChange_(ss,member,payload,visitorDecisionInternal){
  var id=str_(payload.practiceId),person=str_(payload.participantId),
      action=str_(payload.action);
  if(action!=='edit'&&action!=='delete')fail_('BAD_REQUEST','参加者操作が不正です');
+ // An approved visitor's application must never stay 'approved' after their
+ // roster row is deleted. Route deletion through the admin rejection action.
+ if(action==='delete'&&!visitorDecisionInternal&&/^PV-/.test(person)){
+   var linked=visitorRequests_(ss).filter(function(r){
+     return r.practiceId===id&&r.participantId===person&&r.status==='approved';
+   });
+   if(linked.length>1)fail_('SETUP','承認済みビジターの申請履歴が重複しています');
+   if(linked.length===1){
+     // Preserve the old participant-list Delete UI for admins. The deletion
+     // is an actual visitor rejection so the applicant's status stays true.
+     if(member.role!=='admin')
+       fail_('FORBIDDEN','承認済みビジターの削除・却下は管理者のみ実行できます');
+     var linkedPerson=sheetRows_(ss,'出欠回答').filter(function(r){
+       return str_(r[0])===id&&str_(r[1])===person;
+     });
+     if(linkedPerson.length!==1)fail_('STORAGE_INCOMPLETE','削除する参加者が見つかりません');
+     expectVersion_(Number(linkedPerson[0][7])||0,payload.expectedVersion);
+     var decision=visitorDecision_(ss,member,{requestId:linked[0].requestId,
+       expectedVersion:linked[0].version,action:'reject',operationId:payload.operationId});
+     return {ok:true,data:{practiceId:id,participantId:person,
+       action:'delete',version:Number(payload.expectedVersion)+1,
+       archived:true,visitorRequestId:decision.data.requestId,
+       visitorStatus:'rejected'}};
+   }
+ }
  var p=practice_(ss,id);
  if(participantMatchLocked_(ss,id))
   fail_('LOCKED','対戦表作成済みのため参加情報を変更できません');
@@ -990,6 +1019,8 @@ function participantChange_(ss,member,payload){
      memo.length>200||/^[=+@]/.test(name)||/^[=+@]/.test(kana)||
      /[\u0000-\u001f]/.test(memo))
    fail_('BAD_REQUEST','氏名・区分・備考を確認してください');
+  if(cat!=='visitor'&&/^PV-/.test(person)&&visitorHasApproved_(ss,id,person))
+   fail_('LOCKED','承認済みビジターの参加区分は変更できません');
  }
  var oldFee=wasPaid?fee_(str_(old[4]),p.hours):0,
      newFee=action==='edit'&&attending&&wasPaid?fee_(cat,p.hours):0,
@@ -1033,6 +1064,188 @@ function visitorAvailablePractices_(ss,member,payload){
  .sort(function(a,b){return a.date.localeCompare(b.date)||a.startTime.localeCompare(b.startTime);});
  return {ok:true,data:{practices:rows}};
 }
+
+/* v0.16.40 — one-way visitor request / approval workflow.
+ * Members see only submissions attributed to their verified memberId.
+ * Approved requests generate actual attendance; pending/rejected never do.
+ * No refunds: while the selected ledger is OPEN, paid rejection removes
+ * collection and recomputes ledger using participantChange_(). Once the
+ * practice ledger is CONFIRMED no approval/rejection/delete can mutate it.
+ */
+function visitorRequests_(ss){
+ return sheetRows_(ss,'ビジター申請').map(function(r,i){
+  return {row:i+2,requestId:str_(r[0]),practiceId:str_(r[1]),
+   participantId:str_(r[2]),name:norm_(r[3]),nameKana:norm_(r[4]),
+   memo:str_(r[5]),requestedByMemberId:str_(r[6]),status:str_(r[7]),
+   version:Number(r[8])||0,requestedAt:str_(r[9]),
+   reviewedAt:str_(r[10]),reviewedBy:str_(r[11]),
+   lastOperationId:str_(r[12])};
+ }).filter(function(r){return !!r.requestId;});
+}
+function visitorHasApproved_(ss,practiceId,participantId){
+ return visitorRequests_(ss).some(function(r){
+  return r.practiceId===practiceId&&r.participantId===participantId&&r.status==='approved';
+ });
+}
+function visitorPublic_(r,dates,admin){
+ var p=dates.find(function(x){return x.practiceId===r.practiceId;});
+ return {requestId:r.requestId,practiceId:r.practiceId,participantId:r.participantId,
+  date:p?p.date:'',place:p?p.place:'',
+  name:r.name,nameKana:r.nameKana,memo:r.memo,
+  status:r.status,version:r.version,requestedAt:r.requestedAt,
+  reviewedAt:r.reviewedAt,
+  requestedByMemberId:admin?r.requestedByMemberId:undefined,
+  reviewedBy:admin?r.reviewedBy:undefined};
+}
+function visitorMine_(ss,member){
+ var rows=visitorRequests_(ss).filter(function(r){return r.requestedByMemberId===member.memberId;});
+ var dates=practices_(ss);
+ return {ok:true,data:{requests:rows.map(function(r){return visitorPublic_(r,dates,false);})
+  .sort(function(a,b){return b.requestedAt.localeCompare(a.requestedAt)||b.requestId.localeCompare(a.requestId);})}};
+}
+function visitorAdminList_(ss,member){
+ if(member.role!=='admin')fail_('FORBIDDEN','ビジターの承認・却下は管理者だけが操作できます');
+ var dates=practices_(ss);
+ var requests=visitorRequests_(ss).map(function(r){return visitorPublic_(r,dates,true);});
+ var members=sheetRows_(ss,'メンバー'),nameById={};
+ members.forEach(function(r){nameById[str_(r[0])]=norm_(r[1]);});
+ requests.forEach(function(r){r.requestedByName=nameById[r.requestedByMemberId]||'退会済みメンバー';});
+ requests.sort(function(a,b){return b.requestedAt.localeCompare(a.requestedAt)||b.requestId.localeCompare(a.requestId);});
+ return {ok:true,data:{requests:requests}};
+}
+function visitorRequest_(ss,member,payload){
+ var requestId=str_(payload.requestId),participantId=str_(payload.participantId),
+  id=str_(payload.practiceId);
+ if(!/^VR-[A-Za-z0-9_-]{8,96}$/.test(requestId)||
+    !/^PV-[A-Za-z0-9_-]{8,96}$/.test(participantId))
+  fail_('BAD_REQUEST','ビジター申請IDが不正です');
+ var practice=practice_(ss,id);
+ if(practice.date<today_())fail_('BAD_REQUEST','過去の開催日は申請できません');
+ var ledger=entries_(ss).filter(function(r){return r.rowId==='P-'+id;});
+ if(ledger.length>1)fail_('SETUP','収支に重複した開催行があります');
+ if(ledger.length&&ledger[0].status==='confirmed')
+  fail_('LOCKED','収支確定済みの開催日には申請できません');
+ var name=norm_(payload.name),nameKana=norm_(payload.nameKana),memo=str_(payload.memo);
+ if(!name||name.length>60||/^[=+@]/.test(name)||nameKana.length>100||/^[=+@]/.test(nameKana)||
+    memo.length>200||/[\u0000-\u001f]/.test(memo))
+  fail_('BAD_REQUEST','お名前・カナ・備考を確認してください');
+ var all=visitorRequests_(ss),existing=all.filter(function(r){return r.requestId===requestId;});
+ if(existing.length){
+  var r=existing[0];
+  if(existing.length!==1||r.participantId!==participantId||r.practiceId!==id||
+     r.requestedByMemberId!==member.memberId||r.name!==name||
+     r.nameKana!==nameKana||r.memo!==memo)
+   fail_('CONFLICT','申請IDが既に別の申請で使用されています');
+  return {ok:true,data:{requestId:r.requestId,participantId:r.participantId,
+    practiceId:r.practiceId,status:r.status,version:r.version}};
+ }
+ if(all.some(function(r){return r.participantId===participantId})||
+    sheetRows_(ss,'出欠回答').some(function(r){return str_(r[1])===participantId}))
+  fail_('CONFLICT','ビジターIDが重複しています');
+ sheet_(ss,'ビジター申請').appendRow([
+  requestId,id,participantId,safeCell_(name),safeCell_(nameKana),safeCell_(memo),
+  member.memberId,'pending',0,now_(),'','',''
+ ]);
+ return {ok:true,data:{requestId:requestId,participantId:participantId,practiceId:id,
+  status:'pending',version:0}};
+}
+function visitorDecisionArchiveCheck_(ss,requestId,operationId,member){
+ var sh=sheet_(ss,'ビジター審査アーカイブ'),last=sh.getLastRow(),replay=false;
+ if(last<2)return replay;
+ var keys=sh.getRange(2,1,last-1,2).getValues();
+ keys.forEach(function(key,i){
+  var operation=str_(key[0]),id=str_(key[1]);
+  if(operation!==operationId&&id!==requestId)return;
+  var row=sh.getRange(i+2,1,1,8).getValues()[0];
+  if(operation===operationId&&(id!==requestId||str_(row[3])!==member.memberId))
+   fail_('CONFLICT','操作IDが別の審査に使用されています');
+  if(str_(row[7])!=='completed')
+   fail_('STORAGE_INCOMPLETE','ビジター審査の保存が完了していません。管理者に復旧を依頼してください');
+  if(operation===operationId)replay=true;
+ });
+ return replay;
+}
+function visitorDecision_(ss,member,payload){
+ if(member.role!=='admin')fail_('FORBIDDEN','ビジター審査は管理者だけが操作できます');
+ var id=str_(payload.requestId),action=str_(payload.action),opId=checkOpId_(payload);
+ if(action!=='approve'&&action!=='reject')fail_('BAD_REQUEST','審査操作が不正です');
+ var existing=visitorRequests_(ss).filter(function(r){return r.requestId===id;});
+ if(existing.length!==1)fail_('NOT_FOUND','申請を確認できません');
+ var r=existing[0],archiveReplay=visitorDecisionArchiveCheck_(ss,id,opId,member);
+ if(archiveReplay){
+  if(r.lastOperationId!==opId)fail_('CONFLICT','申請が別の操作で変更されています');
+  return {ok:true,data:{requestId:id,practiceId:r.practiceId,
+    status:r.status,version:r.version,operationId:opId}};
+ }
+ expectVersion_(r.version,payload.expectedVersion);
+ if(r.status==='rejected')fail_('LOCKED','却下済みの申請は再承認・変更できません');
+ if(action==='approve'&&r.status!=='pending')
+  fail_('LOCKED','承認済みの申請を再度承認できません');
+ if(action==='reject'&&r.status!=='pending'&&r.status!=='approved')
+  fail_('LOCKED','却下できる申請ではありません');
+ var practice=practice_(ss,r.practiceId),
+     ledger=entries_(ss).filter(function(x){return x.rowId==='P-'+r.practiceId;});
+ if(ledger.length>1)fail_('SETUP','収支行が重複しています');
+ if(ledger.length&&ledger[0].status==='confirmed')
+  fail_('LOCKED','収支確定後のビジター却下・削除・承認はできません');
+ var participant=sheetRows_(ss,'出欠回答').filter(function(x){
+  return str_(x[0])===r.practiceId&&str_(x[1])===r.participantId;
+ });
+ if(r.status==='pending'&&participant.length)
+  fail_('STORAGE_INCOMPLETE','承認前のビジターが既に参加者一覧に存在します');
+ if(action==='approve'||r.status==='approved'){
+  if(participantMatchLocked_(ss,r.practiceId))
+   fail_('LOCKED','対戦表を削除してから承認・却下してください');
+ }
+ if(action==='approve'){
+  // Fixed participant IDs are globally unique, not merely unique per date.
+  if(sheetRows_(ss,'出欠回答').some(function(row){return str_(row[1])===r.participantId;}))
+   fail_('CONFLICT','対象のビジターIDは既に参加者一覧に存在します');
+ }else if(r.status==='approved'){
+  if(participant.length!==1)fail_('STORAGE_INCOMPLETE','承認済みビジターの参加情報が確認できません');
+  if(str_(participant[0][4])!=='visitor')fail_('SETUP','参加区分がビジターではありません');
+  if(participantArchivePending_(ss,r.participantId))
+   fail_('STORAGE_INCOMPLETE','参加者の変更処理が未完了です。管理者に復旧を依頼してください');
+  // Dry-run the same fee/ledger checks participantChange_ will repeat.
+  var paid=paymentRows_(ss,r.practiceId).filter(function(x){return str_(x[1])===r.participantId;});
+  if(paid.length>1)fail_('SETUP','集金記録が重複しています');
+  if(paid.length&&bool_(paid[0][2])){
+   if(!bool_(participant[0][5]))
+    fail_('SETUP','欠席者に集金済みの記録があります');
+   if(ledger.length!==1)fail_('SETUP','集金済みの収支行がありません');
+   var old=entries_(ss),mutable=old.map(function(x){return Object.assign({},x);});
+   var row=mutable.filter(function(x){return x.rowId==='P-'+r.practiceId;})[0];
+   row.income-=fee_(str_(participant[0][4]),practice.hours);row.version++;
+   balanceRecalc_(mutable,old); // blocks future finalized balances from changing
+  }
+ }
+ // A durable recovery snapshot is written before touching roster or request.
+ var archive=sheet_(ss,'ビジター審査アーカイブ'),archiveRow=archive.getLastRow()+1;
+ var before=JSON.stringify({schema:1,request:r,attendee:participant[0]||null,
+   ledger:ledger[0]||null,collection:action==='reject'?
+    paymentRows_(ss,r.practiceId).filter(function(x){return str_(x[1])===r.participantId;}):[]});
+ if(before.length>38000)fail_('LIMIT','審査情報が大きすぎるため保存できません');
+ archive.appendRow([opId,id,r.practiceId,member.memberId,action,before,now_(),'prepared']);
+ SpreadsheetApp.flush();
+ if(action==='approve'){
+  sheet_(ss,'出欠回答').appendRow([
+   r.practiceId,r.participantId,safeCell_(r.name),safeCell_(r.nameKana),
+   'visitor',true,safeCell_(r.memo),0,r.requestedByMemberId
+  ]);
+ }else if(r.status==='approved'){
+  participantChange_(ss,member,{operationId:opId,practiceId:r.practiceId,
+   participantId:r.participantId,expectedVersion:Number(participant[0][7])||0,
+   action:'delete'},true);
+ }
+ var next=action==='approve'?'approved':'rejected';
+ sheet_(ss,'ビジター申請').getRange(r.row,8,1,6).setValues([[
+  next,r.version+1,str_(r.requestedAt),now_(),member.memberId,opId
+ ]]);
+ archive.getRange(archiveRow,8).setValue('completed');
+ return {ok:true,data:{requestId:id,practiceId:r.practiceId,participantId:r.participantId,
+  status:next,version:r.version+1,operationId:opId}};
+}
+
 function visitorRegister_(ss,member,payload){
  var practiceId=str_(payload.practiceId),participantId=str_(payload.participantId);
  if(!/^PV-[A-Za-z0-9_-]{8,96}$/.test(participantId))fail_('BAD_REQUEST','参加者IDが不正です');
@@ -1083,14 +1296,25 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
  if(op==='roster.line')return {ok:true,data:{text:formatRosterForLine_(ss,str_(payload.practiceId))}};
  // Member-level proxy visitor registration is deliberately before requireDuty_.
  if(op==='visitor.practices')return withLock_(function(){return visitorAvailablePractices_(ss,member,payload);});
- if(op==='visitor.register'){
+ if(op==='visitor.register'||op==='visitor.request'){
    var visitorOpId=checkOpId_(payload);
    return withLock_(function(){
      var replay=auditExisting_(ss,visitorOpId,op,member);if(replay)return replay;
-     var result=visitorRegister_(ss,member,payload);
-     audit_(ss,visitorOpId,op,member,str_(payload.participantId),result);
+     var result=visitorRequest_(ss,member,payload);
+     audit_(ss,visitorOpId,op,member,str_(payload.requestId),result);
      return result;
    });
+ }
+ if(op==='visitor.mine')return withLock_(function(){return visitorMine_(ss,member);});
+ if(op==='visitor.admin.list')return withLock_(function(){return visitorAdminList_(ss,member);});
+ if(op==='visitor.decide'){
+  var decisionOpId=checkOpId_(payload);
+  return withLock_(function(){
+   var replay=auditExisting_(ss,decisionOpId,op,member);if(replay)return replay;
+   var result=visitorDecision_(ss,member,payload);
+   audit_(ss,decisionOpId,op,member,str_(payload.requestId),result);
+   return result;
+  });
  }
  // v0.15.8 起動専用・読み取りAPI（操作ID不要。認証・利用登録確認後に実行）
  if(op==='match.bootstrap'){

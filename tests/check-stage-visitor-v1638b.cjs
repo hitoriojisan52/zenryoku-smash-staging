@@ -79,7 +79,7 @@ ok(writes.length===3&&writes.every(w=>w==='出欠回答'),
 // Auth, opId, Lock and audit are verified at the actual dispatch branch.
 const dispatch=gas.slice(gas.indexOf('function dispatch_('),gas.indexOf('function doPost(',gas.indexOf('function dispatch_(')));
 const pMember=dispatch.indexOf("member=member_(ss,body.lineUserId)");
-const pGuest=dispatch.indexOf("if(op==='visitor.register')");
+const pGuest=dispatch.indexOf("if(op==='visitor.register'||op==='visitor.request')");
 const pDuty=dispatch.indexOf('requireDuty_(member);');
 ok(pMember>=0&&pGuest>pMember&&pGuest<pDuty,
  'visitor may register as general member only AFTER verified member identity and BEFORE duty gate');
@@ -92,15 +92,15 @@ ok(dispatch.includes("if(op==='visitor.practices')return withLock_"),
 ok(worker.includes("'/api/visitor/practices':'visitor.practices'")&&
  worker.includes("'/api/visitor/register':'visitor.register'"),
  'Worker routes verified token to registered-member guest API');
-ok(worker.includes("version:'0.16.39-stage-match-delete'"),'stage Worker version updated');
+ok(worker.includes("version:'0.16.40-stage-visitor-approval'"),'stage Worker version updated');
 for(const tag of ['visitorDialog','visitorForm','visitorPractice','visitorName','visitorKana','visitorMemo',
  'visitorMemberStart','visitorMemberHome','visitorConfirmDialog','visitorConfirmSave','visitorRegisterMenu']){
  ok(html.includes('id="'+tag+'"'),'visitor registration UI: '+tag);
 }
-ok(ui.includes("S.actor.role==='member'")&&ui.includes("document.body.classList.add('visitor-member')"),
+ok(ui.includes("S.actor.role==='member'||VISITOR_MODE")&&ui.includes("document.body.classList.add('visitor-member')"),
  'member can access visitor-only stage page without payment or management access');
-ok(ui.includes("await call('/api/visitor/register'")&&ui.includes("const participantId='PV-'+uuid()"),
- 'client generates immutable participant ID and calls auth API');
+ok(ui.includes("await call('/api/visitor/request'")&&ui.includes("const requestId='VR-'+uuid(),participantId='PV-'+uuid()"),
+ 'client generates immutable IDs and requests approval via authenticated API');
 ok(ui.includes("VIS.unknownResult=true;$('visitorSubmit').disabled=true"),
  'ambiguous registration blocks repeat rather than duplicating attendance');
 ok(html.includes('id="scheduleDate" class="dialog-input" type="date"'),
