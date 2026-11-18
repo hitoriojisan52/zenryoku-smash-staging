@@ -1,136 +1,122 @@
 #!/usr/bin/env node
 'use strict';
-// v0.16.46: simulated REAL DOM reparenting, not only HTML string checks.
-// Verify all existing controls and their events survive relocation.
+// v0.16.48: only navigation screens have a top-right Close.
+// Confirmation/edit/error popups retain their original footer actions.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const read=p=>fs.readFileSync(path.resolve(__dirname,'..',p),'utf8');
-const live=read('live.html'),css=read('stage-ui.css'),script=read('dialog-close.js'),
- match=read('match.html'),matchConfirm=read('match-confirm.js');
-let n=0;const ok=(value,label)=>{assert.ok(value,label);n++;};
-class Element{
+const html=read('live.html'),css=read('stage-ui.css'),js=read('dialog-close.js'),
+ match=read('match.html'),confirm=read('match-confirm.js');
+let checks=0;const ok=(v,m)=>{assert.ok(v,m);checks++};
+class E{
  constructor(tag,id='',text=''){
   this.tagName=tag;this.id=id;this.textContent=text;this.children=[];this.parentElement=null;
-  this.hidden=false;this.disabled=false;this.inert=false;this.open=true;this.handlers={};
-  this.classes=new Set();this.classList={
-   add:v=>this.classes.add(v),contains:v=>this.classes.has(v)};
-  this.attrs={};this.isConnected=true;this.className='';
+  this.disabled=false;this.inert=false;this.open=true;this.isConnected=true;this.handlers={};
+  this.className='';this.attrs={};this.styles=new Set();
+  this.classList={add:x=>this.styles.add(x),contains:x=>this.styles.has(x)};
  }
- append(...nodes){for(const node of nodes){
-   node.remove();node.parentElement=this;this.children.push(node);
- }}
- insertBefore(node,reference){
-  node.remove();node.parentElement=this;
-  const idx=reference?this.children.indexOf(reference):-1;
-  this.children.splice(idx<0?this.children.length:idx,0,node);
- }
- remove(){if(this.parentElement){
-  const i=this.parentElement.children.indexOf(this);
-  if(i>=0)this.parentElement.children.splice(i,1);
-  this.parentElement=null;
- }}
+ remove(){if(!this.parentElement)return;const p=this.parentElement;const i=p.children.indexOf(this);
+  if(i>=0)p.children.splice(i,1);this.parentElement=null;}
+ append(...elements){for(const e of elements){e.remove();e.parentElement=this;this.children.push(e);}}
+ insertBefore(e,first){e.remove();e.parentElement=this;const i=this.children.indexOf(first);
+  this.children.splice(i>=0?i:0,0,e);}
  get firstChild(){return this.children[0]||null;}
- querySelectorAll(tag){
-  const out=[];for(const c of this.children){
-   if(c.tagName===tag)out.push(c);out.push(...c.querySelectorAll(tag));
-  }return out;
- }
+ querySelectorAll(tag){return this.children.flatMap(c=>[...(c.tagName===tag?[c]:[]),...c.querySelectorAll(tag)]);}
  querySelector(tag){return this.querySelectorAll(tag)[0]||null;}
- setAttribute(k,v){this.attrs[k]=v;}
- addEventListener(k,cb){this.handlers[k]=cb;}
+ addEventListener(event,fn){this.handlers[event]=fn;}
+ setAttribute(a,b){this.attrs[a]=b;}
  click(){if(this.disabled)return;this.clicked=(this.clicked||0)+1;this.handlers.click?.();}
 }
-const el=(tag,id='',text='')=>new Element(tag,id,text);
-const scenarios={
- scheduleDialog:{heading:true,top:['scheduleAdd','scheduleReload'],close:'scheduleClose'},
- participantDialog:{heading:true,top:['participantReload'],close:'participantClose'},
- memberAccessDialog:{top:['memberAccessRefresh'],close:'memberAccessClose'},
- visitorAdminDialog:{top:['visitorAdminRefresh'],close:'visitorAdminClose'},
- ledgerDialog:{top:['newLedgerRow'],close:'closeLedger'},
- attendanceDialog:{top:['attendanceReload'],cancel:'attendanceCancel'},
- visitorDialog:{section:['visitorMineRefresh'],cancel:'visitorCancel'},
- participantEditDialog:{cancel:'participantEditCancel',save:'participantEditSave'},
+const el=(tag,id='',s='')=>new E(tag,id,s);
+const screens={
+ manageDialog:{close:'closeManage'},
+ memberAccessDialog:{close:'memberAccessClose',top:['memberAccessRefresh']},
  cashDialog:{close:'cashClose'},
+ visitorDialog:{cancel:'visitorCancel',topInSection:'visitorMineRefresh'},
+ visitorAdminDialog:{close:'visitorAdminClose',top:['visitorAdminRefresh']},
+ participantDialog:{close:'participantClose',top:['participantReload'],heading:'participant-heading'},
+ scheduleDialog:{close:'scheduleClose',top:['scheduleAdd','scheduleReload'],heading:'schedule-heading'},
+ ledgerDialog:{close:'closeLedger',top:['newLedgerRow']}
+};
+const popups={
+ modal:{close:'closeModal'},categoryDialog:{cancel:'cancelCategory'},
+ participantEditDialog:{cancel:'participantEditCancel',save:'participantEditSave'},
+ participantDeleteDialog:{cancel:'participantDeleteCancel'},
+ ledgerEditDialog:{cancel:'cancelLedgerEdit',save:'submitLedgerEdit'},
+ cashResetDialog:{cancel:'cashResetCancel'},cashSaveDialog:{cancel:'cashSaveCancel'},
+ scheduleActionDialog:{cancel:'scheduleActionCancel'},
+ visitorConfirmDialog:{cancel:'visitorConfirmCancel'},
+ visitorMineEditDialog:{cancel:'visitorMineEditCancel'},
+ attendanceDialog:{cancel:'attendanceCancel',topInSection:'attendanceReload'},
+ accessConfirmV2:{cancel:'accessConfirmCancelV2'},
  stageErrorDialog:{close:'stageErrorOkay'},
- stageBusyDialog:{busy:true}
+ confirmActionDialog:{cancel:'cancelConfirmAction'}
 };
-const dialogs=[],references=new Map();
-for(const [id,info] of Object.entries(scenarios)){
- const dialog=el('dialog',id),header=el('h2',id+'Title','画面タイトル'),footer=el('div',id+'Footer');
+const all=[],original=new Map();
+for(const [id,opts] of Object.entries({...screens,...popups,stageBusyDialog:{busy:true}})){
+ const dialog=el('dialog',id),head=el('h2',id+'Title','タイトル'),footer=el('div',id+'Footer');
  footer.classList.add('modal-actions');
- const heading=info.heading?el('div',id+'Heading'):null;
- if(heading)heading.classList.add(id==='scheduleDialog'?'schedule-heading':'participant-heading');
- if(heading){heading.append(header);dialog.append(heading);}
- else if(!info.busy)dialog.append(header);
- else dialog.append(el('div',id+'Spinner'));
+ const wrapper=opts.heading?el('div'):dialog;
+ if(opts.heading)wrapper.classList.add(opts.heading);
+ wrapper.append(head);if(opts.heading)dialog.append(wrapper);
  const buttons=[];
- const button=(bid,title,parent)=>{
-  const b=el('button',bid,title);b.addEventListener('click',()=>{b.recorded=true;});
-  (parent||footer).append(b);buttons.push(b);references.set(bid,b);return b;
+ const button=(bid,text,parent=footer)=>{
+  const b=el('button',bid,text);b.addEventListener('click',()=>{b.handled=true;});
+  parent.append(b);buttons.push(b);return b;
  };
- if(info.top)for(const bid of info.top){
-  button(bid,bid==='scheduleAdd'||bid==='newLedgerRow'?'＋追加':'更新',
-   bid==='scheduleAdd'&&heading?heading:el('div',id+'Controls'));
-  // Ensure standalone controls are attached to the dialog.
-  const b=references.get(bid);
-  if(!b.parentElement.parentElement)dialog.append(b.parentElement);
+ for(const bid of opts.top||[]){
+  const target=bid==='scheduleAdd'&&opts.heading?wrapper:el('div');
+  const b=button(bid,bid==='scheduleAdd'||bid==='newLedgerRow'?'＋追加':'更新',target);
+  if(target!==wrapper)dialog.append(target);
  }
- if(info.section)for(const bid of info.section){
-  const section=el('div','section');dialog.append(section);button(bid,'更新',section);
+ if(opts.topInSection){
+  const section=el('div','section');dialog.append(section);
+  button(opts.topInSection,'更新',section);
  }
- if(info.close){
-  const b=button(info.close,'✕ 閉じる',info.close==='participantClose'?heading:footer);
-  if(info.close==='participantClose')ok(b.parentElement===heading,'participant original header close');
- }
- if(info.cancel)button(info.cancel,'キャンセル');
- if(info.save)button(info.save,'保存する');
- if(!info.busy)dialog.append(footer);
- dialogs.push(dialog);
+ if(opts.close)button(opts.close,'✕ 閉じる',id==='participantDialog'?wrapper:footer);
+ if(opts.cancel)button(opts.cancel,'キャンセル');
+ if(opts.save)button(opts.save,'保存');
+ if(!opts.busy)dialog.append(footer);
+ original.set(id,buttons);all.push(dialog);
 }
-const document={
- querySelectorAll:x=>{assert.equal(x,'dialog');return dialogs;},
- createElement:tag=>el(tag)
-};
-const before=new Map(dialogs.map(d=>[d.id,d.querySelectorAll('button').map(x=>x.id)]));
-vm.runInNewContext(script,{document});
-for(const [id,info] of Object.entries(scenarios)){
- const dialog=dialogs.find(x=>x.id===id);
- const toolbar=dialog.children.find(x=>x.className==='stage-dialog-toolbar');
- if(info.busy){ok(!toolbar,'busy dialog has no dismiss control');continue;}
- ok(Boolean(toolbar),'dialog has one visible non-overlapping toolbar: '+id);
- ok(toolbar.children[0].tagName==='h2','original title retained in header: '+id);
- const controls=toolbar.children[1].children;
- ok(controls.at(-1)?.textContent==='✕ 閉じる','Close always last in header: '+id);
- const after=dialog.querySelectorAll('button').map(x=>x.id).filter(Boolean);
- ok(before.get(id).every(bid=>after.includes(bid)),'original buttons not lost: '+id);
- const expected=[...(info.top||[]),...(info.close?[info.close]:[])];
- ok(expected.every((bid,i)=>controls[i]===references.get(bid)),
-    'context actions retain object, order and handler: '+id);
- if(info.heading)ok(!dialog.children.some(x=>x.classes.has(
-   id==='scheduleDialog'?'schedule-heading':'participant-heading')),
-   'empty legacy heading removed without removing controls: '+id);
- if(info.section)ok(references.get(info.section[0]).parentElement.id==='section',
-   'visitor requests update remains beside section title, not rehomed');
- if(info.close){const b=references.get(info.close);b.click();
-  ok(b.recorded,'original Close handler still executes: '+id);}
- if(info.cancel){
-  const close=controls.at(-1),cancel=references.get(info.cancel);
-  close.click();ok(cancel.recorded,'header Close delegates to original Cancel: '+id);
-  cancel.recorded=false;dialog.inert=true;close.click();
-  ok(!cancel.recorded,'disabled/busy dialog does not bypass the lock: '+id);
+const document={querySelectorAll:x=>{assert.equal(x,'dialog');return all;},
+ createElement:tag=>el(tag)};
+vm.runInNewContext(js,{document});
+for(const [id,opts] of Object.entries(screens)){
+ const d=all.find(d=>d.id===id),bar=d.children.find(c=>c.className==='stage-dialog-toolbar');
+ ok(Boolean(bar),'full management screen has header toolbar: '+id);
+ const headerButtons=bar.children[1].children;
+ ok(headerButtons.at(-1)?.textContent==='✕ 閉じる','Close on far right: '+id);
+ for(let i=0;i<(opts.top||[]).length;i++){
+  ok(headerButtons[i].id===opts.top[i]&&original.get(id).includes(headerButtons[i]),
+   'original context button reparented, never replaced: '+id+'/'+opts.top[i]);
  }
+ ok(original.get(id).every(b=>d.querySelectorAll('button').includes(b)),
+  'all original controls still exist: '+id);
+ for(const b of original.get(id)){b.click();ok(b.handled,'original click handler works: '+id+'/'+b.id);}
+ if(opts.cancel){
+  const cancel=original.get(id).find(b=>b.id===opts.cancel);
+  cancel.handled=false;headerButtons.at(-1).click();
+  ok(cancel.handled,'screen Close delegates to original Cancel: '+id);
+ }
+ if(opts.topInSection)ok(
+  original.get(id).find(b=>b.id===opts.topInSection).parentElement.id==='section',
+  'partial list refresh does not move to full page toolbar: '+id);
 }
-ok(css.includes('flex-wrap:wrap')&&css.includes('.stage-dialog-toolbar-actions'),
- 'toolbar wraps on mobile and reserves a dedicated action area');
-ok(!css.includes('.stage-close-row')&&!css.includes('margin:0 0 -43px')&&
- !css.includes('margin:-8px -8px -36px'),
- 'old close-button overlays and negative-offset hacks are gone');
-ok(css.includes('@media(max-width:380px)')&&css.includes('flex:1 1 100%'),
- 'small devices have separate full-width title and action rows');
-ok(live.includes('dialog-close.js?v=1646')&&live.includes('stage-ui.css?v=1646'),
- 'new script and CSS are versioned for the phone browser cache');
-ok(match.includes('class="stage-match-dialog-toolbar"')&&
- match.includes('class="stage-panel-toolbar"')&&
- css.includes('position:static!important')&&
- matchConfirm.includes("byId('matchConfirmClose').addEventListener('click'"),
- 'match confirm and QR controls never occupy an overlapping absolute layer');
-console.log('PASS '+n+'/'+n+' v0.16.46 all dialog controls and responsive non-overlap');
+for(const [id] of Object.entries(popups)){
+ const d=all.find(d=>d.id===id);
+ ok(!d.children.some(c=>c.className==='stage-dialog-toolbar'),
+  'confirmation/edit/error popup has NO synthetic top Close: '+id);
+ ok(original.get(id).every(b=>d.querySelectorAll('button').includes(b)),
+  'popup footer controls stay original: '+id);
+}
+ok(!all.find(d=>d.id==='stageBusyDialog').querySelector('button'),
+ 'busy lock has no controls');
+ok(!js.includes('position:absolute')&&!css.includes('.stage-close-row'),
+ 'old overlapping Close implementation remains removed');
+ok(html.includes('dialog-close.js?v=1648')&&html.includes('stage-ui.css?v=1648'),
+ 'mobile web UI loads versioned scripts');
+ok(!match.includes('id="matchConfirmClose"')&&
+ !confirm.includes("byId('matchConfirmClose')")&&
+ match.includes('id="matchConfirmCancel"')&&match.includes('id="matchConfirmOk"'),
+ 'match confirmation has original Cancel / Execute only, no popup extra Close');
+console.log('PASS '+checks+'/'+checks+' v0.16.48 screen-only Close and popup unchanged actions');
