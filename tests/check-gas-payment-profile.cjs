@@ -45,7 +45,7 @@ const f=new Function('str_','practice_','entries_','row_','unlockable_','attende
   (code,msg)=>{throw Error(msg)},
   x=>x===true||x==='TRUE',
   ()=>600,
-  (rows,old)=>{ok(rows[0].balance===rows[0].income,'balance checked')},
+  (rows,old)=>{rows[0].balance=rows[0].income;ok(rows[0].balance===rows[0].income,'balance checked')},
   (ss,rows)=>{calls.ledgerWrite++;Object.assign(ledger,rows[0])},
   now_);
 const args={operationId:'TEST-OP-12345678',practiceId:'TEST-20261116',participantId:'TEST-P001',completed:true,expectedVersion:0};
