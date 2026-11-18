@@ -18,7 +18,7 @@ const expectVersion_=(v,expected)=>{if(v!==Number(expected))fail_('CONFLICT','st
 const ledgerSrc=gas.slice(gas.indexOf('function balanceRecalc_('),gas.indexOf('function writeLedger_(',gas.indexOf('function balanceRecalc_(')));
 const balanceRecalc_=new Function('fail_','iso_','jpy_',ledgerSrc+'\nreturn balanceRecalc_;')(fail_,iso_,jpy_);
 const names=['練習日程','出欠回答','集金記録','全体収支管理表','現金確認記録',
- '試合セッション','試合版管理','試合操作履歴','閲覧リンク','日程削除アーカイブ'];
+ '試合セッション','試合版管理','試合操作履歴','閲覧リンク','ビジター申請','日程削除アーカイブ'];
 const startData=()=>{
  const sheets=Object.fromEntries(names.map(n=>[n,[]]));
  const id='PR-TEST-20261121';
@@ -39,6 +39,10 @@ const startData=()=>{
  sheets['試合版管理']=[['RV-TEST',id,'ready','x'.repeat(34000),'sha','id','...',1,1]];
  sheets['試合操作履歴']=[['OP-TEST',id,'M-DUTY','create',1,'...','...']];
  sheets['閲覧リンク']=[['hash',id,'...','','M-DUTY','...']];
+ sheets['ビジター申請']=[
+  ['VR-TEST-ONE',id,'PV-01','ゲストA','','','M-REG','approved',1,'2026/11/18','','',''],
+  ['VR-TEST-NEXT','P-NEXT','PV-22','ゲストC','','','M-REG','pending',0,'2026/11/18','','','']
+ ];
  return sheets;
 };
 const startingLedger=[
@@ -110,7 +114,7 @@ ok(result.data.action==='delete'&&result.data.archived===true&&result.data.versi
  'confirmed schedule is deletable with immutable version and archive');
 ok(!sheets['練習日程'].some(r=>r[0]===id),'target schedule physically removed');
 for(const [name,col] of [['出欠回答',0],['集金記録',0],['現金確認記録',0],
- ['試合セッション',0],['試合版管理',1],['試合操作履歴',1],['閲覧リンク',1]]){
+ ['試合セッション',0],['試合版管理',1],['試合操作履歴',1],['閲覧リンク',1],['ビジター申請',1]]){
  ok(!sheets[name].some(r=>r[col]===id),'cascade removes linked rows in '+name);
 }
 ok(sheets['出欠回答'].some(r=>r[0]==='P-NEXT')&&
