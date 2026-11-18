@@ -49,8 +49,8 @@ function accessRegistration16_(ss,lineUserId,op,payload){
     return {ok:true,data:{status:latest?str_(latest[3]):'not_requested'}};
   }
   if(op!=='member.apply')fail_('BAD_REQUEST','申請操作が不正です');
-  var name=norm_(payload.displayName),kana=accessKanaV1657_(payload.nameKana,false);
-  if(!name||name.length>30||/[\r\n<>]/.test(name))fail_('BAD_REQUEST','表示名を1～30文字で入力してください');
+  // Always keep withdrawal_processing / existing-account protection ahead
+  // of input validation: the old member status must not be hidden by a new field.
   if(current){
     if(accessStageWithdrawHistoryV1636_(ss,current))fail_('CONFLICT','退会処理中のため再申請できません');
     if(bool_(current[3]))return {ok:true,data:{status:'approved'}};
@@ -65,6 +65,9 @@ function accessRegistration16_(ss,lineUserId,op,payload){
     }
     var rows=accessRows16_(sheet,8),pending=rows.find(function(r){return r[1]===lineUserId&&r[3]==='pending';});
     if(pending)return {ok:true,data:{status:'pending'}};
+    var name=norm_(payload.displayName),kana=accessKanaV1657_(payload.nameKana,false);
+    if(!name||name.length>30||/[\r\n<>]/.test(name))
+      fail_('BAD_REQUEST','表示名を1～30文字で入力してください');
     var id='REQ-'+Utilities.getUuid();
     sheet.appendRow([id,lineUserId,safeCell_(name),'pending',accessTime16_(),'','','',safeCell_(kana)]);
     return {ok:true,data:{status:'pending'}};
