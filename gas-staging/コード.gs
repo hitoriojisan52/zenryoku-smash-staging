@@ -383,7 +383,8 @@ var SM = {
     '出欠回答':['practiceId','participantId','displayName','nameKana','category','attending','remark','version','registeredBy'],
     '集金記録':['practiceId','participantId','completed','version','updatedBy','updatedAt'],
     '全体収支管理表':['日付','開催場所・費目名','集金額','支出','残金','確認者','rowId','kind','practiceId','status','version','当日補正','費目','立替者','receiptFileId','作成者'],
-    '操作履歴':['operationId','operation','actorMemberId','timestamp','targetId','resultJSON']
+    '操作履歴':['operationId','operation','actorMemberId','timestamp','targetId','resultJSON'],
+    '現金確認記録':['practiceId','auditDate','countsJson','cashTotal','bookBalance','difference','version','updatedBy','updatedAt']
   },
   fees: {member:800,student:400,visitor:1000,duty:400,shuttle:400}
 };
@@ -584,6 +585,64 @@ function mutateLedger_(ss,member,payload){
  balanceRecalc_(rows,original);writeLedger_(ss,rows);
  return {ok:true,data:{rowId:id,action:action,ledger:rows}};
 }
+
+/**
+ * Cash audit is a separate snapshot from the financial ledger.
+ * Matching the legacy v7 '+' / '-' interface never creates income, expenses,
+ * balance changes or collection payments.
+ */
+var SM_CASH_DENOMINATIONS_=[10000,5000,1000,500,100,50,10,5,1];
+function cashCounts_(raw){
+ if(!raw||typeof raw!=='object'||Array.isArray(raw))fail_('BAD_REQUEST','金種枚数が不正です');
+ var expected=SM_CASH_DENOMINATIONS_.map(String);
+ if(Object.keys(raw).some(function(k){return expected.indexOf(k)<0;}))fail_('BAD_REQUEST','金種に不正な値があります');
+ var clean={},total=0;
+ SM_CASH_DENOMINATIONS_.forEach(function(denom){
+  var key=String(denom),n=raw[key];
+  if(!Number.isSafeInteger(n)||n<0||n>9999)fail_('BAD_REQUEST','枚数は0～9999の整数で入力してください');
+  clean[key]=n;total+=denom*n;
+ });
+ if(!Number.isSafeInteger(total))fail_('BAD_REQUEST','現金の合計が不正です');
+ return {counts:clean,total:total};
+}
+function cashRows_(ss){return sheetRows_(ss,'現金確認記録');}
+function cashGet_(ss,member,payload){
+ var id=str_(payload.practiceId),p=practice_(ss,id),ledger=entries_(ss).find(function(r){return r.rowId==='P-'+id;});
+ if(ledger&&ledger.date!==p.date)fail_('SETUP','開催日と収支行の日付が一致しません');
+ var sheet=cashRows_(ss),match=sheet.filter(function(r){return str_(r[0])===id;});
+ if(match.length>1)fail_('SETUP','現金確認記録に重複データがあります');
+ var saved=match[0],counts={};
+ SM_CASH_DENOMINATIONS_.forEach(function(n){counts[String(n)]=0;});
+ if(saved){
+  if(str_(saved[1])!==p.date)fail_('CONFLICT','保存された現金確認の日付が異なります');
+  var raw;try{raw=JSON.parse(str_(saved[2]));}catch(_){fail_('SETUP','保存された金種枚数が不正です');}
+  counts=cashCounts_(raw).counts;
+ }
+ return {ok:true,data:{practiceId:id,auditDate:p.date,found:!!ledger,
+  bookBalance:ledger?ledger.balance:null,counts:counts,version:saved?(Number(saved[6])||0):0,
+  savedBookBalance:saved?Number(saved[4]):null,updatedBy:saved?str_(saved[7]):'',updatedAt:saved?str_(saved[8]):''}};
+}
+function cashSave_(ss,member,payload){
+ var id=str_(payload.practiceId),p=practice_(ss,id);
+ dateAllowed_(p.date);
+ var ledger=entries_(ss).find(function(r){return r.rowId==='P-'+id;});
+ if(!ledger||ledger.date!==p.date)fail_('NOT_FOUND','指定日の収支行が見つかりません');
+ var checked=cashCounts_(payload.counts),sh=sheet_(ss,'現金確認記録'),all=cashRows_(ss);
+ var indexes=[];for(var i=0;i<all.length;i++)if(str_(all[i][0])===id)indexes.push(i);
+ if(indexes.length>1)fail_('SETUP','現金確認記録に重複データがあります');
+ var ix=indexes.length?indexes[0]:-1,old=ix>=0?all[ix]:null,current=old?(Number(old[6])||0):0;
+ expectVersion_(current,payload.expectedVersion);
+ if(old&&str_(old[1])!==p.date)fail_('CONFLICT','保存済みの日付と開催日が異なります');
+ var version=current+1,difference=checked.total-ledger.balance;
+ if(!Number.isSafeInteger(difference))fail_('BAD_REQUEST','現金差額が大きすぎます');
+ var next=[id,p.date,JSON.stringify(checked.counts),checked.total,ledger.balance,
+  difference,version,member.memberId,now_()];
+ if(ix>=0)sh.getRange(ix+2,1,1,9).setValues([next]);else sh.appendRow(next);
+ return {ok:true,data:{practiceId:id,auditDate:p.date,found:true,counts:checked.counts,
+  bookBalance:ledger.balance,actual:checked.total,difference:difference,version:version,
+  updatedBy:member.memberId,updatedAt:next[8]}};
+}
+
 function overview_(ss,member,payload){var all=practices_(ss).sort(function(a,b){return a.date.localeCompare(b.date)||a.startTime.localeCompare(b.startTime);});
  var id=str_(payload.practiceId)|| (all.length?all[all.length-1].practiceId:'');if(!id)fail_('NOT_FOUND','日程がありません');var p=practice_(ss,id),pay=paymentRows_(ss,id),pm={};pay.forEach(function(r){pm[str_(r[1])]={completed:bool_(r[2]),version:Number(r[3])||0};});
  var roster=attendees_(ss,id).map(function(a){var o=pm[a.participantId]||{completed:false,version:0};return {participantId:a.participantId,name:a.name,nameKana:a.nameKana,category:a.category,fee:fee_(a.category,p.hours),attending:true,memo:a.memo,collectionCompleted:o.completed,paymentVersion:o.version,categoryVersion:a.categoryVersion};});
@@ -633,8 +692,8 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
  }
  if(op.indexOf('match.')===0)return matchApiDispatch_(ss,member,op,payload);
  requireDuty_(member);
- if(['overview','ledger.list'].indexOf(op)>=0)return withLock_(function(){return op==='overview'?overview_(ss,member,payload):monthLedger_(ss,member,payload);});
- if(['payment.set','category.set','adjustment.set','expense.set','ledger.change'].indexOf(op)<0)fail_('BAD_REQUEST','API操作が不正です');
+ if(['overview','ledger.list','cash.get'].indexOf(op)>=0)return withLock_(function(){return op==='overview'?overview_(ss,member,payload):op==='ledger.list'?monthLedger_(ss,member,payload):cashGet_(ss,member,payload);});
+ if(['payment.set','category.set','adjustment.set','expense.set','ledger.change','cash.save'].indexOf(op)<0)fail_('BAD_REQUEST','API操作が不正です');
  var opId=checkOpId_(payload);
  return withLock_(function(){
    var mark=paymentProfile?Date.now():0;
@@ -646,6 +705,7 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
    else if(op==='category.set')result=setCategory_(ss,member,payload);
    else if(op==='adjustment.set')result=changeMoney_(ss,member,payload,'adjustment');
    else if(op==='expense.set')result=changeMoney_(ss,member,payload,'expense');
+   else if(op==='cash.save')result=cashSave_(ss,member,payload);
    else result=mutateLedger_(ss,member,payload);
    mark=paymentProfile?Date.now():0;
    audit_(ss,opId,op,member,str_(payload.rowId||payload.participantId||payload.practiceId),result);
