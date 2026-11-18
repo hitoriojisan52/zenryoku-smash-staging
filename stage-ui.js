@@ -48,6 +48,12 @@
    const item=errorDetails(e);
    $('stageErrorTitle').textContent=item.title;
    $('stageErrorMessage').textContent=item.message;
+   // Expose a safe LIFF recovery link only for an actual LINE auth failure.
+   // Do not display, decode or log the ID token or the user's LINE subject.
+   const authHelp=$('stageLineAuthHelp');
+   if(authHelp)authHelp.hidden=!(
+     e?.code==='LINE_TOKEN_INVALID'||
+     /LINE_TOKEN_INVALID/.test(String(e?.message||'')));
    showingError=true;errorDialog.showModal();
    errorOkay.focus({preventScroll:true});
    await new Promise(resolve=>errorDialog.addEventListener('close',resolve,{once:true}));
