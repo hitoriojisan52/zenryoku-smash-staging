@@ -98,7 +98,7 @@ body.visitor-member #visitorMemberHome button{width:100%}
 </style></head>
 <body class="stage-ui">
 <main class="container">
-  <header class="app-header"><h1>全力☆スマッシュ 運用管理 <small class="demo-label" title="新システム用接続試験画面">接続試験</small></h1><div class="header-btns"><button id="reimbursementBtn" class="btn-green" type="button">💴 立替精算</button><button id="manageBtn" class="btn-blue" type="button">⚙ 運用管理</button></div></header>
+  <header class="app-header"><h1>全力☆スマッシュ 運用管理 <small class="demo-label" title="新システム用接続試験画面">接続試験</small></h1><div class="header-btns"><button id="reimbursementBtn" class="btn-blue" type="button">💴 立替精算</button><button id="manageBtn" class="btn-blue" type="button">⚙ 運用管理</button></div></header>
   
   <div class="date-selector"><label for="date">開催日</label><select id="date"><option value="">日程を読み込んでいます…</option></select><button id="refresh" type="button">更新</button></div>
   <div class="info-summary"><span id="place">場所：--</span><span id="hours">時間区分：--</span></div>
@@ -120,8 +120,8 @@ body.visitor-member #visitorMemberHome button{width:100%}
 </main>
 <!-- すべての処理メッセージは画面下部のトースト -->
 <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
-<dialog id="modal"><h2 id="modalTitle"></h2><p id="modalText"></p><div class="modal-actions"><button id="closeModal" class="btn-blue" type="button">閉じる</button></div></dialog>
-<dialog id="categoryDialog"><h2>参加区分の変更</h2><p id="categoryPerson" class="modal-subtitle"></p><label class="dialog-label" for="categorySelect">参加区分</label><select id="categorySelect" class="dialog-select"><option value="member">メンバー</option><option value="student">学生</option><option value="visitor">ビジター</option><option value="duty">当番担当</option><option value="shuttle">シャトル担当</option></select><div class="modal-actions"><button id="cancelCategory" class="btn-outline" type="button">キャンセル</button><button id="saveCategory" class="btn-blue" type="button">変更する</button></div></dialog>
+<dialog id="modal"><h2 id="modalTitle"></h2><p id="modalText"></p><div class="modal-actions"><button id="closeModal" class="btn-outline" type="button">閉じる</button></div></dialog>
+<dialog id="categoryDialog"><h2>参加区分の変更</h2><p id="categoryPerson" class="modal-subtitle"></p><label class="dialog-label" for="categorySelect">参加区分</label><select id="categorySelect" class="dialog-select"><option value="member">メンバー</option><option value="student">学生</option><option value="visitor">ビジター</option><option value="duty">当番担当</option><option value="shuttle">シャトル担当</option></select><div class="modal-actions"><button id="cancelCategory" class="btn-outline" type="button">キャンセル</button><button id="saveCategory" class="btn-green" type="button">変更する</button></div></dialog>
 <dialog id="reimbursementDialog"><h2>💴 立替精算</h2><form id="reimbursementForm"><label class="dialog-label" for="payoutDate">精算日（現金を渡した日）</label><input class="dialog-input" id="payoutDate" type="date" required><label class="dialog-label" for="reimbursementItem">費目</label><input class="dialog-input" id="reimbursementItem" maxlength="80" type="text" placeholder="例：シャトル購入代" required><label class="dialog-label" for="reimbursementPayee">立替者</label><input class="dialog-input" id="reimbursementPayee" maxlength="60" type="text" placeholder="例：全力太郎" required><label class="dialog-label" for="reimbursementAmount">精算額（円）</label><input class="dialog-input" id="reimbursementAmount" type="number" min="1" step="1" required inputmode="numeric"><label class="dialog-label" for="reimbursementReceipt">領収書</label><input class="dialog-input" id="reimbursementReceipt" type="file" accept="image/*,.pdf,application/pdf"><div class="modal-actions"><button id="cancelReimbursement" type="button" class="btn-outline">キャンセル</button><button type="submit" class="btn-green">精算を登録</button></div></form></dialog>
 <dialog id="manageDialog"><h2>⚙ 運用管理</h2><div class="manage-grid"><button id="cashCounter" type="button" class="btn-outline">💰 現金確認</button><button id="openLedger" type="button" class="btn-blue">📊 収支表</button><button id="manageSchedules" type="button" class="btn-outline">📅 練習日程</button><button id="managePeople" type="button" class="btn-outline">👥 参加者一覧</button><button id="visitorRegisterMenu" type="button" class="btn-outline">＋ ビジター申請</button><button id="visitorAdminMenu" type="button" class="btn-blue" hidden>👤 ビジター管理</button><button id="matchManage" type="button" class="btn-blue">🏸 対戦表</button><button id="manageAccess" type="button" class="btn-blue" hidden>🔐 メンバー・権限管理</button></div><div class="modal-actions"><button id="closeManage" class="btn-outline" type="button">閉じる</button></div></dialog>
 <dialog id="memberAccessDialog" aria-labelledby="memberAccessTitle">
@@ -138,7 +138,7 @@ body.visitor-member #visitorMemberHome button{width:100%}
       <button id="memberAccessWithdrawCheckButtonV1627" type="button" class="btn-blue" hidden>サーバー側の退会条件を確認</button>
       <p id="memberAccessWithdrawCheckResultV1627" class="stage-withdraw-check-result-v1627 stage-system-message stage-system-message--info" role="status" aria-live="polite" hidden></p>
     </section>
-    <div class="modal-actions"><button id="memberAccessRefresh" type="button" class="btn-outline">更新</button><button id="memberAccessClose" type="button" class="btn-blue">閉じる</button></div>
+    <div class="modal-actions"><button id="memberAccessRefresh" type="button" class="btn-blue">更新</button><button id="memberAccessClose" type="button" class="btn-outline">閉じる</button></div>
   </dialog>
 <dialog id="cashDialog" aria-labelledby="cashDialogTitle">
  <h2 id="cashDialogTitle">💰 現金確認</h2>
@@ -150,8 +150,8 @@ body.visitor-member #visitorMemberHome button{width:100%}
   <div class="cash-money-row"><span>差額:</span><strong id="cashDifference">—</strong></div>
  </div>
  <div id="cashDenominations" class="cash-denominations" aria-label="金種別枚数"></div>
- <div class="cash-actions"><button id="cashReset" type="button" class="btn-outline">枚数をリセット</button><button id="cashSave" type="button" class="btn-green" disabled>現金確認</button></div>
- <div class="modal-actions"><button id="cashClose" type="button" class="btn-blue">✕ 閉じる</button></div>
+ <div class="cash-actions"><button id="cashReset" type="button" class="btn-danger">枚数をリセット</button><button id="cashSave" type="button" class="btn-green" disabled>現金確認</button></div>
+ <div class="modal-actions"><button id="cashClose" type="button" class="btn-outline">✕ 閉じる</button></div>
 </dialog>
 <dialog id="cashResetDialog" aria-labelledby="cashResetTitle">
  <h2 id="cashResetTitle">枚数をすべてリセットしますか？</h2>
@@ -173,6 +173,7 @@ body.visitor-member #visitorMemberHome button{width:100%}
   <div id="visitorMineCards" class="visitor-review-list" role="status" aria-live="polite"></div>
  </section>
  <form id="visitorForm">
+  <h3 class="visitor-form-section-heading">＋ 新しいビジターを申請</h3>
   <label for="visitorPractice" class="dialog-label">参加希望日</label><select id="visitorPractice" class="dialog-select" required></select>
   <label for="visitorName" class="dialog-label">お名前</label><input id="visitorName" class="dialog-input" type="text" maxlength="60" required autocomplete="off">
   <label for="visitorKana" class="dialog-label">氏名カナ（任意）</label><input id="visitorKana" class="dialog-input" type="text" maxlength="100" autocomplete="off">
@@ -228,7 +229,7 @@ body.visitor-member #visitorMemberHome button{width:100%}
 <dialog id="scheduleDialog" aria-labelledby="scheduleTitle">
  <div class="schedule-heading"><h2 id="scheduleTitle">📅 練習日程マスタ</h2><button id="scheduleAdd" type="button" class="btn-green">＋ 日程追加</button></div>
  <div id="scheduleList" class="schedule-list"></div>
- <div class="modal-actions"><button id="scheduleReload" type="button" class="btn-outline">更新</button><button id="scheduleClose" type="button" class="btn-blue">✕ 閉じる</button></div>
+ <div class="modal-actions"><button id="scheduleReload" type="button" class="btn-blue">更新</button><button id="scheduleClose" type="button" class="btn-outline">✕ 閉じる</button></div>
 </dialog>
 <dialog id="scheduleEditDialog" aria-labelledby="scheduleEditTitle">
  <h2 id="scheduleEditTitle">日程の追加</h2>
@@ -249,9 +250,9 @@ body.visitor-member #visitorMemberHome button{width:100%}
 </dialog>
 <dialog id="scheduleActionDialog" aria-labelledby="scheduleActionTitle">
  <h2 id="scheduleActionTitle">確認</h2><p id="scheduleActionText"></p>
- <div class="modal-actions"><button id="scheduleActionCancel" type="button" class="btn-outline">キャンセル</button><button id="scheduleActionSubmit" type="button" class="btn-blue">確定する</button></div>
+ <div class="modal-actions"><button id="scheduleActionCancel" type="button" class="btn-outline">キャンセル</button><button id="scheduleActionSubmit" type="button" class="btn-green">確定する</button></div>
 </dialog>
-<dialog id="ledgerDialog" class="ledger-dialog"><h2>📊 全体収支管理表</h2><div class="ledger-controls"><label for="ledgerMonth">対象月</label><input id="ledgerMonth" type="month"><button id="prevMonth" class="btn-outline" type="button">前月</button><button id="nextMonth" class="btn-outline" type="button">翌月</button><button id="newLedgerRow" class="btn-green" type="button">＋追加</button></div><div class="role-controls"><label for="demoRole">権限（デモ）</label><select id="demoRole"><option value="duty">当番チーム所属</option><option value="admin">システム管理者</option></select></div><div class="ledger-scroll"><table class="ledger-table"><thead><tr><th>日付</th><th>開催場所・費目名</th><th>集金額</th><th>支出</th><th>残金</th><th>確認者</th><th>操作</th></tr></thead><tbody id="ledgerBody"></tbody></table></div><div class="ledger-total" id="ledgerTotal"></div><div class="modal-actions"><button id="closeLedger" class="btn-blue" type="button">閉じる</button></div></dialog>
+<dialog id="ledgerDialog" class="ledger-dialog"><h2>📊 全体収支管理表</h2><div class="ledger-controls"><label for="ledgerMonth">対象月</label><input id="ledgerMonth" type="month"><button id="prevMonth" class="btn-outline" type="button">前月</button><button id="nextMonth" class="btn-outline" type="button">翌月</button><button id="newLedgerRow" class="btn-green" type="button">＋追加</button></div><div class="role-controls"><label for="demoRole">権限（デモ）</label><select id="demoRole"><option value="duty">当番チーム所属</option><option value="admin">システム管理者</option></select></div><div class="ledger-scroll"><table class="ledger-table"><thead><tr><th>日付</th><th>開催場所・費目名</th><th>集金額</th><th>支出</th><th>残金</th><th>確認者</th><th>操作</th></tr></thead><tbody id="ledgerBody"></tbody></table></div><div class="ledger-total" id="ledgerTotal"></div><div class="modal-actions"><button id="closeLedger" class="btn-outline" type="button">閉じる</button></div></dialog>
 <dialog id="ledgerEditDialog"><h2 id="ledgerEditTitle">収支を追加</h2>
 <form id="ledgerEditForm">
 <label class="dialog-label" for="ledgerKind">登録区分</label>
@@ -277,14 +278,14 @@ body.visitor-member #visitorMemberHome button{width:100%}
 <dialog id="accessConfirmV2" aria-labelledby="accessConfirmTitleV2" aria-describedby="accessConfirmMessageV2">
  <h2 id="accessConfirmTitleV2">確認</h2>
  <p id="accessConfirmMessageV2"></p>
- <div class="modal-actions"><button id="accessConfirmCancelV2" type="button" class="btn-outline">キャンセル</button><button id="accessConfirmOkayV2" type="button" class="btn-blue">実行する</button></div>
+ <div class="modal-actions"><button id="accessConfirmCancelV2" type="button" class="btn-outline">キャンセル</button><button id="accessConfirmOkayV2" type="button" class="btn-green">実行する</button></div>
 </dialog>
 <dialog id="stageBusyDialog" class="stage-busy-dialog" aria-modal="true" aria-labelledby="stageBusyLabel">
  <div class="stage-busy-inner"><span class="stage-busy-spinner" aria-hidden="true"></span><strong id="stageBusyLabel">読み込み中です…</strong></div>
 </dialog>
 <dialog id="stageErrorDialog" aria-labelledby="stageErrorTitle" aria-describedby="stageErrorMessage" role="alertdialog">
  <h2 id="stageErrorTitle">操作できませんでした</h2><p id="stageErrorMessage"></p>
- <div class="modal-actions"><button id="stageErrorOkay" class="btn-blue" type="button">閉じる</button></div>
+ <div class="modal-actions"><button id="stageErrorOkay" class="btn-outline" type="button">閉じる</button></div>
 </dialog>
 <script src="date-format.js?v=1641"></script><script src="model.js"></script><script src="access-v2-mode.js?v=1627a"></script><script src="live-access.js?v=162e"></script><script src="stage-ui.js?v=1620a"></script><script src="live-access-v2.js?v=1636a"></script><script src="runtime-config.js?v=164a"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script src="cash-reconcile.js?v=1637b"></script><script src="visitor-approval.js?v=1641"></script><script type="module" src="live.js?v=1641"></script>
 </body></html>
