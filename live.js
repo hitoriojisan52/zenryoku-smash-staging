@@ -52,7 +52,7 @@ async function call(path,payload={}){
  if(!S.token||!CONFIG.apiBaseUrl)throw new Error('LINE認証またはAPI設定がありません');
  const url=CONFIG.apiBaseUrl.replace(/\/$/,'')+path;
  // Invalidate responses from reads that started before a write.
- if(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change'].includes(path))S.updateEpoch++;
+ if(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change','/api/schedule/change'].includes(path))S.updateEpoch++;
  const startedAt=performance.now();
  const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},body:JSON.stringify(payload),cache:'no-store'});
  if(PERF_MODE){
@@ -494,6 +494,120 @@ async function saveCashAudit(){
  });
 }
 
+
+// v0.16.38a: old v7 surface, new fixed-ID practice schedule records.
+const SC={rows:[],editing:null,action:null};
+function scheduleDateLabel_(d){return window.SMDate.date(d);}
+function scheduleDateValid_(d){return /^\d{4}-\d{2}-\d{2}$/.test(d)&&window.SMCashReconcile.validDate(d);}
+function scheduleFormPayload_(){
+ const date=$('scheduleDate').value.trim().replace(/\//g,'-');
+ const match=/^(\d{1,2}):([0-5]\d)\s*-\s*(\d{1,2}):([0-5]\d)$/.exec($('scheduleTimeSlot').value.trim());
+ const hours=Number($('scheduleHours').value),place=$('schedulePlace').value,remark=$('scheduleRemark').value.trim();
+ if(!scheduleDateValid_(date)||date<today())throw new Error('本日以降の開催日を入力してください');
+ if(!match||Number(match[1])>23||Number(match[3])>23)throw new Error('時間帯を確認してください');
+ const startTime=String(Number(match[1])).padStart(2,'0')+':'+match[2],
+   endTime=String(Number(match[3])).padStart(2,'0')+':'+match[4];
+ const start=Number(startTime.slice(0,2))*60+Number(startTime.slice(3)),
+   end=Number(endTime.slice(0,2))*60+Number(endTime.slice(3));
+ if(end-start!==hours*60)throw new Error('時間帯と時間数が一致しません');
+ if(!place||place.length>100||remark.length>200)throw new Error('開催場所・備考を確認してください');
+ return {date,place,startTime,endTime,hours,remark};
+}
+function renderScheduleMaster_(){
+ const list=$('scheduleList');list.replaceChildren();
+ if(!SC.rows.length){
+  const e=document.createElement('p');e.className='schedule-note';
+  e.textContent='本日以降の開催予定はありません。';list.append(e);return;
+ }
+ for(const row of SC.rows){
+  const card=document.createElement('div');card.className='schedule-card';
+  const head=document.createElement('div');head.className='schedule-card-head';
+  const title=document.createElement('span');title.textContent='📅 '+scheduleDateLabel_(row.date);
+  const status=document.createElement('span');status.textContent=row.enabled?'✔ 確定済':'⏳ 未確定';
+  status.style.color=row.enabled?'#2e7d32':'#666';head.append(title,status);
+  const details=document.createElement('div');details.className='schedule-card-detail';
+  const hours=document.createElement('span');hours.textContent='🕒 '+row.startTime+'-'+row.endTime+
+   ' ('+row.hours+'h) @'+row.place;
+  details.append(hours);
+  if(row.remark){const memo=document.createElement('span');memo.textContent='📝 '+row.remark;details.append(memo);}
+  const actions=document.createElement('div');actions.className='schedule-card-actions';
+  for(const [action,label,css] of [['edit','修正','btn-outline'],['delete','削除','btn-danger'],['confirm',row.enabled?'確定済':'確定','btn-green']]){
+   const btn=document.createElement('button');btn.type='button';btn.textContent=label;btn.className=css;
+   btn.disabled=row.enabled;
+   if(!row.enabled)btn.addEventListener('click',()=>action==='edit'?openScheduleEditor_(row):confirmScheduleAction_(action,row));
+   actions.append(btn);
+  }
+  card.append(head,details,actions);list.append(card);
+ }
+}
+async function loadScheduleMaster_(){
+ const d=await call('/api/schedule/list');
+ if(!Array.isArray(d?.schedules)||d.schedules.some(r=>!r?.practiceId||
+   !scheduleDateValid_(r.date)||!Number.isSafeInteger(r.version)||typeof r.enabled!=='boolean')){
+  throw new Error('練習日程マスタの取得結果を確認できません');
+ }
+ SC.rows=d.schedules.slice().sort((a,b)=>a.date.localeCompare(b.date)||a.startTime.localeCompare(b.startTime));
+ renderScheduleMaster_();
+}
+async function openScheduleMaster_(){
+ let loaded=false;
+ await guard(async()=>{gateEdit();await loadScheduleMaster_();loaded=true;},'日程を読み込んでいます…');
+ if(loaded){close('manageDialog');dialog('scheduleDialog');}
+}
+function openScheduleEditor_(row=null){
+ SC.editing=row;
+ $('scheduleEditTitle').textContent=row?'日程の修正':'日程の追加';
+ $('scheduleDate').value=window.SMDate.date(row?.date||today(),false);
+ $('scheduleTimeSlot').value=row?row.startTime+'-'+row.endTime:'9:00-13:00';
+ $('scheduleHours').value=String(row?.hours||4);
+ const place=$('schedulePlace');
+ for(const option of Array.from(place.options))if(option.dataset.custom==='1')option.remove();
+ if(row?.place&&!Array.from(place.options).some(option=>option.value===row.place)){
+  const custom=new Option(row.place,row.place);custom.dataset.custom='1';place.add(custom);
+ }
+ place.value=row?.place||'曽谷公民館';$('scheduleRemark').value=row?.remark||'';
+ dialog('scheduleEditDialog');
+}
+async function saveScheduleMaster_(event){
+ event.preventDefault();
+ const original=SC.editing;
+ await guard(async()=>{
+  gateEdit();
+  const data=scheduleFormPayload_(),id=original?.practiceId||('PR-'+uuid());
+  const result=await call('/api/schedule/change',{operationId:uuid(),action:original?'edit':'add',
+   practiceId:id,expectedVersion:original?.version??0,...data});
+  if(result?.practiceId!==id||result.action!==(original?'edit':'add')||
+     result.version!==(original?original.version+1:1))
+    throw new Error('保存結果を確認できません。最新の日程を読み直してください');
+  close('scheduleEditDialog');SC.editing=null;
+  await loadScheduleMaster_();
+  toast(original?'日程を修正しました':'日程を追加しました');
+ },'日程を保存しています…');
+}
+function confirmScheduleAction_(action,row){
+ SC.action={action,row};
+ $('scheduleActionTitle').textContent=action==='delete'?'【日程の削除】':'【日程の確定】';
+ $('scheduleActionText').textContent=scheduleDateLabel_(row.date)+
+  (action==='delete'?' の練習日程を削除しますか？':' の日程を受付対象に確定しますか？');
+ $('scheduleActionSubmit').textContent=action==='delete'?'削除する':'確定する';
+ $('scheduleActionSubmit').className=action==='delete'?'btn-danger':'btn-green';
+ dialog('scheduleActionDialog');
+}
+async function executeScheduleAction_(){
+ const target=SC.action;close('scheduleActionDialog');if(!target)return;
+ await guard(async()=>{
+  gateEdit();const {action,row}=target;
+  const result=await call('/api/schedule/change',{operationId:uuid(),action,
+    practiceId:row.practiceId,expectedVersion:row.version});
+  if(result?.practiceId!==row.practiceId||result.action!==action||
+     result.version!==row.version+1)
+    throw new Error('操作結果を確認できません。最新の日程を読み直してください');
+  SC.action=null;await loadScheduleMaster_();
+  if(action==='confirm')await reload(true);
+  toast(action==='delete'?'日程を削除しました':'日程を確定しました');
+ },'日程を更新しています…');
+}
+
 function bind(){
  $('date').addEventListener('change',()=>{S.practiceId=$('date').value;guard(()=>reload(false));});$('refresh').addEventListener('click',()=>guard(()=>reload(true)));
  $('categoryDialog').addEventListener('close',()=>{S.modalTarget=null;});$('cancelCategory').addEventListener('click',()=>close('categoryDialog'));$('saveCategory').addEventListener('click',saveCategory);
@@ -512,7 +626,16 @@ function bind(){
  $('cashSaveCancel').addEventListener('click',()=>close('cashSaveDialog'));
  $('cashSaveConfirm').addEventListener('click',saveCashAudit);
  $('cashClose').addEventListener('click',()=>{cashSnapshot=null;close('cashDialog');});
- for(const id of ['manageSchedules','managePeople'])$(id).disabled=true;
+
+ $('manageSchedules').addEventListener('click',openScheduleMaster_);
+ $('scheduleAdd').addEventListener('click',()=>openScheduleEditor_());
+ $('scheduleClose').addEventListener('click',()=>close('scheduleDialog'));
+ $('scheduleReload').addEventListener('click',()=>guard(loadScheduleMaster_,'日程を読み込んでいます…'));
+ $('scheduleEditCancel').addEventListener('click',()=>close('scheduleEditDialog'));
+ $('scheduleEditForm').addEventListener('submit',saveScheduleMaster_);
+ $('scheduleActionCancel').addEventListener('click',()=>close('scheduleActionDialog'));
+ $('scheduleActionSubmit').addEventListener('click',executeScheduleAction_);
+ $('managePeople').disabled=true;
  $('ledgerMonth').addEventListener('change',()=>guard(loadLedger));$('prevMonth').addEventListener('click',()=>shiftMonth(-1));$('nextMonth').addEventListener('click',()=>shiftMonth(1));
  $('closeLedger').addEventListener('click',()=>close('ledgerDialog'));$('newLedgerRow').addEventListener('click',()=>openEditor());
  $('ledgerKind').addEventListener('change',updateEditorKind);$('ledgerPractice').addEventListener('change',updateEditorKind);
