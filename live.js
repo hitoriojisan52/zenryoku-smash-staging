@@ -71,7 +71,7 @@ function syncPaymentControls(){
  const pending=S.pending.size>0,ledger=S.overview?.ledger,access=S.overview?.collectionAccess;
  const locked=!ledger||ledger.status==='confirmed'||access?.canCollect===false;
  for(const id of ['date','refresh','reimbursementBtn','manageBtn']){
-   const el=$(id);if(el)el.disabled=pending;
+   const el=$(id);if(el)el.disabled=pending||(id==='date'&&!S.overview?.practice);
  }
  if($('confirm'))$('confirm').disabled=pending||locked||S.overview?.practice?.date>today();
  for(const id of ['adjustment','expense']){
@@ -157,15 +157,33 @@ async function reload(refreshDates){
  if(S.loading||S.pending.size)return;S.loading=true;
  const epoch=S.updateEpoch,selected=S.practiceId;
  try{
-   const d=await call('/api/overview',{practiceId:S.practiceId});
-   if(epoch!==S.updateEpoch||S.pending.size||selected!==S.practiceId)return;
-   if(refreshDates||!S.practiceId){$('date').replaceChildren(...d.practices.map(p=>new Option(`${window.SMDate.date(p.date)} ${p.startTime}～${p.endTime}`,p.practiceId)));}
-   S.practiceId=d.practice.practiceId;$('date').value=S.practiceId;S.overview=d;
+   let d,notFound=false;
+   try{d=await call('/api/overview',{practiceId:S.practiceId});}
+   catch(e){
+    // A second device may have deleted the previously selected schedule.
+    if(e.status!==404||!selected)throw e;
+    d=await call('/api/overview',{});notFound=true;
+   }
+   if(epoch!==S.updateEpoch||S.pending.size||(!notFound&&selected!==S.practiceId))return;
+   if(refreshDates||!S.practiceId||notFound){
+    $('date').replaceChildren(...d.practices.map(p=>new Option(`${window.SMDate.date(p.date)} ${p.startTime}～${p.endTime}`,p.practiceId)));
+   }
+   S.practiceId=d.practice?.practiceId||'';$('date').value=S.practiceId;S.overview=d;
    S.paymentNeedsRefresh=false;
    renderHome();syncPaymentControls();
  }finally{S.loading=false;}
 }
 function renderHome(){const v=S.overview;if(!v)return;const {practice,ledger,participants}=v;
+ if(!practice){
+  $('place').textContent='開催日なし';$('hours').textContent='時間区分：—';
+  $('count').textContent='参加者：0名';$('completedCount').textContent='集金完了：0名';
+  $('adjustment').value=0;$('expense').value=0;
+  $('confirm').disabled=true;$('adjustment').disabled=true;$('expense').disabled=true;
+  $('cashCounter').disabled=true;$('list').replaceChildren();
+  $('collectionLockReason').textContent='開催日がありません';
+  $('collectionLockReason').hidden=false;updateFooter();return;
+ }
+ $('cashCounter').disabled=false;
  $('place').textContent='場所：'+practice.place;$('hours').textContent='時間区分：'+practice.hours+'時間';
  $('count').textContent='参加者：'+v.attendingCount+'名';$('completedCount').textContent='集金完了：'+v.completedCount+'名';
  if(document.activeElement!==$('adjustment'))$('adjustment').value=ledger?.adjustment??0;
