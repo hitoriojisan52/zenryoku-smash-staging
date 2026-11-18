@@ -112,7 +112,7 @@ for(const bad of ['setPayment_(','cashSave_(']){
 }
 ok(gas.includes("'練習日程':['practiceId','date','place','startTime','endTime','hours','enabled','remark','version']"),
  'practice schema includes legacy remarks and optimistic version');
-ok(gas.includes("['overview','ledger.list','cash.get','schedule.list','schedule.delete.preview']"),
+ok(gas.includes("['overview','ledger.list','cash.get','schedule.list','schedule.delete.preview','participant.list']"),
  'schedule read requires duty/admin role');
 ok(gas.includes("'schedule.change'")&&gas.includes("auditExisting_(ss,opId,op,member)"),
  'schedule writes protected by existing script lock and op audit');
