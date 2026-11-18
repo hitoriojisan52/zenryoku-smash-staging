@@ -53,23 +53,35 @@ body.visitor-member #visitorMemberHome h2{font-size:19px;margin:0}
 body.visitor-member #visitorMemberHome button{width:100%}
 @media(max-width:370px){.stage-ui #scheduleDialog .schedule-heading h2{font-size:15px}.stage-ui #scheduleDialog #scheduleAdd{font-size:12px;padding:6px}}
 
-/* Legacy participant management 0.16.38d: clear one-column mobile cards. */
-.stage-ui dialog#participantDialog{max-width:500px;width:calc(100% - 16px);max-height:calc(100dvh - 26px);overflow-y:auto}
+/* v0.16.38f: old-v7 response list layout, modern 40px touch targets. */
+.stage-ui dialog#participantDialog{max-width:500px;width:calc(100% - 16px);max-height:calc(100dvh - 26px);overflow:hidden;display:flex;flex-direction:column;box-sizing:border-box;padding:12px 10px}
+.stage-ui dialog#participantDialog:not([open]){display:none}
 .stage-ui dialog#participantEditDialog{max-width:440px;width:calc(100% - 18px);max-height:calc(100dvh - 26px);overflow-y:auto}
-.stage-ui .participant-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.stage-ui .participant-heading h2{margin:0}
-.stage-ui #participantAdd{flex:none;min-width:0;width:auto;min-height:40px;padding:6px 9px;font-size:13px}
-.stage-ui .participant-controls{display:flex;gap:6px;align-items:center;margin:12px 0 8px}
-.stage-ui .participant-controls label{flex:none;font-size:14px;font-weight:700}
-.stage-ui .participant-controls select{flex:1;min-width:0}
-.stage-ui .participant-controls button{flex:none;min-height:40px}
-.stage-ui .participant-cards{max-height:51dvh;overflow-y:auto}
-.stage-ui .participant-card-item{border:1px solid #dce5eb;background:#f9fbfd;border-radius:8px;padding:9px;margin:8px 0}
-.stage-ui .participant-card-title{font-weight:700;font-size:15px;display:flex;flex-wrap:wrap;gap:7px}
-.stage-ui .participant-card-details{font-size:13px;color:#42586b;margin:6px 0;display:flex;flex-direction:column;gap:2px;overflow-wrap:anywhere}
-.stage-ui .participant-card-buttons{display:flex;justify-content:flex-end;gap:6px;margin-top:6px}
-.stage-ui .participant-card-buttons button{min-height:40px;padding:6px 12px;font-size:13px}
-@media(max-width:380px){.stage-ui #participantAdd{font-size:12px;padding:6px}.stage-ui .participant-heading h2{font-size:16px}}
+.stage-ui .participant-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:2px solid #546e7a;padding-bottom:6px;margin-bottom:8px;flex:none}
+.stage-ui .participant-heading h2{margin:0;font-size:16px;color:#37474f}
+.stage-ui #participantClose{flex:none;width:auto;min-width:0;padding:6px 9px;background:#e0e0e0;color:#333}
+.stage-ui .participant-controls{display:flex;align-items:center;gap:6px;margin:0 0 6px;background:#eef2f7;border-radius:6px;padding:6px 8px;flex:none}
+.stage-ui .participant-controls select{flex:1;min-width:0;background:#fff}
+.stage-ui .participant-controls button{flex:none;min-width:0;width:auto;padding:6px 12px;white-space:nowrap}
+.stage-ui #participantNotice[hidden]{display:none!important}
+.stage-ui #participantNotice{flex:none;margin:0 0 6px}
+.stage-ui .participant-cards{flex:1;min-height:0;overflow-y:auto;padding:0 2px 0 0}
+.stage-ui .participant-card-item{background:#fafafa;border:1px solid #ddd;border-radius:6px;padding:8px 10px;margin:0 0 6px}
+.stage-ui .participant-card-title{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px;font-size:13px;font-weight:700;color:#333}
+.stage-ui .participant-card-person{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px;min-width:0}
+.stage-ui .participant-card-name{overflow-wrap:anywhere}
+.stage-ui .participant-card-category{font-size:10.5px;font-weight:400;color:#333;background:#e0e0e0;padding:1px 3px;border-radius:3px;white-space:nowrap}
+.stage-ui .participant-card-attendance{flex:none;white-space:nowrap;font-weight:700}
+.stage-ui .participant-card-attendance.is-attending{color:#2e7d32}
+.stage-ui .participant-card-attendance.is-absent{color:#c62828}
+.stage-ui .participant-card-details{display:flex;flex-direction:column;gap:2px;margin-bottom:5px;font-size:12px;color:#555;overflow-wrap:anywhere}
+.stage-ui .participant-card-memo{margin-bottom:5px;font-size:11.5px;color:#37474f;overflow-wrap:anywhere}
+.stage-ui .participant-card-footer{display:flex;justify-content:flex-end;align-items:center;border-top:1px dashed #ccc;padding-top:5px}
+.stage-ui .participant-card-buttons{display:flex;justify-content:flex-end;gap:4px}
+.stage-ui .participant-card-buttons button{min-height:40px;min-width:48px;padding:6px 9px;font-size:12px;border-radius:5px}
+.stage-ui .participant-card-buttons .participant-btn-edit{background:#1976d2;color:#fff}
+.stage-ui .participant-card-buttons .participant-btn-delete{background:#c62828;color:#fff}
+@media(max-width:380px){.stage-ui .participant-heading h2{font-size:15px}.stage-ui .participant-controls{padding:5px;gap:5px}.stage-ui .participant-card-item{padding:7px 8px}}
 </style></head>
 <body class="stage-ui">
 <main class="container">
@@ -150,11 +162,10 @@ body.visitor-member #visitorMemberHome button{width:100%}
  <div class="modal-actions"><button id="visitorConfirmCancel" type="button" class="btn-outline">キャンセル</button><button id="visitorConfirmSave" type="button" class="btn-green">登録する</button></div>
 </dialog>
 <dialog id="participantDialog" aria-labelledby="participantTitle">
- <div class="participant-heading"><h2 id="participantTitle">👥 参加者一覧</h2><button id="participantAdd" type="button" class="btn-green">＋ ビジター追加</button></div>
- <div class="participant-controls"><label for="participantPractice">開催日</label><select id="participantPractice" class="dialog-select"></select><button id="participantReload" class="btn-outline" type="button">更新</button></div>
- <p id="participantNotice" class="schedule-note" role="status"></p>
+ <div class="participant-heading"><h2 id="participantTitle">👥 参加者一覧</h2><button id="participantClose" class="btn-outline" type="button">✕ 閉じる</button></div>
+ <div class="participant-controls"><select id="participantPractice" class="dialog-select" aria-label="開催日を選択"></select><button id="participantReload" class="btn-blue" type="button">更新</button></div>
+ <p id="participantNotice" class="schedule-note" role="status" hidden></p>
  <div id="participantCards" class="participant-cards" aria-live="polite"></div>
- <div class="modal-actions"><button id="participantClose" class="btn-blue" type="button">✕ 閉じる</button></div>
 </dialog>
 <dialog id="participantEditDialog" aria-labelledby="participantEditTitle">
  <h2 id="participantEditTitle">参加者の修正</h2>
@@ -240,5 +251,5 @@ body.visitor-member #visitorMemberHome button{width:100%}
  <h2 id="stageErrorTitle">操作できませんでした</h2><p id="stageErrorMessage"></p>
  <div class="modal-actions"><button id="stageErrorOkay" class="btn-blue" type="button">閉じる</button></div>
 </dialog>
-<script src="date-format.js?v=163c"></script><script src="model.js"></script><script src="access-v2-mode.js?v=1627a"></script><script src="live-access.js?v=162e"></script><script src="stage-ui.js?v=1620a"></script><script src="live-access-v2.js?v=1636a"></script><script src="runtime-config.js?v=164a"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script src="cash-reconcile.js?v=1637b"></script><script type="module" src="live.js?v=1638e"></script>
+<script src="date-format.js?v=163c"></script><script src="model.js"></script><script src="access-v2-mode.js?v=1627a"></script><script src="live-access.js?v=162e"></script><script src="stage-ui.js?v=1620a"></script><script src="live-access-v2.js?v=1636a"></script><script src="runtime-config.js?v=164a"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script src="cash-reconcile.js?v=1637b"></script><script type="module" src="live.js?v=1638f"></script>
 </body></html>

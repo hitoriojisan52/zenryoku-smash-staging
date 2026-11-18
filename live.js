@@ -774,34 +774,56 @@ function participantDates_(){
 function renderParticipantManager_(){
  const list=$('participantCards');list.replaceChildren();
  const blocked=PM.matchLocked||PM.financeLocked||PM.uncertain;
- $('participantNotice').textContent=PM.matchLocked?'対戦表がある日程は修正・削除できません':
+ const notice=$('participantNotice');
+ notice.textContent=PM.matchLocked?'対戦表がある日程は修正・削除できません':
   PM.financeLocked?'収支確定済みのため修正・削除できません':
   PM.uncertain?'保存結果が不明です。更新してから操作してください':'';
+ notice.hidden=!notice.textContent;
  if(!PM.people.length){
   const empty=document.createElement('p');empty.className='schedule-note';
-  empty.textContent='参加者の回答はありません。';list.append(empty);return;
+  empty.textContent='この開催日の回答データはありません。';
+  empty.style.textAlign='center';empty.style.padding='20px 0';
+  list.append(empty);return;
  }
  for(const p of PM.people){
+  // Old v7 "resp-row-card": header (name/type + participation),
+  // contact/timestamp, optional note, dashed action footer.
+  // Use textContent, never innerHTML with user-supplied names/notes.
   const card=document.createElement('div');card.className='participant-card-item';
-  const title=document.createElement('div');title.className='participant-card-title';
-  const name=document.createElement('span');name.textContent='👤 '+p.name;
-  const category=document.createElement('span');category.textContent='['+(PM_CATEGORIES[p.category]||p.category)+']';
-  const attending=document.createElement('span');attending.textContent=p.attending?'参加':'欠席';
-  title.append(name,category,attending);
+  const head=document.createElement('div');head.className='participant-card-title';
+  const person=document.createElement('span');person.className='participant-card-person';
+  const name=document.createElement('span');name.className='participant-card-name';
+  name.textContent='👤 '+p.name;
+  const category=document.createElement('span');category.className='participant-card-category';
+  category.textContent=PM_CATEGORIES[p.category]||p.category;
+  person.append(name,category);
+  const attending=document.createElement('span');
+  attending.className='participant-card-attendance '+(p.attending?'is-attending':'is-absent');
+  attending.textContent=p.attending?'参加':'欠席';
+  head.append(person,attending);
   const details=document.createElement('div');details.className='participant-card-details';
-  for(const value of [
-   '📧 '+(p.email??'未記録'),'📅 '+(p.registeredAt??'未記録'),
-   '📝 '+(p.memo||'—'),
-   p.collectionCompleted?'集金：完了':'集金：未完了'
-  ]){const line=document.createElement('span');line.textContent=value;details.append(line);}
-  const buttons=document.createElement('div');buttons.className='participant-card-buttons';
-  for(const [action,label,style] of [['edit','修正','btn-outline'],['delete','削除','btn-danger']]){
+  const email=document.createElement('span');email.textContent='📧 '+(p.email||'未記録');
+  const registered=document.createElement('span');
+  registered.textContent='📅 登録: '+(p.registeredAt||'未記録');
+  details.append(email,registered);
+  card.append(head,details);
+  if(p.memo){
+   const note=document.createElement('div');note.className='participant-card-memo';
+   note.textContent='📝 備考: '+p.memo;card.append(note);
+  }
+  const footer=document.createElement('div');footer.className='participant-card-footer';
+  const actions=document.createElement('div');actions.className='participant-card-buttons';
+  for(const [action,label,style] of [
+    ['edit','修正','participant-btn-edit'],
+    ['delete','削除','participant-btn-delete']
+  ]){
    const btn=document.createElement('button');btn.type='button';btn.className=style;
    btn.textContent=label;btn.disabled=blocked;
-   if(!blocked)btn.addEventListener('click',()=>action==='edit'?openParticipantEditor_(p):confirmParticipantDelete_(p));
-   buttons.append(btn);
+   if(!blocked)btn.addEventListener('click',()=>action==='edit'?
+     openParticipantEditor_(p):confirmParticipantDelete_(p));
+   actions.append(btn);
   }
-  card.append(title,details,buttons);list.append(card);
+  footer.append(actions);card.append(footer);list.append(card);
  }
 }
 async function loadParticipants_(){
@@ -819,7 +841,6 @@ async function loadParticipants_(){
  PM.practices=answer.practices;PM.practiceId=answer.practiceId;PM.people=answer.participants;
  PM.financeLocked=answer.financeLocked;PM.matchLocked=answer.matchLocked;PM.uncertain=false;
  participantDates_();$('participantPractice').value=PM.practiceId;
- $('participantAdd').disabled=!PM.practices.length;
  renderParticipantManager_();
 }
 async function openParticipantManager_(){
@@ -943,7 +964,6 @@ function bind(){
  $('participantPractice').addEventListener('change',switchParticipantDate_);
  $('participantReload').addEventListener('click',()=>guard(loadParticipants_,'参加者を読み込んでいます…'));
  $('participantClose').addEventListener('click',()=>close('participantDialog'));
- $('participantAdd').addEventListener('click',()=>{close('participantDialog');openVisitorForm_();});
  $('participantEditCancel').addEventListener('click',()=>close('participantEditDialog'));
  $('participantEditForm').addEventListener('submit',saveParticipantEdit_);
  $('participantDeleteCancel').addEventListener('click',()=>close('participantDeleteDialog'));
