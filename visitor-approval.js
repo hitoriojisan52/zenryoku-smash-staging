@@ -1,104 +1,143 @@
-/* v0.16.40 — visitor status and administrator decision UI.
- * Only a server-derived memberId is allowed to see their own requests.
- * No local role flag grants approval; GAS validates admin on each call.
+/* v0.16.42 — visitor request/member and admin cards share participant-list layout.
+ * Registered member IDs come from verified LINE authentication, never the UI.
+ * Pending request: requester can withdraw. Approved: requester can edit details.
+ * Rejected: terminal. Server enforces finance, match, version and ownership.
  */
 (function(w){
  'use strict';
  const $=id=>document.getElementById(id);
- let api=null,actor=null,selected=null,refreshAfterDecision=null;
- const STATUS={pending:'承認待ち',approved:'承認済み',rejected:'却下済み'};
+ const STATUS=Object.freeze({pending:'承認待ち',approved:'承認済み',rejected:'却下済み'});
  const formatRequestedAt_=(value)=>{
   const text=w.SMDate.dateTimeJst(value,false);
-  return /^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}$/.test(text)
-   ?text:'日時を確認できません';
+  return /^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}$/.test(text)?text:'日時を確認できません';
  };
- const node=(tag,cls,txt)=>{
-  const e=document.createElement(tag);if(cls)e.className=cls;
-  if(txt!==undefined)e.textContent=String(txt);
-  return e;
+ let api=null,actor=null,selected=null,editTarget=null,deleteTarget=null;
+ let refreshAfterDecision=null,mineRows=[],adminRows=[];
+ const node=(tag,cls,text)=>{
+  const el=document.createElement(tag);if(cls)el.className=cls;
+  if(text!==undefined)el.textContent=String(text);
+  return el;
  };
  const busy=async(label,fn)=>{
   try{return await w.SMStageUX.run(label,fn);}
   catch(e){await w.SMStageUX.showError(e);return null;}
  };
- function empty(label){
+ const empty=label=>{
   const el=node('p','stage-system-message stage-system-message--info',label);
   el.setAttribute('role','status');el.setAttribute('aria-live','polite');
   return el;
+ };
+ const shortDate=r=>r.date?w.SMDate.date(r.date)+' '+(r.place||''):'開催日：登録がありません';
+ function optionsFor(rows,id){
+  const select=$(id),old=select.value,unique=new Map();
+  rows.forEach(r=>{
+   if(!unique.has(r.practiceId))unique.set(r.practiceId,shortDate(r));
+  });
+  const list=[{value:'all',text:'すべての日程'},...Array.from(unique,([value,text])=>({value,text}))
+   .sort((a,b)=>a.text.localeCompare(b.text,'ja'))];
+  select.replaceChildren(...list.map(item=>{
+   const option=node('option','',item.text);option.value=item.value;return option;
+  }));
+  select.value=list.some(o=>o.value===old)?old:'all';
+  return rows.filter(r=>select.value==='all'||r.practiceId===select.value);
  }
  function card(data,admin){
-  const el=node('article','visitor-review-card');
-  const header=node('div','visitor-review-heading');
-  header.append(node('strong','',data.name));
+  const card=node('article','participant-card-item visitor-review-card');
+  const head=node('div','participant-card-title visitor-review-heading');
+  const who=node('span','participant-card-person');
+  who.append(node('span','participant-card-name','👤 '+data.name),
+    node('span','participant-card-category','ビジター'));
+  head.append(who);
+  // Request status appears in the applicant's view, and also in admin
+  // reviews where it controls whether approval/rejection is available.
   const state=STATUS[data.status]||'状態を確認してください';
-  header.append(node('span','visitor-status visitor-status--'+(STATUS[data.status]?data.status:'pending'),state));
-  el.append(header);
-  const details=[
-   data.date?(w.SMDate.date(data.date)+' '+(data.place||'')):'開催日：登録がありません',
-   data.requestedAt?'申請日時：'+formatRequestedAt_(data.requestedAt):'',
+  head.append(node('span','visitor-status visitor-status--'+data.status,state));
+  const content=node('div','participant-card-content');
+  const info=node('div','participant-card-info');
+  const details=node('div','participant-card-details visitor-review-info');
+  const fields=[
+   shortDate(data),
+   '📧 未記録',
+   '📅 申請日時：'+formatRequestedAt_(data.requestedAt),
+   '出欠：'+(data.status==='approved'?'参加':data.status==='pending'?'承認待ち':'却下済み'),
    admin?'申請者：'+(data.requestedByName||'不明'):'',
-   data.nameKana?'カナ：'+data.nameKana:'',
-   data.memo?'備考：'+data.memo:''
-  ].filter(Boolean).join('\n');
-  el.append(node('p','visitor-review-info',details));
+   data.nameKana?'カナ：'+data.nameKana:''
+  ].filter(Boolean);
+  for(const field of fields)details.append(node('span','',field));
+  info.append(details);
+  if(data.memo)info.append(node('div','participant-card-memo','📝 備考: '+data.memo));
+  const actions=node('div','participant-card-buttons visitor-review-actions');
   if(admin){
-   const actions=node('div','visitor-review-actions');
    for(const [action,label] of [['approve','承認'],['reject','却下']]){
     const button=node('button',action==='reject'?'btn-danger':'btn-green',label);
     button.type='button';button.disabled=(data.status==='rejected')||
-      (action==='approve'&&data.status!=='pending');
+     (action==='approve'&&data.status!=='pending');
     if(!button.disabled)button.addEventListener('click',()=>openConfirm(data,action));
     actions.append(button);
    }
-   el.append(actions);
+  }else{
+   const edit=node('button','participant-btn-edit','修正');
+   const remove=node('button','participant-btn-delete','削除');
+   edit.type='button';remove.type='button';
+   edit.disabled=data.status!=='approved';
+   remove.disabled=data.status!=='pending';
+   if(!edit.disabled)edit.addEventListener('click',()=>openEdit(data));
+   if(!remove.disabled)remove.addEventListener('click',()=>openDelete(data));
+   actions.append(edit,remove);
   }
-  return el;
+  content.append(info,actions);
+  card.append(head,content);
+  return card;
  }
  function render(container,rows,admin){
   const target=$(container);target.replaceChildren();
-  if(!rows.length){target.append(empty(admin?'審査対象のビジター申請はありません。':'ビジターの申請履歴はありません。'));return;}
+  if(!rows.length){
+   target.append(empty(admin?'この開催日の審査対象はありません。':'この開催日のビジター申請はありません。'));
+   return;
+  }
   rows.forEach(r=>target.append(card(r,admin)));
  }
+ function renderMine(){
+  render('visitorMineCards',optionsFor(mineRows,'visitorMinePractice'),false);
+ }
+ function renderAdmin(){
+  render('visitorAdminCards',optionsFor(adminRows,'visitorAdminPractice'),true);
+ }
  async function loadMine(){
-  if(!api)return;
+  if(!api)return [];
   const result=await api('/api/visitor/mine');
-  if(!Array.isArray(result?.requests)||
-    result.requests.some(r=>!r.requestId||!STATUS[r.status]))
+  if(!Array.isArray(result?.requests)||result.requests.some(r=>!r.requestId||
+     !STATUS[r.status]||!r.practiceId||!Number.isSafeInteger(r.version)))
    throw Error('ビジター申請状況の取得結果が不正です。');
-  render('visitorMineCards',result.requests,false);
-  return result.requests;
+  mineRows=result.requests;renderMine();return mineRows;
  }
  async function loadAdmin(){
   if(actor?.role!=='admin')throw Error('管理者のみ閲覧できます');
   const result=await api('/api/visitor/admin-list');
-  if(!Array.isArray(result?.requests)||
-    result.requests.some(r=>!r.requestId||!STATUS[r.status]))
+  if(!Array.isArray(result?.requests)||result.requests.some(r=>!r.requestId||
+     !STATUS[r.status]||!r.practiceId||!Number.isSafeInteger(r.version)))
    throw Error('ビジター管理情報の取得結果が不正です。');
-  render('visitorAdminCards',result.requests,true);
-  return result.requests;
+  adminRows=result.requests;renderAdmin();return adminRows;
  }
  function openConfirm(data,action){
   if(actor?.role!=='admin'||!STATUS[data.status]||data.status==='rejected'||
      (action==='approve'&&data.status!=='pending'))return;
   selected={requestId:data.requestId,practiceId:data.practiceId,
    expectedVersion:data.version,action};
-  const decision=action==='approve'?'承認':'却下';
-  $('visitorDecisionTitle').textContent='【ビジター'+decision+'の確認】';
+  const label=action==='approve'?'承認':'却下';
+  $('visitorDecisionTitle').textContent='【ビジター'+label+'の確認】';
   $('visitorDecisionText').textContent=data.name+'さん（'+
-   (data.date?w.SMDate.date(data.date):'開催日未確認')+'）を'+decision+'しますか？'+
+   (data.date?w.SMDate.date(data.date):'開催日未確認')+'）を'+label+'しますか？'+
    (action==='reject'?'承認済みの場合は参加者一覧から除外します。却下後は再承認できません。':'承認後、参加者一覧に反映されます。');
-  $('visitorDecisionConfirm').textContent=decision+'する';
+  $('visitorDecisionConfirm').textContent=label+'する';
   $('visitorDecisionConfirm').className=action==='reject'?'btn-danger':'btn-green';
   $('visitorDecisionDialog').showModal();
  }
  async function decide(){
-  const choice=selected;selected=null;
-  $('visitorDecisionDialog').close();
+  const choice=selected;selected=null;$('visitorDecisionDialog').close();
   if(!choice)return;
   await busy('ビジターの審査結果を保存しています…',async()=>{
-   const result=await api('/api/visitor/decide',{
-    ...choice,operationId:crypto.randomUUID()
-   });
+   const result=await api('/api/visitor/decide',{...choice,operationId:crypto.randomUUID()});
    if(result?.requestId!==choice.requestId||
       result.status!==(choice.action==='approve'?'approved':'rejected')||
       result.version!==choice.expectedVersion+1)
@@ -107,18 +146,73 @@
    if(refreshAfterDecision)await refreshAfterDecision();
   });
  }
+ function openEdit(data){
+  if(data.status!=='approved')return;
+  editTarget={requestId:data.requestId,expectedVersion:data.version};
+  $('visitorMineEditName').value=data.name||'';
+  $('visitorMineEditKana').value=data.nameKana||'';
+  $('visitorMineEditMemo').value=data.memo||'';
+  $('visitorMineEditDialog').showModal();
+ }
+ async function saveEdit(event){
+  event.preventDefault();
+  const current=editTarget;if(!current)return;
+  const name=$('visitorMineEditName').value.normalize('NFKC').replace(/[\s\u3000]+/g,'');
+  const nameKana=$('visitorMineEditKana').value.normalize('NFKC').replace(/[\s\u3000]+/g,'');
+  const memo=$('visitorMineEditMemo').value.trim();
+  if(!name||name.length>60||nameKana.length>100||memo.length>200){
+   await w.SMStageUX.showError(Error('お名前・カナ・備考を確認してください。'));return;
+  }
+  editTarget=null;$('visitorMineEditDialog').close();
+  await busy('ビジター情報を修正しています…',async()=>{
+   const result=await api('/api/visitor/modify',{
+    ...current,action:'edit',operationId:crypto.randomUUID(),name,nameKana,memo
+   });
+   if(result?.requestId!==current.requestId||result.status!=='approved'||
+      result.version!==current.expectedVersion+1)
+    throw Error('修正結果を確認できません。申請状況を更新してください。');
+   await loadMine();
+   if(refreshAfterDecision)await refreshAfterDecision();
+  });
+ }
+ function openDelete(data){
+  if(data.status!=='pending')return;
+  deleteTarget={requestId:data.requestId,expectedVersion:data.version};
+  $('visitorMineDeleteText').textContent=data.name+'さんの承認待ち申請を削除しますか？'+
+   '削除後は管理者による承認ができなくなります。';
+  $('visitorMineDeleteDialog').showModal();
+ }
+ async function deleteMine(){
+  const current=deleteTarget;deleteTarget=null;$('visitorMineDeleteDialog').close();
+  if(!current)return;
+  await busy('承認待ちの申請を削除しています…',async()=>{
+   const result=await api('/api/visitor/modify',{
+    ...current,action:'delete',operationId:crypto.randomUUID()
+   });
+   if(result?.requestId!==current.requestId||result.status!=='withdrawn'||
+      result.version!==current.expectedVersion+1)
+    throw Error('削除結果を確認できません。申請状況を更新してください。');
+   await loadMine();
+  });
+ }
  function bind(){
+  $('visitorMinePractice').addEventListener('change',renderMine);
+  $('visitorAdminPractice').addEventListener('change',renderAdmin);
   $('visitorMineRefresh').addEventListener('click',()=>busy('申請状況を更新しています…',loadMine));
   $('visitorAdminMenu').addEventListener('click',()=>busy('ビジター申請を読み込んでいます…',async()=>{
    await loadAdmin();$('manageDialog').close();$('visitorAdminDialog').showModal();
   }));
   $('visitorAdminRefresh').addEventListener('click',()=>busy('申請を更新しています…',loadAdmin));
   $('visitorAdminClose').addEventListener('click',()=>$('visitorAdminDialog').close());
-  $('visitorDecisionCancel').addEventListener('click',()=>{
-   selected=null;$('visitorDecisionDialog').close();
-  });
+  $('visitorDecisionCancel').addEventListener('click',()=>{selected=null;$('visitorDecisionDialog').close()});
   $('visitorDecisionConfirm').addEventListener('click',decide);
   $('visitorDecisionDialog').addEventListener('cancel',()=>{selected=null});
+  $('visitorMineEditCancel').addEventListener('click',()=>{editTarget=null;$('visitorMineEditDialog').close()});
+  $('visitorMineEditForm').addEventListener('submit',saveEdit);
+  $('visitorMineDeleteCancel').addEventListener('click',()=>{deleteTarget=null;$('visitorMineDeleteDialog').close()});
+  $('visitorMineDeleteSave').addEventListener('click',deleteMine);
+  $('visitorMineDeleteDialog').addEventListener('cancel',()=>{deleteTarget=null});
+  $('visitorMineEditDialog').addEventListener('cancel',()=>{editTarget=null});
  }
  bind();
  w.SMVisitor=Object.freeze({
