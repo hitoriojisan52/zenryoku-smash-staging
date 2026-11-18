@@ -1,16 +1,15 @@
-/* Stage-only opt-in selector. Read LIFF state without rewriting it.
- * LINE may carry ?accessUi=v2 inside liff.state until liff.init() completes.
+/* v0.16.48 — reviewed member administration is the normal staging UI.
+ * Legacy remains an explicit diagnostic rollback (?accessUi=legacy) only.
+ * LINE may carry parameters inside liff.state; never rewrite the state.
  */
 (function(w){
  'use strict';
  const direct=new URLSearchParams(w.location.search||'');
- let enabled=direct.get('accessUi')==='v2';
- if(!enabled){
-   let state=direct.get('liff.state')||'';
-   if(state.includes('?'))state=state.slice(state.indexOf('?')+1);
-   if(state.includes('#'))state=state.split('#')[0];
-   enabled=new URLSearchParams(state).get('accessUi')==='v2';
- }
+ let stateMode=direct.get('liff.state')||'';
+ if(stateMode.includes('?'))stateMode=stateMode.slice(stateMode.indexOf('?')+1);
+ if(stateMode.includes('#'))stateMode=stateMode.split('#')[0];
+ const nestedMode=new URLSearchParams(stateMode).get('accessUi');
+ const enabled=direct.get('accessUi')!=='legacy'&&nestedMode!=='legacy';
  w.SM_STAGE_ACCESS_V2=enabled;
  let statePreview=direct.get('liff.state')||'';
  if(statePreview.includes('?'))statePreview=statePreview.slice(statePreview.indexOf('?')+1);
