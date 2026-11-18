@@ -76,6 +76,8 @@ jobs:
         run: node tests/check-stage-visitor-approval-v1640.cjs
       - name: Verify member-only LINE attendance timestamping and financial locks
         run: node tests/check-stage-line-attendance-v1645.cjs
+      - name: Verify admin user-name edit and finalized ledger role buttons
+        run: node tests/check-stage-member-ledger-v1656.cjs
       - name: Verify stage withdrawal, historical preservation and fresh-ID reapplication
         run: node tests/check-stage-withdraw-rejoin-v1653.cjs
       - name: Verify v15 sequential ledger confirmations including earlier months
