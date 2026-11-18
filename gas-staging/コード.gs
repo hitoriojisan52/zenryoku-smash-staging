@@ -1196,7 +1196,9 @@ function visitorDecision_(ss,member,payload){
    fail_('LOCKED','対戦表を削除してから承認・却下してください');
  }
  if(action==='approve'){
-  if(participant.length)fail_('CONFLICT','対象のビジターは既に参加者一覧に存在します');
+  // Fixed participant IDs are globally unique, not merely unique per date.
+  if(sheetRows_(ss,'出欠回答').some(function(row){return str_(row[1])===r.participantId;}))
+   fail_('CONFLICT','対象のビジターIDは既に参加者一覧に存在します');
  }else if(r.status==='approved'){
   if(participant.length!==1)fail_('STORAGE_INCOMPLETE','承認済みビジターの参加情報が確認できません');
   if(str_(participant[0][4])!=='visitor')fail_('SETUP','参加区分がビジターではありません');
