@@ -4,7 +4,9 @@
  * The client cannot select its own LINE user ID or administrative role.
  * GAS remains the authorization and ledger source of truth.
  */
-// v0.16.36: first Git-connected staging build trigger (no functional changes).
+// v0.16.53 — GitHub main -> cloudflare-worker Workers Builds deployment sync.
+// No credentials embedded; Cloudflare dashboard owns all runtime variables/secrets.
+// Deployment still must be verified from Cloudflare builds and public /health.
 const VALID_PATHS = Object.freeze({
   '/api/session':'session',
   '/api/attendance/mine':'attendance.mine',
@@ -162,6 +164,7 @@ export async function handleRequest(request,env){
     // never the configured environment value or any LINE token.
     const channelMatchesLiveLiff=env.LINE_LOGIN_CHANNEL_ID==='2012602642';
     return json({ok:true,status:'deployed',version:'0.16.53-stage-withdrawal',
+      codeRevision:'stage-v1653-github-sync-20261119',
       configured,channelMatchesLiveLiff});
   }
   const origin=request.headers.get('Origin')||'';
