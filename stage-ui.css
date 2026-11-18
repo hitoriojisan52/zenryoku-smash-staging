@@ -233,7 +233,7 @@
  background:#eef2f7;color:#334e65;border:1px solid #cfd8df;border-radius:6px;
  padding:8px;font-weight:700;font-size:12px;
 }
-.stage-ui .match-modal-overlay:not(.match-modal-is-error) .stage-match-top-close{display:block}
+.stage-ui .match-modal-overlay .stage-match-top-close{display:block}
 .stage-ui .match-modal-msg{padding-top:42px}
 @media(max-width:350px){
  .stage-ui dialog.stage-has-top-close >h2:first-of-type{padding-right:86px}
