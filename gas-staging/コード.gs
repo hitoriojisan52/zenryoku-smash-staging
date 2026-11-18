@@ -839,10 +839,37 @@ function scheduleChange_(ss,member,payload){
   return {ok:true,data:{practiceId:id,action:action,version:existing.version+1}};
  }
  if(action==='confirm'){
+  // Publication immediately creates ONE matching financial ledger row, even
+  // for a future practice. Never wait for a collection-screen read to create
+  // the accounting record. No collection or confirmation is permitted early.
+  var beforeLedger=entries_(ss),linked=beforeLedger.filter(function(row){
+    return row.rowId==='P-'+id||row.practiceId===id;
+  });
+  if(linked.length>1)fail_('SETUP','練習日の収支行が重複しています');
+  if(linked.length&&
+     (linked[0].rowId!=='P-'+id||linked[0].kind!=='practice'||
+      linked[0].date!==existing.date||linked[0].practiceId!==id))
+    fail_('CONFLICT','練習日の収支行と日程が一致しません');
+  var created=!linked.length;
+  if(created){
+    // Publication has not yet exposed this date to member attendance.
+    // The initial receivable is zero; subsequent collection uses the
+    // existing protected calculation/update path.
+    var prospective=beforeLedger.map(function(row){return Object.assign({},row);});
+    prospective.push({date:existing.date,label:existing.place,income:0,
+      expense:0,balance:0,confirmedBy:'',rowId:'P-'+id,kind:'practice',
+      practiceId:id,status:'open',version:1,adjustment:0,item:'',
+      payee:'',receiptFileId:'',createdBy:member.memberId});
+    balanceRecalc_(prospective,beforeLedger);
+    // Write the ledger first. Should the schedule write fail, a retry sees
+    // this same fixed-ID row and completes publication without duplication.
+    writeLedger_(ss,prospective);
+  }
   var confirmed=[id,existing.date,safeCell_(existing.place),existing.startTime,existing.endTime,
     existing.hours,true,safeCell_(existing.remark),existing.version+1];
   sh.getRange(existing.rowNumber,1,1,9).setValues([confirmed]);
-  return {ok:true,data:{practiceId:id,action:action,version:existing.version+1}};
+  return {ok:true,data:{practiceId:id,action:action,version:existing.version+1,
+    ledgerCreated:created}};
  }
  fail_('BAD_REQUEST','日程操作が不正です');
 }
@@ -904,10 +931,22 @@ function overview_(ss,member,payload){var all=practices_(ss).sort(function(a,b){
  var ledger=ledgerRows.find(function(r){return r.rowId==='P-'+id;});var completed=roster.filter(function(a){return a.collectionCompleted;});var total=completed.reduce(function(a,b){return a+b.fee;},0);
  return {ok:true,data:{role:member.role,actorName:member.name,practice:p,practices:all,participants:roster,ledger:ledger||null,collectionAccess:access,expected:roster.reduce(function(a,b){return a+b.fee;},0),completedFee:total,completedCount:completed.length,attendingCount:roster.length}};
 }
-function monthLedger_(ss,member,payload){var month=str_(payload.month)||today_().slice(0,7);if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)||month>today_().slice(0,7))fail_('BAD_REQUEST','対象月が不正です');
- var sorted=entries_(ss).filter(function(r){return r.date<=today_();}); // persisted ledger order matches balance calculation
- var prior=sorted.filter(function(r){return r.date<month+'-01';});var within=sorted.filter(function(r){return r.date.slice(0,7)===month;});
- var carried=prior.length?prior[prior.length-1].balance:0;return {ok:true,data:{month,carried,rows:within,closingBalance:within.length?within[within.length-1].balance:carried,role:member.role}};
+function monthLedger_(ss,member,payload){
+ var sorted=entries_(ss),currentMonth=today_().slice(0,7);
+ // Future published practices are visible as provisional OPEN accounting rows.
+ // They cannot be collected/confirmed before the practice date.
+ var latest=sorted.reduce(function(max,r){
+  var m=r.date.slice(0,7);return m>max?m:max;
+ },currentMonth);
+ var month=str_(payload.month)||currentMonth;
+ if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)||month>latest)
+  fail_('BAD_REQUEST','対象月が不正です');
+ var prior=sorted.filter(function(r){return r.date<month+'-01';});
+ var within=sorted.filter(function(r){return r.date.slice(0,7)===month;});
+ var carried=prior.length?prior[prior.length-1].balance:0;
+ return {ok:true,data:{month,carried,rows:within,maxMonth:latest,
+  closingBalance:within.length?within[within.length-1].balance:carried,
+  role:member.role}};
 }
 
 
