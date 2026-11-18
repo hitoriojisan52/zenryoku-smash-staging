@@ -98,7 +98,7 @@ ok(!('email' in baseline.participants[0])&&baseline.participants[0].registeredAt
  'email no longer returned; historical timestamp not fabricated');
 ok(baseline.participants[0].lineUserId==='U'+'a'.repeat(32)&&
  baseline.participants[1].lineUserId===null,
- 'attendee's own memberId resolves LINE subject, not registering duty member or visitor sponsor');
+ 'attendee memberId resolves own LINE subject, not duty member or visitor sponsor');
 ok(!baseline.financeLocked&&!baseline.matchLocked,'not finalized and no match allows editing');
 ok(baseline.practices.length===2,'all enabled schedules returned for date selector');
 const catStart=gas.indexOf('function setCategory_('),catEnd=gas.indexOf('function mutateLedger_(',catStart);
