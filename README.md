@@ -1,12 +1,13 @@
 # 全力☆スマッシュ｜検証用GitHub Pages
 
-**新しいチャットで開発を再開する場合は、必ず先に [現行仕様優先・引継ぎ契約](docs/SESSION_HANDOFF.md) を読む。**
-既存運用管理ツールの業務仕様を基本踏襲し、明示変更がない条件を削除・緩和しない。
-特に収支の確定順序（先行未確定行があれば確定不可）は画面とGASの両方で守る。
+**新しいチャットで開発を再開する場合は、必ず [開始用プロンプト](docs/NEW_CHAT_START_PROMPT.md) を使用し、[開発引継ぎ文書](docs/SESSION_HANDOFF.md) と [仕様優先順位の正式ルール](docs/SPEC_PRIORITY_POLICY.md) を確認する。**
+仕様はユーザー指定の **「既存業務仕様・動作 → 整合性・安全性 → 協議済み実装ルール → 新機能の実装方法 → 明示的な変更指示」** の順で保護する。
+明示的な変更指示が先行仕様に影響する場合は、**懸念・影響をユーザーへ報告するまで既存仕様を上書きしない**。
+収支の確定順序（先行未確定行があれば確定不可）は画面とGASの両方で守る。
 
 公開先: https://hitoriojisan52.github.io/zenryoku-smash-staging/
 
-**画面共通仕様（最優先）**：[`docs/ui-standard-v1632.md`](docs/ui-standard-v1632.md) を参照。変更前に `node tests/check-ui-standards.cjs` で不要な処理中文言の再混入等を検査する。
+**画面共通仕様（履歴を含む）**：[`docs/ui-standard-v1632.md`](docs/ui-standard-v1632.md) を参照。各版の過去の記載が混在するため、先に仕様優先順位と最新の確定業務動作を照合する。変更前に `node tests/check-ui-standards.cjs` を実行する。
 
 ## 接続状況（2026-11-16）
 - GAS: 検証用Google Sheetsへの読込・書込・試合5ラウンド保存をGASエディタ上で確認済み
