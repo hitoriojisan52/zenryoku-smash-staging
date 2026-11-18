@@ -548,7 +548,10 @@ function setCategory_(ss,member,payload){
  var ledgerRows=entries_(ss),ledger=row_(ledgerRows,'P-'+id);unlockable_(ledger);
  var sh=sheet_(ss,'出欠回答'),arr=sheetRows_(ss,'出欠回答'),ix=arr.findIndex(function(r){return str_(r[0])===id&&str_(r[1])===person;});
  if(ix<0||!bool_(arr[ix][5]))fail_('NOT_FOUND','参加者が見つかりません');var record=arr[ix],current=Number(record[7])||0;expectVersion_(current,payload.expectedVersion);
- var oldCat=str_(record[4]);var paid=paymentRows_(ss,id).some(function(r){return str_(r[1])===person&&bool_(r[2]);});
+ var oldCat=str_(record[4]);
+ if((cat==='visitor')!==(oldCat==='visitor'))
+  fail_('LOCKED','ビジター区分は変更できません。新規登録はビジター申請から行ってください');
+ var paid=paymentRows_(ss,id).some(function(r){return str_(r[1])===person&&bool_(r[2]);});
  if(paid)ledger.income+=fee_(cat,p.hours)-fee_(oldCat,p.hours);ledger.version++;
  balanceRecalc_(ledgerRows,entries_(ss));
  sh.getRange(ix+2,5).setValue(cat);sh.getRange(ix+2,8).setValue(current+1);
@@ -931,7 +934,7 @@ function participantRows_(ss,practiceId){
   seen[id]=true;
   out.push({practiceId:practiceId,participantId:id,name:norm_(r[2]),
    nameKana:norm_(r[3]),category:cat,attending:bool_(r[5]),memo:str_(r[6]),
-   version:version,registeredBy:str_(r[8]),email:null,registeredAt:null});
+   version:version,registeredBy:str_(r[8]),registeredAt:null});
  });
  return out;
 }
@@ -942,6 +945,21 @@ function participantList_(ss,member,payload){
    matchLocked:false,financeLocked:false,financeStatus:''}};
  var p=practice_(ss,id),rows=participantRows_(ss,id),payments=paymentRows_(ss,id),
      seenPayment={},paid={};
+ // Only resolve a LINE subject by the attendee's OWN stable memberId.
+ // Never use registeredBy: for a visitor it identifies the sponsoring member.
+ // Absent/ambiguous mappings remain explicitly unlinked, never guessed.
+ var lineByMemberId={},duplicateMemberIds={};
+ sheetRows_(ss,'メンバー').forEach(function(m){
+  var memberId=str_(m[0]),lineId=str_(m[2]);
+  if(!memberId||!/^U[0-9a-f]{32}$/i.test(lineId))return;
+  if(Object.prototype.hasOwnProperty.call(lineByMemberId,memberId))
+   duplicateMemberIds[memberId]=true;
+  else lineByMemberId[memberId]=lineId;
+ });
+ rows.forEach(function(r){
+  r.lineUserId=r.category==='visitor'||duplicateMemberIds[r.participantId]?
+   null:(lineByMemberId[r.participantId]||null);
+ });
  payments.forEach(function(r){
   var person=str_(r[1]);if(seenPayment[person])fail_('SETUP','集金記録が重複しています');
   seenPayment[person]=true;paid[person]=bool_(r[2]);
@@ -1013,14 +1031,22 @@ function participantChange_(ss,member,payload,visitorDecisionInternal){
      attending=wasAttending,memo=str_(old[6]);
  if(action==='edit'){
   if(typeof payload.attending!=='boolean')fail_('BAD_REQUEST','出欠を確認してください');
-  name=norm_(payload.name);kana=norm_(payload.nameKana);
+  var oldCategory=str_(old[4]),visitorIdentity=oldCategory==='visitor';
   cat=str_(payload.category);attending=payload.attending;memo=str_(payload.memo);
+  if((cat==='visitor')!==visitorIdentity)
+   fail_('LOCKED','ビジター区分は変更できません。新規登録はビジター申請から行ってください');
+  // A registered member's identity is not managed by attendance editing.
+  // Visitors have no membership application, so their name/kana remain editable.
+  if(!visitorIdentity&&
+     ((payload.name!==undefined&&norm_(payload.name)!==norm_(old[2]))||
+      (payload.nameKana!==undefined&&norm_(payload.nameKana)!==norm_(old[3]))))
+   fail_('LOCKED','メンバーの氏名・カナは参加者一覧から変更できません');
+  name=visitorIdentity?norm_(payload.name):norm_(old[2]);
+  kana=visitorIdentity?norm_(payload.nameKana):norm_(old[3]);
   if(!name||name.length>60||kana.length>100||SM.fees[cat]===undefined||
      memo.length>200||/^[=+@]/.test(name)||/^[=+@]/.test(kana)||
      /[\u0000-\u001f]/.test(memo))
    fail_('BAD_REQUEST','氏名・区分・備考を確認してください');
-  if(cat!=='visitor'&&/^PV-/.test(person)&&visitorHasApproved_(ss,id,person))
-   fail_('LOCKED','承認済みビジターの参加区分は変更できません');
  }
  // Duty/admin edits in 参加者一覧 must also refresh the approved
  // visitor application, or the original member will see stale data.

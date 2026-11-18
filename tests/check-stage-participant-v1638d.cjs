@@ -33,7 +33,11 @@ let rows={
   ['P-OTHER','M-O',true,1,'M-DUTY','2026-11-18 11:30']
  ],
  '試合セッション':[],
- '参加者操作アーカイブ':[]
+ '参加者操作アーカイブ':[],
+ 'メンバー':[
+  ['M-A','全力太郎','U'+'a'.repeat(32),true,false],
+  ['M-DUTY','当番','U'+'b'.repeat(32),true,false]
+ ]
 };
 let ledger=[
  {date:'2026-11-15',rowId:'OPENING',kind:'opening',practiceId:'',status:'confirmed',
@@ -90,25 +94,42 @@ const list=()=>fn.participantList_({},member,{practiceId:'P-TODAY'}).data;
 const baseline=list();
 ok(baseline.participants.length===2&&baseline.participants[0].collectionCompleted,
  'paid and unpaid participants listed by fixed IDs');
-ok(baseline.participants[0].email===null&&baseline.participants[0].registeredAt===null,
- 'unknown historical email/date not fabricated');
+ok(!('email' in baseline.participants[0])&&baseline.participants[0].registeredAt===null,
+ 'email no longer returned; historical timestamp not fabricated');
+ok(baseline.participants[0].lineUserId==='U'+'a'.repeat(32)&&
+ baseline.participants[1].lineUserId===null,
+ 'attendee memberId resolves own LINE subject, not duty member or visitor sponsor');
 ok(!baseline.financeLocked&&!baseline.matchLocked,'not finalized and no match allows editing');
 ok(baseline.practices.length===2,'all enabled schedules returned for date selector');
+const catStart=gas.indexOf('function setCategory_('),catEnd=gas.indexOf('function mutateLedger_(',catStart);
+ok(catStart>=0&&catEnd>catStart,'direct fee-category operation present');
+const setCategory=new Function('str_','practice_','SM','fail_','entries_','row_','unlockable_',
+ 'sheet_','sheetRows_','bool_','expectVersion_','paymentRows_','fee_','balanceRecalc_','writeLedger_',
+ gas.slice(catStart,catEnd)+'\nreturn setCategory_;')(
+ str_,(_ss,id)=>practices.find(x=>x.practiceId===id),SM,fail_,entries_,
+ (xs,id)=>xs.find(x=>x.rowId===id),()=>{},sheet_,sheetRows_,bool_,expectVersion_,
+ (_ss,id)=>rows['集金記録'].filter(x=>x[0]===id),fee_,balanceRecalc_,writeLedger_);
+fails(()=>setCategory({},member,{practiceId:'P-TODAY',participantId:'M-A',
+ category:'visitor',expectedVersion:0}),'LOCKED');
+ok(writes.length===0,'direct fee-category endpoint cannot turn a member into a visitor');
+
 fails(()=>fn.participantChange_({},member,{action:'edit',practiceId:'P-TODAY',
  participantId:'M-A',expectedVersion:77}),'CONFLICT');
 ok(writes.length===0,'stale edit writes nothing');
 const edit=(p,id='M-A',version=0)=>fn.participantChange_({},member,{
  operationId:'OP-EDIT-00000001',action:'edit',practiceId:'P-TODAY',participantId:id,
  expectedVersion:version,name:p.name||'全力太郎',nameKana:p.nameKana||'ゼンリョクタロウ',
- category:p.category||'visitor',attending:p.attending??true,memo:p.memo||''
+ category:p.category||rows['出欠回答'].find(x=>x[1]===id)?.[4]||'member',attending:p.attending??true,memo:p.memo||''
 }).data;
-const changed=edit({category:'visitor',memo:'ビジターへ変更'});
+const changed=edit({category:'student',memo:'学生区分へ変更'});
 ok(changed.action==='edit'&&changed.version===1&&changed.ledgerChanged,
- 'paid member reclassified to visitor, version incremented');
-ok(rows['出欠回答'][0][4]==='visitor'&&rows['出欠回答'][0][7]===1,
- 'saved attendee category and version using existing 9-column schema');
-ok(ledger[1].income===900&&ledger[1].balance===900&&ledger[2].balance===1200,
+ 'paid member reclassified to student, version incremented');
+ok(rows['出欠回答'][0][4]==='student'&&rows['出欠回答'][0][7]===1,
+ 'saved eligible category and version using existing 9-column schema');
+ok(ledger[1].income===400&&ledger[1].balance===400&&ledger[2].balance===700,
  'paid fee reclass correctly updates current and future open ledger balances');
+fails(()=>edit({category:'visitor'},'M-A',1),'LOCKED');
+fails(()=>edit({name:'別人',category:'student'},'M-A',1),'LOCKED');
 ok(rows['集金記録'][0][2]===true,'paid status retained for paid category change');
 const archived=rows['参加者操作アーカイブ'];
 ok(archived[0][7]==='completed'&&JSON.parse(archived[0][4]).attendance[4]==='member',
@@ -116,7 +137,7 @@ ok(archived[0][7]==='completed'&&JSON.parse(archived[0][4]).attendance[4]==='mem
 ok(flushed===1&&writes.indexOf('flush')<writes.indexOf('出欠回答.set')&&
  writes.indexOf('flush')<writes.indexOf('全体収支管理表.write'),
  'pre-change archive persisted before writes to attendance and ledger');
-fails(()=>edit({name:'別人',category:'visitor'},'M-A',0),'CONFLICT');
+fails(()=>edit({name:'別人',category:'student'},'M-A',0),'CONFLICT');
 rows['試合セッション'].push(['P-TODAY','RV-TOKEN']);
 fails(()=>edit({name:'別人'},'M-A',1),'LOCKED');
 ok(list().matchLocked,'match session lock displayed');
@@ -155,12 +176,14 @@ fails(()=>edit({name:'例'},'V-A',2),'CONFLICT');
 pendingArchive[7]='completed';
 ok(!fn.participantArchivePending_({},'V-A'),'completed archive no longer blocks changes');
 for(const tag of ['participantDialog','participantPractice','participantCards','participantReload',
- 'participantEditDialog','participantName','participantEmail','participantAttendance',
- 'participantCategory','participantMemo','participantDeleteDialog','participantDeleteConfirm']){
+ 'participantEditDialog','participantName','participantVisitorIdentity','participantMemberIdentity',
+ 'participantAttendance','participantCategory','participantMemo','participantDeleteDialog','participantDeleteConfirm']){
  ok(html.includes('id="'+tag+'"'),'legacy participant UI: '+tag);
 }
-ok(html.includes('id="participantEmail"')&&html.includes('placeholder="未記録" disabled'),
- 'email field visible, correctly disabled until a real data source exists');
+ok(!html.includes('id="participantEmail"')&&!html.includes('id="participantEmailNote"'),
+ 'obsolete email display and edit form completely removed');
+ok(html.includes('id="participantCategoryVisitor"'),
+ 'visitor category option can be restricted to existing visitors');
 ok(ui.includes("'時間区分：'+practice.hours+'h'"),'collection home fee category is 4h');
 ok(!ui.includes("'時間区分：'+practice.hours+'時間'"),'old home display removed');
 ok(ui.includes("btn.disabled=blocked"),'finalized or match-linked participants cannot be changed');
