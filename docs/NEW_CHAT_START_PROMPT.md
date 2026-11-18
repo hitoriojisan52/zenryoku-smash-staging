@@ -15,8 +15,9 @@ GitHubリポジトリ `hitoriojisan52/zenryoku-smash-staging` の最新 `main` �
 1. `README.md`
 2. `docs/SESSION_HANDOFF.md`
 3. `docs/SPEC_PRIORITY_POLICY.md`
-4. `docs/ui-standard-v1632.md` と対象機能の設計・差分記録（過去版の記述があるため鵜呑みにしない）
-5. 該当するソース、直近PR、回帰テスト、デプロイ結果。必要に応じて過去チャットと旧アプリのファイル・画像も確認する。
+4. **`docs/DEPLOYMENT_AND_USER_ACTIONS.md`（ChatGPTによるGitHub→GAS/Worker/Pages更新方法、ユーザーにお願いする作業の案内方法、現在の確認済み状態）**
+5. `docs/ui-standard-v1632.md` と対象機能の設計・差分記録（過去版の記述があるため鵜呑みにしない）
+6. 該当するソース、直近PR、回帰テスト、GitHub Actions・Cloudflare Workers Builds・実公開/healthの結果。必要に応じて過去チャットと旧アプリのファイル・画像も確認する。
 
 **資料と現行動作を実際に照合するまで、チャットの要約・古い推測・現在の検証コードだけから仕様を決めないでください。**
 
@@ -38,11 +39,15 @@ GitHubリポジトリ `hitoriojisan52/zenryoku-smash-staging` の最新 `main` �
 - 特に、収支の確定順序、残高計算、権限判定、ボタンの活性条件、日程・出欠・集金の同期、LINE本人識別、退会時の履歴保護、エラー・二重送信対策を確認してください。
 - 全体収支管理表はv15を踏襲します。過去・先行する未確定行がある場合、後続の確定ボタンは非活性で、GASの確定APIでも拒否します。月またぎ・同一日順序も守ります。
 - UI改修でも既存機能のクリック処理や操作禁止条件を変更しません。管理画面の閉じるは右上、確認・修正のポップアップに余計な閉じるは追加しません。
-- 原則として「検証用ブランチ→PR→既存＋追加の回帰テスト→検証用mainへマージ→検証環境のPages/GASの実反映結果を確認」。GAS・Worker・Pagesの反映状況を混同しないでください。
+- 原則として「検証用ブランチ→PR→既存＋追加の回帰テスト→検証用mainへマージ→**検証環境のPages/GAS/Workerの各実反映を個別確認**」。GAS・Worker・Pagesの反映状況を混同しないでください。
+- **GASとWorkerのソース変更はChatGPTがGitHub経由で実施**してください。検証GASはGitHub Actionsの `Staging GAS - GitHub / clasp` から既存Webアプリを自動更新し、検証WorkerはGit連携済み **Cloudflare Workers Builds** が`main`の変更を自動反映します。ユーザーに`worker.js`／`コード.gs`のコピペやCloudflareでの手動ソース編集を求めないでください。GitHubから実行できない具体的理由がある場合だけ、理由・URL・手順を示して操作を依頼してください。
+- **Worker v0.16.53は2026/11/19の実反映確認済み**です。ユーザー提示の`/health`には`version:"0.16.53-stage-withdrawal"`、`codeRevision:"stage-v1653-github-sync-20261119"`、`configured:true`、`channelMatchesLiveLiff:true`が含まれます。次の変更後もCloudflare Workers Buildsの成功と公開`/health`を確認し、`/health`だけで退会APIの利用可否まで断定しないでください。
+- **WorkerのVariables and SecretsとGASのスクリプトプロパティはユーザーが更新済みと報告**しています。今回の設定値は`docs/DEPLOYMENT_AND_USER_ACTIONS.md`を参照。変更が必要な具体的理由がない限り、同じ設定作業を再要求しないでください。
+- **ユーザーに必要作業がある場合の案内を省略しない**でください。必ず「実施が必要な理由／作業先の直接リンク／画面操作手順／具体的な設定名と値／保存と検証方法／報告いただく非機密情報」を提示してください。機密トークンやSecretsの値を貼り付けるよう依頼しないでください。
 - **本番環境の変更は事前承認制**。新しい指示が本番データ・既存安全ゲートに影響する場合は、上記5段階の優先順位に従って報告してください。
 - **接続検証環境のデータはすべてテスト用**とユーザーが確認済みです。検証用メンバーの退会・再入会試験、必要なテストデータ作成には都度承認を求めず進めてください。ただし検証環境への接続確認、既存仕様の保持、管理者権限とLINE本人認証、テスト前バックアップ、失敗時の非再送などの安全条件は省略しないでください。
 - **退会・再入会の扱いは過去に確定済み**です。`docs/stage-v1653-withdraw-rejoin.md`を読み、過去の出欠・集金・収支・試合・操作履歴を保持し、同じLINE IDで再申請したときは旧memberIdではなく新memberIdを発行する仕様を守ってください。「未決定」として再質問しないでください。
-- 変更のたびに仕様ドキュメント・テスト・ `docs/SESSION_HANDOFF.md` を必要に応じて更新し、次のチャットにも根拠を引き継いでください。
+- 変更のたびに仕様ドキュメント・テスト・`docs/SESSION_HANDOFF.md`・必要に応じて`docs/DEPLOYMENT_AND_USER_ACTIONS.md`を更新し、次のチャットにも根拠とデプロイ状況を引き継いでください。
 - 最後に「実装した内容／従来どおり維持した内容／懸念や未完了事項／CI・デプロイ・実機確認の状況」を分けて報告してください。
 
 ## 今回の改修依頼
