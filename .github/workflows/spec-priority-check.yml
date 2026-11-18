@@ -7,6 +7,7 @@ on:
       - 'docs/SESSION_HANDOFF.md'
       - 'docs/SPEC_PRIORITY_POLICY.md'
       - 'docs/NEW_CHAT_START_PROMPT.md'
+      - 'docs/withdrawal-priority-impact-review-v1652.md'
       - 'docs/ui-standard-v1632.md'
       - 'tests/check-spec-priority-policy.cjs'
       - '.github/workflows/spec-priority-check.yml'
