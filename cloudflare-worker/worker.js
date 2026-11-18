@@ -33,6 +33,7 @@ const VALID_PATHS = Object.freeze({
   '/api/visitor/register':'visitor.register',
   '/api/visitor/request':'visitor.request',
   '/api/visitor/mine':'visitor.mine',
+  '/api/visitor/modify':'visitor.modify',
   '/api/visitor/admin-list':'visitor.admin.list',
   '/api/visitor/decide':'visitor.decide',
   '/api/participant/list':'participant.list',

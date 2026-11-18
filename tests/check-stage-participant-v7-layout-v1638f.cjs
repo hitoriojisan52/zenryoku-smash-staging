@@ -28,15 +28,16 @@ const cssChecks=[
  '.participant-card-title{display:flex;justify-content:space-between',
  '.participant-card-category{font-size:10.5px',
  '.participant-card-details{display:flex;flex-direction:column',
- '.participant-card-footer{display:flex;justify-content:flex-end',
- 'border-top:1px dashed #ccc',
+ '.participant-card-content{display:flex;gap:8px;justify-content:space-between',
+ '.participant-card-buttons{display:flex;justify-content:flex-end;align-items:flex-end',
+ '.participant-card-info{flex:1;min-width:0',
  '.participant-card-attendance.is-attending{color:#2e7d32}',
  '.participant-card-attendance.is-absent{color:#c62828}',
  '#participantDialog:not([open]){display:none}',
- 'min-height:40px'
+ 'min-height:44px'
 ];
 for(const rule of cssChecks)ok(html.includes(rule),'old-v7 visual baseline: '+rule);
-ok(html.includes('live.js?v=1641'),'new UI cache version');
+ok(html.includes('live.js?v=1642'),'new UI cache version');
 const begin=ui.indexOf('function renderParticipantManager_(){'),end=ui.indexOf('async function loadParticipants_(){',begin);
 ok(begin>=0&&end>begin,'render participant routine still present');
 const code=ui.slice(begin,end);
@@ -69,11 +70,14 @@ ok(node.participantCards.children.length===2,'all participants including absence
 const first=node.participantCards.children[0],second=node.participantCards.children[1];
 ok(first.className==='participant-card-item','legacy compact response card');
 ok(first.children.map(x=>x.className).join(',')===
- 'participant-card-title,participant-card-details,participant-card-memo,participant-card-footer',
- 'card order: name/type/status, contact/time, optional note, action divider');
+ 'participant-card-title,participant-card-content',
+ 'name/type/status header then details+buttons in one aligned row');
+ok(first.children[1].children.map(x=>x.className).join(',')===
+ 'participant-card-info,participant-card-buttons',
+ 'info on the left and edit/delete on the lower right');
 ok(second.children.map(x=>x.className).join(',')===
- 'participant-card-title,participant-card-details,participant-card-footer',
- 'empty notes do not add placeholder row');
+ 'participant-card-title,participant-card-content',
+ 'every participant, including visitors, uses same card layout');
 const head=first.children[0],person=head.children[0],status=head.children[1];
 ok(person.children[0].textContent==='👤 全力太郎'&&
  person.children[1].textContent==='メンバー','name and unbracketed type match original v7');
@@ -82,25 +86,46 @@ ok(status.textContent==='参加'&&status.className.includes('is-attending'),
 ok(second.children[0].children[1].textContent==='欠席'&&
  second.children[0].children[1].className.includes('is-absent'),
  'absence shown red at far right');
-ok(first.children[1].children[0].textContent==='📧 未記録'&&
- first.children[1].children[1].textContent==='📅 登録: 未記録',
- 'missing historical email/timestamp are not fabricated');
-ok(first.children[2].textContent==='📝 備考: 体育館入口に集合',
- 'optional note uses old v7 format');
+const memberInfo=first.children[1].children[0],memberDetails=memberInfo.children[0];
+ok(memberDetails.children[0].textContent==='📧 未記録'&&
+ memberDetails.children[1].textContent==='📅 登録: 未記録',
+ 'member missing email/timestamp remain unfabricated');
+ok(memberInfo.children[1].textContent==='📝 備考: 体育館入口に集合',
+ 'optional note stays above inline action buttons');
+const visitorDetails=second.children[1].children[0].children[0];
+ok(visitorDetails.children.length===1&&
+ visitorDetails.children[0].textContent==='📅 登録: 未記録',
+ 'visitor card never displays a nonexistent email field');
 ok(!first.children.some(x=>x.textContent.includes('集金：')),
  'old response view excludes unrelated payment-summary row');
-const buttons=first.children.at(-1).children[0].children;
+const buttons=first.children[1].children[1].children;
 ok(buttons.map(x=>x.textContent).join(',')==='修正,削除',
  'bottom right actions follow v7 order');
 ok(buttons.every(x=>!x.disabled),'non-locked rows stay actionable');
 buttons[0].listeners.click();buttons[1].listeners.click();
 ok(edited===1&&deleted===1,'existing edit/delete actions retain real handlers');
 pm.matchLocked=true;render();
-ok(node.participantCards.children.every(card=>card.children.at(-1).children[0].children.every(btn=>btn.disabled)),
+ok(node.participantCards.children.every(card=>card.children[1].children[1].children.every(btn=>btn.disabled)),
  'match session protection remains disabling editing/deletion');
 ok(!node.participantNotice.hidden&&node.participantNotice.textContent.includes('対戦表'),
  'match lock warning remains visible when relevant');
-pm.matchLocked=false;pm.people=[];render();
+const start=ui.indexOf('function openParticipantEditor_(p){');
+const finish=ui.indexOf('function participantEditData_(){',start);
+ok(start>=0&&finish>start,'actual participant edit setup found');
+const openEditor=new Function('PM','$','dialog',ui.slice(start,finish)+'\nreturn openParticipantEditor_;')(
+ pm,$,()=>{}
+);
+pm.matchLocked=false;
+openEditor({name:'テストビジター',nameKana:'',email:null,category:'visitor',attending:true,memo:''});
+ok(node.participantEmailField.hidden&&node.participantEmailNote.hidden,
+ 'visitor editor hides both email input and its notice');
+ok(node.participantCategory.disabled&&node.participantCategory.value==='visitor',
+ 'visitor category locked to visitor in participant edit form');
+openEditor({name:'テストメンバー',nameKana:'',email:'',category:'member',attending:true,memo:''});
+ok(!node.participantEmailField.hidden&&!node.participantEmailNote.hidden&&
+ !node.participantCategory.disabled,
+ 'member editor retains historical email and editable category');
+pm.people=[];render();
 ok(node.participantCards.children[0].textContent==='この開催日の回答データはありません。',
  'empty state matches original v7');
 console.log('PASS '+n+'/'+n+' original v7 participant layout and no visitor-add regression');

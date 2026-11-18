@@ -38,12 +38,22 @@ const practiceId='PR-SYNTHETIC-1121',rows=[
  {requestId:'VR-ONE',practiceId,name:'仮一郎',date:'2026-11-21',place:'検証体育館',
   requestedAt:old,status:'pending',version:0,requestedByName:'一般メンバー'},
  {requestId:'VR-TWO',practiceId,name:'仮二郎',date:'2026-11-21',place:'検証体育館',
-  requestedAt:old,status:'approved',version:1,requestedByName:'一般メンバー'},
+  requestedAt:old,status:'approved',attending:true,version:1,requestedByName:'一般メンバー'},
  {requestId:'VR-THREE',practiceId,name:'仮三郎',date:'2026-11-21',place:'検証体育館',
   requestedAt:old,status:'rejected',version:2,requestedByName:'一般メンバー'}
 ];
-w.SMVisitor.setup({api:async path=>({requests:rows}),actor:{role:'admin'}});
-const find=(e,cls)=>e.children.find(x=>x.className===cls);
+const schedules=[
+ {practiceId,date:'2026-11-21',place:'検証体育館',startTime:'09:00',endTime:'13:00'},
+ {practiceId:'PR-SECOND',date:'2026-11-28',place:'別体育館',startTime:'09:00',endTime:'13:00'},
+ {practiceId:'PR-EMPTY',date:'2026-12-05',place:'無回答会場',startTime:'09:00',endTime:'13:00'}
+];
+w.SMVisitor.setup({api:async path=>({requests:rows,practices:schedules}),actor:{role:'admin'}});
+const find=(e,cls)=>{
+ if(String(e.className).split(' ').includes(cls))return e;
+ for(const child of e.children){const match=find(child,cls);if(match)return match;}
+ return null;
+};
+const deepText=e=>[e.textContent,...e.children.map(deepText)].filter(Boolean).join(' ');
 (async()=>{
  const own=await w.SMVisitor.loadMine();
  ok(own.length===3&&elements.visitorMineCards.children.length===3,
@@ -55,7 +65,7 @@ const find=(e,cls)=>e.children.find(x=>x.className===cls);
   'administrator review list renders all request states');
  const cards=elements.visitorAdminCards.children;
  for(const card of cards){
-  const text=find(card,'visitor-review-info')?.textContent||'';
+  const text=deepText(find(card,'visitor-review-info')||card);
   ok(text.includes('申請日時：'+expected),'rendered application date is yyyy/MM/dd HH:mm JST');
   ok(!text.includes('GMT+')&&!text.includes('Wed Nov'),
    'no raw Date.toString / GMT English timestamp in UI');
@@ -83,11 +93,89 @@ const find=(e,cls)=>e.children.find(x=>x.className===cls);
   html.includes('id="visitorForm"')&&
   html.includes('新しいビジターを申請'),
   'two sections clearly labeled within same visitor registration screen');
+ ok(html.includes('<details id="visitorNewFormSection"')&&
+  html.indexOf('<details id="visitorNewFormSection"')<html.indexOf('<form id="visitorForm"')&&
+  !html.includes('<details id="visitorNewFormSection" open'),
+  'new visitor form is collapsible and initially closed');
+ ok(html.includes('id="visitorMinePractice"')&&html.includes('id="visitorAdminPractice"'),
+  'requester and administrator both have date dropdowns');
+ ok(!deepText(elements.visitorAdminCards).includes('📧'),
+  'visitor cards, including admin review, never display email');
+ ok(find(elements.visitorMineCards.children[1],'visitor-status')!==null&&
+  find(elements.visitorAdminCards.children[1],'visitor-status')===null,
+  "approval status badge only shown on the requester visitor registration screen");
+ ok(find(elements.visitorMineCards.children[1],'participant-card-content')!==null,
+  'visitor cards share participant list layout');
+ const memberCards=elements.visitorMineCards.children;
+ const pendingActions=find(memberCards[0],'visitor-review-actions').children,
+  approvedActions=find(memberCards[1],'visitor-review-actions').children,
+  rejectedActions=find(memberCards[2],'visitor-review-actions').children;
+ ok(pendingActions.map(x=>x.textContent).join(',')==='修正,削除'&&
+  pendingActions[0].disabled&&!pendingActions[1].disabled,
+  'pending own application: modify disabled, delete enabled');
+ ok(!approvedActions[0].disabled&&approvedActions[1].disabled,
+  'approved own visitor: modify enabled, delete disabled');
+ ok(rejectedActions.every(button=>button.disabled),
+  'rejected own request: no modify or delete actions');
+ ok(!deepText(elements.visitorMineCards).includes('📧'),
+  'visitor self-service cards never show email');
+ ok(find(memberCards[1],'participant-card-attendance').textContent==='参加',
+  'approved visitor shows actual participant attendance, not only approval state');
+ pendingActions[1].listeners.click();
+ ok(elements.visitorMineDeleteDialog.open&&
+  elements.visitorMineDeleteText.textContent.includes('削除しますか'),
+  'pending deletion shows explicit confirmation before backend call');
+ elements.visitorMineDeleteCancel.listeners.click();
+ ok(!elements.visitorMineDeleteDialog.open,
+  'cancelling pending deletion never invokes backend');
+ approvedActions[0].listeners.click();
+ ok(elements.visitorMineEditDialog.open &&
+  elements.visitorMineEditAttendance.value==='attend',
+  'approved edit opens with current attendance exactly as participant list');
+ elements.visitorMineEditCancel.listeners.click();
+ ok(!elements.visitorMineEditDialog.open,
+  'cancelling edits does not write');
+ ok(html.includes('id="visitorMineEditAttendance"')&&
+  html.includes('id="visitorMineEditName"')&&
+  html.includes('id="visitorMineEditKana"')&&
+  html.includes('id="visitorMineEditMemo"')&&
+  html.includes('ビジター（変更不可）'),
+  'own visitor edit has name, kana, attendance, memo and immutable category');
+ ok(!html.slice(html.indexOf('<dialog id="visitorMineEditDialog"'),
+  html.indexOf('<dialog id="visitorMineDeleteDialog"')).includes('メールアドレス'),
+  'own visitor edit form has no email input or label');
+ ok(ui.includes("attending:$('visitorMineEditAttendance').value==='attend'")&&
+  ui.includes("category:'visitor'"),
+  'requester edit sends participant-list attendance semantics and fixed visitor category');
+ rows.push({requestId:'VR-FOUR',practiceId:'PR-SECOND',name:'別日程',
+  date:'2026-11-28',place:'別体育館',requestedAt:old,status:'pending',version:0});
+ await w.SMVisitor.loadMine();
+ elements.visitorMinePractice.value=practiceId;
+ elements.visitorMinePractice.listeners.change();
+ ok(elements.visitorMineCards.children.length===3,
+  'date dropdown filters request cards to selected practice');
+ elements.visitorMinePractice.value='PR-SECOND';
+ elements.visitorMinePractice.listeners.change();
+ ok(elements.visitorMineCards.children.length===1 &&
+  deepText(elements.visitorMineCards.children[0]).includes('別日程'),
+  'switching date shows matching visitor alone');
+ elements.visitorMinePractice.value='all';
+ elements.visitorMinePractice.listeners.change();
+ ok(elements.visitorMineCards.children.length===4,
+  'all dates option restores all applicant statuses');
+ elements.visitorMinePractice.value='PR-EMPTY';
+ elements.visitorMinePractice.listeners.change();
+ ok(elements.visitorMineCards.children.length===1&&
+  deepText(elements.visitorMineCards.children[0]).includes('この開催日のビジター申請はありません'),
+  'selecting a master schedule date without requests shows clear empty-state message');
+ elements.visitorMinePractice.value='all';
+ elements.visitorMinePractice.listeners.change();
+
  for(const oldId of ['visitorMineMenu','visitorMineDialog','visitorMemberRefresh','visitorMineList']){
   ok(!html.includes('id="'+oldId+'"'),'obsolete standalone element removed: '+oldId);
   ok(!ui.includes("$('"+oldId+"')"),'no stale listener or DOM reference: '+oldId);
  }
- ok(ui.includes("render('visitorMineCards',result.requests,false)")&&
+ ok(ui.includes("render('visitorMineCards',optionsFor(mineRows,'visitorMinePractice',mineDates),false)")&&
   !ui.includes("render('visitorMineList'"),
   'request status refreshed only in integrated screen');
  ok(liveJs.includes("const [response]=await Promise.all([call('/api/visitor/practices'),window.SMVisitor.loadMine()])"),
@@ -116,10 +204,10 @@ const find=(e,cls)=>e.children.find(x=>x.className===cls);
   ok(match&&match[0].includes('class="btn-outline"'),'close button is secondary grey: '+id);
  }
  for(const page of ['live.html','match.html','guest.html','match-view.html']){
-  ok(read(page).includes('stage-ui.css?v=1641'),'same shared button CSS cache applied: '+page);
+  ok(read(page).includes('stage-ui.css?v=1642'),'same shared button CSS cache applied: '+page);
  }
- ok(html.includes('date-format.js?v=1641')&&html.includes('visitor-approval.js?v=1641')&&
-  html.includes('live.js?v=1641')&&html.includes('live-access-v2.js?v=1641'),
+ ok(html.includes('date-format.js?v=1641')&&html.includes('visitor-approval.js?v=1642')&&
+  html.includes('live.js?v=1642')&&html.includes('live-access-v2.js?v=1641'),
   'staging LIFF refreshes all modified JavaScript assets');
  ok(matchConfirm.includes('match-modal-is-error')&&matchCss.includes('.match-modal-is-error .match-modal-box{border-top:4px solid #c62828}'),
   'intentional confirmation versus error popup distinction remains unchanged');

@@ -54,7 +54,7 @@ const values=[sheet_,sheetRows_,str_,norm_,bool_,safeCell_,now_,()=> '2026-11-18
  practice_,practices_,entries_,paymentRows_,balanceRecalc_,writeLedger_,
  expectVersion_,participantMatchLocked_,participantArchivePending_,fee_,SpreadsheetApp,audit_,{fees:{visitor:1000,member:800}}];
 const actual=new Function(...env,part+'\n'+visitor+
- '\nreturn {visitorRequests_,visitorMine_,visitorAdminList_,visitorRequest_,visitorDecision_,participantChange_,visitorHasApproved_}')(...values);
+ '\nreturn {visitorRequests_,visitorMine_,visitorAdminList_,visitorRequest_,visitorDecision_,participantChange_,visitorModify_,visitorHasApproved_}')(...values);
 const A={memberId:'M-ADMIN',role:'admin'},M={memberId:'M-ONE',role:'member'},OTHER={memberId:'M-OTHER',role:'member'};
 const base={requestId:'VR-ONE-12345678',participantId:'PV-ONE-12345678',
  practiceId:'PR-STAGING-1121',name:'テスト花子',nameKana:'',memo:'参加希望'};
@@ -122,6 +122,90 @@ ok(rows['出欠回答'].length===0&&rows['集金記録'].length===0&&ledgerIncom
  'admin delete removes collected checked visitor and open ledger fee');
 ok(actual.visitorRequests_({}).find(x=>x.requestId===base3.requestId).status==='rejected',
  'applicant sees rejected status after admin deletes from participant list');
+// v0.16.42: a normal member can edit THEIR OWN approved visitor via
+// participantChange_, including attendance and paid-cash ledger adjustments.
+// No email exists in the visitor application or participant sheet.
+const base4={...base,requestId:'VR-FOUR-12345678',participantId:'PV-FOUR-12345678'};
+actual.visitorRequest_({},M,base4);
+expect(()=>actual.visitorModify_({},M,{requestId:base4.requestId,action:'edit',
+ expectedVersion:0,operationId:'OP-EDIT-PENDING-004',name:'修正前',attending:false}),'LOCKED');
+expect(()=>actual.visitorModify_({},OTHER,{requestId:base4.requestId,action:'delete',
+ expectedVersion:0,operationId:'OP-WITHDRAW-OTHER'}),'FORBIDDEN');
+ledgerStatus='confirmed';
+expect(()=>actual.visitorModify_({},M,{requestId:base4.requestId,action:'delete',
+ expectedVersion:0,operationId:'OP-WITHDRAW-CONFIRMED'}),'LOCKED');
+ledgerStatus='open';
+actual.visitorDecision_({},A,{requestId:base4.requestId,action:'approve',
+ expectedVersion:0,operationId:'OP-APPROVE-FOUR'});
+ok(actual.visitorMine_({},M).data.requests.find(x=>x.requestId===base4.requestId).attending===true,
+ 'approved visitor shows actual participant-list attendance');
+expect(()=>actual.visitorModify_({},OTHER,{requestId:base4.requestId,action:'edit',
+ expectedVersion:1,operationId:'OP-EDIT-OTHER',name:'偽装',attending:false}),'FORBIDDEN');
+expect(()=>actual.visitorModify_({},M,{requestId:base4.requestId,action:'delete',
+ expectedVersion:1,operationId:'OP-DELETE-APPROVED'}),'LOCKED');
+const change={requestId:base4.requestId,action:'edit',expectedVersion:1,
+ operationId:'OP-EDIT-MEMBER-004',name:'変更済み花子',nameKana:'ヘンコウ',
+ memo:'欠席のため連絡',category:'visitor',attending:false};
+expect(()=>actual.visitorModify_({},M,{...change,category:'member'}),'LOCKED');
+expect(()=>actual.visitorModify_({},M,{...change,attending:undefined}),'BAD_REQUEST');
+ledgerStatus='confirmed';
+expect(()=>actual.visitorModify_({},M,change),'LOCKED');
+matchLocked=true;ledgerStatus='open';
+expect(()=>actual.visitorModify_({},M,change),'LOCKED');
+matchLocked=false;
+rows['集金記録'].push([base4.practiceId,base4.participantId,true,1,'M-ADMIN',now_()]);
+ledgerIncome=1000;
+const edit=actual.visitorModify_({},M,change);
+ok(edit.data.version===2&&edit.data.status==='approved',
+ 'requesting general member edits only approved visitor; approval unchanged');
+ok(rows['出欠回答'].length===1&&rows['出欠回答'][0][5]===false,
+ 'same participant edit logic updates attendance to absent');
+ok(rows['集金記録'].length===0&&ledgerIncome===0,
+ 'attendance change from paid to absent removes paid mark and reconciles open ledger');
+ok(rows['出欠回答'][0][2]==='変更済み花子'&&
+ rows['ビジター申請'].find(x=>x[0]===base4.requestId)[3]==='変更済み花子',
+ 'approval request and participant roster share updated name');
+ok(actual.visitorMine_({},M).data.requests.find(x=>x.requestId===base4.requestId).attending===false,
+ 'my request UI shows updated absent status instead of always attended');
+ok(rows['参加者操作アーカイブ'].some(r=>r[0]===change.operationId&&r[7]==='completed')&&
+ rows['ビジター審査アーカイブ'].some(r=>r[0]===change.operationId&&r[7]==='completed'),
+ 'both visitor and participant changes are durably archived before finalizing');
+const saved=ledgerWrites,again=actual.visitorModify_({},M,change);
+ok(again.data.status==='approved'&&ledgerWrites===saved,
+ 'completed member edit operation safely replays without duplicate ledger changes');
+expect(()=>actual.visitorModify_({},M,{...change,operationId:'OP-STALE-EDIT-005'}),'VERSION_CONFLICT');
+const changedByDuty=actual.participantChange_({},A,{
+ practiceId:base4.practiceId,participantId:base4.participantId,action:'edit',
+ expectedVersion:1,operationId:'OP-ADMIN-EDIT-004',
+ name:'管理者修正済み',nameKana:'',category:'visitor',attending:true,memo:'再参加'
+});
+ok(changedByDuty.data.version===2&&rows['出欠回答'][0][5]===true,
+ 'admin participant-list edit reuses same attendance mutation for approved visitor');
+const afterAdmin=actual.visitorMine_({},M).data.requests.find(x=>x.requestId===base4.requestId);
+ok(afterAdmin.name==='管理者修正済み'&&afterAdmin.attending===true&&afterAdmin.version===3,
+ 'requester sees admin participant-list corrections in visitor request details');
+ok(rows['参加者操作アーカイブ'].some(r=>r[0]==='OP-ADMIN-EDIT-004'&&r[7]==='completed')&&
+ rows['ビジター申請'].find(r=>r[0]===base4.requestId)[12]==='OP-ADMIN-EDIT-004',
+ 'admin mutation archives original roster and synchronizes request revision');
+expect(()=>actual.visitorModify_({},M,{...change,operationId:'OP-STALE-AFTER-ADMIN',
+ expectedVersion:2}),'VERSION_CONFLICT');
+ok(actual.visitorMine_({},M).data.practices.some(p=>p.practiceId===base4.practiceId)&&
+ actual.visitorAdminList_({},A).data.practices.some(p=>p.practiceId===base4.practiceId),
+ 'both applicant and admin APIs expose all practice dates for dropdowns');
+
+const base5={...base,requestId:'VR-FIVE-12345678',participantId:'PV-FIVE-12345678'};
+actual.visitorRequest_({},M,base5);
+const withdrawn=actual.visitorModify_({},M,{requestId:base5.requestId,action:'delete',
+ expectedVersion:0,operationId:'OP-WITHDRAW-005'});
+ok(withdrawn.data.status==='withdrawn'&&
+ actual.visitorMine_({},M).data.requests.every(x=>x.requestId!==base5.requestId)&&
+ actual.visitorAdminList_({},A).data.requests.every(x=>x.requestId!==base5.requestId),
+ 'pending application removed from lists while archive is retained for recovery');
+expect(()=>actual.visitorDecision_({},A,{requestId:base5.requestId,action:'approve',
+ expectedVersion:1,operationId:'OP-APPROVE-WITHDRAWN'}),'LOCKED');
+ok(worker.includes("'/api/visitor/modify':'visitor.modify'"),
+ 'Worker exposes authenticated member modification through server authorization');
+
 ok(gas.includes("['閲覧リンク',1,6],['ビジター申請',1,13]"),'schedule cascade includes visitor applications');
 ok(worker.includes("'/api/visitor/decide':'visitor.decide'")&&worker.includes("'/api/visitor/mine':'visitor.mine'"),
  'Worker maps member/admin visitor operations');
@@ -130,7 +214,7 @@ ok(gas.includes("if(op==='visitor.register'||op==='visitor.request')")&&
  'legacy direct-visitor endpoint cannot bypass approval by writing attendance');
 ok(html.includes('id="visitorAdminDialog"')&&html.includes('id="visitorMineCards"')&&
  !html.includes('id="visitorMineDialog"')&&html.indexOf('id="visitorMineCards"')<html.indexOf('<form id="visitorForm"')&&
- html.includes('visitor-approval.js?v=1641'), 'member and administrator UI connected');
+ html.includes('visitor-approval.js?v=1642'), 'member and administrator UI connected');
 ok(ui.includes("data.status==='rejected'")&&ui.includes("data.status!=='pending'"),
  'rejected is terminal and approved cannot be approved a second time');
 ok(ui.includes("id")&&live.includes("window.SMVisitor?.setup({api:call,actor:S.actor"),
