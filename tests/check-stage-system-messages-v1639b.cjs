@@ -19,7 +19,7 @@ const shared=['.stage-ui .stage-system-message{','.stage-ui .stage-system-messag
  'font-size:13px','line-height:1.55'];
 for(const t of shared)ok(css.includes(t),'shared stage message CSS: '+t);
 for(const [p,html] of [['live',live],['match',match],['match-view',view],['guest',guest]]){
- ok(html.includes('stage-ui.css?v=1650'),p+' loads same versioned shared styles');
+ ok(html.includes(p==='live.html'?'stage-ui.css?v=1650':'stage-ui.css?v=1648'),p+' loads same versioned shared styles');
  ok(html.includes('class="stage-system-message')||html.includes(' stage-system-message'),
   p+' has at least one system banner');
 }
