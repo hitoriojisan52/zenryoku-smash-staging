@@ -112,3 +112,35 @@
  white-space:pre-line!important;overflow:visible!important;
  text-overflow:clip!important;
 }
+
+/* v0.16.41 — one button vocabulary across ALL staging screens.
+ * Green = commit/save/approve, blue = navigation/read/update,
+ * grey outline = cancel/close/secondary, red = delete/reject/stop/reset.
+ * Explicitly define .btn-danger (previously missing from style.css).
+ */
+.stage-ui button.btn-blue{background:#1976d2;color:#fff}
+.stage-ui button.btn-green{background:#2e7d32;color:#fff}
+.stage-ui button.btn-gray{background:#546e7a;color:#fff}
+.stage-ui button.btn-outline{background:#eef2f7;color:#334e65;border:1px solid #cfd8df}
+.stage-ui button.btn-danger,
+.stage-ui button.btn-finish,
+.stage-ui button.access-danger-v2,
+.stage-ui button.participant-btn-delete{background:#c62828;color:#fff}
+.stage-ui button:is(.btn-blue,.btn-green,.btn-gray,.btn-outline,.btn-danger,.btn-finish,.access-danger-v2){
+ min-height:44px;border-radius:6px;font-weight:700;line-height:1.35;
+}
+.stage-ui .modal-actions,.stage-ui .visitor-review-actions{
+ display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px;
+}
+.stage-ui .modal-actions button{min-width:88px;min-height:44px;padding:8px 12px}
+.stage-ui .visitor-review-actions button{min-width:86px;min-height:44px;padding:8px 12px}
+.stage-ui .visitor-review-section-heading{
+ display:flex;align-items:center;justify-content:space-between;gap:8px;
+ margin:0 0 6px;
+}
+.stage-ui .visitor-review-section-heading h3{font-size:15px;margin:0}
+.stage-ui .visitor-review-section-heading button{flex:none}
+.stage-ui .visitor-my-requests{
+ border-top:1px solid #d7e1e9;margin-top:13px;padding-top:12px;
+}
+.stage-ui #visitorDialog .visitor-review-list{max-height:34dvh;overflow-y:auto;overscroll-behavior:contain}
