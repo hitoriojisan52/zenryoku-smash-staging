@@ -75,7 +75,7 @@ const SpreadsheetApp={flush(){flushed++;writes.push('flush')}};
 const now_=()=> '2026-11-18 15:00:00';
 const params=['str_','norm_','SM','fee_','fail_','expectVersion_','sheetRows_','sheet_',
  'entries_','practices_','practice_','paymentRows_','balanceRecalc_','writeLedger_',
- 'safeCell_','SpreadsheetApp','now_','bool_'];
+ 'safeCell_','SpreadsheetApp','now_','bool_','matchDeleteArchiveStatus_'];
 const fn=new Function(...params,source+
  '\nreturn {participantList_,participantChange_,participantArchivePending_};')(
  str_,norm_,SM,fee_,fail_,expectVersion_,sheetRows_,sheet_,entries_,
@@ -83,7 +83,7 @@ const fn=new Function(...params,source+
   const p=practices.find(x=>x.practiceId===id);
   if(!p)fail_('NOT_FOUND','practice');return p;
  },(_ss,id)=>sheetRows_(null,'集金記録').filter(x=>x[0]===id),
- balanceRecalc_,writeLedger_,safeCell_,SpreadsheetApp,now_,bool_
+ balanceRecalc_,writeLedger_,safeCell_,SpreadsheetApp,now_,bool_,()=>false
 );
 const member={memberId:'M-DUTY',role:'duty'};
 const list=()=>fn.participantList_({},member,{practiceId:'P-TODAY'}).data;

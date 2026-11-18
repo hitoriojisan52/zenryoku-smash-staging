@@ -386,7 +386,8 @@ var SM = {
     '操作履歴':['operationId','operation','actorMemberId','timestamp','targetId','resultJSON'],
     '現金確認記録':['practiceId','auditDate','countsJson','cashTotal','bookBalance','difference','version','updatedBy','updatedAt'],
     '日程削除アーカイブ':['operationId','practiceId','archivedAt','archivedBy','chunkIndex','chunkCount','snapshotChunk','status'],
-    '参加者操作アーカイブ':['operationId','practiceId','participantId','action','beforeJson','createdAt','actorMemberId','status']
+    '参加者操作アーカイブ':['operationId','practiceId','participantId','action','beforeJson','createdAt','actorMemberId','status'],
+    '試合削除アーカイブ':['operationId','practiceId','archivedAt','archivedBy','chunkIndex','chunkCount','snapshotChunk','status']
   },
   fees: {member:800,student:400,visitor:1000,duty:400,shuttle:400}
 };
@@ -907,6 +908,7 @@ function monthLedger_(ss,member,payload){var month=str_(payload.month)||today_()
  * roster: expose null rather than guessing or fabricating contact data.
  */
 function participantMatchLocked_(ss,id){
+ matchDeleteArchiveStatus_(ss,id,'',null); // block changes after an interrupted match deletion
  // Match sheets use their own schema (not SM.headers). Reading them with
  // sheetRows_ dereferences SM.headers['試合セッション'] and throws TypeError.
  // Only the practice ID column is needed for this access guard.
@@ -1295,6 +1297,90 @@ function matchText_(view){
     });return lines.join('\n');
   }).join('\n\n')+'\n\n詳しい予定はWeb画面で確認';
 }
+
+/* v0.16.39 — remove all match rows of exactly one practice after archiving.
+ * No attendance, payments, fee schedules or ledger mutations are permitted.
+ * Operates only under the existing GAS ScriptLock and verified duty/admin.
+ */
+var MATCH_DELETE_TABLES_=[
+ ['試合セッション',0,5],['試合版管理',1,9],['試合操作履歴',1,7]
+];
+function matchDeleteArchiveStatus_(ss,practiceId,opId,member){
+ var sh=sheet_(ss,'試合削除アーカイブ'),last=sh.getLastRow();
+ if(last<2)return false;
+ var ids=sh.getRange(2,1,last-1,2).getValues(),seen={},applied=false;
+ ids.forEach(function(row,i){
+  var op=str_(row[0]),id=str_(row[1]);
+  if(!op||seen[op])return;
+  seen[op]=true;
+  if(id!==practiceId&&op!==opId)return;
+  var record=sh.getRange(i+2,1,1,8).getValues()[0];
+  if(op===opId&&id!==practiceId)fail_('CONFLICT','操作IDは別の日程で使用されています');
+  if(id===practiceId&&str_(record[7])!=='completed')
+   fail_('STORAGE_INCOMPLETE','対戦表の削除が完了していません。管理者に復旧を依頼してください');
+  if(op===opId){
+   if(member&&str_(record[3])!==member.memberId)fail_('CONFLICT','別の担当者の操作IDです');
+   applied=true;
+  }
+ });
+ return applied;
+}
+function matchDeletePlan_(ss,practiceId){
+ var pointer=matchFindSession_(ss,practiceId);
+ if(!pointer)fail_('NOT_FOUND','対戦表は既に削除されています');
+ var matches={},counts={};
+ MATCH_DELETE_TABLES_.forEach(function(spec){
+  var sh=sheet_(ss,spec[0]),last=sh.getLastRow(),items=[];
+  if(last>1)sh.getRange(2,1,last-1,spec[2]).getValues().forEach(function(row,i){
+   if(str_(row[spec[1]])===practiceId)items.push({rowNumber:i+2,cells:row});
+  });
+  matches[spec[0]]=items;counts[spec[0]]=items.length;
+ });
+ if(matches['試合セッション'].length!==1||matches['試合セッション'][0].rowNumber!==pointer.row)
+  fail_('STORAGE_INCOMPLETE','試合セッションの参照が不正です');
+ var sh=sheet_(ss,'閲覧リンク'),last=sh.getLastRow(),links=[];
+ if(last>1)sh.getRange(2,1,last-1,6).getValues().forEach(function(row,i){
+  if(str_(row[1])===practiceId&&!str_(row[3]))links.push({rowNumber:i+2,cells:row});
+ });
+ counts['閲覧リンク失効']=links.length;
+ return {targets:matches,links:links,counts:counts};
+}
+function matchDeleteExecute_(ss,member,payload,old,operationId){
+ var id=str_(payload.practiceId);
+ if(Number(payload.expectedSessionVersion)!==Number(old.sessionVersion)||
+    Number(payload.expectedSettingsVersion)!==Number(old.settingsVersion))
+  fail_('VERSION_CONFLICT','対戦表が変更されています。更新してから削除してください');
+ var plan=matchDeletePlan_(ss,id),snapshot=JSON.stringify({
+  schema:1,practiceId:id,sessionVersion:old.sessionVersion,
+  settingsVersion:old.settingsVersion,targets:plan.targets,links:plan.links
+ }),chunks=[],size=12000;
+ for(var i=0;i<snapshot.length;i+=size)chunks.push(snapshot.slice(i,i+size));
+ if(!chunks.length)chunks=['{}'];
+ if(chunks.length>3000)fail_('STORAGE_LIMIT','対戦表の履歴が大きいため管理者へ連絡してください');
+ var archive=sheet_(ss,'試合削除アーカイブ'),first=archive.getLastRow()+1;
+ var last=first+chunks.length-1;
+ if(last>archive.getMaxRows())archive.insertRowsAfter(archive.getMaxRows(),last-archive.getMaxRows());
+ var time=now_(),records=chunks.map(function(chunk,i){
+  return [operationId,id,time,member.memberId,i+1,chunks.length,safeCell_(chunk),i===0?'prepared':''];
+ });
+ archive.getRange(first,1,records.length,8).setValues(records);
+ SpreadsheetApp.flush(); // recovery is durable before the first destructive write
+ var links=sheet_(ss,'閲覧リンク');
+ plan.links.forEach(function(item){links.getRange(item.rowNumber,4).setValue(time);});
+ // Keep active pointer until LAST; an interrupted delete stays blocked
+ // by the prepared archive even if the pointer has already disappeared.
+ ['試合版管理','試合操作履歴','試合セッション'].forEach(function(name){
+  var sheet=sheet_(ss,name);
+  plan.targets[name].slice().sort(function(a,b){return b.rowNumber-a.rowNumber;})
+   .forEach(function(item){sheet.deleteRow(item.rowNumber);});
+ });
+ archive.getRange(first,8).setValue('completed');
+ var result={ok:true,data:{practiceId:id,deleted:true,archived:true,removed:plan.counts}};
+ try{audit_(ss,operationId,'match.delete',member,id,result);}
+ catch(err){console.error('match delete completed, audit failed for '+operationId+': '+err);}
+ return result;
+}
+
 function matchApiDispatch_(ss,member,op,payload){
   var p=str_(payload.practiceId);
   if(op==='match.practices')return {ok:true,data:{practices:practices_(ss).map(function(x){return {practiceId:x.practiceId,date:x.date,place:x.place};})}};
@@ -1307,14 +1393,23 @@ function matchApiDispatch_(ss,member,op,payload){
   if(op==='match.operation'){
     var checkedId=checkOpId_(payload);
     return withLock_(function(){
+      var deleted=matchDeleteArchiveStatus_(ss,p,checkedId,member);
       var current=matchLoad_(ss,p);
       return {ok:true,data:{practiceId:p,operationId:checkedId,
-        applied:!!(current&&current.appliedOperations&&current.appliedOperations[checkedId]),
+        applied:deleted||!!(current&&current.appliedOperations&&current.appliedOperations[checkedId]),
         sessionVersion:current?current.sessionVersion:0,settingsVersion:current?current.settingsVersion:0}};
     });
   }
   var operationId=checkOpId_(payload);
   return withLock_(function(){
+    var replay=matchDeleteArchiveStatus_(ss,p,op==='match.delete'?operationId:'',member);
+    if(op==='match.delete'){
+      if(replay)return matchView_(ss,member,payload);
+      var current=matchLoad_(ss,p);
+      if(!current)fail_('NOT_FOUND','対戦表は既に削除されています');
+      matchDeleteExecute_(ss,member,payload,current,operationId);
+      return matchView_(ss,member,payload);
+    }
     var old=matchLoad_(ss,p),roster=matchRoster_(ss,p),result,kind=str_(payload.action);
     if(op==='match.create'){
       if(old){if(old.appliedOperations&&old.appliedOperations[operationId]){

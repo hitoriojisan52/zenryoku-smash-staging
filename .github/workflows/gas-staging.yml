@@ -68,6 +68,8 @@ jobs:
         run: node tests/check-stage-participant-refresh-v1638e.cjs
       - name: Verify legacy-v7 participant layout without visitor-add shortcut
         run: node tests/check-stage-participant-v7-layout-v1638f.cjs
+      - name: Verify match delete archive, guest revocation and roster unlock
+        run: node tests/check-stage-match-delete-v1639.cjs
       - name: Verify compact operation-history scan preserves idempotency
         run: node tests/check-gas-audit-ids-v1636h.cjs
       - name: Install pinned official Google clasp
