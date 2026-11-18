@@ -700,8 +700,8 @@ function scheduleHasReferences_(ss,id){
  if(sheetRows_(ss,'全体収支管理表').some(function(r){return str_(r[8])===id;}))return true;
  var match=ss.getSheetByName('試合セッション');
  if(match&&match.getLastRow()>1){
-  if(match.getRange(2,1,match.getLastRow()-1,2).getValues()
-    .some(function(r){return str_(r[1])===id;}))return true;
+  if(match.getRange(2,1,match.getLastRow()-1,1).getValues()
+    .some(function(r){return str_(r[0])===id;}))return true;
  }
  return false;
 }
