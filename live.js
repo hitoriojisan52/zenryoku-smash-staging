@@ -184,7 +184,7 @@ function renderHome(){const v=S.overview;if(!v)return;const {practice,ledger,par
   $('collectionLockReason').hidden=false;updateFooter();return;
  }
  $('cashCounter').disabled=false;
- $('place').textContent='場所：'+practice.place;$('hours').textContent='時間区分：'+practice.hours+'時間';
+ $('place').textContent='場所：'+practice.place;$('hours').textContent='時間区分：'+practice.hours+'h';
  $('count').textContent='参加者：'+v.attendingCount+'名';$('completedCount').textContent='集金完了：'+v.completedCount+'名';
  if(document.activeElement!==$('adjustment'))$('adjustment').value=ledger?.adjustment??0;
  if(document.activeElement!==$('expense'))$('expense').value=ledger?.expense??0;
