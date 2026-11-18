@@ -103,3 +103,50 @@ body.access-v2-active #memberAccessDialog .member-role-actions select:disabled{
  background:#eef2f7;color:#717b86;border-color:#cfd8df;
  cursor:not-allowed;opacity:1;
 }
+
+/* v0.16.56: member role in the upper right; three fixed operation slots
+ * beneath it, with disabled controls kept visible for the sole admin. */
+body.access-v2-active #memberAccessDialog .member-access-card-v1656 .participant-card-title{
+ align-items:flex-start;gap:8px;
+}
+body.access-v2-active #memberAccessDialog .member-access-card-v1656 .participant-card-title .live-access-select{
+ flex:0 0 132px;width:132px;min-width:112px;max-width:45%;min-height:44px;
+ border:1px solid #b8c8d6;border-radius:6px;padding:7px;
+ background:#fff;font-size:14px;
+}
+body.access-v2-active #memberAccessDialog .member-access-card-v1656 .participant-card-title .live-access-select:disabled{
+ background:#eef2f7;color:#717b86;border-color:#cfd8df;opacity:1;cursor:not-allowed;
+}
+body.access-v2-active #memberAccessDialog .member-access-card-v1656 .participant-card-content{
+ display:flex;align-items:flex-start;justify-content:space-between;gap:6px;
+}
+body.access-v2-active #memberAccessDialog .member-access-card-v1656 .member-role-actions{
+ display:flex;align-self:flex-start;justify-content:flex-end;align-items:center;
+ flex-wrap:nowrap;gap:4px;margin-left:auto;max-width:none;
+}
+body.access-v2-active #memberAccessDialog .member-access-card-v1656 .member-role-actions button{
+ width:auto;min-width:55px;min-height:44px;padding:6px 7px;
+ font-size:12px;white-space:nowrap;
+}
+body.access-v2-active #memberAccessHistoryV2 .access-history-line{
+ display:grid;grid-template-columns:minmax(0,1fr) max-content;align-items:center;
+ gap:8px;padding:9px 0;
+}
+body.access-v2-active #memberAccessHistoryV2 .access-history-line .live-access-name{
+ grid-column:auto;min-width:0;overflow-wrap:anywhere;font-size:14px;
+}
+body.access-v2-active #memberAccessHistoryV2 .access-history-date{
+ justify-self:end;text-align:right;white-space:nowrap;
+ color:#607384;font-size:12px;
+}
+#memberAccessEditV1656{width:min(92vw,420px);max-width:420px}
+#memberAccessEditV1656 .dialog-input{width:100%;min-height:44px;font-size:16px}
+#memberAccessEditV1656 .modal-actions{justify-content:flex-end;gap:8px}
+@media(max-width:425px){
+ body.access-v2-active #memberAccessDialog .member-access-card-v1656 .participant-card-content{
+  flex-direction:column;gap:5px;
+ }
+ body.access-v2-active #memberAccessDialog .member-access-card-v1656 .member-role-actions{
+  align-self:flex-end;margin-left:auto;max-width:100%;
+ }
+}
