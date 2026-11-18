@@ -92,7 +92,7 @@ ok(dispatch.includes("if(op==='visitor.practices')return withLock_"),
 ok(worker.includes("'/api/visitor/practices':'visitor.practices'")&&
  worker.includes("'/api/visitor/register':'visitor.register'"),
  'Worker routes verified token to registered-member guest API');
-ok(worker.includes("version:'0.16.45-stage-attendance'"),'stage Worker version updated');
+ok(worker.includes("version:'0.16.53-stage-withdrawal'"),'stage Worker version updated');
 for(const tag of ['visitorDialog','visitorForm','visitorPractice','visitorName','visitorKana','visitorMemo',
  'visitorMemberStart','visitorMemberHome','visitorConfirmDialog','visitorConfirmSave','visitorRegisterMenu']){
  ok(html.includes('id="'+tag+'"'),'visitor registration UI: '+tag);
