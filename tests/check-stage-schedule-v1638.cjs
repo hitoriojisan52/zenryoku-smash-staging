@@ -35,9 +35,17 @@ const sheetRows_=(ss,name)=>{
  return (referenceMap[name]||[]).map(r=>[...r]);
 };
 const sheet_=(ss,name)=>{if(name!=='練習日程')throw new Error('Unexpected sheet write');return sheet;};
+let matchReferences=[];
 const ss={
  getSheetByName(name){
-  if(name==='試合セッション')return {getLastRow:()=>1};
+  if(name==='試合セッション')return {
+   getLastRow:()=>matchReferences.length+1,
+   getRange:(row,col,height,width)=>({getValues:()=>{
+    ok(row===2&&col===1&&height===matchReferences.length&&width===1,
+      'match practice references read from the real A-column layout');
+    return matchReferences.map(x=>[x]);
+   }})
+  };
   return null;
  }
 };
@@ -78,6 +86,9 @@ fails(()=>funcs.scheduleChange_(ss,member,{action:'delete',practiceId:id,expecte
 fails(()=>funcs.scheduleChange_(ss,member,{action:'edit',practiceId:id,expectedVersion:2,
  date:'2026-11-24',place:'曽谷公民館',startTime:'09:00',endTime:'13:00',hours:4}),'CONFLICT');
 referenceMap={};
+matchReferences=[id];
+fails(()=>funcs.scheduleChange_(ss,member,{action:'delete',practiceId:id,expectedVersion:2}),'CONFLICT');
+matchReferences=[];
 const confirmed=funcs.scheduleChange_(ss,member,{action:'confirm',practiceId:id,expectedVersion:2}).data;
 ok(confirmed.version===3&&list()[0].enabled===true,'confirmation publishes existing row');
 fails(()=>funcs.scheduleChange_(ss,member,{action:'delete',practiceId:id,expectedVersion:3}),'FORBIDDEN');
