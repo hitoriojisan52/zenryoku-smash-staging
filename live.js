@@ -444,7 +444,8 @@ async function loadLedger(){
   }
   tr.append(actions);body.append(tr);
  }
- $('ledgerTotal').textContent='残金：'+yen(ledger.closingBalance);
+ $('ledgerTotal').textContent=month.slice(0,4)+'年'+Number(month.slice(5,7))+
+  '月の残金：'+yen(ledger.closingBalance);
  $('nextMonth').disabled=month>=(ledger.maxMonth||today().slice(0,7));
 }
 function ledgerAction(act,row){
