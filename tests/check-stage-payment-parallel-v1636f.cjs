@@ -17,7 +17,7 @@ function makeHarness(){
  const checkboxes=[];
  controls.list={querySelectorAll:()=>checkboxes};
  const participants=['P1','P2','P3','P4'].map(participantId=>({participantId,collectionCompleted:false,paymentVersion:0,fee:600}));
- const S={actor:{role:'admin'},practiceId:'TEST-20261116',overview:{practice:{date:'2026-11-16'},ledger:{status:'open',version:1,income:0,balance:0},participants},pending:new Set(),paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false};
+ const S={actor:{role:'admin'},practiceId:'TEST-20261116',overview:{practice:{date:'2026-11-16'},ledger:{status:'open',canConfirm:true,version:1,income:0,balance:0},participants},pending:new Set(),paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false};
  const requests=[],toasts=[];let uuidNumber=0,footerCalls=0;
  const payment=new Function('S','$','today','call','uuid','gateEdit','updateFooter','renderGasProfile_','toast','PERF_MODE',
    ui.slice(start,stop)+'\n'+ui.slice(pStart,pStop)+'\nreturn {setPayment,paymentCall_,drainPaymentQueue_,syncPaymentControls};')(
