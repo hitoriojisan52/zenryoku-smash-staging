@@ -71,52 +71,89 @@
    if(success)toast(success);
    return true;
  }
+ // Use the same name/status/details/actions card layout as 参加者一覧.
+ // No browser confirm() fallback, no editable self/admin singleton.
+ const ROLE_LABEL={member:'一般メンバー',duty:'当番担当',admin:'管理者'};
+ function cardLine(text){
+  return item('span','',text);
+ }
+ function cardFrame(name,badge,status){
+  const card=item('div','participant-card-item');
+  const head=item('div','participant-card-title');
+  const person=item('span','participant-card-person');
+  person.append(item('span','participant-card-name','👤 '+name));
+  if(badge)person.append(item('span','participant-card-category',badge));
+  head.append(person,item('span','participant-card-attendance',status||''));
+  const content=item('div','participant-card-content');
+  const info=item('div','participant-card-info');
+  const details=item('div','participant-card-details');
+  info.append(details);
+  const actions=item('div','participant-card-buttons member-role-actions');
+  content.append(info,actions);card.append(head,content);
+  return {card,details,actions};
+ }
  function renderHistory(list){
-   const section=$('memberAccessHistoryV2'),history=$('memberAccessWithdrawnV2');
-   const supported=Array.isArray(list);
-   section.hidden=!supported;history.replaceChildren();
-   if(!supported)return;
-   if(!list.length){history.append(item('p','access-help','退会履歴はありません。'));return;}
-   for(const m of list){
-     const row=item('div','live-access-row');
-     row.append(item('span','live-access-name',String(m.name||'名前なし')+(m.state==='completed'?'（退会済み）':'（確認中）')));
-     if(m.withdrawnAt)row.append(item('span','access-help',window.SMDate?.dateTimeJst?.(m.withdrawnAt)||String(m.withdrawnAt)));
-     history.append(row);
-   }
+  const section=$('memberAccessHistoryV2'),history=$('memberAccessWithdrawnV2');
+  section.hidden=false;history.replaceChildren();
+  if(!Array.isArray(list)){
+   history.append(item('p','stage-system-message stage-system-message--warning','退会履歴を取得できません。'));
+   return;
+  }
+  if(!list.length){
+   history.append(item('p','access-help','退会者はいません。'));
+   return;
+  }
+  for(const m of list){
+   const completed=m.state==='completed';
+   const frame=cardFrame(String(m.name||'名前なし'),completed?'退会済み':'退会処理中',
+    completed?'退会済み':'確認中');
+   frame.details.append(cardLine('📅 退会日：'+(
+    m.withdrawnAt?(window.SMDate?.dateTimeJst?.(m.withdrawnAt,false)||String(m.withdrawnAt)):'未記録')));
+   history.append(frame.card);
+  }
  }
  function render(snapshot){
-   const pending=$('memberAccessPending'),members=$('memberAccessMembers');
-   pending.replaceChildren();members.replaceChildren();
-   if(!snapshot.pending.length)pending.append(item('p','access-help','申し込みはありません。'));
-   for(const p of snapshot.pending){
-     const row=item('div','live-access-row');
-     row.append(item('span','live-access-name',p.name));
-     const accept=item('button','btn-green','承認');
-     accept.type='button';accept.addEventListener('click',()=>decide(p,true));
-     const reject=item('button','btn-danger','却下');
-     reject.type='button';reject.addEventListener('click',()=>decide(p,false));
-     row.append(accept,reject);pending.append(row);
+  const pending=$('memberAccessPending'),members=$('memberAccessMembers');
+  pending.replaceChildren();members.replaceChildren();
+  if(!snapshot.pending.length)pending.append(item('p','access-help','申請はありません。'));
+  for(const p of snapshot.pending){
+   const frame=cardFrame(String(p.name||'名前なし'),'利用申請','承認待ち');
+   if(p.requestedAt)frame.details.append(cardLine('📅 申請日：'+
+    (window.SMDate?.dateTimeJst?.(p.requestedAt,false)||String(p.requestedAt))));
+   const accept=item('button','btn-green','承認');
+   accept.type='button';accept.addEventListener('click',()=>decide(p,true));
+   const reject=item('button','btn-danger','却下');
+   reject.type='button';reject.addEventListener('click',()=>decide(p,false));
+   frame.actions.append(accept,reject);
+   pending.append(frame.card);
+  }
+  const adminCount=snapshot.members.filter(m=>m.active&&m.role==='admin').length;
+  for(const m of snapshot.members){
+   const frame=cardFrame(String(m.name||'名前なし'),ROLE_LABEL[m.role]||m.role,
+    m.active?'有効':'停止中');
+   frame.details.append(cardLine('LINE ID：'+(m.lineUserId||'未紐付け')));
+   frame.details.append(cardLine('📅 利用登録日：'+(
+    m.registeredAt?(window.SMDate?.dateTimeJst?.(m.registeredAt,false)||String(m.registeredAt)):'未記録')));
+   const isSelf=m.memberId===actorMemberId;
+   const soleAdmin=m.role==='admin'&&adminCount<=1;
+   if(isSelf||!m.active||soleAdmin){
+    frame.actions.append(item('span','stage-role-readonly','変更不可'));
+   }else{
+    const select=item('select','live-access-select');
+    select.setAttribute('aria-label',m.name+' さんの権限');
+    for(const [value,label] of Object.entries(ROLE_LABEL))
+     select.add(new Option(label,value));
+    select.value=m.role;
+    const change=item('button','btn-blue','変更');
+    change.type='button';change.disabled=true;
+    select.addEventListener('change',()=>{change.disabled=select.value===m.role;});
+    change.addEventListener('click',()=>setRole(m,select));
+    frame.actions.append(select,change);
    }
-   for(const m of snapshot.members){
-     const row=item('div','live-access-row'),label=item('span','live-access-name',m.name+(m.active?'':'（停止中）'));
-     const select=item('select','live-access-select');
-     select.setAttribute('aria-label',m.name+' さんの役割');
-     for(const [v,t] of [['member','一般メンバー'],['duty','当番担当'],['admin','管理者']])select.add(new Option(t,v));
-     select.value=m.role;
-     const isSelf=m.memberId===actorMemberId;
-     if(isSelf||!m.active){
-       const current=item('span','stage-role-readonly',select.options[select.selectedIndex]?.text||'現在の役割');
-       const note=item('small','stage-role-note',isSelf?'自分の権限は変更できません。':'停止中のため変更できません。');
-       row.append(label,current,note);members.append(row);
-       continue;
-     }
-     const change=item('button','btn-green','変更');change.type='button';change.disabled=true;
-     select.addEventListener('change',()=>{change.disabled=select.value===m.role;});
-     change.addEventListener('click',()=>setRole(m,select));
-     row.append(label,select,change);members.append(row);
-   }
-   renderHistory(snapshot.withdrawn);
-   renderWithdrawPreviewV1624(snapshot.members);
+   members.append(frame.card);
+  }
+  renderHistory(snapshot.withdrawn);
+  renderWithdrawPreviewV1624(snapshot.members);
  }
 
  // v0.16.24: Display-only example. This function never calls a mutation API.
@@ -194,8 +231,8 @@
  }
  async function decide(p,approve){
    if(busy||prompt)return;
-   const confirmed=await ask({title:approve?'登録の承認':'登録の却下',
-     message:p.name+' さんの申し込みを'+(approve?'承認':'却下')+'しますか？',
+   const confirmed=await ask({title:approve?'【登録の承認】':'【登録の却下】',
+     message:p.name+' さんを'+(approve?'承認':'却下')+'しますか？',
      label:approve?'承認する':'却下する',danger:!approve});
    if(!confirmed)return;
    await mutate('/api/member/manage/decide',
@@ -206,7 +243,7 @@
  async function setRole(m,select){
    if(busy||prompt||m.memberId===actorMemberId||!m.active||select.value===m.role)return;
    const role=select.value,label=select.options[select.selectedIndex]?.text||role;
-   const confirmed=await ask({title:'役割の変更',message:m.name+' さんを「'+label+'」に変更しますか？',label:'変更する'});
+   const confirmed=await ask({title:'【権限の変更】',message:m.name+' さんを「'+label+'」に変更しますか？',label:'変更する'});
    if(!confirmed)return; // Keep the pending local selection and enabled Change button.
    await mutate('/api/member/manage/role',
      {memberId:m.memberId,role,operationId:crypto.randomUUID()},
@@ -220,14 +257,13 @@
    if(!dialog.open)dialog.showModal();
    await refresh(true);
  }
- $('memberAccessTitle').textContent='👥 メンバー管理';
- for(const h of dialog.querySelectorAll('h3')){
-   h.textContent=h.nextElementSibling?.id==='memberAccessPending'?'登録の申し込み':'メンバーの役割';
- }
- const help=dialog.querySelector('.access-help');if(help)help.hidden=true;
+ $('memberAccessTitle').textContent='🔐 メンバー権限管理';
+ // Show withdrawal history directly; the old collapsed details hid records.
  const actions=dialog.querySelector('.modal-actions');
- const detail=item('details','access-history-v2');detail.id='memberAccessHistoryV2';detail.hidden=true;
- const summary=item('summary','', '退会履歴を見る');detail.append(summary,item('div','',''));detail.children[1].id='memberAccessWithdrawnV2';
+ const detail=item('section','access-history-v2');detail.id='memberAccessHistoryV2';
+ detail.append(item('h3','','退会者一覧'));
+ const history=item('div','');history.id='memberAccessWithdrawnV2';
+ detail.append(history);
  dialog.insertBefore(detail,actions);
  $('memberAccessRefresh').className='btn-blue';
  $('memberAccessRefresh').textContent='🔄 更新';
