@@ -826,10 +826,13 @@ function renderParticipantManager_(){
   const content=document.createElement('div');content.className='participant-card-content';
   const info=document.createElement('div');info.className='participant-card-info';
   const details=document.createElement('div');details.className='participant-card-details';
-  const email=document.createElement('span');email.textContent='📧 '+(p.email||'未記録');
+  if(p.category!=='visitor'){
+   const email=document.createElement('span');email.textContent='📧 '+(p.email||'未記録');
+   details.append(email);
+  }
   const registered=document.createElement('span');
   registered.textContent='📅 登録: '+(p.registeredAt||'未記録');
-  details.append(email,registered);
+  details.append(registered);
   info.append(details);
   if(p.memo){
    const note=document.createElement('div');note.className='participant-card-memo';
@@ -881,9 +884,13 @@ function openParticipantEditor_(p){
  if(PM.uncertain||PM.financeLocked||PM.matchLocked)return;
  PM.editing=p;$('participantName').value=p.name;
  $('participantKana').value=p.nameKana||'';
- $('participantEmail').value=p.email||'';
+ const isVisitor=p.category==='visitor';
+ $('participantEmailField').hidden=isVisitor;
+ $('participantEmailNote').hidden=isVisitor;
+ $('participantEmail').value=isVisitor?'':p.email||'';
  $('participantAttendance').value=p.attending?'attend':'absent';
  $('participantCategory').value=p.category;
+ $('participantCategory').disabled=isVisitor;
  $('participantMemo').value=p.memo||'';
  dialog('participantEditDialog');
 }
