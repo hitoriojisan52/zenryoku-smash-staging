@@ -453,6 +453,39 @@ function writeLedger_(ss,rows){var sh=sheet_(ss,'全体収支管理表'),old=Mat
  var arr=rows.map(function(r){return [r.date,safeCell_(r.label),r.income,r.expense,r.balance,safeCell_(r.confirmedBy),r.rowId,r.kind,r.practiceId,r.status,r.version,r.adjustment,safeCell_(r.item),safeCell_(r.payee),r.receiptFileId,r.createdBy];});
  if(arr.length)sh.getRange(2,1,arr.length,16).setValues(arr);if(old>arr.length)sh.getRange(arr.length+2,1,old-arr.length,16).clearContent();
 }
+/**
+ * Narrow write for the frequent case where only one practice ledger row
+ * changed. Balance/confirmed-row checks are ALWAYS done by balanceRecalc_.
+ * If rows are unsorted, non-contiguous, or other balances changed, fall back
+ * to the existing full rewrite to preserve exact financial semantics.
+ */
+function writePaymentLedger_(ss,rows,original,targetId){
+ var sh=sheet_(ss,'全体収支管理表');
+ if(rows.length!==original.length||sh.getLastRow()!==original.length+1){
+  writeLedger_(ss,rows);return 'full';
+ }
+ var changed=-1;
+ for(var i=0;i<rows.length;i++){
+  var next=rows[i],prev=original[i];
+  if(next.rowId!==prev.rowId){writeLedger_(ss,rows);return 'full';}
+  var keys=Object.keys(prev);
+  if(keys.some(function(k){return k!=='income'&&k!=='balance'&&k!=='version'&&next[k]!==prev[k];})){
+   writeLedger_(ss,rows);return 'full';
+  }
+  if(next.income!==prev.income||next.balance!==prev.balance||next.version!==prev.version){
+   if(changed!==-1||next.rowId!==targetId){writeLedger_(ss,rows);return 'full';}
+   changed=i;
+  }
+ }
+ if(changed<0){writeLedger_(ss,rows);return 'full';}
+ var r=rows[changed];
+ // One Sheets update on columns C:K, retaining untouched date/label columns.
+ sh.getRange(changed+2,3,1,9).setValues([[
+  r.income,r.expense,r.balance,safeCell_(r.confirmedBy),
+  r.rowId,r.kind,r.practiceId,r.status,r.version
+ ]]);
+ return 'row';
+}
 function row_(list,id){var a=list.filter(function(r){return r.rowId===id;});if(a.length!==1)fail_('NOT_FOUND','収支行が見つかりません');return a[0];}
 function unlockable_(row){if(row.status==='confirmed')fail_('LOCKED','確定済みのため変更できません');}
 function dateAllowed_(date){if(!iso_(date)||date>today_())fail_('BAD_REQUEST','未来日または日付が不正です');}
@@ -476,7 +509,7 @@ function setPayment_(ss,member,payload){
  balanceRecalc_(rows,original);
  if(index>=0)sh.getRange(index+2,1,1,6).setValues([[id,person,payload.completed,current+1,member.memberId,now_()]]);
  else sh.appendRow([id,person,payload.completed,1,member.memberId,now_()]);
- writeLedger_(ss,rows);
+ writePaymentLedger_(ss,rows,original,'P-'+id);
  return {ok:true,data:{practiceId:id,participantId:person,completed:payload.completed,version:current+1,ledgerVersion:ledger.version,income:ledger.income,balance:ledger.balance}};
 }
 function setCategory_(ss,member,payload){
