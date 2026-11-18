@@ -1191,6 +1191,8 @@ function visitorDecision_(ss,member,payload){
  var participant=sheetRows_(ss,'出欠回答').filter(function(x){
   return str_(x[0])===r.practiceId&&str_(x[1])===r.participantId;
  });
+ if(r.status==='pending'&&participant.length)
+  fail_('STORAGE_INCOMPLETE','承認前のビジターが既に参加者一覧に存在します');
  if(action==='approve'||r.status==='approved'){
   if(participantMatchLocked_(ss,r.practiceId))
    fail_('LOCKED','対戦表を削除してから承認・却下してください');
@@ -1202,10 +1204,14 @@ function visitorDecision_(ss,member,payload){
  }else if(r.status==='approved'){
   if(participant.length!==1)fail_('STORAGE_INCOMPLETE','承認済みビジターの参加情報が確認できません');
   if(str_(participant[0][4])!=='visitor')fail_('SETUP','参加区分がビジターではありません');
+  if(participantArchivePending_(ss,r.participantId))
+   fail_('STORAGE_INCOMPLETE','参加者の変更処理が未完了です。管理者に復旧を依頼してください');
   // Dry-run the same fee/ledger checks participantChange_ will repeat.
   var paid=paymentRows_(ss,r.practiceId).filter(function(x){return str_(x[1])===r.participantId;});
   if(paid.length>1)fail_('SETUP','集金記録が重複しています');
   if(paid.length&&bool_(paid[0][2])){
+   if(!bool_(participant[0][5]))
+    fail_('SETUP','欠席者に集金済みの記録があります');
    if(ledger.length!==1)fail_('SETUP','集金済みの収支行がありません');
    var old=entries_(ss),mutable=old.map(function(x){return Object.assign({},x);});
    var row=mutable.filter(function(x){return x.rowId==='P-'+r.practiceId;})[0];
