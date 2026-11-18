@@ -717,7 +717,11 @@ function scheduleDeleteTargets_(ss,id){
  return found;
 }
 function scheduleArchiveHas_(ss,id){
- return sheetRows_(ss,'日程削除アーカイブ').some(function(r){return str_(r[1])===id;});
+ var sh=sheet_(ss,'日程削除アーカイブ'),last=sh.getLastRow();
+ if(last<2)return false;
+ // The archive can contain huge match-revision chunks. Scan IDs (column B)
+ // without rereading large snapshot JSON for every schedule edit/delete.
+ return sh.getRange(2,2,last-1,1).getValues().some(function(r){return str_(r[0])===id;});
 }
 function scheduleDeletePlan_(ss,existing){
  var id=existing.practiceId,original=entries_(ss);
