@@ -379,7 +379,7 @@ var SM = {
     'メンバー':['memberId','displayName','lineUserId','active','isAdmin'],
     '当番チーム':['teamId','teamName','active'],
     'チーム所属':['teamId','memberId','active'],
-    '練習日程':['practiceId','date','place','startTime','endTime','hours','enabled'],
+    '練習日程':['practiceId','date','place','startTime','endTime','hours','enabled','remark','version'],
     '出欠回答':['practiceId','participantId','displayName','nameKana','category','attending','remark','version','registeredBy'],
     '集金記録':['practiceId','participantId','completed','version','updatedBy','updatedAt'],
     '全体収支管理表':['日付','開催場所・費目名','集金額','支出','残金','確認者','rowId','kind','practiceId','status','version','当日補正','費目','立替者','receiptFileId','作成者'],
@@ -441,7 +441,7 @@ function entries_(ss){return sheetRows_(ss,'全体収支管理表').filter(funct
  version:Number(r[10])||0,adjustment:Number(r[11])||0,item:str_(r[12]),payee:norm_(r[13]),receiptFileId:str_(r[14]),createdBy:str_(r[15])
 };});}
 function fee_(cat,hours){var base=SM.fees[cat];var factor={2:6/8,3:7/8,4:1}[hours];if(base===undefined||factor===undefined)fail_('BAD_REQUEST','料金設定または練習時間が不正です');return Math.ceil(base*factor/100)*100;}
-function practices_(ss){return sheetRows_(ss,'練習日程').map(function(r){return {practiceId:str_(r[0]),date:str_(r[1]),place:str_(r[2]),startTime:str_(r[3]),endTime:str_(r[4]),hours:Number(r[5]),enabled:bool_(r[6])};}).filter(function(p){return p.practiceId&&p.enabled;});}
+function practices_(ss){return sheetRows_(ss,'練習日程').map(function(r){return {practiceId:str_(r[0]),date:ledgerDate_(r[1]),place:str_(r[2]),startTime:scheduleTime_(r[3]),endTime:scheduleTime_(r[4]),hours:Number(r[5]),enabled:bool_(r[6])};}).filter(function(p){return p.practiceId&&p.enabled;});}
 function practice_(ss,id){var found=practices_(ss).filter(function(p){return p.practiceId===id;});if(found.length!==1)fail_('NOT_FOUND','練習日程が見つかりません');return found[0];}
 function attendees_(ss,id){return sheetRows_(ss,'出欠回答').filter(function(r){return str_(r[0])===id&&bool_(r[5]);}).map(function(r){return {practiceId:id,participantId:str_(r[1]),name:norm_(r[2]),nameKana:norm_(r[3]),category:str_(r[4]),attending:true,memo:str_(r[6]),categoryVersion:Number(r[7])||0};});}
 function paymentRows_(ss,id){return sheetRows_(ss,'集金記録').filter(function(r){return str_(r[0])===id;});}
@@ -643,6 +643,113 @@ function cashSave_(ss,member,payload){
   updatedBy:member.memberId,updatedAt:next[8]}};
 }
 
+
+/* v0.16.38a: old-v7 practice schedule management on fixed IDs.
+ * "確定" publishes an enabled practice to new LINE/LIFF reads; no legacy
+ * per-date sheet or Google Form is created. Existing rows remain untouched.
+ */
+function scheduleTime_(value){
+ if(Object.prototype.toString.call(value)==='[object Date]'){
+  if(!Number.isFinite(value.getTime()))fail_('SETUP','時刻のデータが不正です');
+  return Utilities.formatDate(value,'Asia/Tokyo','HH:mm');
+ }
+ var m=/^([01]?\d|2[0-3]):([0-5]\d)$/.exec(str_(value));
+ if(!m)return str_(value);
+ return ('0'+Number(m[1])).slice(-2)+':'+m[2];
+}
+function scheduleTimeMinutes_(value){
+ var m=/^([01]\d|2[0-3]):[0-5]\d$/.exec(value);
+ if(!m)fail_('BAD_REQUEST','時間帯を確認してください');
+ return Number(value.slice(0,2))*60+Number(value.slice(3));
+}
+function scheduleData_(payload){
+ var date=str_(payload.date).replace(/\//g,'-'),place=str_(payload.place),
+     startTime=scheduleTime_(payload.startTime),endTime=scheduleTime_(payload.endTime),
+     hours=Number(payload.hours),remark=str_(payload.remark);
+ if(!iso_(date)||date<today_())fail_('BAD_REQUEST','本日以降の開催日を指定してください');
+ if(!place||place.length>100||remark.length>200)fail_('BAD_REQUEST','開催場所・備考を確認してください');
+ if([2,3,4].indexOf(hours)<0||!Number.isSafeInteger(hours))fail_('BAD_REQUEST','時間は2・3・4時間から選択してください');
+ var start=scheduleTimeMinutes_(startTime),end=scheduleTimeMinutes_(endTime);
+ if(end-start!==hours*60)fail_('BAD_REQUEST','時間帯と時間数が一致しません');
+ return {date:date,place:place,startTime:startTime,endTime:endTime,hours:hours,remark:remark};
+}
+function scheduleRows_(ss){
+ var rows=sheetRows_(ss,'練習日程'),out=[],seenId={},seenDate={};
+ rows.forEach(function(r,i){
+  var id=str_(r[0]);if(!id)return;
+  var date=ledgerDate_(r[1]),version=r[8]===''||r[8]===null?0:Number(r[8]);
+  if(!iso_(date)||seenId[id]||seenDate[date]||!Number.isSafeInteger(version)||version<0)
+   fail_('SETUP','練習日程マスタに重複または不正な行があります');
+  seenId[id]=true;seenDate[date]=true;
+  out.push({practiceId:id,date:date,place:str_(r[2]),startTime:scheduleTime_(r[3]),
+   endTime:scheduleTime_(r[4]),hours:Number(r[5]),enabled:bool_(r[6]),
+   remark:str_(r[7]),version:version,rowNumber:i+2});
+ });
+ return out;
+}
+function scheduleList_(ss,member,payload){
+ var rows=scheduleRows_(ss).filter(function(r){return r.date>=today_();})
+  .sort(function(a,b){return a.date.localeCompare(b.date)||a.startTime.localeCompare(b.startTime);})
+  .map(function(r){var o=Object.assign({},r);delete o.rowNumber;return o;});
+ return {ok:true,data:{schedules:rows}};
+}
+function scheduleHasReferences_(ss,id){
+ // Even an inactive date cannot be deleted if another feature has rows for it.
+ if(sheetRows_(ss,'出欠回答').some(function(r){return str_(r[0])===id;}))return true;
+ if(sheetRows_(ss,'集金記録').some(function(r){return str_(r[0])===id;}))return true;
+ if(sheetRows_(ss,'全体収支管理表').some(function(r){return str_(r[8])===id;}))return true;
+ var match=ss.getSheetByName('試合セッション');
+ if(match&&match.getLastRow()>1){
+  if(match.getRange(2,1,match.getLastRow()-1,2).getValues()
+    .some(function(r){return str_(r[1])===id;}))return true;
+ }
+ return false;
+}
+function scheduleChange_(ss,member,payload){
+ var action=str_(payload.action),id=str_(payload.practiceId),
+     rows=scheduleRows_(ss),sh=sheet_(ss,'練習日程');
+ if(action==='add'){
+  if(!/^PR-[A-Za-z0-9_-]{8,96}$/.test(id)||rows.some(function(r){return r.practiceId===id;}))
+   fail_('BAD_REQUEST','新しい日程IDが不正です');
+  var data=scheduleData_(payload);
+  if(rows.some(function(r){return r.date===data.date;}))
+   fail_('CONFLICT','同じ開催日が登録されています');
+  var record=[id,data.date,safeCell_(data.place),data.startTime,data.endTime,data.hours,false,
+   safeCell_(data.remark),1];
+  sh.appendRow(record);
+  return {ok:true,data:{practiceId:id,action:action,version:1}};
+ }
+ var matches=rows.filter(function(r){return r.practiceId===id;});
+ if(matches.length!==1)fail_('NOT_FOUND','日程が見つかりません');
+ var existing=matches[0];
+ expectVersion_(existing.version,payload.expectedVersion);
+ if(existing.enabled)fail_('FORBIDDEN','確定済みの日程は修正・削除できません');
+ if(existing.date<today_())fail_('BAD_REQUEST','過去の日程は変更できません');
+ if(action==='delete'){
+  if(scheduleHasReferences_(ss,id))fail_('CONFLICT','関連データがあるため削除できません');
+  sh.deleteRow(existing.rowNumber);
+  return {ok:true,data:{practiceId:id,action:action,version:existing.version+1}};
+ }
+ if(action==='edit'){
+  if(scheduleHasReferences_(ss,id))fail_('CONFLICT','関連データがあるため修正できません');
+  var update=scheduleData_(payload);
+  if(rows.some(function(r){return r.practiceId!==id&&r.date===update.date;}))
+   fail_('CONFLICT','同じ開催日が登録されています');
+  sh.getRange(existing.rowNumber,1,1,9).setValues([[
+   id,update.date,safeCell_(update.place),update.startTime,update.endTime,update.hours,
+   false,safeCell_(update.remark),existing.version+1
+  ]]);
+  return {ok:true,data:{practiceId:id,action:action,version:existing.version+1}};
+ }
+ if(action==='confirm'){
+  var confirmed=[id,existing.date,safeCell_(existing.place),existing.startTime,existing.endTime,
+    existing.hours,true,safeCell_(existing.remark),existing.version+1];
+  sh.getRange(existing.rowNumber,1,1,9).setValues([confirmed]);
+  return {ok:true,data:{practiceId:id,action:action,version:existing.version+1}};
+ }
+ fail_('BAD_REQUEST','日程操作が不正です');
+}
+
 function overview_(ss,member,payload){var all=practices_(ss).sort(function(a,b){return a.date.localeCompare(b.date)||a.startTime.localeCompare(b.startTime);});
  var id=str_(payload.practiceId)|| (all.length?all[all.length-1].practiceId:'');if(!id)fail_('NOT_FOUND','日程がありません');var p=practice_(ss,id),pay=paymentRows_(ss,id),pm={};pay.forEach(function(r){pm[str_(r[1])]={completed:bool_(r[2]),version:Number(r[3])||0};});
  var roster=attendees_(ss,id).map(function(a){var o=pm[a.participantId]||{completed:false,version:0};return {participantId:a.participantId,name:a.name,nameKana:a.nameKana,category:a.category,fee:fee_(a.category,p.hours),attending:true,memo:a.memo,collectionCompleted:o.completed,paymentVersion:o.version,categoryVersion:a.categoryVersion};});
@@ -692,8 +799,8 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
  }
  if(op.indexOf('match.')===0)return matchApiDispatch_(ss,member,op,payload);
  requireDuty_(member);
- if(['overview','ledger.list','cash.get'].indexOf(op)>=0)return withLock_(function(){return op==='overview'?overview_(ss,member,payload):op==='ledger.list'?monthLedger_(ss,member,payload):cashGet_(ss,member,payload);});
- if(['payment.set','category.set','adjustment.set','expense.set','ledger.change','cash.save'].indexOf(op)<0)fail_('BAD_REQUEST','API操作が不正です');
+ if(['overview','ledger.list','cash.get','schedule.list'].indexOf(op)>=0)return withLock_(function(){return op==='overview'?overview_(ss,member,payload):op==='ledger.list'?monthLedger_(ss,member,payload):op==='cash.get'?cashGet_(ss,member,payload):scheduleList_(ss,member,payload);});
+ if(['payment.set','category.set','adjustment.set','expense.set','ledger.change','cash.save','schedule.change'].indexOf(op)<0)fail_('BAD_REQUEST','API操作が不正です');
  var opId=checkOpId_(payload);
  return withLock_(function(){
    var mark=paymentProfile?Date.now():0;
@@ -706,6 +813,7 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
    else if(op==='adjustment.set')result=changeMoney_(ss,member,payload,'adjustment');
    else if(op==='expense.set')result=changeMoney_(ss,member,payload,'expense');
    else if(op==='cash.save')result=cashSave_(ss,member,payload);
+   else if(op==='schedule.change')result=scheduleChange_(ss,member,payload);
    else result=mutateLedger_(ss,member,payload);
    mark=paymentProfile?Date.now():0;
    audit_(ss,opId,op,member,str_(payload.rowId||payload.participantId||payload.practiceId),result);
