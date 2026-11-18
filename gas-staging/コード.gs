@@ -543,6 +543,8 @@ function setPayment_(ss,member,payload,profile){
 }
 function setCategory_(ss,member,payload){
  var id=str_(payload.practiceId),person=str_(payload.participantId),p=practice_(ss,id),cat=str_(payload.category);if(SM.fees[cat]===undefined)fail_('BAD_REQUEST','参加区分が不正です');
+ if(cat!=='visitor'&&/^PV-/.test(person)&&visitorHasApproved_(ss,id,person))
+  fail_('LOCKED','承認済みビジターの参加区分は変更できません');
  var ledgerRows=entries_(ss),ledger=row_(ledgerRows,'P-'+id);unlockable_(ledger);
  var sh=sheet_(ss,'出欠回答'),arr=sheetRows_(ss,'出欠回答'),ix=arr.findIndex(function(r){return str_(r[0])===id&&str_(r[1])===person;});
  if(ix<0||!bool_(arr[ix][5]))fail_('NOT_FOUND','参加者が見つかりません');var record=arr[ix],current=Number(record[7])||0;expectVersion_(current,payload.expectedVersion);
@@ -1017,6 +1019,8 @@ function participantChange_(ss,member,payload,visitorDecisionInternal){
      memo.length>200||/^[=+@]/.test(name)||/^[=+@]/.test(kana)||
      /[\u0000-\u001f]/.test(memo))
    fail_('BAD_REQUEST','氏名・区分・備考を確認してください');
+  if(cat!=='visitor'&&/^PV-/.test(person)&&visitorHasApproved_(ss,id,person))
+   fail_('LOCKED','承認済みビジターの参加区分は変更できません');
  }
  var oldFee=wasPaid?fee_(str_(old[4]),p.hours):0,
      newFee=action==='edit'&&attending&&wasPaid?fee_(cat,p.hours):0,
