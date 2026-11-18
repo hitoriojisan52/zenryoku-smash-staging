@@ -47,20 +47,21 @@
   const who=node('span','participant-card-person');
   who.append(node('span','participant-card-name','👤 '+data.name),
     node('span','participant-card-category','ビジター'));
-  head.append(who);
-  // Request status appears in the applicant's view, and also in admin
-  // reviews where it controls whether approval/rejection is available.
-  const state=STATUS[data.status]||'状態を確認してください';
-  head.append(node('span','visitor-status visitor-status--'+data.status,state));
+  // Only the requesting member's visitor registration page adds an explicit
+  // approval-state badge. Admin review and regular roster preserve v7 layout.
+  if(!admin)who.append(node('span','visitor-status visitor-status--'+data.status,
+    STATUS[data.status]||'状態を確認してください'));
+  const attendance=data.status==='approved'?
+    (data.attending===true?'参加':data.attending===false?'欠席':'未確認'):
+    data.status==='pending'?'受付中':'対象外';
+  head.append(who,node('span','participant-card-attendance '+(
+    data.status==='approved'&&data.attending===true?'is-attending':'is-absent'),attendance));
   const content=node('div','participant-card-content');
   const info=node('div','participant-card-info');
   const details=node('div','participant-card-details visitor-review-info');
   const fields=[
    shortDate(data),
    '📅 申請日時：'+formatRequestedAt_(data.requestedAt),
-   '出欠：'+(data.status==='approved'?
-     data.attending===true?'参加':data.attending===false?'欠席':'参加情報未確認':
-     data.status==='pending'?'承認待ち':'却下済み'),
    admin?'申請者：'+(data.requestedByName||'不明'):'',
    data.nameKana?'カナ：'+data.nameKana:''
   ].filter(Boolean);
