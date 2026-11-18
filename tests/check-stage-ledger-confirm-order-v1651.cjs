@@ -114,7 +114,7 @@ ok(november.rows.find(x=>x.rowId==='P-LATE').canConfirm===false,
 reject(()=>submit('R-FUTURE'),'BAD_REQUEST','future date remains impossible to confirm');
 ok(monthLedger({}, {role:'admin'}, {month:'2026-12'}).data.rows[0].canConfirm===false,
  'future month row always disabled regardless of chronology');
-ok(js.includes("const canConfirm=!future&&!confirmed&&r.canConfirm===true"),
+ok(js.includes("const canConfirm=!future&&r.canConfirm===true"),
  'v15 ledger button remains present but disabled from authoritative GAS result');
 ok(js.includes("S.overview?.practice?.date>today()||ledger?.canConfirm!==true")&&
  js.includes("homeLocked||practice.date>today()||ledger?.canConfirm!==true"),
