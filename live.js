@@ -371,38 +371,81 @@ async function saveAmount(kind){
 }
 async function openLedger(){await guard(async()=>{gateEdit();close('manageDialog');$('demoRole').closest('.role-controls').hidden=true;
  $('ledgerMonth').value=today().slice(0,7);await loadLedger();dialog('ledgerDialog');});}
-async function loadLedger(){const month=$('ledgerMonth').value,ledger=await call('/api/ledger',{month});S.ledger=ledger;const b=$('ledgerBody');b.replaceChildren();
- const rows=[{rowId:'CARRY-'+month,date:month+'-01',label:'前月繰越',income:0,expense:0,balance:ledger.carried,confirmedBy:'',kind:'carry',status:'confirmed'},...ledger.rows.filter(r=>r.kind!=='opening')];
- for(const r of rows){const tr=document.createElement('tr');
-  for(const v of [window.SMDate.date(r.date),r.label,yen(r.income),yen(r.expense),yen(r.balance),r.confirmedBy||'']){const td=document.createElement('td');td.textContent=v;tr.append(td);}
-  const actions=document.createElement('td');actions.className='ledger-row-actions';
-  const buttons=[],future=r.date>today();
-  if(r.kind!=='carry'&&!future){
-    if(r.status==='confirmed'&&S.actor.role==='admin')buttons.push(['解除','unlock']);
-    else if(r.status!=='confirmed'){
-      if(r.kind!=='practice')buttons.push(['修正','edit']);
-      buttons.push(['削除','delete'],['確定','confirm']);
-    }
-  }
-  if(buttons.length){
-   const group=document.createElement('div');group.className='ledger-action-group';
-   for(const [label,act] of buttons){
-    const btn=document.createElement('button');btn.type='button';
-    btn.className=act==='delete'?'btn-danger':act==='confirm'?'btn-green':
-      act==='edit'?'btn-blue':'btn-outline';
-    btn.textContent=label;
-    btn.addEventListener('click',()=>ledgerAction(act,r));group.append(btn);
-   }
-   actions.append(group);
-  }else{
-   const label=document.createElement('small');
-   label.textContent=r.kind==='carry'?'－':future?'開催日前':
-     r.status==='confirmed'?'確定済み':'操作不可';
-   label.className='muted';actions.append(label);
-  }
-  tr.append(actions);b.append(tr);
+async function loadLedger(){
+ const month=$('ledgerMonth').value,ledger=await call('/api/ledger',{month});
+ S.ledger=ledger;
+ const body=$('ledgerBody');body.replaceChildren();
+ const rows=[
+  {rowId:'CARRY-'+month,date:month+'-01',label:'前月繰越（表示用）',
+   income:0,expense:0,balance:ledger.carried,confirmedBy:'',
+   kind:'carry',status:'confirmed'},
+  ...ledger.rows.filter(r=>r.kind!=='opening')
+ ];
+ function moneyOrDash(value){return Number(value)===0?'—':yen(value);}
+ function actionButton(name,style,disabled,onClick){
+  const btn=document.createElement('button');
+  btn.type='button';btn.textContent=name;btn.className=style;
+  btn.disabled=disabled;
+  if(!disabled)btn.addEventListener('click',onClick);
+  return btn;
  }
- $('ledgerTotal').textContent='残金：'+yen(ledger.closingBalance);
+ for(const r of rows){
+  const tr=document.createElement('tr');
+  if(r.kind==='carry')tr.classList.add('carry-row');
+  if(r.status==='confirmed'&&r.kind!=='carry')tr.classList.add('confirmed');
+  const cells=[
+   window.SMDate.date(r.date),
+   r.label,
+   moneyOrDash(r.income),
+   moneyOrDash(r.expense),
+   yen(r.balance),
+   r.confirmedBy||'—'
+  ];
+  for(let i=0;i<cells.length;i++){
+   const cell=document.createElement('td');
+   cell.textContent=cells[i];
+   if(i===2||i===3||i===4)cell.classList.add('money-cell');
+   if(i===4)cell.classList.add('balance-cell');
+   if(i===1){
+    if(r.status==='confirmed'&&r.kind!=='carry'){
+     const subtitle=document.createElement('small');
+     subtitle.className='status-caption';subtitle.textContent='確定済';
+     cell.append(subtitle);
+    }
+    if(r.receiptFileId){
+     const receipt=document.createElement('small');
+     receipt.className='receipt-mark';receipt.textContent='🧾 領収書あり';
+     cell.append(receipt);
+    }
+   }
+   tr.append(cell);
+  }
+  const actions=document.createElement('td');
+  actions.className='ledger-row-actions';
+  if(r.kind==='carry'){
+   actions.textContent='—';
+  }else if(r.status==='confirmed'){
+   const badge=document.createElement('button');
+   badge.type='button';badge.className='btn-outline';
+   badge.textContent='確定済み';badge.disabled=true;actions.append(badge);
+   if(S.actor.role==='admin'){
+    const release=actionButton('解除','btn-outline',false,()=>ledgerAction('unlock',r));
+    actions.append(release);
+   }
+  }else{
+   const future=r.date>today();
+   const group=document.createElement('div');group.className='ledger-action-group';
+   group.append(
+    actionButton('修正','btn-blue',r.kind==='practice'||future,()=>ledgerAction('edit',r)),
+    actionButton('削除','btn-outline',future,()=>ledgerAction('delete',r)),
+    actionButton('確定','btn-green',future,()=>ledgerAction('confirm',r))
+   );
+   actions.append(group);
+  }
+  tr.append(actions);body.append(tr);
+ }
+ $('ledgerTotal').textContent=month.slice(0,4)+'年'+Number(month.slice(5,7))+
+  '月の残金：'+yen(ledger.closingBalance);
  $('nextMonth').disabled=month>=(ledger.maxMonth||today().slice(0,7));
 }
 function ledgerAction(act,row){

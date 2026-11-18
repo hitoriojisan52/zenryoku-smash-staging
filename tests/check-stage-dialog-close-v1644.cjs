@@ -34,10 +34,10 @@ const screens={
  visitorDialog:{cancel:'visitorCancel',topInSection:'visitorMineRefresh'},
  visitorAdminDialog:{close:'visitorAdminClose',top:['visitorAdminRefresh']},
  participantDialog:{close:'participantClose',top:['participantReload'],heading:'participant-heading'},
- scheduleDialog:{close:'scheduleClose',top:['scheduleAdd','scheduleReload'],heading:'schedule-heading'},
- ledgerDialog:{close:'closeLedger',top:['newLedgerRow']}
+ scheduleDialog:{close:'scheduleClose',top:['scheduleAdd','scheduleReload'],heading:'schedule-heading'}
 };
 const popups={
+ ledgerDialog:{close:'closeLedger',topInSection:'newLedgerRow'}, // v15 wide ledger keeps original bottom Close
  modal:{close:'closeModal'},categoryDialog:{cancel:'cancelCategory'},
  participantEditDialog:{cancel:'participantEditCancel',save:'participantEditSave'},
  participantDeleteDialog:{cancel:'participantDeleteCancel'},
@@ -113,10 +113,14 @@ ok(!all.find(d=>d.id==='stageBusyDialog').querySelector('button'),
  'busy lock has no controls');
 ok(!js.includes('position:absolute')&&!css.includes('.stage-close-row'),
  'old overlapping Close implementation remains removed');
-ok(html.includes('dialog-close.js?v=1648')&&html.includes('stage-ui.css?v=1648'),
+ok(html.includes('dialog-close.js?v=1650')&&html.includes('stage-ui.css?v=1650'),
  'mobile web UI loads versioned scripts');
 ok(!match.includes('id="matchConfirmClose"')&&
  !confirm.includes("byId('matchConfirmClose')")&&
  match.includes('id="matchConfirmCancel"')&&match.includes('id="matchConfirmOk"'),
  'match confirmation has original Cancel / Execute only, no popup extra Close');
-console.log('PASS '+checks+'/'+checks+' v0.16.48 screen-only Close and popup unchanged actions');
+ok(original.get('ledgerDialog').find(b=>b.id==='newLedgerRow').parentElement.id==='section',
+ 'v15 ledger Add remains with month filter, not moved into Close toolbar');
+ok(original.get('ledgerDialog').find(b=>b.id==='closeLedger').parentElement.id==='ledgerDialogFooter',
+ 'v15 blue ledger Close remains in footer, not reparented');
+console.log('PASS '+checks+'/'+checks+' v0.16.50 screen-only Close and original v15 finance toolbar');

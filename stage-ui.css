@@ -284,17 +284,95 @@
  }
 }
 
-/* v0.16.48: ledger action buttons follow the common palette and align right. */
-.stage-ui .ledger-table td.ledger-row-actions{
- text-align:right;vertical-align:middle;min-width:175px;
+/* v0.16.50: v15 full-width monthly finances.
+ * Keep month navigator and +追加 in the light header bar and the blue Close
+ * in the lower-right footer; unlike other dialogs this is a wide ledger.
+ */
+.stage-ui dialog#ledgerDialog{
+ box-sizing:border-box;width:calc(100% - 36px);max-width:1500px;
+ max-height:94dvh;overflow:auto;padding:24px 26px 18px;
+ border-radius:14px;
 }
-.stage-ui .ledger-table .ledger-action-group{
- display:flex;align-items:center;justify-content:flex-end;
- flex-wrap:nowrap;gap:6px;
+.stage-ui #ledgerDialog > h2{
+ margin:0 0 12px;font-size:21px;color:#172a36;
 }
-.stage-ui .ledger-table .ledger-action-group button{
- width:auto;min-width:48px;min-height:44px;
- margin:0;padding:7px 9px;border-radius:6px;
- font-size:13px;white-space:nowrap;font-weight:700;
+.stage-ui #ledgerDialog .ledger-controls{
+ display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;
+ background:#eef2f7;border-radius:8px;padding:12px;
+ margin-bottom:10px;min-height:62px;
 }
-.stage-ui .ledger-table .ledger-row-actions .muted{display:block;text-align:right}
+.stage-ui #ledgerDialog .ledger-controls label{font-size:15px}
+.stage-ui #ledgerDialog .ledger-controls #ledgerMonth{
+ min-width:160px;max-width:220px;background:#f7f8fa;
+}
+.stage-ui #ledgerDialog .ledger-controls #newLedgerRow{
+ margin-left:auto;background:#2e7d32;color:#fff;
+ min-width:76px;min-height:44px;
+}
+.stage-ui #ledgerDialog .ledger-scroll{
+ overflow-x:auto;overflow-y:auto;max-height:58dvh;
+ border:1px solid #d7dfe4;border-radius:8px;
+}
+.stage-ui #ledgerDialog .ledger-table{
+ border-collapse:collapse;min-width:1020px;width:100%;
+ font-size:14px;
+}
+.stage-ui #ledgerDialog .ledger-table thead{
+ background:#e3f2fd;
+}
+.stage-ui #ledgerDialog .ledger-table th{
+ text-align:left;font-weight:700;color:#233c4c;
+ padding:11px 10px;white-space:nowrap;
+}
+.stage-ui #ledgerDialog .ledger-table td{
+ padding:9px 10px;line-height:1.45;vertical-align:middle;
+ white-space:nowrap;text-align:left;
+}
+.stage-ui #ledgerDialog .ledger-table td:nth-child(2){min-width:245px}
+.stage-ui #ledgerDialog .ledger-table td:nth-child(7){min-width:208px}
+.stage-ui #ledgerDialog .ledger-table td.money-cell{
+ text-align:right;font-variant-numeric:tabular-nums;
+}
+.stage-ui #ledgerDialog .ledger-table td.balance-cell{
+ color:#205385;font-weight:700;
+}
+.stage-ui #ledgerDialog .ledger-table tr.carry-row{
+ background:#fff9e5!important;
+}
+.stage-ui #ledgerDialog .ledger-table tr.confirmed{
+ background:#f5f6f7!important;
+}
+.stage-ui #ledgerDialog .ledger-table td.ledger-row-actions{
+ text-align:left;min-width:208px;
+}
+.stage-ui #ledgerDialog .ledger-action-group{
+ display:flex;justify-content:flex-start;align-items:center;
+ gap:6px;flex-wrap:nowrap;
+}
+.stage-ui #ledgerDialog .ledger-row-actions button{
+ min-height:40px;min-width:48px;font-size:13px;
+ margin:0 4px 0 0;padding:7px 9px;white-space:nowrap;
+}
+.stage-ui #ledgerDialog .ledger-table .status-caption,
+.stage-ui #ledgerDialog .ledger-table .receipt-mark{
+ display:block;font-size:11px;
+}
+.stage-ui #ledgerDialog .ledger-total{
+ margin:12px 0 8px;text-align:right;font-size:17px;font-weight:700;
+}
+.stage-ui #ledgerDialog .modal-actions{
+ justify-content:flex-end;margin:6px 0 0;
+}
+.stage-ui #ledgerDialog #closeLedger{
+ min-width:100px;min-height:48px;
+ background:#1976d2;color:#fff;
+ font-size:17px;
+}
+@media(max-width:600px){
+ .stage-ui dialog#ledgerDialog{
+  width:calc(100% - 14px);padding:14px 10px;
+ }
+ .stage-ui #ledgerDialog .ledger-controls{padding:8px;gap:6px}
+ .stage-ui #ledgerDialog .ledger-total{font-size:15px}
+ .stage-ui #ledgerDialog .ledger-table{font-size:13px}
+}

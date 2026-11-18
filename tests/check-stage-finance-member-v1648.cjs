@@ -74,7 +74,8 @@ const snapshot={
    lineUserId:'U'+'b'.repeat(32),registeredAt:'2026-11-16T12:00:00Z'},
   {name:'停止会員',memberId:'M-3',active:false,role:'member'}
  ],
- withdrawn:[{name:'退会者',withdrawnAt:'2026-11-17T12:00:00Z',state:'completed'}]
+ withdrawn:[{name:'退会者',withdrawnAt:'2026-11-17T12:00:00Z',state:'completed'}],
+ withdrawMemberEnabled:false
 };
 names.render(snapshot);
 ok(elements.memberAccessMembers.children.length===3,'all current members have cards');
@@ -108,25 +109,51 @@ ok(inactiveSelect?.disabled&&inactiveChange?.disabled,
  'stopped members retain visible but disabled role controls');
 ok(inactiveNodes.some(e=>e.textContent==='停止中'),
  'stopped state is still distinguished without an active/inactive switch');
+ok(memberNodes.some(e=>e.tag==='button'&&e.textContent==='退会'&&e.disabled),
+ 'withdrawal action is visible but default-OFF on connected staging');
+ok(!adminNodes.some(e=>e.tag==='button'&&e.textContent==='退会')&&
+ !inactiveNodes.some(e=>e.tag==='button'&&e.textContent==='退会'),
+ 'admin self and stopped members never show an actionable withdraw control');
+snapshot.withdrawMemberEnabled=true;
+snapshot.withdrawMemberScope='single';
+snapshot.withdrawMemberTargetId='M-OTHER';
+names.render(snapshot);
+const wrongTarget=traverse(elements.memberAccessMembers.children[1]);
+ok(wrongTarget.some(e=>e.tag==='button'&&e.textContent==='退会'&&e.disabled),
+ 'single-target stage mode disables withdrawal on everyone else');
+snapshot.withdrawMemberTargetId='M-2';
+names.render(snapshot);
+const enabledMember=traverse(elements.memberAccessMembers.children[1]);
+ok(enabledMember.some(e=>e.tag==='button'&&e.textContent==='退会'&&!e.disabled),
+ 'only exact server-authorized target gets an enabled withdrawal button');
+snapshot.withdrawMemberEnabled=false;
+names.render(snapshot);
 ok(elements.memberAccessHistoryV2.hidden===false &&
  elements.memberAccessWithdrawnV2.children.length===1,
- 'withdrawn member cards are visible without expanding a disclosure');
-ok(traverse(elements.memberAccessWithdrawnV2).some(e=>e.textContent==='👤 退会者'),
- 'withdrawn record is actually rendered');
+ 'history source available but the details disclosure remains initially folded');
+ok(elements.memberAccessWithdrawnV2.children[0].className==='live-access-row access-withdraw-row',
+ 'withdrawn member list uses the v0.16.23 compact line, not participant cards');
+ok(traverse(elements.memberAccessWithdrawnV2).some(e=>/退会者（退会済み）/.test(e.textContent)),
+ 'withdrawal status remains visible with the member name');
 names.renderHistory([]);
 ok(elements.memberAccessHistoryV2.hidden===false &&
- traverse(elements.memberAccessWithdrawnV2).some(e=>e.textContent==='退会者はいません。'),
- 'even empty history visibly distinguishes no records from hidden records');
+ traverse(elements.memberAccessWithdrawnV2).some(e=>e.textContent==='退会履歴はありません。'),
+ 'empty archive has the previously confirmed message');
 names.renderHistory(undefined);
-ok(traverse(elements.memberAccessWithdrawnV2).some(e=>/取得できません/.test(e.textContent)),
- 'missing backend history reports an error instead of silently hiding it');
+ok(elements.memberAccessHistoryV2.hidden===true &&
+ elements.memberAccessWithdrawnV2.children.length===0,
+ 'missing backend withdrawal array hides the history disclosure instead of claiming no records');
+names.renderHistory([{name:'日付なし',state:'processing'}]);
+ok(!traverse(elements.memberAccessWithdrawnV2).some(e=>/退会日時/.test(e.textContent)),
+ 'withdrawal date is omitted if no timestamp was recorded');
 // Finance actions: original editor, role gate and compact bracketed prompts.
-ok(ui.includes("btn.className=act==='delete'?'btn-danger':act==='confirm'?'btn-green'")&&
- ui.includes("act==='edit'?'btn-blue':'btn-outline'"),
- 'edit blue, confirm green, delete red');
+ok(ui.includes("actionButton('修正','btn-blue',r.kind==='practice'||future")&&
+ ui.includes("actionButton('削除','btn-outline',future")&&
+ ui.includes("actionButton('確定','btn-green',future"),
+ 'v15 edit/delete/confirm always visible; practice edit and future actions disabled');
 ok(ui.includes("group.className='ledger-action-group'")&&
- css.includes('justify-content:flex-end')&&css.includes('td.ledger-row-actions'),
- 'finance action cells align right');
+ css.includes('justify-content:flex-start')&&css.includes('td.ledger-row-actions'),
+ 'finance row actions aligned left as v15');
 ok(ui.includes("const titles={confirm:'【収支の確定】'")&&
  ui.includes('window.SMDate.date(row.date)'),
  'finance confirm includes bracketed title and meeting date');

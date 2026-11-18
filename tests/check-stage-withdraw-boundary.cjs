@@ -19,6 +19,19 @@ for(const file of files){
 const management=read('live-access-v2.js');
 expect(management.includes("'/api/member/manage/withdraw/check'"),'read-only condition check missing');
 expect(management.includes('renderHistory('),'history rendering missing');
+const worker=read('cloudflare-worker/worker.js');
+const gas=read('gas-staging/AccessAndGuestV160.gs');
+expect(worker.includes("env.WITHDRAW_MEMBER_ENABLED==='true'")&&
+ worker.includes("env.WITHDRAW_MEMBER_PURPOSE==='staging-member-withdraw-v1650'"),
+ 'new real-member operation remains default-off and stage-purpose guarded at Worker');
+expect(gas.includes("conf_('WITHDRAW_MEMBER_ENABLED')==='true'")&&
+ gas.includes("conf_('SPREADSHEET_ID')===SMA_STAGE_WITHDRAW_ID_V1636"),
+ 'new real-member operation remains default-off and exact-sheet guarded at GAS');
+expect(management.includes("snapshot.withdrawMemberEnabled!==true"),
+ 'user list renders withdrawal disabled until GAS capability granted');
+expect(management.includes("if(!first)return;")&&management.includes("if(!second)return;")&&
+ management.includes('requireName:m.name'),
+ 'selected member withdrawal requires two confirmations and exact-name entry');
 const config=read('runtime-config.js');
 expect(config.includes('https://zenryoku-smash-staging-api.hitori-ojisan-52.workers.dev'),
  'stage Worker host changed unexpectedly');
