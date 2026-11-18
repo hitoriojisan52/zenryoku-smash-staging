@@ -135,7 +135,7 @@ ok(db['退会履歴'][0][4]==='processing',
 ok(worker.includes("'/api/member/manage/withdraw-member':'member.manage.withdraw.member'"),
  'independent authenticated Worker route for real member withdrawal');
 ok(worker.includes("env.WITHDRAW_MEMBER_ENABLED==='true'")&&
- worker.includes("env.WORKER_PURPOSE==='staging-member-withdraw-v1650'")&&
+ worker.includes("env.WITHDRAW_MEMBER_PURPOSE==='staging-member-withdraw-v1650'")&&
  worker.includes('env.WITHDRAW_STAGE_SPREADSHEET_ID===stageId'),
  'Worker requires 3 independent explicit staging gates');
 ok(worker.includes("if(op==='member.manage.withdraw'){")&&
