@@ -50,4 +50,45 @@ const prompt=read('docs/NEW_CHAT_START_PROMPT.md');
 for(const term of ['既存アプリ','GitHub','CI','本番','未確認','退会','月またぎ','仕様']){
  ok(prompt.includes(term),'new chat prompt includes safety term '+term);
 }
+// GitHub-first deployment and complete user instructions are part of the
+// permanent handoff contract. Prevent later chats from reverting to
+// copy-paste GAS/Worker deployment or repeatedly asking for completed setup.
+const playbook=read('docs/DEPLOYMENT_AND_USER_ACTIONS.md');
+const handoff=read('docs/SESSION_HANDOFF.md');
+const prompt=read('docs/NEW_CHAT_START_PROMPT.md');
+const readme=read('README.md');
+for(const [file,s] of [
+ ['docs/DEPLOYMENT_AND_USER_ACTIONS.md',playbook],
+ ['docs/SESSION_HANDOFF.md',handoff],
+ ['docs/NEW_CHAT_START_PROMPT.md',prompt],
+ ['README.md',readme]
+]){
+ ok(s.includes('DEPLOYMENT_AND_USER_ACTIONS.md')||
+    file==='docs/DEPLOYMENT_AND_USER_ACTIONS.md',
+    file+' references the stable deployment/user-workflow playbook');
+}
+for(const term of ['GitHub Actions','Cloudflare Workers Builds',
+ 'GAS_STAGE_SCRIPT_ID','GAS_STAGE_DEPLOYMENT_ID','GAS_STAGE_CLASPRC_JSON',
+ 'WITHDRAW_ENABLED','STAGING_WITHDRAW_PURPOSE','WORKER_PURPOSE',
+ 'WITHDRAW_STAGE_SPREADSHEET_ID','RICH_MENU_SYNC_ENABLED',
+ 'stage-v1653-github-sync-20261119','channelMatchesLiveLiff',
+ '1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac',
+ 'https://liff.line.me/2012602642-XBSkXduO',
+ 'https://docs.google.com/spreadsheets/d/',
+ 'https://zenryoku-smash-staging-api.hitori-ojisan-52.workers.dev/health',
+ '作業先','具体的','ユーザーが']){
+ ok(playbook.includes(term),'deployment playbook retains '+term);
+}
+ok(handoff.includes('Workers Builds')&&handoff.includes('設定完了'),
+ 'handoff states Worker Git connection and user-completed settings');
+ok(prompt.includes('ChatGPTがGitHub経由')&&
+ prompt.includes('ユーザーに必要作業がある場合')&&
+ prompt.includes('再要求しない'),
+ 'new-chat prompt requires ChatGPT-led deploy and no redundant settings');
+ok(playbook.includes('未実施')&&playbook.includes('退会API'),
+ 'readiness is distinguished from real withdrawal E2E testing');
+ok(read('cloudflare-worker/README.md').includes('2026/11/19 実反映確認済み'),
+ 'Worker-specific README records verified deployment');
+ok(read('gas-staging/README.md').includes('2026/11/19 現在の補足'),
+ 'GAS-specific README flags old initialization directions as history');
 console.log('PASS '+checks+'/'+checks+' five-level specification policy and durable handoff');
