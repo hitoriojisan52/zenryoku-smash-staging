@@ -13,7 +13,10 @@ const ok=(value,msg)=>{assert.ok(value,msg);n++};
 const errorCode=(callback,code)=>{
  assert.throws(callback,e=>e&&e.smCode===code,code);n++;
 };
-new Function(gas);new Function(worker.replaceAll('export default','const __default='));new Function(ui);n+=3;
+new Function(gas);
+new Function(worker.replaceAll('export async function ','async function ')
+ .replaceAll('export default','const __default='));
+new Function(ui);n+=3;
 const begin=gas.indexOf("var SMA_MEMBER_WITHDRAW_PURPOSE_V1650=");
 const end=gas.indexOf('/** Editor-only, READ-ONLY stage preflight.',begin);
 ok(begin>=0&&end>begin,'staging-only withdrawal functions accessible for real in-memory tests');
