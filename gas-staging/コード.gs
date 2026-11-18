@@ -1087,26 +1087,31 @@ function visitorHasApproved_(ss,practiceId,participantId){
   return r.practiceId===practiceId&&r.participantId===participantId&&r.status==='approved';
  });
 }
-function visitorPublic_(r,dates,admin){
+function visitorPublic_(r,dates,admin,attendees){
  var p=dates.find(function(x){return x.practiceId===r.practiceId;});
+ var registered=r.status==='approved'&&attendees?attendees.filter(function(x){
+  return str_(x[0])===r.practiceId&&str_(x[1])===r.participantId;
+ }):[];
+ if(registered.length>1)fail_('SETUP','ビジターの参加者情報が重複しています');
  return {requestId:r.requestId,practiceId:r.practiceId,participantId:r.participantId,
   date:p?p.date:'',place:p?p.place:'',
   name:r.name,nameKana:r.nameKana,memo:r.memo,
-  status:r.status,version:r.version,requestedAt:r.requestedAt,
+  status:r.status,attending:registered.length?bool_(registered[0][5]):null,
+  version:r.version,requestedAt:r.requestedAt,
   reviewedAt:r.reviewedAt,
   requestedByMemberId:admin?r.requestedByMemberId:undefined,
   reviewedBy:admin?r.reviewedBy:undefined};
 }
 function visitorMine_(ss,member){
  var rows=visitorRequests_(ss).filter(function(r){return r.requestedByMemberId===member.memberId&&r.status!=='withdrawn';});
- var dates=practices_(ss);
- return {ok:true,data:{requests:rows.map(function(r){return visitorPublic_(r,dates,false);})
+ var dates=practices_(ss),attendees=sheetRows_(ss,'出欠回答');
+ return {ok:true,data:{requests:rows.map(function(r){return visitorPublic_(r,dates,false,attendees);})
   .sort(function(a,b){return b.requestedAt.localeCompare(a.requestedAt)||b.requestId.localeCompare(a.requestId);})}};
 }
 function visitorAdminList_(ss,member){
  if(member.role!=='admin')fail_('FORBIDDEN','ビジターの承認・却下は管理者だけが操作できます');
- var dates=practices_(ss);
- var requests=visitorRequests_(ss).filter(function(r){return r.status!=='withdrawn';}).map(function(r){return visitorPublic_(r,dates,true);});
+ var dates=practices_(ss),attendees=sheetRows_(ss,'出欠回答');
+ var requests=visitorRequests_(ss).filter(function(r){return r.status!=='withdrawn';}).map(function(r){return visitorPublic_(r,dates,true,attendees);});
  var members=sheetRows_(ss,'メンバー'),nameById={};
  members.forEach(function(r){nameById[str_(r[0])]=norm_(r[1]);});
  requests.forEach(function(r){r.requestedByName=nameById[r.requestedByMemberId]||'退会済みメンバー';});
@@ -1295,6 +1300,10 @@ function visitorModify_(ss,member,payload){
   if(str_(matching[0].record[8])!==member.memberId)
    fail_('FORBIDDEN','申請者と参加者の登録者が一致しません');
   var name=norm_(payload.name),kana=norm_(payload.nameKana),memo=str_(payload.memo);
+  if(typeof payload.attending!=='boolean')
+   fail_('BAD_REQUEST','出欠を確認してください');
+  if(payload.category!==undefined&&str_(payload.category)!=='visitor')
+   fail_('LOCKED','ビジターの参加区分は変更できません');
   if(!name||name.length>60||/^[=+@]/.test(name)||
      kana.length>100||/^[=+@]/.test(kana)||
      memo.length>200||/[\u0000-\u001f]/.test(memo))
@@ -1308,10 +1317,17 @@ function visitorModify_(ss,member,payload){
   snapshot,now_(),'prepared']);
  SpreadsheetApp.flush();
  if(action==='edit'){
-  var source=matching[0],record=source.record.slice();
-  record[2]=safeCell_(name);record[3]=safeCell_(kana);record[6]=safeCell_(memo);
-  record[7]=(Number(record[7])||0)+1;
-  sheet_(ss,'出欠回答').getRange(source.row,1,1,9).setValues([record]);
+  // Reuse the exact participant-list mutation path: paid→absent clears the
+  // checkbox and recalculates open ledgers; payment/category/attendance
+  // conditions and match/finalized-balance guards stay identical.
+  // Reusing this operationId links the nested participant archive to the
+  // outer visitor archive for fail-closed recovery.
+  participantChange_(ss,member,{
+   operationId:opId,practiceId:r.practiceId,participantId:r.participantId,
+   expectedVersion:Number(matching[0].record[7])||0,action:'edit',
+   name:name,nameKana:kana,category:'visitor',
+   attending:payload.attending,memo:memo
+  },true);
   sheet_(ss,'ビジター申請').getRange(r.row,4,1,3)
    .setValues([[safeCell_(name),safeCell_(kana),safeCell_(memo)]]);
  }else{
