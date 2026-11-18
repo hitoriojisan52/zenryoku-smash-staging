@@ -52,7 +52,7 @@ async function call(path,payload={}){
  if(!S.token||!CONFIG.apiBaseUrl)throw new Error('LINE認証またはAPI設定がありません');
  const url=CONFIG.apiBaseUrl.replace(/\/$/,'')+path;
  // Invalidate responses from reads that started before a write.
- if(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change','/api/schedule/change'].includes(path))S.updateEpoch++;
+ if(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change','/api/schedule/change','/api/visitor/register'].includes(path))S.updateEpoch++;
  const startedAt=performance.now();
  const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},body:JSON.stringify(payload),cache:'no-store'});
  if(PERF_MODE){
@@ -133,7 +133,17 @@ async function boot(){
   await liff.init({liffId:CONFIG.liveLiffId});
   if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return;}
   S.token=liff.getIDToken();if(!S.token)throw new Error('LINE IDトークンを取得できません');
-  S.actor=await call('/api/session');gateEdit();
+  S.actor=await call('/api/session');
+  // Registered non-duty members can register visitors without viewing accounting.
+  if(S.actor.role==='member'){
+   document.body.classList.add('visitor-member');
+   $('visitorMemberHome').hidden=false;
+   const list=await call('/api/visitor/practices');
+   VIS.practices=validateVisitorPractices_(list);
+   toast('接続しました');
+   return;
+  }
+  gateEdit();
   window.SMLiveAccess?.setup({api:call,actor:S.actor});
   for(const id of ['reimbursementBtn','manageBtn','refresh','adjustment','expense'])$(id).disabled=false;
   await reload(true);setInterval(()=>{if(!document.hidden&&!S.paymentNeedsRefresh&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
@@ -155,7 +165,7 @@ async function reload(refreshDates){
  }finally{S.loading=false;}
 }
 function renderHome(){const v=S.overview;if(!v)return;const {practice,ledger,participants}=v;
- $('place').textContent='場所：'+practice.place;$('hours').textContent='時間：'+practice.hours+'h';
+ $('place').textContent='場所：'+practice.place;$('hours').textContent='時間区分：'+practice.hours+'時間';
  $('count').textContent='参加者：'+v.attendingCount+'名';$('completedCount').textContent='集金完了：'+v.completedCount+'名';
  if(document.activeElement!==$('adjustment'))$('adjustment').value=ledger?.adjustment??0;
  if(document.activeElement!==$('expense'))$('expense').value=ledger?.expense??0;
@@ -500,7 +510,7 @@ const SC={rows:[],editing:null,action:null};
 function scheduleDateLabel_(d){return window.SMDate.date(d);}
 function scheduleDateValid_(d){return /^\d{4}-\d{2}-\d{2}$/.test(d)&&window.SMCashReconcile.validDate(d);}
 function scheduleFormPayload_(){
- const date=$('scheduleDate').value.trim().replace(/\//g,'-');
+ const date=$('scheduleDate').value.trim();
  const match=/^(\d{1,2}):([0-5]\d)\s*-\s*(\d{1,2}):([0-5]\d)$/.exec($('scheduleTimeSlot').value.trim());
  const hours=Number($('scheduleHours').value),place=$('schedulePlace').value,remark=$('scheduleRemark').value.trim();
  if(!scheduleDateValid_(date)||date<today())throw new Error('本日以降の開催日を入力してください');
@@ -509,7 +519,7 @@ function scheduleFormPayload_(){
    endTime=String(Number(match[3])).padStart(2,'0')+':'+match[4];
  const start=Number(startTime.slice(0,2))*60+Number(startTime.slice(3)),
    end=Number(endTime.slice(0,2))*60+Number(endTime.slice(3));
- if(end-start!==hours*60)throw new Error('時間帯と時間数が一致しません');
+ if(end<=start)throw new Error('終了時刻は開始時刻より後にしてください'); // 時間区分は料金用
  if(!place||place.length>100||remark.length>200)throw new Error('開催場所・備考を確認してください');
  return {date,place,startTime,endTime,hours,remark};
 }
@@ -527,7 +537,7 @@ function renderScheduleMaster_(){
   status.style.color=row.enabled?'#2e7d32':'#666';head.append(title,status);
   const details=document.createElement('div');details.className='schedule-card-detail';
   const hours=document.createElement('span');hours.textContent='🕒 '+row.startTime+'-'+row.endTime+
-   ' ('+row.hours+'h) @'+row.place;
+   '（時間区分：'+row.hours+'時間） '+row.place;
   details.append(hours);
   if(row.remark){const memo=document.createElement('span');memo.textContent='📝 '+row.remark;details.append(memo);}
   const actions=document.createElement('div');actions.className='schedule-card-actions';
@@ -554,10 +564,16 @@ async function openScheduleMaster_(){
  await guard(async()=>{gateEdit();await loadScheduleMaster_();loaded=true;},'日程を読み込んでいます…');
  if(loaded){close('manageDialog');dialog('scheduleDialog');}
 }
+function updateScheduleWeekday_(){
+ const date=$('scheduleDate').value;
+ $('scheduleWeekday').textContent=scheduleDateValid_(date)?window.SMDate.date(date,true):'';
+}
 function openScheduleEditor_(row=null){
  SC.editing=row;
  $('scheduleEditTitle').textContent=row?'日程の修正':'日程の追加';
- $('scheduleDate').value=window.SMDate.date(row?.date||today(),false);
+ $('scheduleDate').min=today();
+ $('scheduleDate').value=row?.date||today();
+ updateScheduleWeekday_();
  $('scheduleTimeSlot').value=row?row.startTime+'-'+row.endTime:'9:00-13:00';
  $('scheduleHours').value=String(row?.hours||4);
  const place=$('schedulePlace');
@@ -608,6 +624,83 @@ async function executeScheduleAction_(){
  },'日程を更新しています…');
 }
 
+
+// v0.16.38b: proxy visitor registration uses the same authenticated LIFF.
+// Only the registrar's member ID from GAS is saved; visitors never log in.
+const VIS={practices:[],draft:null,unknownResult:false};
+function validateVisitorPractices_(value){
+ if(!Array.isArray(value?.practices)||value.practices.some(p=>!p?.practiceId||
+  !scheduleDateValid_(p.date)||p.date<today()||!p.enabled||
+  typeof p.place!=='string'||typeof p.startTime!=='string'||typeof p.endTime!=='string'))
+  throw new Error('参加登録できる日程を確認できません');
+ return value.practices.slice().sort((a,b)=>a.date.localeCompare(b.date)||a.startTime.localeCompare(b.startTime));
+}
+function renderVisitorPracticeOptions_(){
+ const select=$('visitorPractice'),rows=VIS.practices,chosen=select.value;
+ select.replaceChildren(...rows.map(p=>new Option(
+  window.SMDate.date(p.date)+' '+p.startTime+'～'+p.endTime+' '+p.place,p.practiceId)));
+ const preferred=rows.find(p=>p.practiceId===chosen)||rows.find(p=>p.practiceId===S.practiceId)||rows[0];
+ if(preferred)select.value=preferred.practiceId;
+ $('visitorSubmit').disabled=!preferred;
+ $('visitorStatus').textContent=preferred?'':'受付中の練習日程がありません';
+}
+async function openVisitorForm_(){
+ let loaded=false;
+ await guard(async()=>{
+  const response=await call('/api/visitor/practices');
+  VIS.practices=validateVisitorPractices_(response);
+  VIS.draft=null;VIS.unknownResult=false;
+  $('visitorName').value='';$('visitorKana').value='';$('visitorMemo').value='';
+  renderVisitorPracticeOptions_();loaded=true;
+ },'開催日を読み込んでいます…');
+ if(loaded){close('manageDialog');dialog('visitorDialog');}
+}
+function visitorFormDraft_(){
+ const practiceId=$('visitorPractice').value,practice=VIS.practices.find(p=>p.practiceId===practiceId);
+ const name=$('visitorName').value.normalize('NFKC').replace(/[\s\u3000]+/g,'');
+ const nameKana=$('visitorKana').value.normalize('NFKC').replace(/[\s\u3000]+/g,'');
+ const memo=$('visitorMemo').value.trim();
+ if(!practice||practice.date<today())throw new Error('参加希望日を選択してください');
+ if(!name||name.length>60||/^[=+@]/.test(name)||nameKana.length>100||memo.length>200)
+  throw new Error('お名前・カナ・備考を確認してください');
+ return {practiceId,name,nameKana,memo,practice};
+}
+async function confirmVisitorForm_(e){
+ e.preventDefault();
+ try{
+  if(VIS.unknownResult)throw new Error('前回の登録結果が不明です。画面を開き直して確認してください');
+  const d=visitorFormDraft_();VIS.draft=d;
+  $('visitorConfirmText').textContent=window.SMDate.date(d.practice.date)+' '+d.name+
+   'さんをビジターとして登録しますか？';
+  dialog('visitorConfirmDialog');
+ }catch(e){await window.SMStageUX.showError(e);}
+}
+async function registerVisitor_(){
+ const d=VIS.draft;close('visitorConfirmDialog');if(!d)return;
+ await guard(async()=>{
+  if(VIS.unknownResult)throw new Error('登録結果を確認できません。再登録は行わないでください');
+  // Treat a lost reply as indeterminate. No silent retry or new participant ID.
+  const participantId='PV-'+uuid();
+  let result;
+  try{
+   result=await call('/api/visitor/register',{operationId:uuid(),participantId,
+    practiceId:d.practiceId,name:d.name,nameKana:d.nameKana,memo:d.memo});
+  }catch(err){
+   VIS.unknownResult=true;$('visitorSubmit').disabled=true;
+   throw err;
+  }
+  if(result?.participantId!==participantId||result.practiceId!==d.practiceId||
+     result.category!=='visitor'||result.name!==d.name||result.attending!==true){
+   VIS.unknownResult=true;$('visitorSubmit').disabled=true;
+   throw new Error('登録結果が確認できません。重複登録せず参加者一覧で確認してください');
+  }
+  VIS.draft=null;
+  close('visitorDialog');
+  if(S.actor?.role!=='member')await reload(false);
+  toast(d.name+'さんを登録しました');
+ },'ビジターを登録しています…');
+}
+
 function bind(){
  $('date').addEventListener('change',()=>{S.practiceId=$('date').value;guard(()=>reload(false));});$('refresh').addEventListener('click',()=>guard(()=>reload(true)));
  $('categoryDialog').addEventListener('close',()=>{S.modalTarget=null;});$('cancelCategory').addEventListener('click',()=>close('categoryDialog'));$('saveCategory').addEventListener('click',saveCategory);
@@ -628,6 +721,8 @@ function bind(){
  $('cashClose').addEventListener('click',()=>{cashSnapshot=null;close('cashDialog');});
 
  $('manageSchedules').addEventListener('click',openScheduleMaster_);
+ $('scheduleDate').addEventListener('change',updateScheduleWeekday_);
+ $('scheduleDate').addEventListener('input',updateScheduleWeekday_);
  $('scheduleAdd').addEventListener('click',()=>openScheduleEditor_());
  $('scheduleClose').addEventListener('click',()=>close('scheduleDialog'));
  $('scheduleReload').addEventListener('click',()=>guard(loadScheduleMaster_,'日程を読み込んでいます…'));
@@ -635,7 +730,13 @@ function bind(){
  $('scheduleEditForm').addEventListener('submit',saveScheduleMaster_);
  $('scheduleActionCancel').addEventListener('click',()=>close('scheduleActionDialog'));
  $('scheduleActionSubmit').addEventListener('click',executeScheduleAction_);
- $('managePeople').disabled=true;
+ $('managePeople').disabled=true; // Full participant editing remains pending.
+ $('visitorRegisterMenu').addEventListener('click',openVisitorForm_);
+ $('visitorMemberStart').addEventListener('click',openVisitorForm_);
+ $('visitorCancel').addEventListener('click',()=>close('visitorDialog'));
+ $('visitorForm').addEventListener('submit',confirmVisitorForm_);
+ $('visitorConfirmCancel').addEventListener('click',()=>close('visitorConfirmDialog'));
+ $('visitorConfirmSave').addEventListener('click',registerVisitor_);
  $('ledgerMonth').addEventListener('change',()=>guard(loadLedger));$('prevMonth').addEventListener('click',()=>shiftMonth(-1));$('nextMonth').addEventListener('click',()=>shiftMonth(1));
  $('closeLedger').addEventListener('click',()=>close('ledgerDialog'));$('newLedgerRow').addEventListener('click',()=>openEditor());
  $('ledgerKind').addEventListener('change',updateEditorKind);$('ledgerPractice').addEventListener('change',updateEditorKind);
