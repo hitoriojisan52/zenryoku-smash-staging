@@ -215,7 +215,7 @@ export async function handleRequest(request,env){
       if(!withdrawAtEdge)
         return failure('退会機能は現在無効です。データは変更されません。',403,origin,'WITHDRAW_DISABLED');
       if(typeof payload.memberId!=='string'||
-         !/^M-(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|TEST-[A-Z0-9-]{2,80})$/i.test(payload.memberId)||
+         !/^M-[A-Z0-9-]{2,90}$/i.test(payload.memberId)||
          payload.confirmMemberId!==payload.memberId||
          typeof payload.operationId!=='string'||
          !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.operationId))
