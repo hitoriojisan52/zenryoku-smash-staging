@@ -915,6 +915,18 @@ function renderParticipantManager_(){
   registered.textContent='📅 登録日：'+
     (/^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}$/.test(dateText)?dateText:'未記録');
   details.append(registered);
+  if(p.category!=='visitor'){
+   if(p.lastReportedAt&&p.lastReportedAt!==p.registeredAt){
+    const updated=document.createElement('span');
+    updated.textContent='🕒 最終連絡：'+window.SMDate.dateTimeJst(p.lastReportedAt,false);
+    details.append(updated);
+   }
+   if(p.memberRegisteredAt){
+    const memberDate=document.createElement('span');
+    memberDate.textContent='🪪 利用登録日：'+window.SMDate.dateTimeJst(p.memberRegisteredAt,false);
+    details.append(memberDate);
+   }
+  }
   info.append(details);
   if(p.memo){
    const note=document.createElement('div');note.className='participant-card-memo';
