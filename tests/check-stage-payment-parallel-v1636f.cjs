@@ -68,6 +68,7 @@ const tick=()=>new Promise(resolve=>setImmediate(resolve));
  e.requests[0].reject(Object.assign(new Error('競合'),{status:409}));await tick();
  ok(e.S.paymentNeedsRefresh,'server conflict forces manual refresh');
  ok(e.requests.length===2&&e.S.paymentQueue.length===0,'third queued request canceled without submission');
+ await pz.catch(()=>{}); // allow the cancelled item's async rollback to settle
  ok(!z.p.collectionCompleted&&!z.cb.checked,'unsent optimistic checkbox rolled back');
  e.requests[1].resolve({practiceId:'TEST-20261116',participantId:'P2',completed:true,version:1,ledgerVersion:2,income:600,balance:600});
  const settled=await all;await tick();
