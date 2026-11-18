@@ -9,7 +9,7 @@ function span(a,b){const i=ui.indexOf(a),j=ui.indexOf(b,i);assert.ok(i>=0&&j>i);
 ok(html.includes('live.js?v=1651'),'latest finance client version');
 ok(worker.includes("version:'0.16.45-stage-attendance'"),'expected Worker version');
 ok(worker.includes("env.WITHDRAW_ENABLED==='true'"),'withdraw mutation remains closed by default');
-ok(worker.includes("env.WORKER_PURPOSE==='staging-withdraw-test-v1636'"),'purpose guard intact');
+ok(worker.includes("env.WORKER_PURPOSE==='staging-member-withdraw-v1653'"),'stage-only purpose guard intact');
 ok(worker.includes("const timing=['line;dur='+lineMs"),'safe duration metrics for all authenticated APIs');
 ok(ui.includes("epoch!==S.updateEpoch||S.pending.size||(!notFound&&selected!==S.practiceId)"),'discard automatic read started before save');
 ok(ui.includes("!S.loading&&!window.SMStageUX.isBusy()"),'avoid parallel automatic refresh');
