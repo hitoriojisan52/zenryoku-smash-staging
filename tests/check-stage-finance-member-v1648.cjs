@@ -85,12 +85,29 @@ ok(cards.every(c=>c.className==='participant-card-item'),'member list matches pa
 const traverse=(root)=>[root,...root.children.flatMap(traverse)];
 const adminNodes=traverse(cards[0]),memberNodes=traverse(cards[1]),
  inactiveNodes=traverse(cards[2]);
-ok(!adminNodes.some(e=>e.tag==='select'),'sole admin has no enabled role selector');
-ok(adminNodes.some(e=>e.textContent==='変更不可'),'sole admin explicitly read-only');
-ok(memberNodes.filter(e=>e.tag==='select').length===1 &&
- memberNodes.some(e=>e.tag==='button'&&e.textContent==='変更'&&e.disabled),
- 'other member role editable only after changing dropdown');
-ok(!inactiveNodes.some(e=>e.tag==='select'),'inactive member has no editable control');
+const adminSelect=adminNodes.find(e=>e.tag==='select'),
+ adminChange=adminNodes.find(e=>e.tag==='button'&&e.textContent==='変更'),
+ memberSelect=memberNodes.find(e=>e.tag==='select'),
+ memberChange=memberNodes.find(e=>e.tag==='button'&&e.textContent==='変更'),
+ inactiveSelect=inactiveNodes.find(e=>e.tag==='select'),
+ inactiveChange=inactiveNodes.find(e=>e.tag==='button'&&e.textContent==='変更');
+ok(adminSelect?.value==='admin'&&adminSelect.disabled&&adminChange?.disabled,
+ 'sole admin dropdown displays 管理者; dropdown and Change button are disabled');
+ok(!adminNodes.some(e=>e.textContent==='変更不可'),
+ 'sole admin no longer replaced with 変更不可 explanatory label');
+ok(!adminNodes.some(e=>e.textContent==='有効')&&
+ !memberNodes.some(e=>e.textContent==='有効'),
+ 'active members have no redundant 有効 state label');
+ok(memberSelect&&!memberSelect.disabled&&memberChange?.disabled,
+ 'other member selector stays editable; Change starts disabled until edited');
+memberSelect.value='duty';memberSelect.handlers.change();
+ok(memberChange.disabled===false,'changing a member role enables Change');
+memberSelect.value='member';memberSelect.handlers.change();
+ok(memberChange.disabled===true,'returning to original role disables Change');
+ok(inactiveSelect?.disabled&&inactiveChange?.disabled,
+ 'stopped members retain visible but disabled role controls');
+ok(inactiveNodes.some(e=>e.textContent==='停止中'),
+ 'stopped state is still distinguished without an active/inactive switch');
 ok(elements.memberAccessHistoryV2.hidden===false &&
  elements.memberAccessWithdrawnV2.children.length===1,
  'withdrawn member cards are visible without expanding a disclosure');
