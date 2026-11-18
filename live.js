@@ -422,7 +422,7 @@ function renderCash(){
  status.textContent=!snap?'帳簿残金を読み込んでいます…':
   !snap.found?'⚠️ 指定された日付の行が「全体収支管理表」に見つかりません。':
   snap.updatedBy&&snap.savedBookBalance!==null&&snap.savedBookBalance!==snap.bookBalance?
-  '前回の現金確認後に帳簿残金が変更されています。内容を確認してください。':'';
+  '前回確認後に帳簿残金が変わりました':'';
 }
 function validateCashSnapshot_(result,practiceId){
  if(!result||result.practiceId!==practiceId||result.auditDate!==S.overview?.practice?.date||
