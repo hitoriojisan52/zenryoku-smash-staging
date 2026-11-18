@@ -48,7 +48,7 @@ for(const [section,id,kind,html] of [
  ok(tag.includes('stage-system-message--'+kind),section+' consistent visual class');
  ok(tag.includes('role="status"')&&tag.includes('aria-live="polite"'),section+' accessible inline status');
 }
-ok(live.includes('live.js?v=1645')&&match.includes('match.js?v=1639b')&&
+ok(live.includes('live.js?v=1647')&&match.includes('match.js?v=1639b')&&
  view.includes('match-view.js?v=1639b')&&guest.includes('guest.js?v=1639b')&&
  match.includes('access-ui.js?v=1644'),'all modified client scripts are cache-busted');
 ok(liveJs.includes("className='schedule-note stage-system-message stage-system-message--info'"),
