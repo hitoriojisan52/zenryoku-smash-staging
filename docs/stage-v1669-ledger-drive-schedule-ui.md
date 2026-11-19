@@ -26,3 +26,9 @@
 - 旧 `tests/check-stage-ledger-confirm-order-v1651.cjs`：月またぎ/同日優先/残高計算に影響なし。旧v1667テストの欄内曜日枠は2→3件へ期待を更新する。
 - CI、検証main/Pages/GAS/Worker、LINE実機（Drive保存・再添付含む）はそれぞれ独立に結果確認する。CI合格のみではGoogle OAuth権限や領収書実保存成功を保証できない。
 - 本番環境は事前承認なしに変更しない。区分の削除はユーザーが影響を確認するまで**実施しない**。
+
+## 検証コード・反映結果（2026/11/19）
+
+- [PR #73](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/73)：UI/GAS/仕様CI 3系統すべて成功。新テスト17/17、旧確定順序28/28含む全回帰成功。検証用main SHA `78be72e8edb056315d0c0dec90d56964d57875eb`。
+- [GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44534424826)成功、[既存GASデプロイ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44534426454)成功（`Redeployed *** @37`）、Cloudflare Workers Builds成功。Workerコードは変更なし。
+- **未受入：Drive OAuth認可・領収書の実ファイル取得/表示・練習日程の欄内曜日・ファイル選択ボタンの実機見え方**。ステージ以外は未変更。
