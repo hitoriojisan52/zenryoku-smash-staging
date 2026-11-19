@@ -339,9 +339,9 @@
 }
 .stage-ui #ledgerDialog .ledger-card-status{display:none}
 
-/* Smartphone-only card presentation. Retain the source 7-column table and
+/* Small-screen / foldable card presentation. Retain the source 7-column table and
  * all existing button objects/disabled rules for desktop and server safety. */
-@media (max-width:640px){
+@media (max-width:900px){
  .stage-ui #ledgerDialog.ledger-dialog{
   width:calc(100% - 14px);max-width:540px;
   max-height:calc(100dvh - 16px);padding:10px 9px;overflow:hidden;
