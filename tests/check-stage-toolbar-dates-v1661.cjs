@@ -89,13 +89,14 @@ ok(win.SMDate.practiceLabel(test)==='2026/11/28(土) 09:00～13:00 曽谷公民�
  'common date + weekday + two times + venue exactly matches user example');
 ok(win.SMDate.practiceLabel({...test,startTime:'09:00'})===win.SMDate.practiceLabel(test),
  'single-digit hour and existing zero-padded time are consistent');
-ok(ui.includes('window.SMDate.practiceLabel(p), p.practiceId')&&
- ui.includes('window.SMDate.practiceLabel(p),p.practiceId')&&
- visitor.includes('unique.set(p.practiceId,practiceOption(p))'),
- 'participant/new-visitor/requester/admin dropdowns share same formatter');
-ok(visitor.includes("{value:'all',text:'すべての日程'}")&&
- visitor.includes('if(!unique.has(r.practiceId))'),
- 'all-practices option and deleted schedule historical requests retained');
+ok(ui.includes('window.SMDate.practiceLabel(p),p.practiceId')&&
+ visitor.includes('label:practiceOption(p)')&&
+ visitor.includes('w.SMDate.upcomingPractices(practices)'),
+ 'participant and visitor selectors share detailed practice labels');
+ok(!visitor.includes("{value:'all',text:'すべての日程'}")&&
+ visitor.includes('r.date<today')&&
+ visitor.includes('unique.has(previous)?previous'),
+ 'all/past dates excluded and manually chosen future date preserved');
 ok(html.includes('date-format.js?v=1664')&&html.includes('visitor-approval.js?v=1664')&&
  html.includes('dialog-close.js?v=1661')&&html.includes('stage-ui.css?v=1664')&&
  html.includes('live.js?v=1664'),
