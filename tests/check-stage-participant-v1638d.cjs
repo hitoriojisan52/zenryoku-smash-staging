@@ -208,19 +208,21 @@ ok(!fn.participantArchivePending_({},'V-A'),'completed archive no longer blocks 
 // attendance edit preserves the authoritative identity and syncs that one row.
 rows['出欠回答'].push(['P-TODAY','M-SYNC','旧記録の名前','オールドカナ',
   'member',true,'',0,'M-DUTY']);
-rows['メンバー'].push(['M-SYNC','利用登録の最新名','U'+'c'.repeat(32),true,false]);
-ok(list().participants.find(x=>x.participantId==='M-SYNC').name==='利用登録の最新名',
- 'stale participation name is overlaid with authoritative member name');
+rows['メンバー'].push(['M-SYNC','利用登録の最新名','U'+'c'.repeat(32),true,false,'サイシンカナ']);
+ok(list().participants.find(x=>x.participantId==='M-SYNC').name==='利用登録の最新名'&&
+ list().participants.find(x=>x.participantId==='M-SYNC').nameKana==='サイシンカナ',
+ 'stale participation name and kana are overlaid from the current member master');
 fails(()=>fn.participantChange_({},member,{operationId:'OP-SYNC-WRONG-NAME',
   action:'edit',practiceId:'P-TODAY',participantId:'M-SYNC',
-  expectedVersion:0,name:'不正な名前',nameKana:'オールドカナ',category:'member',
+  expectedVersion:0,name:'不正な名前',nameKana:'サイシンカナ',category:'member',
   attending:true,memo:'更新'}),'LOCKED');
 const synchronized=fn.participantChange_({},member,{operationId:'OP-SYNC-CANONICAL',
   action:'edit',practiceId:'P-TODAY',participantId:'M-SYNC',
-  expectedVersion:0,name:'利用登録の最新名',nameKana:'オールドカナ',category:'member',
+  expectedVersion:0,name:'利用登録の最新名',nameKana:'サイシンカナ',category:'member',
   attending:true,memo:'更新'}).data;
-ok(synchronized.version===1&&rows['出欠回答'].find(x=>x[1]==='M-SYNC')[2]==='利用登録の最新名',
- 'saving other fields syncs stale participation name from member master');
+ok(synchronized.version===1&&rows['出欠回答'].find(x=>x[1]==='M-SYNC')[2]==='利用登録の最新名'&&
+ rows['出欠回答'].find(x=>x[1]==='M-SYNC')[3]==='オールドカナ',
+ 'attendance edit accepts master kana and keeps the saved historical kana');
 for(const tag of ['participantDialog','participantPractice','participantCards','participantReload',
  'participantEditDialog','participantName','participantVisitorIdentity','participantMemberIdentity',
  'participantAttendance','participantCategory','participantMemo','participantDeleteDialog','participantDeleteConfirm']){
