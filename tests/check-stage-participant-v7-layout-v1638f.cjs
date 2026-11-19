@@ -95,7 +95,7 @@ ok(memberDetails.children.length===2&&
  memberDetails.children[0].textContent==='📅 登録日：2026/11/17 12:30'&&
  memberDetails.children[1].textContent==='🕒 更新日：2026/11/18 13:20',
  'member participation registration and latest update dates formatted in JST');
-ok(memberInfo.children[1].textContent==='📝 備考: 体育館入口に集合',
+ok(memberInfo.children[1].textContent==='📝 体育館入口に集合',
  'optional note stays above inline action buttons');
 const visitorDetails=second.children[1].children[0].children[0];
 ok(visitorDetails.children.length===2&&
