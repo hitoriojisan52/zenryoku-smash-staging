@@ -189,3 +189,10 @@
 - 検証用のGAS所有者がDriveアクセスのOAuth許可を確認できる `stageReceiptAuthorizeV1666_` を追加。検証用ID厳密チェックとScriptLockを経由。権限が既に十分なら実行不要。領収書の保管期間/削除規則は本番前に別途確定し、自動削除なし。
 - 新テスト `tests/check-stage-history-receipt-v1666.cjs`、既存未来日・会計・権限回帰を行う。**PR #66はUI/GAS/仕様の3系統CI成功後に検証mainへ統合済み**（SHA `d8f1a9f132835319944b7726a6257290ad44bae0`）。[Pages Actions](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44518513549)成功、[GAS Actions](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44518514629)成功（ログに `Redeployed *** @36`）、同一SHAの[Cloudflare Workers Buildsチェック](https://github.com/hitoriojisan52/zenryoku-smash-staging/commit/d8f1a9f132835319944b7726a6257290ad44bae0/checks)成功。**ただし公開Worker /healthの応答値、GAS Drive OAuth、実ファイルアップロード/表示、LINE履歴UIは未確認**。Workerコードはv0.16.65のまま、v1666で新たなWorkerルート変更なし。本番は未変更。
 - 本番は事前承認制。Cloudflare Workerは今回コード変更しない。最新公開 `/health` は別途照合する。
+
+## 20. v0.16.67 精算日曜日の欄内化・iPhone写真の領収書対応（2026/11/19）
+
+- ユーザーの実機スクリーンショットに基づき、立替精算と収支追加修正の精算日で、曜日を日付テキストボックスの**内部**に表示する。ネイティブの日付選択とYYYY-MM-DDの保存値は維持。
+- .jpg/.jpegは元から対応。iPhoneの高効率HEIC/HEIFをWebKitが解読可能な場合にクライアント側でJPEGへ変換し、大きなカメラ写真（元画像上限25MB）も保存時の1.5MB以下に縮小。未対応ブラウザは明示エラー。1.5MB以下の通常JPEGは無変換。
+- 会計行の登録前に画像変換の成否を検証する。認証・操作ID・版数・ScriptLock・GASの1.5MB保存制限・残高・確定順序・画像の非公開保存は不変。画像の再圧縮は原画像の変更ではないが、Drive上の証憑は変換JPEGになることに注意。
+- [差分・回帰テスト・実機手順](stage-v1667-inline-weekday-iphone-receipts.md)。新tests/check-stage-iphone-receipt-weekday-v1667.cjsで挙動を模擬。PR/CI/検証Pages反映/LINE実機受入は独立に確認して完了を記録する。**本番未変更**。
