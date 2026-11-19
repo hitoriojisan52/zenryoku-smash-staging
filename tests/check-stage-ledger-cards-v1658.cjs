@@ -38,9 +38,9 @@ ok(css.includes('.stage-ui button{min-height:44px;font-size:14px;font-weight:700
  css.includes('min-width:44px;min-height:44px;padding:5px 7px'),
  'all stage screens reduce vertical padding but card actions keep 44px tap areas');
 for(const page of ['live.html','match.html','match-view.html','guest.html']){
- ok(file(page).includes('stage-ui.css?v=1659'),page+' refreshes shared compact CSS');
+ ok(file(page).includes('stage-ui.css?v=1660'),page+' refreshes shared compact CSS');
 }
-ok(html.includes('live.js?v=1658'),'ledger JS cache bust applied');
+ok(html.includes('live.js?v=1660'),'ledger JS cache bust applied');
 ok(css.includes('tr.carry-row{')&&
  css.includes('#ledgerDialog .ledger-table tbody tr.carry-row'),
  'carry-forward light yellow styling preserved in both layouts');
