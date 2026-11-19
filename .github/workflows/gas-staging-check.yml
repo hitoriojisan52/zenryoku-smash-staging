@@ -23,6 +23,7 @@ on:
       - 'tests/check-stage-weekday-jpg10mb-v1668.cjs'
       - 'tests/check-stage-reimbursement-date-drive-v1669.cjs'
       - 'tests/check-stage-drive-consent-v1671.cjs'
+      - 'tests/check-stage-finance-guard-v1672.cjs'
       - 'tests/check-stage-withdraw-rejoin-v1653.cjs'
       - 'tests/check-stage-member-ledger-v1656.cjs'
       - 'tests/check-stage-member-kana-v1657.cjs'
@@ -65,6 +66,7 @@ jobs:
       - run: node tests/check-stage-weekday-jpg10mb-v1668.cjs
       - run: node tests/check-stage-reimbursement-date-drive-v1669.cjs
       - run: node tests/check-stage-drive-consent-v1671.cjs
+      - run: node tests/check-stage-finance-guard-v1672.cjs
       - run: node tests/check-stage-withdraw-rejoin-v1653.cjs
       - run: node tests/check-stage-member-ledger-v1656.cjs
       - run: node tests/check-stage-member-kana-v1657.cjs
