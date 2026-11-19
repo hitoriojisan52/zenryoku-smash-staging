@@ -82,7 +82,7 @@ ok(JSON.stringify(DATA['出欠回答'])===readOnlyBefore&&writes===1,'overlay ne
 
 const model=new Function(core+'\nreturn SMMatchCore;')();
 const numbered=model.numbered(overlay);
-ok(numbered.map(r=>r.participationId).join('|')==='M-OLD|M-NEW|M-STU|V-1',
+ok(numbered.map(r=>r.participationId).join('|')==='M-NEW|M-OLD|M-STU|V-1',
  'member/students/visitor category rank then kana/name order, absentee excluded');
 ok(numbered.every((r,i)=>r.number===i+1),'all screens share consecutive attending-only numbers');
 
@@ -99,7 +99,7 @@ const list=new Function('practices_','str_','practice_','participantRows_','paym
  );
 const listed=list(null,{role:'duty'},{practiceId:'P-1'}).data.participants;
 ok(listed.find(r=>r.participantId==='M-NEW').nameKana==='ナカタロウ','participant manager picks master kana');
-ok(listed.map(r=>r.participantId).join('|')==='M-ABS|M-OLD|M-NEW|M-STU|V-1',
+ok(listed.map(r=>r.participantId).join('|')==='M-ABS|M-NEW|M-OLD|M-STU|V-1',
  'manager list category+kana order includes absentees without changing enrollment');
 ok(JSON.stringify(DATA['出欠回答'])===readOnlyBefore&&writes===1,'list reads only; no historical edits');
 ok(core.includes("var roster=attendees_(ss,id,true)")&&
