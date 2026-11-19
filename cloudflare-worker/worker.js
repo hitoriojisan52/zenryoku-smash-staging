@@ -166,8 +166,8 @@ export async function handleRequest(request,env){
     // Public LIFF channel prefix (not a secret); disclose only a boolean,
     // never the configured environment value or any LINE token.
     const channelMatchesLiveLiff=env.LINE_LOGIN_CHANNEL_ID==='2012602642';
-    return json({ok:true,status:'deployed',version:'0.16.57-stage-kana',
-      codeRevision:'stage-v1657-kana-registration-20261119',
+    return json({ok:true,status:'deployed',version:'0.16.65-stage-receipt',
+      codeRevision:'stage-v1665-receipt-upload-20261119',
       configured,channelMatchesLiveLiff});
   }
   const origin=request.headers.get('Origin')||'';
@@ -230,6 +230,18 @@ export async function handleRequest(request,env){
     if(op==='receipt.get'&&
        (typeof payload.rowId!=='string'||!/^([PR]-)[A-Za-z0-9_-]{1,100}$/.test(payload.rowId)))
       return failure('領収書の対象行が不正です',400,origin,'BAD_REQUEST');
+    if(op==='receipt.upload'){
+      const b=payload.base64;
+      if(typeof payload.rowId!=='string'||!/^([PR])-[-_A-Za-z0-9]{4,100}$/.test(payload.rowId)||
+         !Number.isSafeInteger(payload.expectedVersion)||payload.expectedVersion<1||
+         typeof payload.fileName!=='string'||!/^.{1,100}\.(pdf|png|jpe?g|webp)$/i.test(payload.fileName)||
+         !['application/pdf','image/jpeg','image/png','image/webp'].includes(payload.mimeType)||
+         typeof b!=='string'||b.length<8||b.length>2100000||!/^[A-Za-z0-9+/]+={0,2}$/.test(b)||
+         typeof payload.operationId!=='string'||!/^[A-Za-z0-9_-]{8,100}$/.test(payload.operationId))
+        return failure('領収書の情報を確認してください',400,origin,'BAD_RECEIPT');
+    }
+    if(op==='receipt.get'&&(typeof payload.rowId!=='string'||!/^([PR])-[-_A-Za-z0-9]{4,100}$/.test(payload.rowId)))
+      return failure('領収書の対象を確認してください',400,origin,'BAD_RECEIPT');
     if(op==='member.apply'){
       const kana=typeof payload.nameKana==='string'?payload.nameKana.normalize('NFKC').replace(/[\s\u00a0\u3000]+/g,''):'';
       if(typeof payload.displayName!=='string'||!payload.displayName.trim()||
