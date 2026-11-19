@@ -752,3 +752,48 @@ body.stage-ui.access-v2-active #memberAccessPending .live-access-row button{
 .stage-ui .member-pending-heading button{
  min-height:44px;
 }
+
+
+/* v0.16.62 — Match the original management application's COMPACT
+ * control HEIGHTS (not only padding). Keep horizontal padding/width, font
+ * sizes, focus rings, disabled/permission guards and existing event nodes. */
+.stage-ui button{
+ min-height:38px!important;
+}
+.stage-ui input:not([type=checkbox]):not([type=radio]):not([type=file]),
+.stage-ui select{
+ height:38px!important;
+ min-height:38px!important;
+}
+.stage-ui textarea{
+ min-height:38px!important;
+}
+/* Native upload buttons must retain their browser-specific rendering. */
+.stage-ui input[type=file]{
+ min-height:38px!important;
+}
+/* Higher specificity/important rules from the original dialog toolbar and
+ * cash-denomination control would otherwise keep the older 44px height. */
+.stage-ui dialog.stage-has-toolbar .stage-dialog-toolbar-actions button{
+ min-height:38px!important;
+}
+.stage-ui .cash-count-btn{
+ height:38px!important;
+ min-height:38px!important;
+}
+/* Keep the month row in one line; 38px controls reclaim vertical space. */
+.stage-ui #ledgerDialog .ledger-controls button,
+.stage-ui #ledgerDialog #newLedgerRow{
+ min-height:38px!important;
+}
+/* Leave native collapsible headings large enough for finger scrolling.
+ * Their labels are centered, as requested in v0.16.61. */
+.stage-ui :is(#visitorNewFormSection,#courtSettings,#participantSettings)>summary{
+ min-height:44px!important;
+}
+/* Only the collection HOME participant note is highlighted in red.
+ * This does NOT color participant identity, money or admin-card memo text. */
+.stage-ui #list .participant-card .participant-memo{
+ color:#c62828;
+ font-weight:700;
+}

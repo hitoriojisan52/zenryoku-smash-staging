@@ -41,7 +41,7 @@ ok(css.includes('.stage-ui button{padding-block:2px;line-height:1.2}')&&
  'buttons, textboxes and dropdowns are all vertically compact');
 ok(css.includes('.stage-ui .manage-grid button{min-height:44px')&&
  css.includes('.stage-ui button:is(.btn-blue,.btn-green,.btn-gray,.btn-outline,.btn-danger,.btn-finish,.access-danger-v2){'),
- 'compact controls do not reduce important 44px tap targets');
+ 'legacy 44px control rules are overridden by the latest compact dimensions');
 ok(css.includes('dialog.stage-has-toolbar:not(#ledgerDialog) .stage-dialog-toolbar{')&&
  css.includes('grid-template-columns:minmax(0,1fr) auto')&&
  css.includes('.stage-dialog-toolbar-actions > .stage-dialog-top-close{')&&
@@ -52,7 +52,7 @@ ok(css.includes('.stage-dialog-toolbar-actions > button:not(.stage-dialog-top-cl
  read('dialog-close.js').includes("actions.append(closeButton)"),
  'original context actions keep their listeners and move below Close only when needed');
 for(const page of ['live.html','match.html','match-view.html','guest.html'])
- ok(read(page).includes('stage-ui.css?v=1661'),page+' uses refreshed shared CSS');
+ ok(read(page).includes('stage-ui.css?v=1662'),page+' uses refreshed shared CSS');
 // Participant management must NEVER show LINE identities; timestamps must
 // be backed by existing immutable histories, not guessed date values.
 const pBegin=ui.indexOf('function renderParticipantManager_(){');
@@ -62,7 +62,7 @@ const participantUI=ui.slice(pBegin,pEnd);
 ok(!participantUI.includes('LINE ID：')&&!participantUI.includes('p.lineUserId')&&
  participantUI.includes('📅 登録日：')&&participantUI.includes('🕒 更新日：'),
  'member/visitor cards hide LINE IDs and show signup and update fields');
-ok(participantUI.includes("if(p.memo)")&&participantUI.includes("'📝 備考: '+p.memo")&&
+ok(participantUI.includes("if(p.memo)")&&participantUI.includes("'📝 '+p.memo")&&
  participantUI.includes("details.append(updated)")&&participantUI.includes("details.append(registered)"),
  'notes appear only when present, dates display for everyone');
 ok(participantUI.includes("return '未記録'")&&

@@ -49,7 +49,7 @@ ok(row(visitorAdmin,'visitorAdminPractice','visitorAdminRefresh'),
 ok(styles.includes('.stage-date-refresh-row select')&&
  styles.includes('flex:1 1 0;min-width:0!important')&&
  styles.includes('.stage-date-refresh-row button'),
- 'date selectors shrink alongside 44px Refresh without forcing a second row');
+ 'date selectors shrink alongside compact Refresh without forcing a second row');
 ok(members.includes('class="member-pending-heading"><h3>登録申請</h3><button id="memberAccessRefresh"')&&
  members.indexOf('member-pending-heading')<members.indexOf('id="memberAccessPending"'),
  'membership Refresh shares the pending registrations heading');
@@ -82,7 +82,7 @@ ok(styles.includes('padding-block:0!important')&&
  styles.includes('.stage-ui select,.stage-ui textarea'),
  'all buttons/text inputs/dropdowns have minimal vertical padding, no horizontal override');
 ok(styles.includes('min-height:44px')&&styles.includes('.stage-date-refresh-row'),
- 'minimum reachable tap height and single-row accessibility retained');
+ 'compact controls preserve the one-row date layout');
 const win={};vm.runInNewContext(dateJs,{window:win,Date,Intl});
 const test={date:'2026-11-28',startTime:'9:00',endTime:'13:00',place:'曽谷公民館'};
 ok(win.SMDate.practiceLabel(test)==='2026/11/28(土) 09:00～13:00 曽谷公民館',
@@ -97,7 +97,7 @@ ok(visitor.includes("{value:'all',text:'すべての日程'}")&&
  visitor.includes('if(!unique.has(r.practiceId))'),
  'all-practices option and deleted schedule historical requests retained');
 ok(html.includes('date-format.js?v=1661')&&html.includes('visitor-approval.js?v=1661')&&
- html.includes('dialog-close.js?v=1661')&&html.includes('stage-ui.css?v=1661')&&
- html.includes('live.js?v=1661'),
+ html.includes('dialog-close.js?v=1661')&&html.includes('stage-ui.css?v=1662')&&
+ html.includes('live.js?v=1662'),
  'all versioned page dependencies load new layout and date labels');
 console.log('PASS '+checks+'/'+checks+' schedule/context controls, compact taps and Japanese dropdown labels');

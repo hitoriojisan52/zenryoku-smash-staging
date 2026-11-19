@@ -236,7 +236,7 @@ function renderHome(){const v=S.overview;if(!v)return;const {practice,ledger,par
    const cat=document.createElement('span');cat.className='type long-press-type';cat.textContent=M.CATEGORY_LABEL[p.category]||p.category;cat.title='長押しで変更';
    const amt=document.createElement('span');amt.className='amount';amt.textContent='('+yen(p.fee)+')';
    nameRow.append(name,cat,amt);info.append(nameRow);
-   if(p.memo){const memo=document.createElement('div');memo.className='meta';memo.textContent='📝 '+p.memo;info.append(memo);}
+   if(p.memo){const memo=document.createElement('div');memo.className='meta participant-memo';memo.textContent='📝 '+p.memo;info.append(memo);}
    const wrapper=document.createElement('div');wrapper.className='checkbox-container';
    const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!p.collectionCompleted;
    cb.disabled=homeLocked||S.paymentNeedsRefresh||S.pending.has(p.participantId);
@@ -999,7 +999,7 @@ function renderParticipantManager_(){
   info.append(details);
   if(p.memo){
    const note=document.createElement('div');note.className='participant-card-memo';
-   note.textContent='📝 備考: '+p.memo;info.append(note);
+   note.textContent='📝 '+p.memo;info.append(note);
   }
   const actions=document.createElement('div');actions.className='participant-card-buttons';
   for(const [action,label,style] of [

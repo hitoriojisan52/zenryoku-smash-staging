@@ -46,7 +46,7 @@ ok((html.match(/\bid="list"/g)||[]).length===1&&
  html.indexOf('id="adjustment"')<html.indexOf('id="confirm"'),
  'participant region sits between fixed practice header and fixed money footer');
 for(const page of ['live.html','match.html','match-view.html','guest.html']){
- ok(read(page).includes('stage-ui.css?v=1661'),page+' receives latest dense shared CSS');
+ ok(read(page).includes('stage-ui.css?v=1662'),page+' receives latest dense shared CSS');
 }
 ok(css.includes('.stage-ui{line-height:1.34}')&&
  css.includes('.stage-ui dialog p{line-height:1.4}')&&
@@ -55,7 +55,7 @@ ok(css.includes('.stage-ui{line-height:1.34}')&&
 ok(css.includes('.stage-ui button{padding-block:3px;line-height:1.25}')&&
  css.includes('min-height:44px;line-height:1.25')&&
  css.includes('.stage-ui .manage-grid button{min-height:46px'),
- 'button text/padding is denser while actionable buttons remain >=44px');
+ 'legacy spacing rules remain with the new control-height override appended');
 ok(css.includes('.stage-ui .participant-card{padding:5px 7px;gap:5px;margin-bottom:2px}')&&
  css.includes('.stage-ui .home-footer-bar{padding:5px 7px}'),
  'collection rows and footer become more compact');
@@ -109,6 +109,9 @@ const renderHome=new Function('S','$','document','M','yen','today','setupLongPre
 renderHome();
 ok(controls.list.children.length===9&&longPressCount===9,
  'all participants are rendered inside the dedicated scrollable node');
+const homeRemark=controls.list.children[0].children[0].children[1];
+ok(homeRemark.className==='meta participant-memo'&&homeRemark.textContent==='📝 備考',
+ 'collection home marks only the actual participant remark for red styling');
 ok(controls.list.scrollTop===137,
  'participant scroll location is restored on automatic list redraw');
 ok(controls.place.textContent==='場所：検証体育館'&&
