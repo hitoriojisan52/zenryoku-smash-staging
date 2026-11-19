@@ -68,13 +68,12 @@
   const details=node('div','participant-card-details visitor-review-info');
   const fields=[
    shortDate(data),
-   '📅 申請日時：'+formatRequestedAt_(data.requestedAt),
-   admin?'申請者：'+(data.requestedByName||'不明'):'',
-   data.nameKana?'カナ：'+data.nameKana:''
+   '📅 申請日：'+formatRequestedAt_(data.requestedAt),
+   admin?'👤 申請者：'+(data.requestedByName||'不明'):''
   ].filter(Boolean);
   for(const field of fields)details.append(node('span','',field));
   info.append(details);
-  if(data.memo)info.append(node('div','participant-card-memo','📝 備考: '+data.memo));
+  if(data.memo)info.append(node('div','participant-card-memo','📝 '+data.memo));
   const actions=node('div','participant-card-buttons visitor-review-actions');
   if(admin){
    for(const [action,label] of [['approve','承認'],['reject','却下']]){

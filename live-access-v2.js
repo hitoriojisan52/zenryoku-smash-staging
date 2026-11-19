@@ -129,7 +129,7 @@
   if(!snapshot.pending.length)pending.append(item('p','access-help','申請はありません。'));
   for(const p of snapshot.pending){
    const frame=cardFrame(String(p.name||'名前なし'),'利用申請','承認待ち');
-   frame.details.append(cardLine('氏名カナ：'+(p.nameKana||'未登録')));
+   frame.details.append(cardLine('🔤 氏名カナ：'+(p.nameKana||'未登録')));
    if(p.requestedAt)frame.details.append(cardLine('📅 申請日：'+
     (window.SMDate?.dateTimeJst?.(p.requestedAt,false)||String(p.requestedAt))));
    const accept=item('button','btn-green','承認');
@@ -143,9 +143,9 @@
   for(const m of snapshot.members){
    const frame=cardFrame(String(m.name||'名前なし'),'',m.active?'':'停止中');
    frame.card.classList.add('member-access-card-v1656');
-   frame.details.append(cardLine('氏名カナ：'+(m.nameKana||'未登録')));
-   frame.details.append(cardLine('LINE ID：'+(m.lineUserId||'未紐付け')));
-   frame.details.append(cardLine('📅 利用登録日：'+(
+   frame.details.append(cardLine('🔤 氏名カナ：'+(m.nameKana||'未登録')));
+   frame.details.append(cardLine('🆔 LINE ID：'+(m.lineUserId||'未紐付け')));
+   frame.details.append(cardLine('📅 登録日：'+(
     m.registeredAt?(window.SMDate?.dateTimeJst?.(m.registeredAt,false)||String(m.registeredAt)):'未記録')));
    const isSelf=m.memberId===actorMemberId;
    const soleAdmin=m.role==='admin'&&adminCount<=1;
