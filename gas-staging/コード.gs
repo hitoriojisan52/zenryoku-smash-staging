@@ -1777,32 +1777,42 @@ function attendanceSubmit_(ss,member,payload){
 }
 
 
-/* v0.16.65 — private, member-authenticated receipts.
- * Explicit one-time GAS setup must configure RECEIPT_FOLDER_ID.
- * No public Drive links or file IDs are sent to an unauthenticated client.
- * Upload is bound to a ledger row and version under the existing script lock.
+/* v0.16.72 — user-authorized staged receipts under the provided Drive parent.
+ * The provided parent is intentionally shared as "anyone with the link".
+ * Never change ACLs; users explicitly approved inheriting this access.
+ * The previous private folder remains untouched for historical receipts.
  */
-function stageReceiptFolder_(){
- // Staging-only guard: never auto-create a folder when this code is copied
- // into production without a separately reviewed production migration.
- var sheetId=conf_('SPREADSHEET_ID');
- if(sheetId!=='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac')
+var STAGE_RECEIPT_PARENT_V1672_='1Tmbwpyh94jTdq2xnVe2Qd8hDZk94fkI0';
+function stageReceiptGuard_(){
+ // Strict staging-only protection; never touch a production Drive folder.
+ if(conf_('SPREADSHEET_ID')!=='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac')
   fail_('FORBIDDEN','検証環境以外では領収書を保存できません');
- var props=PropertiesService.getScriptProperties();
- var id=props.getProperty('RECEIPT_FOLDER_ID')||'';
+}
+function stageReceiptFolder_(){
+ stageReceiptGuard_();
+ var props=PropertiesService.getScriptProperties(),
+     id=props.getProperty('RECEIPT_FOLDER_ID_V1672')||'',
+     parent;
+ try{parent=DriveApp.getFolderById(STAGE_RECEIPT_PARENT_V1672_);parent.getName();}
+ catch(e){fail_('SETUP','指定された領収書の親フォルダにアクセスできません（Drive権限を確認してください）');}
  if(!id){
-  // This function is called under the existing ScriptLock, preventing
-  // multiple first-use folders. Root Drive folder inherits PRIVATE ACL.
+  // Called under the existing ScriptLock: one child per staging deployment.
   var created;
-  try{created=DriveApp.createFolder('全力☆スマッシュ_検証用領収書');}
-  catch(e){fail_('SETUP','領収書保存用Driveフォルダを作成できません（GASのDrive権限を確認してください）');}
+  try{created=parent.createFolder('全力☆スマッシュ_検証用領収書');}
+  catch(e){fail_('SETUP','指定された親フォルダ内に領収書フォルダを作成できません');}
   id=created.getId();
-  props.setProperty('RECEIPT_FOLDER_ID',id);
+  props.setProperty('RECEIPT_FOLDER_ID_V1672',id);
  }
  if(!/^[A-Za-z0-9_-]{15,150}$/.test(id))
-  fail_('SETUP','領収書フォルダの識別情報が不正です');
- var folder;try{folder=DriveApp.getFolderById(id);folder.getName();}
+  fail_('SETUP','領収書の保存先識別情報が不正です');
+ var folder;
+ try{folder=DriveApp.getFolderById(id);folder.getName();}
  catch(e){fail_('SETUP','領収書の保存先にアクセスできません');}
+ // Reject silently misdirected Drive properties; never put files outside
+ // the explicitly approved parent, even if someone edits ScriptProperties.
+ var parents=folder.getParents(),correctParent=false;
+ while(parents.hasNext())if(parents.next().getId()===STAGE_RECEIPT_PARENT_V1672_)correctParent=true;
+ if(!correctParent)fail_('SETUP','領収書の保存先が指定された親フォルダ配下にありません');
  return folder;
 }
 /* Manually run once from the staging Apps Script editor only if Drive
@@ -1855,7 +1865,7 @@ function receiptUpload_(ss,member,payload){
  var folder=stageReceiptFolder_(),file;
  try{
   file=folder.createFile(Utilities.newBlob(bytes,mime,name));
-  // File permissions are inherited from the private folder. Never publish.
+  // The staging parent is intentionally link-readable, per owner request. Do not modify ACLs.
   var rows=entries_(ss),target=row_(rows,id);
   expectVersion_(target.version,payload.expectedVersion);unlockable_(target);
   var oldId=target.receiptFileId;
@@ -1880,11 +1890,18 @@ function receiptDownload_(ss,member,payload){
  var id=str_(payload.rowId),row=row_(entries_(ss),id);
  if(row.kind!=='practice'&&row.kind!=='reimbursement'||!row.receiptFileId)
   fail_('NOT_FOUND','領収書が登録されていません');
+ stageReceiptGuard_();
  var folder=stageReceiptFolder_(),file;
  try{file=DriveApp.getFileById(row.receiptFileId);}
  catch(e){fail_('NOT_FOUND','領収書が見つかりません');}
- var parents=file.getParents(),allowed=false;
- while(parents.hasNext())if(parents.next().getId()===folder.getId())allowed=true;
+ var parents=file.getParents(),allowed=false,
+     legacyId=PropertiesService.getScriptProperties().getProperty('RECEIPT_FOLDER_ID')||'';
+ // Keep previously uploaded private receipts readable, without moving
+ // them into the intentionally public new folder.
+ while(parents.hasNext()){
+  var actualParent=parents.next().getId();
+  if(actualParent===folder.getId()||legacyId&&actualParent===legacyId)allowed=true;
+ }
  if(!allowed)fail_('FORBIDDEN','領収書の保存先が一致しません');
  var blob=file.getBlob(),mime=blob.getContentType(),bytes=blob.getBytes();
  if(bytes.length>1500000||['application/pdf','image/png','image/jpeg','image/webp'].indexOf(mime)<0)
