@@ -47,3 +47,10 @@
 - 同一main SHAの [Workers Builds](https://github.com/hitoriojisan52/zenryoku-smash-staging/commit/707de66fdb2d110e530dc2fbdf366d53469d5e77/checks)チェックは成功。ただし公開 [Worker /health](https://zenryoku-smash-staging-api.hitori-ojisan-52.workers.dev/health) は外部接続の制約で**実応答を取得できていない**。ユーザーが`version=0.16.57-stage-kana`および`codeRevision=stage-v1657-kana-registration-20261119`の表示を確認する。
 - LINE本人の新規登録カナ、管理者承認、氏名・カナ修正、参加者一覧・対戦表の番号、確定後の役割別1ボタンは引き続き**実機E2E未確認**。ユーザーのLINE認証を代理しない。
 - 本番デプロイ、Secrets、LINEリッチメニュー、本番データは変更なし。
+
+
+## 6. 管理者LINEによる利用者情報修正 — 実データ確認
+
+2026/11/19、ユーザーの操作完了報告後、検証用Google Sheetsを直接再読取。テスト会員の氏名「架空利用者修正1657」、氏名カナ「カクウリヨウシャシュウセイ」は「メンバー」「登録申請」の双方に一致して反映された。監査に member.manage.edit の成功が1件追加。修正前のバックアップと出欠・集金・収支・試合関連3シート・退会履歴の先頭75行は同一だった。Worker公開 /health のJSONは独立取得未完了。詳しくは[引継ぎ第9節](SESSION_HANDOFF.md)。
+
+追加回帰では、新規カナを持つ申請の承認と管理者による氏名・カナ変更を、GASの本物の管理関数を模擬シートで実行して検証する。実際の別LINE本人の新規申請・承認・カナ順表示は別途受入試験を要する。

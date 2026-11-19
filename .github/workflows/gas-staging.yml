@@ -80,6 +80,8 @@ jobs:
         run: node tests/check-stage-member-ledger-v1656.cjs
       - name: Verify LINE kana registration and category/kana roster sort
         run: node tests/check-stage-member-kana-v1657.cjs
+      - name: Verify GAS kana approval and account edit against immutable history
+        run: node tests/check-stage-member-kana-approval-v1657b.cjs
       - name: Verify stage withdrawal, historical preservation and fresh-ID reapplication
         run: node tests/check-stage-withdraw-rejoin-v1653.cjs
       - name: Verify v15 sequential ledger confirmations including earlier months

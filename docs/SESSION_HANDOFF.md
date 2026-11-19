@@ -94,3 +94,13 @@
 - **共通並び順**：メンバー→学生→ビジター→当番担当→シャトル担当、区分内カナ順（なければ氏名）。LINE一覧/集金/対戦表の番号は参加者のみ1から再付番。運用管理の参加者管理は欠席行を維持し、現在の会員マスタを表示時のみ参照する。
 - **検証デプロイ結果（確認済み）**：[PR #52](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/52) をmainへ統合（SHA `707de66fdb2d110e530dc2fbdf366d53469d5e77`）。PRのUI/GAS/仕様CIは全成功。[Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44427065958)の公開ジョブ成功。[GAS既存デプロイ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44427066598)成功・claspログで `Redeployed *** @32` を確認。[Cloudflare Workers Builds](https://github.com/hitoriojisan52/zenryoku-smash-staging/commit/707de66fdb2d110e530dc2fbdf366d53469d5e77/checks)成功。**Worker公開/healthのv0.16.57応答とLINE実機は未確認**。期待応答：`version:0.16.57-stage-kana`、`codeRevision:stage-v1657-kana-registration-20261119`。CI・クラウド側Builds・実公開応答は別に扱う。
 - **残課題**：新規LINEカナ申請・管理者承認と修正・最新一覧/対戦表の実機検証、実在LINEでの再入会、役割別収支ボタン、その他予定されているリッチメニュー自動同期等。ユーザーから本番反映の承認はまだない。
+
+
+## 9. v0.16.57 管理者LINE修正の実データ受入・履歴保全（2026/11/19）
+
+- **ユーザーから「対応しました」と報告あり。** 管理者LIFF操作後に接続検証用Google Sheetsを直接読み取った。メンバー!A3:F3 のテスト会員 M-TEST-MEMBER-V1656-001 は、氏名「架空利用者修正1657」、カナ「カクウリヨウシャシュウセイ」、active=TRUE、isAdmin=FALSE。登録申請!A2:I2 の REQ-TEST-MEMBER-V1656-001 は同一の氏名・カナ、status=approved、同一メンバーIDに更新済み。申請日時・LINE ID・権限は不変。
+- **監査**：操作履歴!A130:F130 に member.manage.edit、対象上記メンバーID、registrationUpdated=true を確認。過去の監査記録は保持され、今回の更新が追加された。
+- **変更なし検証**：更新前の[検証用バックアップ](https://docs.google.com/spreadsheets/d/1URqlxdT40hMColzRIK4m4iyF61Cjw25HrQUxZXm-hfY/edit)と[現行接続検証用シート](https://docs.google.com/spreadsheets/d/1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac/edit)を直接比較。出欠回答・集金記録・全体収支管理表・試合セッション・試合版管理・試合操作履歴・退会履歴の各**先頭75行を確認し、全て同じ値**。全シート全セルの検証という意味ではない。
+- Worker公開 /health について、ユーザーは確認作業の完了を報告したが応答JSON自体は未提示。ChatGPTからの外部HTTP直接アクセスも不可だったので、**v0.16.57公開応答の個別値を独立検証できたとは断定しない**。Cloudflare Workers Builds成功は別途確認済み。
+- **追加回帰**：GASの実管理関数で申請カナの承認・会員マスタF列・登録申請I列への保存、管理者の競合防止付き氏名・カナ修正、重複承認申請の拒否、歴史データ保護をオフライン確認する。本人の出欠修正で最新マスタカナを認識し、出欠回答の歴史カナを保持する試験も追加する。
+- **引き続き要実機確認**：別のLINE本人の新規利用申請→管理者承認→本人出欠→参加者のカナ順・対戦表番号、収支確定済みの当番担当/管理者ボタン、権限変更・退会・実在LINEの再入会。**本番は未変更・事前承認制を維持。**
