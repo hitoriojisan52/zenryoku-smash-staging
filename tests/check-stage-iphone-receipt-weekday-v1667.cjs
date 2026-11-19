@@ -132,7 +132,7 @@ const preparedFns=new Function('File','createImageBitmap','URL','Image','documen
   worker.includes("op==='receipt.upload'?2200000:32768")&&
   worker.includes("'/api/receipt/upload':'receipt.upload'"),
   'GAS magic-byte, 1.5MB, token proxy, and request-size protections remain unchanged');
- ok(html.includes('stage-ui.css?v=1673-receipt-close')&&html.includes('live.js?v=1674-date-parity'),
+ ok(html.includes('stage-ui.css?v=1673-receipt-close')&&html.includes('live.js?v=1675-startup-perf'),
   'LIFF WebView always reloads the new inline weekday/photo JavaScript and CSS');
  console.log('PASS '+count+'/'+count+' native weekday, iPhone photo normalization, and receipt security regression');
 })().catch(e=>{console.error(e);process.exitCode=1});
