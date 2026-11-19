@@ -89,13 +89,13 @@ ok(numbered.every((r,i)=>r.number===i+1),'all screens share consecutive attendin
 const listStart=core.indexOf('function participantList_('),listEnd=core.indexOf('function participantArchivePending_(',listStart);
 ok(listStart>=0&&listEnd>listStart,'real participant manager list available');
 const list=new Function('practices_','str_','practice_','participantRows_','paymentRows_',
- 'sheetRows_','attendanceAuditDates_','norm_','bool_','entries_','participantMatchLocked_','fail_',
+ 'sheetRows_','attendanceAuditDates_','attendanceAuditTime_','norm_','bool_','entries_','participantMatchLocked_','fail_',
  core.slice(listStart,listEnd)+'\nreturn participantList_;')(
  ()=>[{practiceId:'P-1',date:'2026-11-19',startTime:'09:00',place:'検証会場'}],
  str_,()=>({practiceId:'P-1',date:'2026-11-19'}),
  ()=>DATA['出欠回答'].map(r=>({practiceId:'P-1',participantId:r[1],name:r[2],nameKana:r[3],
    category:r[4],attending:r[5],memo:'',version:1,registeredBy:r[8]})),
- ()=>[],sheetRows_,()=>({}),norm_,bool_,()=>[],()=>false,fail_
+ ()=>[],sheetRows_,()=>({}),v=>String(v??''),norm_,bool_,()=>[],()=>false,fail_
  );
 const listed=list(null,{role:'duty'},{practiceId:'P-1'}).data.participants;
 ok(listed.find(r=>r.participantId==='M-NEW').nameKana==='ナカタロウ','participant manager picks master kana');
