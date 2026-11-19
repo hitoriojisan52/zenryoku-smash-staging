@@ -216,3 +216,11 @@
 - [正式な影響・テスト・Drive実機手順](stage-v1669-ledger-drive-schedule-ui.md)参照。新 `tests/check-stage-reimbursement-date-drive-v1669.cjs`、旧時系列・会計/権限/集金/日程/試合回帰を実施。PR/CI/検証反映/Drive認可/実ファイル受入は別。**本番環境には反映しない**。
 
 - **v0.16.69検証反映結果（2026/11/19）**：[PR #73](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/73) の3系統CI成功、17/17新規回帰・28/28旧v15確定順序成功。main `78be72e8edb056315d0c0dec90d56964d57875eb`、[Pages build/deploy](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44534424826) 成功、[GAS自動デプロイ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44534426454) 成功・既存デプロイ@37、[Workers Buildsチェック](https://github.com/hitoriojisan52/zenryoku-smash-staging/commit/78be72e8edb056315d0c0dec90d56964d57875eb/checks) 成功。**OAuth許可・領収書実アップロード・日程曜日と選択ボタンの実機表示は未受入**。本番未変更。
+
+
+## 23. DriveApp.createFolderエラーのマニフェスト診断・再同意（2026/11/19）
+
+- ユーザーはauthorizeStagingReceiptDriveV1669実行時のフォルダ作成エラー継続を報告。GASのcatchが元例外を汎用SETUPへ置換するため原因は未確定。
+- v1670のclasp pull読み取り専用マニフェスト診断でSTAGING_DRIVE_CREATEFOLDER_SCOPE=auto-detection。明示的なoauthScopes宣言なし。既存manifestは自動変更しない。
+- v1671で既存の所有者手動関数authorizeStagingReceiptDriveV1669にGoogle標準requireScopesを追加。Google Driveのフルスコープを本人が必要に応じて明示承認し、その後に既存の検証用非公開フォルダ初期化を実行する。非検証IDはスコープ要求前に拒否。
+- [診断と実機手順](stage-v1670-drive-oauth-diagnosis.md)。CI/デプロイとOAuth本人同意/領収書実保存を区別。保存済みの収支行は再登録せず修正から再添付。本番、残高、会計の確定順序は不変更。
