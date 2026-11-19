@@ -19,6 +19,7 @@ on:
       - 'tests/check-stage-withdraw-rejoin-v1653.cjs'
       - 'tests/check-stage-member-ledger-v1656.cjs'
       - 'tests/check-stage-member-kana-v1657.cjs'
+      - 'tests/check-stage-member-kana-approval-v1657b.cjs'
       - 'scripts/gas-staging-guard.cjs'
       - 'scripts/gas-staging-deploy.sh'
       - 'tests/check-gas-staging-ci.cjs'
@@ -53,5 +54,6 @@ jobs:
       - run: node tests/check-stage-withdraw-rejoin-v1653.cjs
       - run: node tests/check-stage-member-ledger-v1656.cjs
       - run: node tests/check-stage-member-kana-v1657.cjs
+      - run: node tests/check-stage-member-kana-approval-v1657b.cjs
       - run: node tests/check-gas-audit-ids-v1636h.cjs
       - run: bash -n scripts/gas-staging-deploy.sh
