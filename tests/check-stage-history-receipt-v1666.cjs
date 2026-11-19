@@ -50,12 +50,12 @@ const reload=new Function('S','$','call','window','Option','renderHome','syncPay
  ok(dateNode.items.some(o=>o.value==='P-PAST'),
   'unlocked practice returns to collection picker without history button');
  ok(!html.includes('id="homeHistoryToggle"')&&
-  html.includes('id="participantHistoryToggle"')&&
+  !html.includes('id="participantHistoryToggle"')&&
   html.includes('id="visitorMineHistoryToggle"')&&html.includes('id="visitorAdminHistoryToggle"'),
-  'only collection history toggle removed; participant and visitor history retained');
- ok(ui.includes('PM.showHistoryDates=false;')&&ui.includes('const selectable=[...upcoming,...history]')&&
+  'collection and participant History removed, visitor request histories unaffected');
+ ok(!ui.includes('PM.showHistoryDates')&&ui.includes('const selectable=(answer?.practices||[])')&&
   ui.includes('PM.practices=selectable;PM.practiceId=target;'),
-  'participant management preserves future default with historical lookup');
+  'participant picker now includes all open historical days without a History toggle');
  ok(match.includes('upcomingMatchPractices_(data.practices)')&&
   ui.includes('if(!practice||practice.date<today())')&&
   gas.includes("if(practice.date<today_())fail_('BAD_REQUEST','過去の開催日は申請できません')"),
