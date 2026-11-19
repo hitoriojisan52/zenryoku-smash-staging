@@ -3,6 +3,7 @@
 **新しいチャットで開発を再開する場合は、必ず [開始用プロンプト](docs/NEW_CHAT_START_PROMPT.md) を使用し、[開発引継ぎ文書](docs/SESSION_HANDOFF.md) と [仕様優先順位の正式ルール](docs/SPEC_PRIORITY_POLICY.md) を確認する。**
 **GAS・Worker・PagesのGitHub経由デプロイとユーザーへの具体的な作業案内**は [DEPLOYMENT_AND_USER_ACTIONS.md](docs/DEPLOYMENT_AND_USER_ACTIONS.md) に従う（Worker v0.16.53の反映確認とGAS/Workerの設定完了報告を記録済み）。
 **退会・再入会の確定仕様と接続検証の進捗**：[v0.16.53引継ぎ](docs/stage-v1653-withdraw-rejoin.md)を参照。
+**v0.16.74の接続検証結果**：PR #81の全CI・検証用Pages・GAS@41・Workers Builds成功。続く[公開LINE疎通チェック](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44567090177)も成功（Worker /health/設定・LIFF配信一致、GETのみ）。一方、**本人LINE参加連絡/修正・Webhook・役割別実機E2Eは未受入**。実機検証後に本番判断。[検証記録](docs/stage-v1674-date-parity-and-line-verification.md)。
 **v0.16.74（集金管理・参加者一覧の日付統一／LINE後続検証）**：全未確定・解除済み日程と**確定済み当日の日程**を両方のプルダウンに表示。確定済みの過去・未来日程は除外。初期値は本日以降の直近、参加者一覧の「履歴」ボタンを削除。集金・参加者の確定済み操作ロックを維持。LINE実機/E2Eは別途未受入。[変更とLINE検証計画](docs/stage-v1674-date-parity-and-line-verification.md)。本番未変更。
 **v0.16.73（領収書表示UI）**：LINE内の画像/PDFプレビューは維持し、「別画面で開く」「保存する」を撤去。既存の管理画面共通レイアウトで「✕ 閉じる」を右上へ移動。ユーザーの表示成功報告に基づき、この2ボタンと閉じる配置の手動受入は省略。[変更仕様](docs/stage-v1672-finance-receipt-history.md)。本番未変更。
 **v0.16.72（検証用次版）**：練習日収支の削除を練習日程マスタに一本化し、旧再登録区分を削除。後続確定行のある確定解除を非活性化、同日最終行のみ可能。収支追加の0/0事前エラー、集金管理の未確定全日程表示・履歴ボタン削除、日程確定時の後日確定チェック、領収書のアプリ内表示、所有者が公開を許容した「全力IT」配下への新規保存。旧証憑は移動しない。[仕様・実機受入](docs/stage-v1672-finance-receipt-history.md)。本番未反映。
