@@ -187,5 +187,5 @@
 - [正式な差分記録と実機受入手順](stage-v1666-history-receipt-recovery.md)を参照。旧v7の履歴閲覧を復旧する一方、v0.16.64の直近未来日初期値は変更しない。集金ホーム/参加者一覧/ビジター申請一覧で「履歴」を押した場合のみ過去日を表示する。過去のビジター申請カードの操作は非活性。
 - 領収書登録後の失敗は、収支行保存済みをダイアログで永続表示し、収支を再登録せず同じ行へ添付するよう案内。会計の二重登録・既存残高・旧収支確定順序は変更なし。
 - 検証用のGAS所有者がDriveアクセスのOAuth許可を確認できる `stageReceiptAuthorizeV1666_` を追加。検証用ID厳密チェックとScriptLockを経由。権限が既に十分なら実行不要。領収書の保管期間/削除規則は本番前に別途確定し、自動削除なし。
-- 新テスト `tests/check-stage-history-receipt-v1666.cjs`、既存未来日・会計・権限回帰を行う。**この節を記載した時点ではPR CI、main、Pages/GAS/Worker公開、LINE実機受入は未確認**。結果が出るまで完了扱いにしない。
+- 新テスト `tests/check-stage-history-receipt-v1666.cjs`、既存未来日・会計・権限回帰を行う。**PR #66はUI/GAS/仕様の3系統CI成功後に検証mainへ統合済み**（SHA `d8f1a9f132835319944b7726a6257290ad44bae0`）。[Pages Actions](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44518513549)成功、[GAS Actions](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44518514629)成功（ログに `Redeployed *** @36`）、同一SHAの[Cloudflare Workers Buildsチェック](https://github.com/hitoriojisan52/zenryoku-smash-staging/commit/d8f1a9f132835319944b7726a6257290ad44bae0/checks)成功。**ただし公開Worker /healthの応答値、GAS Drive OAuth、実ファイルアップロード/表示、LINE履歴UIは未確認**。Workerコードはv0.16.65のまま、v1666で新たなWorkerルート変更なし。本番は未変更。
 - 本番は事前承認制。Cloudflare Workerは今回コード変更しない。最新公開 `/health` は別途照合する。

@@ -44,3 +44,10 @@
 - 実機未完了: 履歴の切替/読み込み/ロック表示、領収書画像/PDFの保存/閲覧/添付失敗時の再添付、Drive権限と実公開Worker /healthの値。**実機成功と記録するには実機結果が必要**。
 
 本番GAS・Worker・LINE・スプレッドシートへの反映はユーザーの個別事前承認まで禁止。
+
+## PR・デプロイ状況（2026-11-19更新）
+
+- [PR #66](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/66) はUI/GAS/仕様の3系統CIすべて成功、SHA `d8f1a9f132835319944b7726a6257290ad44bae0` にmain統合済み。
+- [GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44518513549) build/deploy成功。[GAS既存デプロイ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44518514629)成功、ログ `Redeployed *** @36` を確認。
+- [Cloudflare Workers Builds](https://github.com/hitoriojisan52/zenryoku-smash-staging/commit/d8f1a9f132835319944b7726a6257290ad44bae0/checks) 成功。Workerコードは今回未変更で、公開`/health` の実値は別途未確認。
+- **LINE実機の履歴選択、領収書アップロード/ダウンロード、Drive初回OAuth再認可は未受入**。本番への反映は引き続き事前承認が必要。
