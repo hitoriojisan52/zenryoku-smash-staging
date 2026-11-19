@@ -18,5 +18,5 @@ ok(gas.includes("unlockable_(row);expectVersion_(row.version,payload.expectedVer
 ok(gas.includes("sh.getRange(ix+2,11,1,5).setValues"),'version and file reference are attached in one sheet update');
 ok(gas.includes("function deletedPracticeLedgerIds_(")&&gas.includes("result.data.action!=='delete'"),'only audited deleted rows can re-register');
 ok(js.includes("deleted.has(p.practiceId)")&&gas.includes("deletedPracticeLedgerIds_(ss,rows).indexOf(p.practiceId)<0"),'client and server enforce deleted practice eligibility');
-ok(html.includes('stage-ui.css?v=1665')&&html.includes('live.js?v=1665'),'new client code cache-busted');
+ok(html.includes('stage-ui.css?v=1667')&&html.includes('live.js?v=1667'),'new client code cache-busted');
 console.log('PASS '+n+'/'+n+' receipt upload, payout weekdays and deleted-ledger eligibility');

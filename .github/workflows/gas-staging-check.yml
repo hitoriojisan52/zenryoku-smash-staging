@@ -19,6 +19,7 @@ on:
       - 'tests/check-stage-receipt-weekday-v1665.cjs'
       - 'tests/check-stage-receipts-v1665.cjs'
       - 'tests/check-stage-history-receipt-v1666.cjs'
+      - 'tests/check-stage-iphone-receipt-weekday-v1667.cjs'
       - 'tests/check-stage-withdraw-rejoin-v1653.cjs'
       - 'tests/check-stage-member-ledger-v1656.cjs'
       - 'tests/check-stage-member-kana-v1657.cjs'
@@ -57,6 +58,7 @@ jobs:
       - run: node tests/check-stage-receipt-weekday-v1665.cjs
       - run: node tests/check-stage-receipts-v1665.cjs
       - run: node tests/check-stage-history-receipt-v1666.cjs
+      - run: node tests/check-stage-iphone-receipt-weekday-v1667.cjs
       - run: node tests/check-stage-withdraw-rejoin-v1653.cjs
       - run: node tests/check-stage-member-ledger-v1656.cjs
       - run: node tests/check-stage-member-kana-v1657.cjs

@@ -956,3 +956,21 @@ body.stage-ui > main.container .app-header h1{
 .stage-ui .receipt-ledger-link:focus-visible{
  outline:2px solid #1766a8;outline-offset:2px;
 }
+
+/* v0.16.67: weekday is visually INSIDE the native date field.
+   Keep the actual input[type=date] and its picker/ISO value unchanged. */
+.stage-ui .payout-date-field{
+ position:relative;display:block;width:100%;min-width:0;
+}
+.stage-ui .payout-date-field input[type="date"]{
+ display:block;width:100%;box-sizing:border-box;padding-right:87px!important;
+}
+.stage-ui .payout-date-field .weekday-hint{
+ position:absolute;top:50%;right:43px;transform:translateY(-50%);
+ display:block;margin:0;padding:0 2px;z-index:1;
+ font-size:13px;line-height:1;color:#485d68;white-space:nowrap;
+ pointer-events:none;background:#fff;
+}
+.stage-ui .payout-date-field input[type="date"]:disabled + .weekday-hint{
+ background:#f1f2f4;color:#687680;
+}
