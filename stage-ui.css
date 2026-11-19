@@ -438,3 +438,124 @@
  .stage-ui #ledgerDialog .ledger-table tbody tr{padding:8px;gap:3px 5px}
  .stage-ui #ledgerDialog .ledger-table .ledger-action-group{gap:3px}
 }
+
+
+/* v0.16.59 — Higher information density without reducing readable font
+ * sizes or the existing 44px minimum for actionable buttons. Never change
+ * role gates, disabled states, or payment/ledger event handlers here. */
+.stage-ui{line-height:1.34}
+.stage-ui button{padding-block:3px;line-height:1.25}
+.stage-ui button:is(.btn-blue,.btn-green,.btn-gray,.btn-outline,.btn-danger,.btn-finish,.access-danger-v2){
+ min-height:44px;line-height:1.25;
+}
+.stage-ui .container{gap:4px}
+.stage-ui .app-header{min-height:44px;gap:5px}
+.stage-ui .date-selector{padding:4px 6px;gap:4px;line-height:1.3}
+.stage-ui .info-summary{padding:4px 6px;line-height:1.3}
+.stage-ui .summary-info{line-height:1.3}
+.stage-ui .adjustment-box,.stage-ui .expense-box{padding:4px 6px}
+.stage-ui .home-footer-bar{padding:5px 7px}
+.stage-ui .home-footer-row,.stage-ui .home-footer-action{line-height:1.3}
+.stage-ui .home-footer-action{margin-top:3px;padding-top:3px}
+.stage-ui .income-block{gap:1px}
+.stage-ui .participant-card{padding:5px 7px;gap:5px;margin-bottom:2px}
+.stage-ui .participant-card .name-row{gap:3px;line-height:1.3}
+.stage-ui .participant-card .amount{margin-top:0}
+.stage-ui .participant-card .meta{line-height:1.28}
+.stage-ui dialog{padding:12px}
+.stage-ui dialog h2{line-height:1.28;margin-bottom:5px}
+.stage-ui dialog p{line-height:1.4}
+.stage-ui .dialog-label{margin-top:6px;margin-bottom:2px;line-height:1.3}
+.stage-ui .dialog-input,.stage-ui .dialog-select{padding-block:6px}
+.stage-ui .modal-actions{gap:6px;margin-top:9px}
+.stage-ui .modal-actions button{padding-block:4px}
+.stage-ui .manage-grid{gap:6px;margin-top:7px}
+.stage-ui .manage-grid button{min-height:46px;padding-block:4px;line-height:1.25}
+.stage-ui .stage-system-message{
+ padding:5px 8px;margin:4px 0 6px;line-height:1.4;
+}
+.stage-ui .visitor-new-form-section{margin-top:8px}
+.stage-ui .visitor-new-form-section summary{padding:7px 9px}
+.stage-ui .visitor-new-form-section form{padding:6px 9px 8px}
+.stage-ui .visitor-review-card{padding:6px 8px;margin-bottom:4px}
+.stage-ui .visitor-review-list{gap:4px}
+.stage-ui .visitor-review-card .visitor-review-info{gap:1px;margin-bottom:3px;line-height:1.35}
+.stage-ui .visitor-review-actions button{padding-block:4px}
+.stage-ui .schedule-card{padding:6px 8px;margin:4px 0}
+.stage-ui .schedule-card-detail{gap:1px;margin:4px 0;line-height:1.3}
+.stage-ui .schedule-card-actions{gap:4px;margin-top:4px}
+.stage-ui .schedule-actions{margin:5px 0;gap:5px}
+.stage-ui .participant-controls{padding:4px 6px;margin-bottom:4px}
+.stage-ui dialog#participantDialog .participant-card-item{
+ padding:6px 8px;margin-bottom:4px;
+}
+.stage-ui dialog#participantDialog .participant-card-title{margin-bottom:2px;line-height:1.3}
+.stage-ui dialog#participantDialog .participant-card-details{gap:1px;margin-bottom:3px;line-height:1.32}
+.stage-ui dialog#participantDialog .participant-card-memo{margin-bottom:3px;line-height:1.32}
+.stage-ui dialog#participantDialog .participant-card-buttons button{padding-block:4px}
+.stage-ui dialog.stage-has-toolbar .stage-dialog-toolbar{
+ gap:5px 8px;margin-bottom:6px;padding:3px 0 6px;
+}
+.stage-ui dialog.stage-has-toolbar .stage-dialog-toolbar-actions button{
+ padding-block:4px!important;line-height:1.25;
+}
+.stage-ui .ledger-controls{padding:4px 6px;gap:4px;line-height:1.3}
+.stage-ui #ledgerDialog .ledger-table tbody tr{line-height:1.3}
+.stage-ui #ledgerDialog .ledger-table .ledger-action-group button{padding-block:4px}
+.stage-ui .match-header{padding:5px 8px}
+.stage-ui .match-round{padding:6px;margin-bottom:5px}
+.stage-ui .match-round h2{padding:1px 0 4px;line-height:1.3}
+.stage-ui .match-court{padding:5px 6px;margin-bottom:4px}
+.stage-ui .match-court strong{margin-bottom:2px}
+.stage-ui .match-team{line-height:1.34}
+.stage-ui .match-controls{padding-top:4px}
+.stage-ui .match-secondary{margin-top:4px;gap:4px}
+.stage-ui .match-settings{margin-top:4px}
+.stage-ui .match-settings summary{padding:6px 8px}
+.stage-ui .match-settings-body{padding:6px}
+.stage-ui .match-settings-body h2{margin:7px 0 4px}
+.stage-ui .settings-row{gap:4px;margin-bottom:6px}
+.stage-ui .match-person,.stage-ui .fixed-row{padding-block:3px;line-height:1.3}
+.stage-ui .access-panel{padding:7px 8px;margin:3px 0}
+.stage-ui .access-panel h2{margin-bottom:4px}
+.stage-ui .access-panel p{line-height:1.4;margin:3px 0 5px}
+.stage-ui .guest-practice{padding:6px 8px}
+body.stage-ui.access-v2-active #memberAccessDialog h3{margin:9px 0 5px}
+body.stage-ui.access-v2-active #memberAccessDialog .live-access-row{padding:6px 0;gap:5px}
+body.stage-ui.access-v2-active .access-history-v2{margin-top:9px;padding-top:7px}
+body.stage-ui.access-v2-active .access-member-card-v1656{padding-block:6px}
+
+/* Collection HOME ONLY: viewport, header, date, summary, financial input
+ * and balance/Confirm stay fixed. The participant list is the one and only
+ * document-region scroller. Do not apply this to dialogs, match screen or
+ * visitor/member-only access screen, each of which has its own workflow. */
+body.stage-ui:not(.visitor-member):has(> main.container:not(.match-container)){
+ height:100dvh;overflow:hidden;
+}
+body.stage-ui:not(.visitor-member) > main.container:not(.match-container){
+ height:100dvh;min-height:0;max-height:100dvh;overflow:hidden;
+ padding:7px 9px max(7px,env(safe-area-inset-bottom));
+}
+body.stage-ui:not(.visitor-member) > main.container:not(.match-container) > :not(#list){
+ flex-shrink:0;
+}
+body.stage-ui:not(.visitor-member) > main.container:not(.match-container) > #list{
+ flex:1 1 0;min-height:0;min-width:0;overflow-y:auto;overflow-x:hidden;
+ overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+}
+@media (min-width:650px){
+ body.stage-ui:not(.visitor-member) > main.container:not(.match-container){
+  height:calc(100dvh - 30px);max-height:calc(100dvh - 30px);
+ }
+}
+/* Extremely short landscape/keyboard viewport: keep bottom money controls
+ * reachable instead of clipping them. Normal-height layouts still scroll
+ * ONLY the participant list. */
+@media (max-height:400px){
+ body.stage-ui:not(.visitor-member) > main.container:not(.match-container){
+  overflow-y:auto;
+ }
+ body.stage-ui:not(.visitor-member) > main.container:not(.match-container) > #list{
+  flex:1 0 90px;min-height:90px;
+ }
+}
