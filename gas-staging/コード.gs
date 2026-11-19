@@ -1739,6 +1739,81 @@ function attendanceSubmit_(ss,member,payload){
  return result;
 }
 
+
+/* v0.16.65 — private, member-authenticated receipts.
+ * Explicit one-time GAS setup must configure RECEIPT_FOLDER_ID.
+ * No public Drive links or file IDs are sent to an unauthenticated client.
+ * Upload is bound to a ledger row and version under the existing script lock.
+ */
+function stageReceiptFolder_(){
+ var id=conf_('RECEIPT_FOLDER_ID');
+ if(!/^[A-Za-z0-9_-]{15,150}$/.test(id))
+  fail_('SETUP','領収書の保存先が未設定です。検証用Driveフォルダを設定してください');
+ var folder;try{folder=DriveApp.getFolderById(id);folder.getName();}
+ catch(e){fail_('SETUP','領収書の保存先にアクセスできません');}
+ return folder;
+}
+function receiptUpload_(ss,member,payload){
+ var id=str_(payload.rowId),row=row_(entries_(ss),id);
+ if(row.kind!=='practice'&&row.kind!=='reimbursement')
+  fail_('BAD_REQUEST','領収書を登録できない収支行です');
+ unlockable_(row);expectVersion_(row.version,payload.expectedVersion);
+ var name=str_(payload.fileName).replace(/[^\w.\-\u3040-\u30ff\u3400-\u9fff]/g,'_').slice(0,90);
+ var mime=str_(payload.mimeType),base64=str_(payload.base64);
+ if(!name||!/\.(?:pdf|png|jpe?g|webp)$/i.test(name)||
+  ['application/pdf','image/png','image/jpeg','image/webp'].indexOf(mime)<0||
+  base64.length<8||base64.length>2100000||!/^[A-Za-z0-9+/]+={0,2}$/.test(base64))
+  fail_('BAD_REQUEST','領収書は2MB未満のPDF・JPEG・PNG・WebPを選択してください');
+ var bytes;try{bytes=Utilities.base64Decode(base64);}catch(e){fail_('BAD_REQUEST','領収書を読み取れません');}
+ if(bytes.length>1500000||bytes.length<5)fail_('LIMIT','領収書の上限は1.5MBです');
+ var head=bytes.slice(0,12).map(function(n){return n&255;});
+ var pdf=mime==='application/pdf'&&head.slice(0,5).join(',')==='37,80,68,70,45';
+ var png=mime==='image/png'&&head.slice(0,4).join(',')==='137,80,78,71';
+ var jpg=mime==='image/jpeg'&&head.slice(0,3).join(',')==='255,216,255';
+ var webp=mime==='image/webp'&&String.fromCharCode.apply(null,head.slice(0,4))==='RIFF'&&
+  String.fromCharCode.apply(null,head.slice(8,12))==='WEBP';
+ if(!pdf&&!png&&!jpg&&!webp)fail_('BAD_REQUEST','領収書のファイル形式を確認してください');
+ var folder=stageReceiptFolder_(),file;
+ try{
+  file=folder.createFile(Utilities.newBlob(bytes,mime,name));
+  // File permissions are inherited from the private folder. Never publish.
+  var rows=entries_(ss),target=row_(rows,id);
+  expectVersion_(target.version,payload.expectedVersion);unlockable_(target);
+  var oldId=target.receiptFileId;
+  target.receiptFileId=file.getId();target.version++;
+  var sh=sheet_(ss,'全体収支管理表'),ix=rows.findIndex(function(r){return r.rowId===id;});
+  if(ix<0)fail_('NOT_FOUND','収支行が見つかりません');
+  sh.getRange(ix+2,11).setValue(target.version);
+  sh.getRange(ix+2,15).setValue(target.receiptFileId);
+  // Old receipts are kept private; do not risk removing evidence on replace.
+  return {ok:true,data:{rowId:id,version:target.version,receiptAttached:true,
+   replaced:!!oldId}};
+ }catch(e){
+  // Do not trash a file after the sheet has started to reference it.
+  if(file){try{
+   var saved=entries_(ss).find(function(r){return r.rowId===id;});
+   if(!saved||saved.receiptFileId!==file.getId())file.setTrashed(true);
+  }catch(_){/* retain uncertain file, never remove a referenced receipt */}}
+  throw e;
+ }
+}
+function receiptDownload_(ss,member,payload){
+ var id=str_(payload.rowId),row=row_(entries_(ss),id);
+ if(row.kind!=='practice'&&row.kind!=='reimbursement'||!row.receiptFileId)
+  fail_('NOT_FOUND','領収書が登録されていません');
+ var folder=stageReceiptFolder_(),file;
+ try{file=DriveApp.getFileById(row.receiptFileId);}
+ catch(e){fail_('NOT_FOUND','領収書が見つかりません');}
+ var parents=file.getParents(),allowed=false;
+ while(parents.hasNext())if(parents.next().getId()===folder.getId())allowed=true;
+ if(!allowed)fail_('FORBIDDEN','領収書の保存先が一致しません');
+ var blob=file.getBlob(),mime=blob.getContentType(),bytes=blob.getBytes();
+ if(bytes.length>1500000||['application/pdf','image/png','image/jpeg','image/webp'].indexOf(mime)<0)
+  fail_('LIMIT','領収書の形式またはサイズを確認してください');
+ return {ok:true,data:{rowId:id,fileName:file.getName(),mimeType:mime,
+  base64:Utilities.base64Encode(bytes)}};
+}
+
 function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||!conf_('BACKEND_SECRET'))fail_('UNAUTHORIZED','API接続を確認できません');
  // Guest sharing verifies a short-lived token; LINE login is not required.
  if(body.op==='match.guest.get')return accessGuestGet16_(ss_(),body.guestToken);
@@ -1818,8 +1893,9 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
  }
  if(op.indexOf('match.')===0)return matchApiDispatch_(ss,member,op,payload);
  requireDuty_(member);
- if(['overview','ledger.list','cash.get','schedule.list','schedule.delete.preview','participant.list'].indexOf(op)>=0)return withLock_(function(){return op==='overview'?overview_(ss,member,payload):op==='ledger.list'?monthLedger_(ss,member,payload):op==='cash.get'?cashGet_(ss,member,payload):op==='schedule.list'?scheduleList_(ss,member,payload):op==='schedule.delete.preview'?scheduleDeletePreview_(ss,member,payload):participantList_(ss,member,payload);});
- if(['payment.set','category.set','adjustment.set','expense.set','ledger.change','cash.save','schedule.change','participant.change'].indexOf(op)<0)fail_('BAD_REQUEST','API操作が不正です');
+ if(op==='receipt.get')return withLock_(function(){return receiptDownload_(ss,member,payload);});
+  if(['overview','ledger.list','cash.get','schedule.list','schedule.delete.preview','participant.list'].indexOf(op)>=0)return withLock_(function(){return op==='overview'?overview_(ss,member,payload):op==='ledger.list'?monthLedger_(ss,member,payload):op==='cash.get'?cashGet_(ss,member,payload):op==='schedule.list'?scheduleList_(ss,member,payload):op==='schedule.delete.preview'?scheduleDeletePreview_(ss,member,payload):participantList_(ss,member,payload);});
+ if(['payment.set','category.set','adjustment.set','expense.set','ledger.change','cash.save','schedule.change','participant.change','receipt.upload'].indexOf(op)<0)fail_('BAD_REQUEST','API操作が不正です');
  var opId=checkOpId_(payload);
  return withLock_(function(){
    var mark=paymentProfile?Date.now():0;
@@ -1831,7 +1907,8 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
    else if(op==='category.set')result=setCategory_(ss,member,payload);
    else if(op==='adjustment.set')result=changeMoney_(ss,member,payload,'adjustment');
    else if(op==='expense.set')result=changeMoney_(ss,member,payload,'expense');
-   else if(op==='cash.save')result=cashSave_(ss,member,payload);
+   else if(op==='receipt.upload')result=receiptUpload_(ss,member,payload);
+    else if(op==='cash.save')result=cashSave_(ss,member,payload);
    else if(op==='schedule.change')result=scheduleChange_(ss,member,payload);
    else if(op==='participant.change')result=participantChange_(ss,member,payload);
    else result=mutateLedger_(ss,member,payload);
