@@ -33,8 +33,7 @@ let rows={
   ['P-OTHER','M-O',true,1,'M-DUTY','2026-11-18 11:30']
  ],
  '試合セッション':[],
- '参加者操作アーカイブ':[['OP-OLD-EDIT','P-TODAY','V-A','edit','{}',
-  '2026-11-18 14:20:00','M-DUTY','completed']],
+ '参加者操作アーカイブ':[],
  '操作履歴':[
   ['OP-AT-1','attendance.submit','M-A','2026-11-18 20:10:00','P-TODAY|M-A','{}'],
   ['OP-AT-2','attendance.submit','M-A','2026-11-18 20:40:00','P-TODAY|M-A','{}']
@@ -119,6 +118,11 @@ ok(baseline.participants[1].registeredAt==='2026-11-18 13:20:00'&&
 ok(baseline.participants[0].lineUserId==='U'+'a'.repeat(32)&&
  baseline.participants[1].lineUserId===null,
  'attendee memberId resolves own LINE subject, not duty member or visitor sponsor');
+rows['参加者操作アーカイブ'].push(['OP-OLD-EDIT','P-TODAY','V-A','edit','{}',
+ '2026-11-18 14:20:00','M-DUTY','completed']);
+ok(list().participants[1].updatedAt==='2026-11-18 14:20:00',
+ 'a completed visitor edit archive supplies update date without changing signup');
+rows['参加者操作アーカイブ'].pop();
 ok(!baseline.financeLocked&&!baseline.matchLocked,'not finalized and no match allows editing');
 ok(baseline.practices.length===2&&baseline.practices[0].place==='曽谷公民館',
  'all schedules and their venues returned for date selector');
