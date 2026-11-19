@@ -585,3 +585,68 @@ body.stage-ui.access-v2-active #memberAccessPending .live-access-row button{
   padding-top:5px;
  }
 }
+
+
+/* v0.16.60 — secondary compact controls across every public staging screen.
+ * Inputs retain 44px accessible height and >=16px mobile type to avoid iOS
+ * focus zoom. Buttons retain their established role/disabled behavior. */
+.stage-ui button{padding-block:2px;line-height:1.2}
+.stage-ui input:not([type=checkbox]):not([type=radio]),
+.stage-ui select,
+.stage-ui textarea{
+ padding-block:3px;line-height:1.25;
+}
+.stage-ui .dialog-input,.stage-ui .dialog-select{padding-block:3px}
+.stage-ui .ledger-controls input,.stage-ui .date-selector select{padding-block:3px}
+.stage-ui .settings-row input,.stage-ui .settings-row select{
+ padding-block:3px;line-height:1.25;
+}
+.stage-ui .match-settings-body{row-gap:3px}
+.stage-ui .match-settings summary{padding-block:4px}
+.stage-ui .visitor-review-actions button,
+.stage-ui .participant-card-buttons button,
+.stage-ui .schedule-card-actions button,
+.stage-ui .modal-actions button,
+.stage-ui .match-controls button,
+.stage-ui .match-settings button,
+.stage-ui .match-modal-btn{padding-block:3px}
+.stage-ui .manage-grid{gap:5px;margin-top:5px}
+.stage-ui .manage-grid button{min-height:44px;padding-block:3px}
+.stage-ui .app-header .header-btns button{padding-block:3px}
+.stage-ui .stage-system-message{margin-block:3px 5px}
+.stage-ui .participant-card-details{line-height:1.25}
+.stage-ui dialog#participantDialog .participant-card-details{line-height:1.25}
+/* Neutral navigation for BOTH the home toolbar and management menu.
+ * Save/approve/confirm (green), delete (red) and editing continue as before. */
+.stage-ui :is(#reimbursementBtn,#manageBtn),
+.stage-ui #manageDialog .manage-grid button{
+ background:#eef2f7;color:#334e65;border:1px solid #cfd8df;
+}
+
+/* On narrow devices put Close on the TITLE row even when a screen has
+ * several context actions. Those context actions occupy the next row;
+ * no buttons, event listeners or aria labels are replaced. */
+@media(max-width:540px){
+ .stage-ui dialog.stage-has-toolbar:not(#ledgerDialog) .stage-dialog-toolbar{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;
+  grid-template-rows:auto auto;gap:4px 6px;align-items:center;
+ }
+ .stage-ui dialog.stage-has-toolbar:not(#ledgerDialog) .stage-dialog-toolbar > h2{
+  grid-column:1;grid-row:1;min-width:0;margin:0;flex:none;
+ }
+ .stage-ui dialog.stage-has-toolbar:not(#ledgerDialog) .stage-dialog-toolbar-actions{
+  display:contents;
+ }
+ .stage-ui dialog.stage-has-toolbar:not(#ledgerDialog)
+  .stage-dialog-toolbar-actions > .stage-dialog-top-close{
+  grid-column:2;grid-row:1;justify-self:end;align-self:center;
+ }
+ .stage-ui dialog.stage-has-toolbar:not(#ledgerDialog)
+  .stage-dialog-toolbar-actions > button:not(.stage-dialog-top-close){
+  grid-column:2;grid-row:2;justify-self:end;
+ }
+ .stage-ui dialog.stage-has-toolbar:not(#ledgerDialog)
+  .stage-dialog-toolbar-actions > button:nth-child(1):nth-last-child(3){
+  grid-column:1;grid-row:2;
+ }
+}
