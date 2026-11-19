@@ -559,3 +559,29 @@ body.stage-ui:not(.visitor-member) > main.container:not(.match-container) > #lis
   flex:1 0 90px;min-height:90px;
  }
 }
+
+
+/* The LIVE page defines some later inline styles. Scope these denser
+ * overrides under dialog IDs so they still win the cascade. */
+.stage-ui #scheduleDialog .schedule-card{padding:6px 8px;margin:4px 0}
+.stage-ui #scheduleDialog .schedule-card-detail{gap:1px;margin:4px 0;line-height:1.3}
+.stage-ui #scheduleDialog .schedule-card-actions{gap:4px;margin-top:4px}
+.stage-ui #scheduleDialog .schedule-actions{margin:5px 0;gap:5px}
+.stage-ui #participantDialog .participant-controls{padding:4px 6px;margin-bottom:4px}
+.stage-ui :is(#visitorDialog,#visitorAdminDialog) .visitor-review-card{
+ padding:6px 8px;margin-bottom:4px;
+}
+.stage-ui :is(#visitorDialog,#visitorAdminDialog) .visitor-review-list{gap:4px}
+.stage-ui :is(#visitorDialog,#visitorAdminDialog) .visitor-review-heading{line-height:1.3}
+body.stage-ui.access-v2-active #memberAccessMembers .live-access-row button,
+body.stage-ui.access-v2-active #memberAccessPending .live-access-row button{
+ padding-block:4px;min-height:44px;
+}
+@media (max-width:900px){
+ .stage-ui #ledgerDialog .ledger-table tbody tr{
+  padding:7px 8px;margin-bottom:5px;gap:3px 6px;
+ }
+ .stage-ui #ledgerDialog .ledger-table td.ledger-row-actions{
+  padding-top:5px;
+ }
+}
