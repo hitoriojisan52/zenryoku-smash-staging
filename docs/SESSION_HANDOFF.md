@@ -2,7 +2,7 @@
 
 このファイルは、新しいChatGPTチャットで必ず最初に確認する**継続開発用の入口**。
 単なる実装履歴ではなく、旧アプリの業務仕様を無断変更しないための確認事項。
-更新日: 2026-11-19 / ユーザー指定の仕様優先順位と接続検証用デプロイを引継ぎ。**最新main基準：staging v0.16.66（履歴参照・領収書部分失敗復旧・Drive権限確認）。PR #66のUI/GAS/仕様CI、Pages、GAS既存デプロイ@36、Cloudflare Workers Builds成功。公開Worker応答とLINE実機受入は未完了。**v0.16.53は退会結合試験当時の基準であり、現在の実装バージョンではない。CI/デプロイ/実機確認を混同せず毎回確認する。
+更新日: 2026-11-19 / ユーザー指定の仕様優先順位と接続検証用デプロイを引継ぎ。**最新main基準：staging v0.16.67（精算日曜日の欄内表示、iPhone HEIC/JPG写真変換）。PR #69のUI/GAS/仕様CI全成功、Pages/Cloudflare Workers Builds成功。GASは前回@36を維持（コード変更なし）。公開Worker実応答・iPhone LINE実機受入は未完了。本番未変更。**v0.16.53は退会結合試験当時の基準であり、現在の実装バージョンではない。CI/デプロイ/実機確認を混同せず毎回確認する。
 
 ## 1. 最優先原則
 
@@ -196,3 +196,5 @@
 - .jpg/.jpegは元から対応。iPhoneの高効率HEIC/HEIFをWebKitが解読可能な場合にクライアント側でJPEGへ変換し、大きなカメラ写真（元画像上限25MB）も保存時の1.5MB以下に縮小。未対応ブラウザは明示エラー。1.5MB以下の通常JPEGは無変換。
 - 会計行の登録前に画像変換の成否を検証する。認証・操作ID・版数・ScriptLock・GASの1.5MB保存制限・残高・確定順序・画像の非公開保存は不変。画像の再圧縮は原画像の変更ではないが、Drive上の証憑は変換JPEGになることに注意。
 - [差分・回帰テスト・実機手順](stage-v1667-inline-weekday-iphone-receipts.md)。新tests/check-stage-iphone-receipt-weekday-v1667.cjsで挙動を模擬。PR/CI/検証Pages反映/LINE実機受入は独立に確認して完了を記録する。**本番未変更**。
+
+- **v0.16.67反映結果（2026/11/19）**：PR #69は新24/24テストを含む全3系統CI成功後、検証用main SHA ee66b9535fa4c1fb14e42f8b25adcfa2528fe633 に統合。GitHub Pages build/deployとCloudflare Workers Buildsチェック成功。GAS/Worker本体は未変更。iPhone実機HEIC/写真選択・変換後JPEGのDrive登録/表示・細かい文字の判読性は未受入。本番未変更。
