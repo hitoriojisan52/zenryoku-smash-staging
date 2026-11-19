@@ -428,7 +428,7 @@ async function loadLedger(){const month=$('ledgerMonth').value,ledger=await call
     const link=document.createElement('a');link.href='#';link.className='receipt-ledger-link';
     link.textContent=' 🧾 領収書';link.setAttribute('aria-label',r.label+' の領収書を表示');
     link.addEventListener('click',event=>{
-     event.preventDefault();guard(()=>downloadReceipt_(r.rowId),'領収書を取得しています…');
+     event.preventDefault();viewReceipt_(r.rowId);
     });
     td.append(link);
    }
@@ -609,15 +609,47 @@ async function uploadReceipt_(file,row){
   expectedVersion:row.version,fileName:prepared.name,mimeType:prepared.type,
   base64:await receiptBase64_(prepared)});
 }
+/* Do not auto-click a download anchor after an awaited HTTP request:
+ * LINE WebViews often ignore that synthetic gesture without displaying an
+ * error. Show an in-app image/PDF preview and user-activated open/save links.
+ */
+let receiptPreviewUrl_='';
 async function downloadReceipt_(rowId){
  const result=await call('/api/receipt/get',{rowId});
  if(!result?.base64||!RECEIPT_MIMES.has(result.mimeType))throw new Error('領収書を取得できません');
  const raw=atob(result.base64),bytes=new Uint8Array(raw.length);
  for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
- const url=URL.createObjectURL(new Blob([bytes],{type:result.mimeType}));
- const link=document.createElement('a');link.href=url;link.download=String(result.fileName||'receipt').replace(/[/\\]/g,'_');
- document.body.append(link);link.click();link.remove();
- setTimeout(()=>URL.revokeObjectURL(url),30000);
+ const fileName=String(result.fileName||'receipt').replace(/[/\\]/g,'_');
+ return {url:URL.createObjectURL(new Blob([bytes],{type:result.mimeType})),
+  mimeType:result.mimeType,fileName};
+}
+function clearReceiptPreview_(){
+ $('receiptPreviewImage').removeAttribute('src');
+ $('receiptPreviewPdf').removeAttribute('src');
+ $('receiptPreviewOpen').removeAttribute('href');
+ $('receiptPreviewDownload').removeAttribute('href');
+ if(receiptPreviewUrl_){URL.revokeObjectURL(receiptPreviewUrl_);receiptPreviewUrl_='';}
+}
+function openReceiptPreview_(receipt){
+ clearReceiptPreview_();
+ receiptPreviewUrl_=receipt.url;
+ const pdf=receipt.mimeType==='application/pdf';
+ $('receiptPreviewInfo').textContent=receipt.fileName;
+ $('receiptPreviewImage').hidden=pdf;
+ $('receiptPreviewPdf').hidden=!pdf;
+ $('receiptPreviewHint').hidden=!pdf;
+ if(pdf)$('receiptPreviewPdf').src=receipt.url;
+ else $('receiptPreviewImage').src=receipt.url;
+ $('receiptPreviewOpen').href=receipt.url;
+ $('receiptPreviewDownload').href=receipt.url;
+ $('receiptPreviewDownload').download=receipt.fileName;
+ dialog('receiptPreviewDialog');
+}
+async function viewReceipt_(rowId){
+ // Release the full-screen spinner BEFORE calling showModal, so the
+ // retrieved receipt stays visible until the user closes it.
+ const receipt=await guard(()=>downloadReceipt_(rowId),'領収書を取得しています…');
+ if(receipt)openReceiptPreview_(receipt);
 }
 async function attachAfterLedgerSave_(file,ledgerResult,rowId){
  if(!file)return true;
@@ -1371,8 +1403,10 @@ function bind(){
   try{const row=S.overview?.ledger;await uploadReceipt_(file,row);toast('領収書を登録しました');await reload(true);}
   finally{$('homeReceipt').value='';}
  },'領収書をアップロードしています…'));
- $('homeReceiptView').addEventListener('click',()=>guard(async()=>downloadReceipt_(S.overview.ledger.rowId),'領収書を取得しています…'));
- $('ledgerViewReceipt').addEventListener('click',()=>guard(async()=>downloadReceipt_(S.ledgerRow.rowId),'領収書を取得しています…'));
+ $('homeReceiptView').addEventListener('click',()=>viewReceipt_(S.overview.ledger.rowId));
+ $('ledgerViewReceipt').addEventListener('click',()=>viewReceipt_(S.ledgerRow.rowId));
+ $('receiptPreviewClose').addEventListener('click',()=>close('receiptPreviewDialog'));
+ $('receiptPreviewDialog').addEventListener('close',clearReceiptPreview_);
  $('confirm').addEventListener('click',()=>{if(!S.overview?.ledger)return;ledgerAction('confirm',S.overview.ledger);});
  $('reimbursementBtn').addEventListener('click',()=>{$('payoutDate').value=today();syncPayoutWeekday_('payoutDate','payoutWeekday');$('reimbursementReceipt').disabled=false;dialog('reimbursementDialog');});
  $('payoutDate').addEventListener('change',()=>syncPayoutWeekday_('payoutDate','payoutWeekday'));
