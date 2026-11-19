@@ -626,8 +626,6 @@ async function downloadReceipt_(rowId){
 function clearReceiptPreview_(){
  $('receiptPreviewImage').removeAttribute('src');
  $('receiptPreviewPdf').removeAttribute('src');
- $('receiptPreviewOpen').removeAttribute('href');
- $('receiptPreviewDownload').removeAttribute('href');
  if(receiptPreviewUrl_){URL.revokeObjectURL(receiptPreviewUrl_);receiptPreviewUrl_='';}
 }
 function openReceiptPreview_(receipt){
@@ -637,12 +635,8 @@ function openReceiptPreview_(receipt){
  $('receiptPreviewInfo').textContent=receipt.fileName;
  $('receiptPreviewImage').hidden=pdf;
  $('receiptPreviewPdf').hidden=!pdf;
- $('receiptPreviewHint').hidden=!pdf;
  if(pdf)$('receiptPreviewPdf').src=receipt.url;
  else $('receiptPreviewImage').src=receipt.url;
- $('receiptPreviewOpen').href=receipt.url;
- $('receiptPreviewDownload').href=receipt.url;
- $('receiptPreviewDownload').download=receipt.fileName;
  dialog('receiptPreviewDialog');
 }
 async function viewReceipt_(rowId){
