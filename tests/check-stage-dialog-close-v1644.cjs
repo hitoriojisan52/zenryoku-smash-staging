@@ -87,9 +87,12 @@ for(const [id,opts] of Object.entries(screens)){
  ok(Boolean(bar),'full management screen has header toolbar: '+id);
  const headerButtons=bar.children[1].children;
  ok(headerButtons.at(-1)?.textContent==='✕ 閉じる','Close on far right: '+id);
- for(let i=0;i<(opts.top||[]).length;i++){
-  ok(headerButtons[i].id===opts.top[i]&&original.get(id).includes(headerButtons[i]),
-   'original context button reparented, never replaced: '+id+'/'+opts.top[i]);
+ ok(headerButtons.length===1,'only Close is in title, context buttons stay in their own rows: '+id);
+ for(const actionId of opts.top||[]){
+  const originalAction=original.get(id).find(b=>b.id===actionId);
+  ok(!!originalAction&&!headerButtons.includes(originalAction)&&
+   originalAction.parentElement!==bar.children[1],
+   'context action remains in date or section controls: '+id+'/'+actionId);
  }
  ok(original.get(id).every(b=>d.querySelectorAll('button').includes(b)),
   'all original controls still exist: '+id);
@@ -114,7 +117,7 @@ ok(!all.find(d=>d.id==='stageBusyDialog').querySelector('button'),
  'busy lock has no controls');
 ok(!js.includes('position:absolute')&&!css.includes('.stage-close-row'),
  'old overlapping Close implementation remains removed');
-ok(html.includes('dialog-close.js?v=1648')&&html.includes('stage-ui.css?v=1660'),
+ok(html.includes('dialog-close.js?v=1661')&&html.includes('stage-ui.css?v=1661'),
  'mobile web UI loads versioned scripts');
 ok(!match.includes('id="matchConfirmClose"')&&
  !confirm.includes("byId('matchConfirmClose')")&&
