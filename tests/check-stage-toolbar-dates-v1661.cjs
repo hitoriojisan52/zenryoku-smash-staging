@@ -96,8 +96,8 @@ ok(ui.includes('window.SMDate.practiceLabel(p), p.practiceId')&&
 ok(visitor.includes("{value:'all',text:'すべての日程'}")&&
  visitor.includes('if(!unique.has(r.practiceId))'),
  'all-practices option and deleted schedule historical requests retained');
-ok(html.includes('date-format.js?v=1661')&&html.includes('visitor-approval.js?v=1663')&&
- html.includes('dialog-close.js?v=1661')&&html.includes('stage-ui.css?v=1663')&&
- html.includes('live.js?v=1663'),
+ok(html.includes('date-format.js?v=1664')&&html.includes('visitor-approval.js?v=1664')&&
+ html.includes('dialog-close.js?v=1661')&&html.includes('stage-ui.css?v=1664')&&
+ html.includes('live.js?v=1664'),
  'all versioned page dependencies load new layout and date labels');
 console.log('PASS '+checks+'/'+checks+' schedule/context controls, compact taps and Japanese dropdown labels');
