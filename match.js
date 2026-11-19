@@ -4,6 +4,13 @@ const $=id=>document.getElementById(id),CFG=window.SMASH_CONFIG||{};
 const S={token:'',actor:null,view:null,practiceId:'',busy:false,timer:0,drafts:new Map(),draftUndo:new Map()};
 const clone=o=>JSON.parse(JSON.stringify(o));
 const initialDraft=()=>({lookaheadCount:5,enabledCourts:[1,2,3],excludedIds:[],fixedGroups:[]});
+function upcomingMatchPractices_(rows){return window.SMDate.upcomingPractices(rows);}
+function matchNoUpcoming_(){
+ S.practiceId='';S.view=null;
+ $('matchBody').replaceChildren();
+ $('matchControls').hidden=true;
+ $('matchHeader').textContent='本日以降の練習日程がありません';
+}
 function draft(){if(!S.drafts.has(S.practiceId))S.drafts.set(S.practiceId,initialDraft());return S.drafts.get(S.practiceId);}
 function settings(){return S.view?.session?.settings||draft();}
 function notice(msg){const el=$('matchToast');el.textContent=msg;el.classList.add('visible');clearTimeout(S.timer);S.timer=setTimeout(()=>el.classList.remove('visible'),2200);}
@@ -107,12 +114,14 @@ function render(){const v=S.view,s=v?.session,editable=isDuty();const body=$('ma
     ?'この開催日の参加者はまだ登録されていません。4名以上の参加登録後に対戦表を作成できます。'
     :count<4
      ?'参加者は現在'+count+'名です。対戦表の作成には4名以上必要です。'
-     :'対戦表を作成してください。'
+     :''
    :'対戦表の作成をお待ちください。';
-  const kind=editable&&count<4?'stage-system-message--warning':'stage-system-message--info';
-  const message=el('p','stage-system-message '+kind,text);
-  message.setAttribute('role','status');message.setAttribute('aria-live','polite');
-  body.append(message);
+  if(text){
+   const kind=editable&&count<4?'stage-system-message--warning':'stage-system-message--info';
+   const message=el('p','stage-system-message '+kind,text);
+   message.setAttribute('role','status');message.setAttribute('aria-live','polite');
+   body.append(message);
+  }
  }
  else{const finished=s.sessionState==='finished';$('matchHeader').textContent=finished?'対戦表の進行は終了しました':s.sessionState==='ready'?'試合開始前':`第${s.currentRound}試合`;
    const rounds=v.visibleRounds||[];if(!rounds.length)body.append(el('p','','対戦予定はありません。'));rounds.forEach((r,i)=>body.append(renderRound(r,i===0)));}
@@ -143,17 +152,17 @@ async function timedStartup(key,fn){
 }
 // v0.16 staging: members share one LIFF; read-only members use existing safe APIs.
 async function openGeneralMemberView16_(){
- const list=await request('/api/match/practices');
+ const result=await request('/api/match/practices');
+ const choices=upcomingMatchPractices_(result.practices);
  const selector=$('matchPractice');
- selector.replaceChildren(...list.practices.map(p=>new Option(window.SMDate.date(p.date)+' '+p.place,p.practiceId)));
- if(list.practices.length){
-   const requested=new URLSearchParams(location.search).get('practiceId');
-   S.practiceId=list.practices.some(p=>p.practiceId===requested)?requested:list.practices.at(-1).practiceId;
-   selector.value=S.practiceId;
-   await load();
- }else $('matchHeader').textContent='練習日程がありません';
+ selector.replaceChildren(...choices.map(p=>
+  new Option(window.SMDate.practiceLabel(p),p.practiceId)));
+ if(choices.length){
+  S.practiceId=choices[0].practiceId;selector.value=S.practiceId;
+  await load();
+ }else matchNoUpcoming_();
  window.SMAccess?.setup({api:request,role:S.actor.role,getPracticeId:()=>S.practiceId});
- setInterval(()=>{if(!S.busy&&!document.hidden)load().catch(()=>{});},12000);
+ setInterval(()=>{if(!S.busy&&!document.hidden&&S.practiceId)load().catch(()=>{});},12000);
 }
 async function init(){
  // The initial LINE login + schedule + match read is a foreground operation.
@@ -186,18 +195,18 @@ async function init(){
     if(!data||!data.actor||!Array.isArray(data.practices))throw Error('一括取得の応答形式が不正です');
     S.actor=data.actor;
     if(!isDuty()){if(CFG.accessFeaturesEnabled===true){await openGeneralMemberView16_();return;} $('matchHeader').textContent='当番チーム所属者・管理者専用です';return;}
-    const choices=data.practices;
-    const selector=$('matchPractice');selector.replaceChildren(...choices.map(p=>new Option(`${window.SMDate.date(p.date)} ${p.place}`,p.practiceId)));
+    const choices=upcomingMatchPractices_(data.practices);
+    const selector=$('matchPractice');
+    selector.replaceChildren(...choices.map(p=>
+     new Option(window.SMDate.practiceLabel(p),p.practiceId)));
     if(choices.length){
       const selected=data.selectedPracticeId;
-      if(!choices.some(p=>p.practiceId===selected)||!data.view||data.view.practiceId!==selected){
-        throw Error('一括取得した対戦表の内容が不正です');
-      }
-      S.practiceId=selected;
-      selector.value=selected;
-      S.view=data.view;
-      render();
-    }else $('matchHeader').textContent='練習日程がありません';
+      if(!data.view||data.view.practiceId!==selected)
+       throw Error('一括取得した対戦表の内容が不正です');
+      S.practiceId=choices[0].practiceId;selector.value=S.practiceId;
+      if(selected===S.practiceId){S.view=data.view;render();}
+      else await timedStartup('match',()=>load());
+    }else matchNoUpcoming_();
   }else{
   const parallelStart=performance.now();
   const [actor,choices]=await Promise.all([
@@ -207,14 +216,15 @@ async function init(){
   Startup.timings.parallel=Math.round(performance.now()-parallelStart);
   S.actor=actor;
   if(!isDuty()){if(CFG.accessFeaturesEnabled===true){await openGeneralMemberView16_();return;} $('matchHeader').textContent='当番チーム所属者・管理者専用です';return;}
-  const selector=$('matchPractice');selector.replaceChildren(...choices.practices.map(p=>new Option(`${window.SMDate.date(p.date)} ${p.place}`,p.practiceId)));
-  if(choices.practices.length){
-   const requested=new URLSearchParams(location.search).get('practiceId');
-   S.practiceId=choices.practices.some(p=>p.practiceId===requested)?requested:choices.practices.at(-1).practiceId;
-   selector.value=S.practiceId;
+  const eligible=upcomingMatchPractices_(choices.practices);
+  const selector=$('matchPractice');
+  selector.replaceChildren(...eligible.map(p=>
+   new Option(window.SMDate.practiceLabel(p),p.practiceId)));
+  if(eligible.length){
+   S.practiceId=eligible[0].practiceId;selector.value=S.practiceId;
    $('matchHeader').textContent='対戦表を読み込んでいます…';
    await timedStartup('match',()=>load());
-  }else $('matchHeader').textContent='練習日程がありません';
+  }else matchNoUpcoming_();
   }
   if(CFG.accessFeaturesEnabled===true)window.SMAccess?.setup({api:request,role:S.actor.role,getPracticeId:()=>S.practiceId});
   setInterval(()=>{if(!S.busy&&!SMMatchConfirm.isOpen()&&!document.hidden&&!$('courtSettings').open&&!$('participantSettings').open)load().catch(()=>{});},9000);
@@ -252,7 +262,7 @@ $('deleteMatch').addEventListener('click',async()=>{
  const current=S.view.session,practiceId=S.practiceId;
  const confirmed=await SMMatchConfirm.ask({
   title:'【対戦表の削除】',
-  message:'この開催日の対戦表を削除しますか？\n試合進行状況・作成履歴・閲覧リンクも削除または無効化します。\n参加者・集金・収支データは残します。\n削除後は参加者を修正し、対戦表を作り直せます。',
+  message:'この開催日の対戦表を削除しますか？',
   confirmLabel:'削除する',danger:true
  });
  if(!confirmed)return;
