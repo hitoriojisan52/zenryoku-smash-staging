@@ -40,7 +40,7 @@ ok(css.includes('.stage-ui button{min-height:44px;font-size:14px;font-weight:700
 for(const page of ['live.html','match.html','match-view.html','guest.html']){
  ok(file(page).includes('stage-ui.css?v=1661'),page+' refreshes shared compact CSS');
 }
-ok(html.includes('live.js?v=1660'),'ledger JS cache bust applied');
+ok(html.includes('live.js?v=1661'),'ledger JS cache bust applied');
 ok(css.includes('tr.carry-row{')&&
  css.includes('#ledgerDialog .ledger-table tbody tr.carry-row'),
  'carry-forward light yellow styling preserved in both layouts');
