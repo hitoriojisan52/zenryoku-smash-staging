@@ -966,8 +966,7 @@ body.stage-ui > main.container .app-header h1{
    dropdown icon. CSS ch tracks the visible 10-character yyyy/mm/dd width
    while allowing the native picker to stay at the far right. */
 .stage-ui .payout-date-field input[type="date"]{
- display:block;width:100%;box-sizing:border-box;
- padding-right:9px!important;
+ display:block;width:100%;box-sizing:border-box;padding-right:87px!important;
 }
 .stage-ui .payout-date-field .weekday-hint{
  position:absolute;top:50%;left:calc(10.5ch + 9px);right:auto;
