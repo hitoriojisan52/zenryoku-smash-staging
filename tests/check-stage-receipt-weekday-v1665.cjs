@@ -18,5 +18,5 @@ ok(gas.includes("unlockable_(row);expectVersion_(row.version,payload.expectedVer
 ok(gas.includes("sh.getRange(ix+2,11,1,5).setValues"),'version and file reference are attached in one sheet update');
 ok(gas.includes("if(r.kind==='practice')fail_('FORBIDDEN'")&& !html.includes('練習日（削除行を再登録）'), 'deleted practice row restoration is no longer supported; delete via schedule master');
 ok(!js.includes("deleted.has(p.practiceId)")&&gas.includes("kind==='reimbursement'||kind==='other'"), 'only other/reimbursement ledger row creation is supported');
-ok(html.includes('stage-ui.css?v=1672-finance-receipt')&&html.includes('live.js?v=1672-finance-receipt'),'new client code cache-busted');
+ok(html.includes('stage-ui.css?v=1673-receipt-close')&&html.includes('live.js?v=1673-receipt-close'),'new client code cache-busted');
 console.log('PASS '+n+'/'+n+' receipt upload, payout weekdays and deleted-ledger eligibility');
