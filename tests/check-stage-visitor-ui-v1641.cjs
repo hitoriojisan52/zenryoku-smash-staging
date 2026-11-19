@@ -36,7 +36,7 @@ const document={getElementById:id=>elements[id]||(elements[id]=new Node(id)),
 vm.runInNewContext(ui,{window:w,document,Date,Intl,console},{filename:'visitor-approval.js'});
 const practiceId='PR-SYNTHETIC-1121',rows=[
  {requestId:'VR-ONE',practiceId,name:'仮一郎',date:'2026-11-21',place:'検証体育館',
-  requestedAt:old,status:'pending',version:0,requestedByName:'一般メンバー'},
+  requestedAt:old,status:'pending',version:0,requestedByName:'一般メンバー',nameKana:'カナサンプル',memo:'遅刻します'},
  {requestId:'VR-TWO',practiceId,name:'仮二郎',date:'2026-11-21',place:'検証体育館',
   requestedAt:old,status:'approved',attending:true,version:1,requestedByName:'一般メンバー'},
  {requestId:'VR-THREE',practiceId,name:'仮三郎',date:'2026-11-21',place:'検証体育館',
@@ -66,7 +66,9 @@ const deepText=e=>[e.textContent,...e.children.map(deepText)].filter(Boolean).jo
  const cards=elements.visitorAdminCards.children;
  for(const card of cards){
   const text=deepText(find(card,'visitor-review-info')||card);
-  ok(text.includes('申請日時：'+expected),'rendered application date is yyyy/MM/dd HH:mm JST');
+  ok(text.includes('申請日：'+expected),'rendered application date is yyyy/MM/dd HH:mm JST');
+  ok(text.includes('👤 申請者：一般メンバー')&&!text.includes('カナ：'),
+   'admin review shows applicant icon and hides registration kana');
   ok(!text.includes('GMT+')&&!text.includes('Wed Nov'),
    'no raw Date.toString / GMT English timestamp in UI');
  }
@@ -117,6 +119,11 @@ const deepText=e=>[e.textContent,...e.children.map(deepText)].filter(Boolean).jo
   'approved own visitor: modify enabled, delete disabled');
  ok(rejectedActions.every(button=>button.disabled),
   'rejected own request: no modify or delete actions');
+ ok(deepText(elements.visitorMineCards.children[0]).includes('📝 遅刻します')&&
+  !deepText(elements.visitorMineCards.children[0]).includes('備考:')&&
+  !deepText(elements.visitorAdminCards.children[0]).includes('備考:')&&
+  !deepText(elements.visitorMineCards.children[0]).includes('カナ：'),
+  'visitor request/admin lists show plain note and hide kana');
  ok(!deepText(elements.visitorMineCards).includes('📧'),
   'visitor self-service cards never show email');
  ok(find(memberCards[1],'participant-card-attendance').textContent==='参加',
