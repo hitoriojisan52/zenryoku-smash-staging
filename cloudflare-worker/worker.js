@@ -29,6 +29,8 @@ const VALID_PATHS = Object.freeze({
   '/api/expense':'expense.set',
   '/api/ledger':'ledger.list',
   '/api/ledger/change':'ledger.change',
+  '/api/receipt/upload':'receipt.upload',
+  '/api/receipt/get':'receipt.get',
   '/api/cash/get':'cash.get',
   '/api/cash/save':'cash.save',
   '/api/schedule/list':'schedule.list',
@@ -186,12 +188,13 @@ export async function handleRequest(request,env){
   const isGuest=op==='match.guest.get';
   const tokenMatch=/^Bearer ([A-Za-z0-9_.-]+)$/.exec(request.headers.get('Authorization')||'');
   if(!isGuest&&!tokenMatch)return failure('LINE認証が必要です',401,origin);
+  const limit=op==='receipt.upload'?2200000:32768;
   const length=Number(request.headers.get('Content-Length')||0);
-  if(length>32768)return failure('要求が大きすぎます',413,origin);
+  if(length>limit)return failure('要求が大きすぎます',413,origin);
   let phase='request_body';
   try{
     const raw=await request.text();
-    if(raw.length>32768)return failure('要求が大きすぎます',413,origin);
+    if(raw.length>limit)return failure('要求が大きすぎます',413,origin);
     let payload;
     try{payload=JSON.parse(raw);}catch(_){return failure('要求のJSON形式が不正です（診断コード：BAD_REQUEST_JSON）',400,origin,'BAD_REQUEST_JSON');}
     if(!payload||Array.isArray(payload)||typeof payload!=='object')return failure('要求形式が不正です',400,origin);
