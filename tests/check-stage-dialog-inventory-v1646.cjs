@@ -37,12 +37,13 @@ const dialogMap={
  confirmActionDialog:['cancelConfirmAction','doConfirmAction'],
  accessConfirmV2:['accessConfirmCancelV2','accessConfirmOkayV2'],
  memberAccessEditV1656:['memberAccessEditCancelV1656','memberAccessEditSaveV1656'],
+ receiptPreviewDialog:['receiptPreviewClose'],
  stageBusyDialog:[],
  stageErrorDialog:['stageErrorOkay']
 };
 const blocks=[...html.matchAll(/<dialog\s[^>]*\bid="([^"]+)"[^>]*>([\s\S]*?)<\/dialog>/g)];
-ok(blocks.length===28,'expected 28 operational modal surfaces (no modal removed)');
-ok(Object.keys(dialogMap).length===28,'inventory intentionally covers every dialog');
+ok(blocks.length===29,'expected 29 operational modal surfaces (no modal removed)');
+ok(Object.keys(dialogMap).length===29,'inventory intentionally covers every dialog');
 for(const [,id,body] of blocks){
  ok(Object.hasOwn(dialogMap,id),'new or removed dialog must be reviewed: '+id);
  const controls=[...body.matchAll(/<button\b[^>]*\bid="([^"]+)"/g)].map(x=>x[1]);
