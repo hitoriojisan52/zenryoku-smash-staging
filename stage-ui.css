@@ -938,3 +938,46 @@ body.stage-ui > main.container .app-header h1{
 .stage-ui #participantSettings.match-settings{margin-top:2px;}
 .stage-ui #courtSettings .match-settings-body,
 .stage-ui #participantSettings .match-settings-body{padding:4px;}
+
+
+/* v0.16.65: weekday beside native settlement date picker, without altering
+ * its machine-readable YYYY-MM-DD value or the compact common input height. */
+.stage-ui .receipt-date-row{
+ display:flex;gap:7px;align-items:center;min-width:0;
+}
+.stage-ui .receipt-date-row input{
+ flex:1 1 auto;min-width:0;width:auto;
+}
+.stage-ui .receipt-weekday{
+ flex:0 0 auto;color:#37546a;font-weight:700;font-size:14px;
+ white-space:nowrap;
+}
+.stage-ui .receipt-note,.stage-ui .receipt-existing{
+ display:block;color:#4b6474;line-height:1.4;font-size:12px;
+ margin:4px 0;
+}
+.stage-ui .receipt-note:empty,.stage-ui .receipt-existing:empty{display:none}
+.stage-ui .receipt-row-link{
+ min-width:30px!important;min-height:30px!important;
+ padding:0 4px!important;margin-left:5px;
+ vertical-align:middle;font-size:15px;
+}
+.stage-ui #ledgerCurrentReceiptBtn{
+ display:inline-block;margin:2px 0 5px;font-size:12px;
+}
+.stage-ui #receiptViewerDialog{max-width:560px;width:calc(100% - 18px);}
+.stage-ui .receipt-preview{
+ display:block;width:100%;height:min(65dvh,560px);
+ object-fit:contain;border:1px solid #e2e8ed;border-radius:5px;
+ background:#f8fafb;margin:6px 0;
+}
+.stage-ui #receiptPreviewImage{height:auto;max-height:65dvh;}
+.stage-ui #receiptDownloadLink{
+ display:inline-block;padding:6px 12px;
+ border:1px solid #b9cedd;border-radius:5px;
+ color:#315c78;text-decoration:none;
+}
+.stage-ui :is(#receiptPreviewImage,#receiptPreviewPdf,#receiptViewBtn,
+ #ledgerCurrentReceiptBtn)[hidden]{display:none!important;}
+.stage-ui .expense-actions{min-width:0;gap:4px;}
+.stage-ui .expense-actions .receipt-btn{white-space:nowrap;font-size:12px;}
