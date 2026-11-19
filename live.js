@@ -866,7 +866,11 @@ async function registerVisitor_(){
   $('visitorName').value='';$('visitorKana').value='';$('visitorMemo').value='';
   // Keep the integrated screen open: the newly submitted request must be
   // visible ABOVE the next empty registration form.
-  try{await window.SMVisitor.loadMine();$('visitorNewFormSection').open=false;}
+  try{
+   // Keep a newly sent request visible even when its date is not nearest.
+   $('visitorMinePractice').value=d.practiceId;
+   await window.SMVisitor.loadMine();$('visitorNewFormSection').open=false;
+  }
   catch(_){
    $('visitorStatus').textContent='申請は受け付けられました。申請状況を「更新」で確認してください。';
   }
