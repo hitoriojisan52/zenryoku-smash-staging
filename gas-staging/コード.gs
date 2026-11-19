@@ -1783,6 +1783,15 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
   });
  }
  if(op.indexOf('member.manage.')===0)return accessManagement16_(ss,member,op,payload);
+ if(op==='receipt.get')return receiptGetV1665_(ss,member,payload);
+ if(op==='receipt.upload'){
+  var receiptOpId=checkOpId_(payload);
+  return withLock_(function(){
+   var replay=auditExisting_(ss,receiptOpId,'receipt.upload',member);
+   if(replay)return replay;
+   return receiptUploadV1665_(ss,member,payload);
+  });
+ }
  if(op==='match.share.issue')return accessShareIssue16_(ss,member,payload);
  if(op==='match.share.revoke')return accessShareRevoke16_(ss,member,payload);
  // Match reads and roster reads are allowed for registered LINE members.
@@ -1864,6 +1873,92 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
    return result;
  },paymentProfile);
 }
+// v0.16.65: PRIVATE staging receipts. Owner's My Drive only, never shared.
+var SM_RECEIPT_MAX_=4*1024*1024;
+function receiptFolderV1665_(){
+ if(conf_('SPREADSHEET_ID')!=='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac')
+  fail_('STAGING_ONLY','検証環境以外では領収書を利用できません');
+ var props=PropertiesService.getScriptProperties(),id=props.getProperty('STAGE_RECEIPTS_FOLDER_ID');
+ try{
+  if(id)return DriveApp.getFolderById(id);
+  var folder=DriveApp.createFolder('全力スマッシュ_検証用領収書_非公開');
+  props.setProperty('STAGE_RECEIPTS_FOLDER_ID',folder.getId());
+  return folder;
+ }catch(_){fail_('SETUP','領収書の保存先にアクセスできません。GAS所有者のDriveアクセス承認が必要です');}
+}
+function receiptValidateV1665_(mime,bytes){
+ if(!bytes||bytes.length<12||bytes.length>SM_RECEIPT_MAX_)
+  fail_('BAD_REQUEST','領収書は4MB以下にしてください');
+ var u=function(i){return (bytes[i]+256)%256;};
+ var str=function(i,n){var s='';for(var j=i;j<i+n;j++)s+=String.fromCharCode(u(j));return s;};
+ var allowed=mime==='image/jpeg'&&u(0)===255&&u(1)===216&&u(2)===255||
+   mime==='image/png'&&u(0)===137&&str(1,3)==='PNG'||
+   mime==='image/webp'&&str(0,4)==='RIFF'&&str(8,4)==='WEBP'||
+   mime==='application/pdf'&&str(0,5)==='%PDF-'||
+   (mime==='image/heic'||mime==='image/heif')&&str(4,4)==='ftyp'&&
+    /^(heic|heix|hevc|hevx|mif1|msf1)$/.test(str(8,4));
+ if(!allowed)fail_('BAD_REQUEST','JPEG・PNG・WebP・HEIC・PDFのみ使用できます');
+}
+function receiptRowV1665_(ss,raw){
+ var id=str_(raw);
+ if(!/^[PR]-[\w-]{8,110}$/.test(id))fail_('BAD_REQUEST','収支行IDが不正です');
+ var matches=entries_(ss).filter(function(r){return r.rowId===id;});
+ if(matches.length!==1)fail_('NOT_FOUND','収支行が見つかりません');
+ if(['practice','reimbursement'].indexOf(matches[0].kind)<0)
+  fail_('FORBIDDEN','この収支区分には領収書を登録できません');
+ return matches[0];
+}
+function receiptGetV1665_(ss,member,payload){
+ requireDuty_(member);
+ var r=receiptRowV1665_(ss,payload.rowId);
+ if(!r.receiptFileId)fail_('NOT_FOUND','領収書は登録されていません');
+ try{
+  var folder=receiptFolderV1665_(),file=DriveApp.getFileById(r.receiptFileId),
+      parents=file.getParents(),found=false;
+  while(parents.hasNext())if(parents.next().getId()===folder.getId())found=true;
+  if(!found||file.isTrashed())fail_('FORBIDDEN','領収書の保存先が不正です');
+  var data=file.getBlob().getBytes(),mime=file.getMimeType();
+  receiptValidateV1665_(mime,data);
+  return {ok:true,data:{rowId:r.rowId,version:r.version,name:file.getName(),
+   mimeType:mime,contentBase64:Utilities.base64Encode(data)}};
+ }catch(e){if(e.smCode)throw e;fail_('STORAGE_INCOMPLETE','領収書の読み取りに失敗しました');}
+}
+function receiptUploadV1665_(ss,member,payload){
+ requireDuty_(member);
+ var opId=checkOpId_(payload),r=receiptRowV1665_(ss,payload.rowId);
+ unlockable_(r);dateAllowed_(r.date);expectVersion_(r.version,payload.expectedVersion);
+ if(r.kind==='practice'&&r.expense<=0)fail_('BAD_REQUEST','当日支出を先に登録してください');
+ var name=str_(payload.filename).replace(/[\/\\\u0000-\u001f]/g,'_').slice(0,120),
+     mime=str_(payload.mimeType),raw=str_(payload.contentBase64);
+ if(!name||raw.length<16||raw.length>5600000||raw.length%4!==0||
+    !/^[A-Za-z0-9+/]+={0,2}$/.test(raw))
+  fail_('BAD_REQUEST','領収書ファイルを確認してください');
+ var bytes;
+ try{bytes=Utilities.base64Decode(raw);}catch(_){fail_('BAD_REQUEST','領収書の形式が不正です');}
+ receiptValidateV1665_(mime,bytes);
+ var folder=receiptFolderV1665_(),file,linked=false;
+ try{
+  file=folder.createFile(Utilities.newBlob(bytes,mime,name));
+  file.setDescription(JSON.stringify({operationId:opId,rowId:r.rowId,uploadedBy:member.memberId,uploadedAt:now_()}));
+  var sh=sheet_(ss,'全体収支管理表'),last=sh.getLastRow(),
+      ids=last>1?sh.getRange(2,7,last-1,1).getValues():[],matches=[];
+  for(var i=0;i<ids.length;i++)if(str_(ids[i][0])===r.rowId)matches.push(i+2);
+  if(matches.length!==1)fail_('CONFLICT','収支行が変更されています');
+  // One metadata write: no money/date/status/confirmed fields are touched.
+  sh.getRange(matches[0],11,1,5).setValues([[
+   r.version+1,r.adjustment,safeCell_(r.item),safeCell_(r.payee),file.getId()
+  ]]);
+  linked=true;
+  var result={ok:true,data:{rowId:r.rowId,version:r.version+1,hasReceipt:true,filename:name}};
+  audit_(ss,opId,'receipt.upload',member,r.rowId,result);
+  return result;
+ }catch(e){
+  if(file&&!linked)try{file.setTrashed(true);}catch(_){}
+  if(e.smCode)throw e;
+  fail_('STORAGE_INCOMPLETE','領収書の保存結果が不明です。再読込して確認してください');
+ }
+}
+
 function doPost(e){var response;try{if(!e||!e.postData||!e.postData.contents)fail_('BAD_REQUEST','要求がありません');response=dispatch_(JSON.parse(e.postData.contents));}catch(err){response={ok:false,code:err.smCode||'INTERNAL',error:err.smCode?err.message:'サーバー側で処理できませんでした'};console.error(err);}return ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON);}
 /** One-time setup only for a BLANK, NEW spreadsheet. Must be manually run in editor. */
 function setupNewSystem(){var ss=ss_();var names=Object.keys(SM.headers);if(names.some(function(name){return !!ss.getSheetByName(name);}))throw new Error('既存の新システム用シートを検出したためセットアップを中止しました');
