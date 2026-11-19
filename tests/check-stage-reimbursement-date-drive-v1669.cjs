@@ -22,9 +22,9 @@ let stored=[
 const fail_=(code,message)=>{throw Object.assign(new Error(message),{smCode:code})};
 const entries_=()=>stored.map(r=>({...r}));
 const str_=v=>String(v??'').trim();
-const mutation=new Function('entries_','str_','dateAllowed_','jpy_','fail_','balanceRecalc_','writeLedger_',
+const mutation=new Function('entries_','str_','norm_','dateAllowed_','jpy_','fail_','balanceRecalc_','writeLedger_',
  gas.slice(start,end)+'\nreturn mutateLedger_;')(
- entries_,str_,date=>{if(date>'2026-11-20')fail_('BAD_REQUEST','future')},
+ entries_,str_,str_,date=>{if(date>'2026-11-20')fail_('BAD_REQUEST','future')},
  v=>{const x=Number(v);if(!Number.isSafeInteger(x)||x<0)fail_('BAD_REQUEST','invalid money');return x},
  fail_,rows=>{calculations++;return rows},(_ss,rows)=>{writes++;stored=rows.map(r=>({...r}))});
 let thrown=null;
