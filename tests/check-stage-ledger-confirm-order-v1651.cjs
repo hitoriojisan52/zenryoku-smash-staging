@@ -55,9 +55,9 @@ const mmStart=gas.indexOf('function monthLedger_(');
 const mmEnd=gas.indexOf('\n\n/**',mmStart);
 ok(mmStart>=0&&mmEnd>mmStart,'month ledger API code can be isolated');
 const monthLedger=new Function('entries_','today_','str_','fail_',
- 'ledgerChronologyCompare_',gas.slice(mmStart,mmEnd)+
+ 'ledgerChronologyCompare_','deletedPracticeLedgerIds_',gas.slice(mmStart,mmEnd)+
  '\nreturn monthLedger_;'
-)(entries_,today_,str_,fail_,compare);
+)(entries_,today_,str_,fail_,compare,()=>[]);
 let november=monthLedger({}, {role:'admin'}, {month:'2026-11'}).data;
 ok(november.rows.length===3&&
  november.rows.find(x=>x.rowId==='P-NOV').canConfirm===false,
