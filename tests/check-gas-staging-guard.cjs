@@ -24,6 +24,17 @@ try{
  ok(files.every(base=>fs.existsSync(path.join(dir,base+'.js'))&&!fs.existsSync(path.join(dir,base+'.gs'))),'clasp pulled JS filenames, no duplicate GS');
  const extraBefore=fs.readFileSync(path.join(dir,'OtherFile.js'),'utf8');
  const manifestBefore=fs.readFileSync(path.join(dir,'appsscript.json'),'utf8');
+ ok(run('preflight').includes('STAGING_DRIVE_CREATEFOLDER_SCOPE=auto-detection'),
+  'missing oauthScopes means Apps Script automatic scope detection, not proof of authorization');
+ const missingManifest='{"timeZone":"Asia/Tokyo","runtimeVersion":"V8","oauthScopes":["https://www.googleapis.com/auth/spreadsheets"]}\n';
+ fs.writeFileSync(path.join(dir,'appsscript.json'),missingManifest);
+ ok(run('preflight').includes('STAGING_DRIVE_CREATEFOLDER_SCOPE=missing-required-drive-scope'),
+  'explicit manifest missing Drive full scope is detected without modifying remote script');
+ const permittedManifest='{"timeZone":"Asia/Tokyo","runtimeVersion":"V8","oauthScopes":["https://www.googleapis.com/auth/spreadsheets","https://www.googleapis.com/auth/drive"]}\n';
+ fs.writeFileSync(path.join(dir,'appsscript.json'),permittedManifest);
+ ok(run('preflight').includes('STAGING_DRIVE_CREATEFOLDER_SCOPE=declared'),
+  'explicit Drive scope is reported without claiming runtime OAuth consent');
+ fs.writeFileSync(path.join(dir,'appsscript.json'),manifestBefore);
  ok(run('preflight').includes('no GAS files or deployments were changed'),'read-only preflight');
  ok(run('deploy').includes('Overlay ready'),'overlay stage');
  ok(run('verify').includes('verification PASS'),'verify after overlay');
