@@ -630,7 +630,9 @@ function mutateLedger_(ss,member,payload){
  if(action!=='add'){r=row_(rows,id);expectVersion_(r.version,payload.expectedVersion);}
  if(action==='add'){
    var kind=str_(payload.kind);if(kind==='practice'){
-     var p=practice_(ss,str_(payload.practiceId));dateAllowed_(p.date);var access=collectionState_(ss,p,rows);if(!access.canStart)fail_('LOCKED',access.reason);id='P-'+p.practiceId;
+     var p=practice_(ss,str_(payload.practiceId));dateAllowed_(p.date);
+      if(deletedPracticeLedgerIds_(ss,rows).indexOf(p.practiceId)<0)fail_('BAD_REQUEST','削除された収支行がありません');
+      var access=collectionState_(ss,p,rows);if(!access.canStart)fail_('LOCKED',access.reason);id='P-'+p.practiceId;
      if(rows.some(function(x){return x.rowId===id;}))fail_('CONFLICT','練習日の収支行は登録済みです');
      r={date:p.date,label:p.place,income:practiceIncome_(ss,p.practiceId,0),expense:0,balance:0,confirmedBy:'',rowId:id,kind:'practice',practiceId:p.practiceId,status:'open',version:1,adjustment:0,item:'',payee:'',receiptFileId:'',createdBy:member.memberId};rows.push(r);
    }else if(kind==='reimbursement'||kind==='other'){
@@ -1783,8 +1785,8 @@ function receiptUpload_(ss,member,payload){
   target.receiptFileId=file.getId();target.version++;
   var sh=sheet_(ss,'全体収支管理表'),ix=rows.findIndex(function(r){return r.rowId===id;});
   if(ix<0)fail_('NOT_FOUND','収支行が見つかりません');
-  sh.getRange(ix+2,11).setValue(target.version);
-  sh.getRange(ix+2,15).setValue(target.receiptFileId);
+  sh.getRange(ix+2,11,1,5).setValues([[target.version,target.adjustment,
+   safeCell_(target.item),safeCell_(target.payee),target.receiptFileId]]);
   // Old receipts are kept private; do not risk removing evidence on replace.
   return {ok:true,data:{rowId:id,version:target.version,receiptAttached:true,
    replaced:!!oldId}};
