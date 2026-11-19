@@ -999,8 +999,8 @@ body.stage-ui > main.container .app-header h1{
  padding-block:4px!important;
 }
 
-/* v0.16.72: persistent in-app preview for LINE in-app browser.
-   Explicit user gestures on links also work if PDF plugin cannot render. */
+/* v0.16.73: persistent in-app receipt preview. The single Close control
+   is moved to the normal top-right title toolbar by dialog-close.js. */
 .stage-ui #receiptPreviewDialog{width:min(96vw,680px);max-width:680px}
 .stage-ui #receiptPreviewDialog .receipt-preview-image{
  display:block;max-width:100%;max-height:65vh;width:auto;height:auto;
@@ -1011,8 +1011,3 @@ body.stage-ui > main.container .app-header h1{
  border-radius:6px;
 }
 .stage-ui #receiptPreviewDialog [hidden]{display:none!important}
-.stage-ui #receiptPreviewDialog .modal-actions{flex-wrap:wrap}
-.stage-ui #receiptPreviewDialog .modal-actions a{
- display:inline-flex;align-items:center;justify-content:center;text-decoration:none;
- padding:7px 11px;border-radius:7px;min-height:38px;box-sizing:border-box;
-}
