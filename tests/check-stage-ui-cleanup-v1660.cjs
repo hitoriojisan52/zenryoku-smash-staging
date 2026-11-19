@@ -52,7 +52,7 @@ ok(css.includes('.stage-dialog-toolbar-actions > button:not(.stage-dialog-top-cl
  read('dialog-close.js').includes("actions.append(closeButton)"),
  'original context actions keep their listeners and move below Close only when needed');
 for(const page of ['live.html','match.html','match-view.html','guest.html'])
- ok(read(page).includes('stage-ui.css?v=1662'),page+' uses refreshed shared CSS');
+ ok(read(page).includes('stage-ui.css?v=1663'),page+' uses refreshed shared CSS');
 // Participant management must NEVER show LINE identities; timestamps must
 // be backed by existing immutable histories, not guessed date values.
 const pBegin=ui.indexOf('function renderParticipantManager_(){');
