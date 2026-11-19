@@ -504,12 +504,90 @@ async function executeLedgerAction(){close('confirmActionDialog');await guard(as
 });}
 
 const RECEIPT_MAX_BYTES=1500000;
+const RECEIPT_SOURCE_MAX_BYTES=25000000; // iPhone source limit; uploaded bytes still <= 1.5MB.
 const RECEIPT_MIMES=new Set(['application/pdf','image/jpeg','image/png','image/webp']);
+const RECEIPT_HEIC_MIMES=new Set(['image/heic','image/heif','image/heic-sequence','image/heif-sequence']);
 function receiptFile_(file){
  if(!file)return null;
- if(!RECEIPT_MIMES.has(file.type)||file.size<5||file.size>RECEIPT_MAX_BYTES)
-  throw new Error('領収書は1.5MB以下のPDF・JPEG・PNG・WebPを選択してください');
+ const type=String(file.type||'').toLowerCase();
+ const name=String(file.name||'');
+ const ext=(/\.([a-z0-9]+)$/i.exec(name)||[])[1]?.toLowerCase()||'';
+ const knownType=RECEIPT_MIMES.has(type)||RECEIPT_HEIC_MIMES.has(type);
+ const knownExtension=['pdf','jpg','jpeg','png','webp','heic','heif'].includes(ext);
+ if(!knownExtension||(!knownType&&type!==''))
+  throw new Error('領収書はPDF・JPG/JPEG・PNG・WebP・iPhoneのHEIC/HEIF画像に対応しています');
+ const isPdf=type==='application/pdf'||(ext==='pdf'&&!type);
+ if(isPdf&&(ext!=='pdf'||file.size>RECEIPT_MAX_BYTES)||
+    file.size<5||file.size>(isPdf?RECEIPT_MAX_BYTES:RECEIPT_SOURCE_MAX_BYTES))
+  throw new Error(isPdf?'PDFの上限は1.5MBです':'画像は25MB以下を選択してください（保存時は1.5MB以下に調整します）');
  return file;
+}
+async function receiptBitmap_(file){
+ if(typeof createImageBitmap==='function'){
+  try{return await createImageBitmap(file,{imageOrientation:'from-image'});}
+  catch(_){/* Safari/WebView versions may need HTMLImageElement instead. */}
+ }
+ const url=URL.createObjectURL(file);
+ try{
+  const image=await new Promise((resolve,reject)=>{
+   const img=new Image();img.onload=()=>resolve(img);
+   img.onerror=()=>reject(new Error('この端末ではHEIC/HEIF画像を読み取れません。iPhoneの写真アプリからJPEG形式で共有して再選択してください。'));
+   img.src=url;
+  });
+  return image;
+ }finally{URL.revokeObjectURL(url);}
+}
+async function prepareReceiptFile_(selected){
+ const file=receiptFile_(selected);
+ if(!file)return null;
+ const type=String(file.type||'').toLowerCase();
+ const ext=(/\.([a-z0-9]+)$/i.exec(file.name)||[])[1]?.toLowerCase()||'';
+ const isPdf=type==='application/pdf'||(ext==='pdf'&&!type);
+ if(isPdf)return file;
+ const isHeic=RECEIPT_HEIC_MIMES.has(type)||ext==='heic'||ext==='heif';
+ const compatible={
+  jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp'
+ };
+ const expected=compatible[ext];
+ if(!isHeic&&expected&&(!type||type===expected)&&file.size<=RECEIPT_MAX_BYTES){
+  // Safari may supply a JPG with an empty MIME. Explicitly label its known
+  // extension so Worker/GAS can validate the true magic bytes.
+  if(type)return file;
+  return new File([file],file.name,{type:expected,lastModified:file.lastModified});
+ }
+ // iOS photo-library picks can already contain JPEG bytes under a .HEIC name.
+ // Treat the source as JPEG only when Safari provides the JPEG MIME; otherwise
+ // decode HEIC or a large camera image in the browser and upload JPEG bytes.
+ if(type==='image/jpeg'&&isHeic&&file.size<=RECEIPT_MAX_BYTES){
+  const base=file.name.replace(/\.(heic|heif)$/i,'')||'receipt';
+  return new File([file],base+'.jpg',{type:'image/jpeg',lastModified:file.lastModified});
+ }
+ if(!isHeic&&!['image/jpeg','image/png','image/webp',''].includes(type))
+  throw new Error('この画像形式には対応していません');
+ let source;
+ try{source=await receiptBitmap_(file);}
+ catch(e){throw new Error(e.message||'iPhone画像を読み取れません。JPEGに変換してから登録してください');}
+ try{
+  if(!source.width||!source.height)throw new Error('画像のサイズを確認できません');
+  const longEdge=Math.max(source.width,source.height);
+  const base=file.name.replace(/\.(heic|heif|jpe?g|png|webp)$/i,'')||'receipt';
+  // Start near original dimensions, then reduce only as needed. Never upscale.
+  const settings=[[2600,.92],[2400,.88],[2100,.85],[1800,.80],[1600,.75],[1300,.70]];
+  const canvas=document.createElement('canvas');
+  const ctx=canvas.getContext('2d',{alpha:false});
+  if(!ctx)throw new Error('この端末で画像を変換できません');
+  for(const [maxEdge,quality] of settings){
+   const scale=Math.min(1,maxEdge/longEdge);
+   canvas.width=Math.max(1,Math.round(source.width*scale));
+   canvas.height=Math.max(1,Math.round(source.height*scale));
+   ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);
+   ctx.drawImage(source,0,0,canvas.width,canvas.height);
+   const jpeg=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));
+   if(jpeg?.type==='image/jpeg'&&jpeg.size>=5&&jpeg.size<=RECEIPT_MAX_BYTES)
+    return new File([jpeg],base+'.jpg',{type:'image/jpeg'});
+  }
+  throw new Error('写真を1.5MB以下に調整できません。画像のサイズを小さくして再選択してください');
+ }finally{if(typeof source.close==='function')source.close();}
 }
 async function receiptBase64_(file){
  return new Promise((resolve,reject)=>{
@@ -524,11 +602,12 @@ async function receiptBase64_(file){
  });
 }
 async function uploadReceipt_(file,row){
- receiptFile_(file);
+ const prepared=await prepareReceiptFile_(file);
+ if(!prepared)throw new Error('領収書を選択してください');
  if(!row?.rowId||!Number.isSafeInteger(row.version))throw new Error('収支行を確認できません。更新してください');
  return call('/api/receipt/upload',{operationId:uuid(),rowId:row.rowId,
-  expectedVersion:row.version,fileName:file.name,mimeType:file.type,
-  base64:await receiptBase64_(file)});
+  expectedVersion:row.version,fileName:prepared.name,mimeType:prepared.type,
+  base64:await receiptBase64_(prepared)});
 }
 async function downloadReceipt_(rowId){
  const result=await call('/api/receipt/get',{rowId});
@@ -609,13 +688,13 @@ async function submitEditor(event){event.preventDefault();await guard(async()=>{
  if(kind==='reimbursement')Object.assign(payload,getReimbursementPayload('ledger'));
  else if(kind==='practice')payload.practiceId=$('ledgerPractice').value;
  else Object.assign(payload,{date:$('ledgerEditDate').value,label:$('ledgerEditLabel').value.trim(),income:Number($('ledgerEditIncome').value),expense:Number($('ledgerEditExpense').value)});
- const file=kind==='reimbursement'?receiptFile_($('ledgerReimbursementReceipt').files?.[0]):null;
+ const file=kind==='reimbursement'?await prepareReceiptFile_($('ledgerReimbursementReceipt').files?.[0]):null;
  const saved=await call('/api/ledger/change',payload);close('ledgerEditDialog');
  const attached=await attachAfterLedgerSave_(file,saved,payload.rowId||'P-'+payload.practiceId);
  if(attached)toast(S.mode==='edit'?'修正しました':'登録しました');await loadLedger();await reload(false);
 });}
 async function submitReimbursement(event){event.preventDefault();await guard(async()=>{
- gateEdit();const file=receiptFile_($('reimbursementReceipt').files?.[0]);
+ gateEdit();const file=await prepareReceiptFile_($('reimbursementReceipt').files?.[0]);
  const rowId='R-'+uuid();const saved=await call('/api/ledger/change',{operationId:uuid(),action:'add',kind:'reimbursement',rowId,...getReimbursementPayload('header')});
  close('reimbursementDialog');$('reimbursementForm').reset();
  const attached=await attachAfterLedgerSave_(file,saved,rowId);
@@ -1284,8 +1363,9 @@ function bind(){
  $('categoryDialog').addEventListener('close',()=>{S.modalTarget=null;});$('cancelCategory').addEventListener('click',()=>close('categoryDialog'));$('saveCategory').addEventListener('click',saveCategory);
  $('adjustment').addEventListener('change',()=>saveAmount('adjustment'));$('expense').addEventListener('change',()=>saveAmount('expense'));
  $('receiptBtn').addEventListener('click',()=>{if(!S.overview?.ledger||S.overview.ledger.status==='confirmed')return toast('領収書を登録できる未確定の収支行がありません');$('homeReceipt').click();});
- $('homeReceipt').addEventListener('change',()=>guard(async()=>{const file=receiptFile_($('homeReceipt').files?.[0]);if(!file)return;gateEdit();
-  const row=S.overview?.ledger;await uploadReceipt_(file,row);$('homeReceipt').value='';toast('領収書を登録しました');await reload(true);
+ $('homeReceipt').addEventListener('change',()=>guard(async()=>{const file=$('homeReceipt').files?.[0];if(!file)return;gateEdit();
+  try{const row=S.overview?.ledger;await uploadReceipt_(file,row);toast('領収書を登録しました');await reload(true);}
+  finally{$('homeReceipt').value='';}
  },'領収書をアップロードしています…'));
  $('homeReceiptView').addEventListener('click',()=>guard(async()=>downloadReceipt_(S.overview.ledger.rowId),'領収書を取得しています…'));
  $('ledgerViewReceipt').addEventListener('click',()=>guard(async()=>downloadReceipt_(S.ledgerRow.rowId),'領収書を取得しています…'));
