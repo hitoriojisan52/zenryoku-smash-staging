@@ -136,76 +136,10 @@ function render(){const v=S.view,s=v?.session,editable=isDuty();const body=$('ma
 }
 async function load(){if(!S.practiceId)return;S.view=await request('/api/match/get',{practiceId:S.practiceId});if(S.view.session){S.drafts.delete(S.practiceId);S.draftUndo.delete(S.practiceId);}render();}
 async function change(action,payload={}){if(!isDuty())throw Error('対戦表の操作は当番担当・管理者のみ利用できます');const s=S.view?.session;if(!s)throw Error('対戦表がありません');S.view=await mutation('/api/match/change',{practiceId:S.practiceId,action,expectedSessionVersion:s.sessionVersion,expectedSettingsVersion:s.settingsVersion,operationId:operationId(),...payload});render();}
-// Staging: display the current user's ID locally, never send the decoded profile to the backend.
-function showOwnLineId(){
- try{
-   const id=window.liff?.getDecodedIDToken?.()?.sub;
-   if(typeof id!=='string'||!/^U[0-9a-f]{32}$/i.test(id))return;
-   $('lineIdValue').value=id;
-   $('lineIdPanel').hidden=false;
- }catch(_){ /* No impact on existing login flow. */ }
-}
-async function copyOwnLineId(){
- const input=$('lineIdValue');if(!input.value)return;
- let copied=false;
- if(navigator.clipboard?.writeText){
-   try{await navigator.clipboard.writeText(input.value);copied=true;}catch(_){}
- }
- if(!copied){
-   input.focus();input.select();
-   try{copied=Boolean(document.execCommand('copy'));}catch(_){}
- }
- notice(copied?'LINEユーザーIDをコピーしました':'IDを選択しました。長押ししてコピーしてください');
-}
 const Startup={scriptStarted:performance.now(),timings:{}};
 async function timedStartup(key,fn){
  const start=performance.now();
  try{return await fn();}finally{Startup.timings[key]=Math.round(performance.now()-start);}
-}
-function showStartupTimings(){
- if(!$('startupTimingDetails')||!$('startupTimingPanel'))return;
- const d=Startup.timings;
- const seconds=v=>Number.isFinite(v)?(v/1000).toFixed(2)+'秒':'未実行';
- const info=CFG.useMatchBootstrap===true?[
-  'ページ表示から：'+seconds(performance.now()),
-  'LIFF初期化：'+seconds(d.liff),
-  '起動データ一括取得：'+seconds(d.bootstrap),
-  'Worker内 LINE認証API：'+seconds(d.workerLine),
-  'WorkerからGASへの通信全体：'+seconds(d.workerGas),
-  '  うちGASのPOST応答まで：'+seconds(d.workerGasPost),
-  '  うちGoogleの転送先取得：'+seconds(d.workerGasContent),
-  ...(d.gasTotal===undefined?['GAS内部詳細：未提供（旧GASの可能性）']:[
-    'GAS内部の一括取得：'+seconds(d.gasTotal),
-    '  練習日程取得：'+seconds(d.gasPractices),
-    '  試合版読み込み：'+seconds(d.gasRevision),
-    '  参加者読み込み：'+seconds(d.gasAttendees),
-    '  表示用データ生成：'+seconds(d.gasRender)
-  ]),
-  ...(d.gasDispatch===undefined?['GAS入口計測：未提供（旧GAS）']:[
-    'GAS内全体（dispatch）：'+seconds(d.gasDispatch),
-    '  スプレッドシートを開く：'+seconds(d.gasSheetOpen),
-    '  LINE利用者・当番権限確認：'+seconds(d.gasMemberAuth),
-    '  GAS外の受付・通信等（差分）：'+(Number.isFinite(d.workerGasPost)&&d.workerGasPost>=d.gasDispatch?seconds(d.workerGasPost-d.gasDispatch):'算出不可')
-  ]),
-  '起動API通信回数：1回',
-  '※ページ表示前のLINE起動時間は含みません。'
- ]:[
-  'ページ表示から：'+seconds(performance.now()),
-  'LIFF初期化：'+seconds(d.liff),
-  '利用者確認：'+seconds(d.member),
-  '日程取得：'+seconds(d.practices),
-  '並列取得の実時間：'+seconds(d.parallel),
-  '対戦表取得：'+seconds(d.match),
-  '※ページ表示前のLINE起動時間は含みません。'
- ];
- $('startupTimingDetails').textContent=info.join('\n');
- $('startupTimingPanel').hidden=false;
-}
-
-async function copyStartupTimings(){
- const value=$('startupTimingDetails').textContent;if(!value)return;
- try{await navigator.clipboard.writeText(value);notice('診断結果をコピーしました');}
- catch(_){notice('コピーできませんでした。スクリーンショットで確認してください');}
 }
 // v0.16 staging: members share one LIFF; read-only members use existing safe APIs.
 async function openGeneralMemberView16_(){
@@ -232,7 +166,6 @@ async function init(){
   $('matchHeader').textContent='LINE認証を確認しています…';
   await timedStartup('liff',()=>liff.init({liffId:CFG.liffId}));
   if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return;}
-  showOwnLineId();
   S.token=liff.getIDToken();if(!S.token)throw Error('LINE認証を取得できません');
   $('matchHeader').textContent='利用者情報・練習日程を読み込んでいます…';
   if(CFG.useMatchBootstrap===true){
@@ -287,7 +220,6 @@ async function init(){
   setInterval(()=>{if(!S.busy&&!SMMatchConfirm.isOpen()&&!document.hidden&&!$('courtSettings').open&&!$('participantSettings').open)load().catch(()=>{});},9000);
  }catch(e){if(CFG.accessFeaturesEnabled===true&&(e.code==='UNAUTHORIZED'||e.message==='利用登録が確認できません')){ $('matchHeader').textContent='初回利用の登録申請';window.SMAccess?.showRegistration({api:request});return; }
   $('matchHeader').textContent='対戦表を読み込めませんでした';
-  showStartupTimings();
   // Close the blocking layer BEFORE the error modal, so the error is operable.
   S.busy=false;
   matchProcessingUi_(false);
@@ -296,10 +228,8 @@ async function init(){
  finally{
   S.busy=false;
   matchProcessingUi_(false);
-  if(!$('startupTimingDetails')?.textContent)showStartupTimings();
  }
 }
-$('copyStartupTiming')?.addEventListener('click',copyStartupTimings);
 
 $('matchPractice').addEventListener('change',()=>guard(async()=>{S.practiceId=$('matchPractice').value;await load();}));
 $('refreshMatch').addEventListener('click',()=>guard(load));
@@ -349,5 +279,4 @@ $('addFixedGroup').addEventListener('click',()=>guard(async()=>{
  if(safeState()){await change('groups',{fixedGroups});notice('固定グループを追加しました');}else draftEdit(d=>{d.fixedGroups=fixedGroups;});
 }));
 const safeState=()=>Boolean(S.view?.session);
-$('copyLineId').addEventListener('click', copyOwnLineId);
 init();

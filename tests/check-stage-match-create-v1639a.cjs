@@ -74,7 +74,7 @@ ok(!controls.slice(0,fixed).includes('id="deleteMatch"'),
  'delete button removed from top level of match progression controls');
 ok(controls.includes('id="courtSettings"')&&controls.includes('id="participantSettings"'),
  'court and participant settings remain separately expandable');
-ok(html.includes('match.js?v=1639b')&&html.includes('match.css?v=1639b'),
+ok(html.includes('match.js?v=1660')&&html.includes('match.css?v=1639b'),
  'JS/CSS cache-busting for LIFF remains consistent');
 ok(js.includes("main.disabled=(v.participants||[]).length<4"),
  'client disables generation when fewer than four registered players');

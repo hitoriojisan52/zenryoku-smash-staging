@@ -1104,6 +1104,15 @@ function participantList_(ss,member,payload){
   else membersById[mid]={name:norm_(m[1]),nameKana:norm_(m[5]),lineUserId:str_(m[2])};
  });
  var reportDates=attendanceAuditDates_(ss);
+ // Read only completed participant edit records; do not alter any audit or
+ // financial rows. A missing legacy timestamp remains unknown.
+ var editDates=Object.create(null);
+ sheetRows_(ss,'参加者操作アーカイブ').forEach(function(change){
+  if(str_(change[3])!=='edit'||str_(change[7])!=='completed')return;
+  var key=str_(change[1])+'|'+str_(change[2]),when=attendanceAuditTime_(change[5]);
+  if(!/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(when))return;
+  if(!editDates[key]||editDates[key]<when)editDates[key]=when;
+ });
  var registrationById=Object.create(null),ambiguousRegistrations=Object.create(null);
  sheetRows_(ss,'登録申請').forEach(function(reg){
   var mid=str_(reg[7]);if(str_(reg[3])!=='approved'||!mid)return;
@@ -1123,6 +1132,7 @@ function participantList_(ss,member,payload){
    r.lineUserId=null;
    r.registeredAt=ambiguousVisitors[r.participantId]?null:
     (approvedVisitors[r.participantId]||null);
+   r.updatedAt=editDates[id+'|'+r.participantId]||null;
    return;
   }
   var master=ambiguousMemberIds[r.participantId]?null:membersById[r.participantId];
@@ -1136,6 +1146,8 @@ function participantList_(ss,member,payload){
   var report=reportDates[id+'|'+r.participantId]||null;
   r.registeredAt=report?report.first:null;
   r.lastReportedAt=report?report.last:null;
+  var latestReport=report?report.last:null,latestEdit=editDates[id+'|'+r.participantId]||null;
+  r.updatedAt=latestEdit&&(!latestReport||latestEdit>latestReport)?latestEdit:latestReport;
  });
  payments.forEach(function(r){
   var person=str_(r[1]);if(seenPayment[person])fail_('SETUP','集金記録が重複しています');
