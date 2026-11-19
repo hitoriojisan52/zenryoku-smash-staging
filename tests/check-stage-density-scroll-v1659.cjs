@@ -109,6 +109,9 @@ const renderHome=new Function('S','$','document','M','yen','today','setupLongPre
 renderHome();
 ok(controls.list.children.length===9&&longPressCount===9,
  'all participants are rendered inside the dedicated scrollable node');
+const homeRemark=controls.list.children[0].children[0].children[1];
+ok(homeRemark.className==='meta participant-memo'&&homeRemark.textContent==='📝 備考',
+ 'collection home marks only the actual participant remark for red styling');
 ok(controls.list.scrollTop===137,
  'participant scroll location is restored on automatic list redraw');
 ok(controls.place.textContent==='場所：検証体育館'&&
