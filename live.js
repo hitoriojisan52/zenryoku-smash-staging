@@ -656,54 +656,57 @@ function openEditor(row=null,kind='reimbursement'){
  $('ledgerReimbursementReceipt').disabled=targetKind!=='reimbursement';$('ledgerReimbursementReceipt').value='';
  $('ledgerCurrentReceipt').textContent=row?.receiptFileId?'登録済みの領収書があります':'';
  $('ledgerViewReceipt').hidden=!row?.receiptFileId;
- const choices=$('ledgerPractice');choices.replaceChildren();
- const existing=new Set((S.ledger?.rows||[]).filter(r=>r.kind==='practice').map(r=>r.practiceId));
- const deleted=new Set(S.ledger?.deletedPracticeIds||[]);
- for(const p of S.overview?.practices||[]){
-  if(p.date<=today()&&deleted.has(p.practiceId)&&!existing.has(p.practiceId))
-   choices.append(new Option(window.SMDate.date(p.date)+' '+p.place,p.practiceId));
- }
- // Only enable the re-registration category when there is a deleted, enabled
- // practice whose ledger can be recreated. A disabled option cannot be
- // selected from the dropdown.
- const available=choices.options.length>0;
- $('ledgerKind').querySelector('option[value="practice"]').disabled=!available;
- if(!available&&targetKind==='practice')$('ledgerKind').value='reimbursement';
- choices.disabled=!available;
  updateEditorKind();dialog('ledgerEditDialog');
 }
-function updateEditorKind(){const kind=$('ledgerKind').value,practice=kind==='practice',reimb=kind==='reimbursement';
- $('ledgerReimbursementFields').hidden=!reimb;$('ledgerGeneralFields').hidden=reimb;$('practiceChoice').hidden=!practice;
+function updateLedgerAmountValidity_(){
+ const income=$('ledgerEditIncome'),expense=$('ledgerEditExpense');
+ if($('ledgerKind').value!=='other'){expense.setCustomValidity('');return true;}
+ const bothZero=(Number(income.value)||0)===0&&(Number(expense.value)||0)===0;
+ expense.setCustomValidity(bothZero?'集金額または支出額を1円以上入力してください':'');
+ return !bothZero;
+}
+function updateEditorKind(){
+ const kind=$('ledgerKind').value,reimb=kind==='reimbursement';
+ $('ledgerReimbursementFields').hidden=!reimb;
+ $('ledgerGeneralFields').hidden=reimb;
  $('ledgerReimbursementReceipt').disabled=!reimb;
- for(const id of ['ledgerPayoutDate','ledgerReimbursementItem','ledgerReimbursementPayee','ledgerReimbursementAmount'])$(id).required=reimb;
- for(const id of ['ledgerEditDate','ledgerEditLabel','ledgerEditIncome','ledgerEditExpense'])$(id).disabled=practice;
- if(practice){
-  const id=$('ledgerPractice').value,info=(S.overview?.practices||[]).find(x=>x.practiceId===id);
-  if(!info){$('submitLedgerEdit').disabled=true;return;}
-  $('ledgerEditDate').value=info.date;$('ledgerEditLabel').value=info.place;
-  $('ledgerEditIncome').value='0';$('ledgerEditExpense').value='0';
- }
+ for(const id of ['ledgerPayoutDate','ledgerReimbursementItem','ledgerReimbursementPayee','ledgerReimbursementAmount'])
+  $(id).required=reimb;
+ for(const id of ['ledgerEditDate','ledgerEditLabel','ledgerEditIncome','ledgerEditExpense'])
+  $(id).disabled=reimb;
+ $('ledgerEditDate').required=!reimb;
+ $('ledgerEditLabel').required=!reimb;
+ updateLedgerAmountValidity_();
  $('submitLedgerEdit').disabled=false;
- $('submitLedgerEdit').textContent=practice?'再登録する':reimb?'精算を登録':S.mode==='edit'?'変更する':'登録する';
+ $('submitLedgerEdit').textContent=reimb?'精算を登録':S.mode==='edit'?'変更する':'登録する';
 }
 function getReimbursementPayload(prefix){return {date:$(prefix==='ledger'?'ledgerPayoutDate':'payoutDate').value,
  item:$(prefix==='ledger'?'ledgerReimbursementItem':'reimbursementItem').value.trim(),
  payee:M.normalizeName($(prefix==='ledger'?'ledgerReimbursementPayee':'reimbursementPayee').value),
  amount:Number($(prefix==='ledger'?'ledgerReimbursementAmount':'reimbursementAmount').value)};}
-async function submitEditor(event){event.preventDefault();await guard(async()=>{
- gateEdit();const kind=$('ledgerKind').value;let payload={operationId:uuid(),action:S.mode==='edit'?'edit':'add',kind};
- if(kind==='practice'&&(!$('ledgerPractice').value||$('ledgerPractice').disabled))
-  throw new Error('再登録できる練習日がありません');
- if(S.mode==='edit'){payload.rowId=S.ledgerRow.rowId;payload.expectedVersion=S.ledgerRow.version;}
- else if(kind!=='practice')payload.rowId=(kind==='reimbursement'?'R-':'O-')+uuid();
- if(kind==='reimbursement')Object.assign(payload,getReimbursementPayload('ledger'));
- else if(kind==='practice')payload.practiceId=$('ledgerPractice').value;
- else Object.assign(payload,{date:$('ledgerEditDate').value,label:$('ledgerEditLabel').value.trim(),income:Number($('ledgerEditIncome').value),expense:Number($('ledgerEditExpense').value)});
- const file=kind==='reimbursement'?await prepareReceiptFile_($('ledgerReimbursementReceipt').files?.[0]):null;
- const saved=await call('/api/ledger/change',payload);close('ledgerEditDialog');
- const attached=await attachAfterLedgerSave_(file,saved,payload.rowId||'P-'+payload.practiceId);
- if(attached)toast(S.mode==='edit'?'修正しました':'登録しました');await loadLedger();await reload(false);
-});}
+async function submitEditor(event){
+ event.preventDefault();
+ const kind=$('ledgerKind').value;
+ // Validate synchronously, BEFORE the full-screen spinner can appear.
+ if(kind==='other'){
+  updateLedgerAmountValidity_();
+  if(!$('ledgerEditForm').reportValidity())return;
+ }
+ await guard(async()=>{
+  gateEdit();
+  let payload={operationId:uuid(),action:S.mode==='edit'?'edit':'add',kind};
+  if(S.mode==='edit'){payload.rowId=S.ledgerRow.rowId;payload.expectedVersion=S.ledgerRow.version;}
+  else payload.rowId=(kind==='reimbursement'?'R-':'O-')+uuid();
+  if(kind==='reimbursement')Object.assign(payload,getReimbursementPayload('ledger'));
+  else Object.assign(payload,{date:$('ledgerEditDate').value,label:$('ledgerEditLabel').value.trim(),
+   income:Number($('ledgerEditIncome').value)||0,expense:Number($('ledgerEditExpense').value)||0});
+  const file=kind==='reimbursement'?await prepareReceiptFile_($('ledgerReimbursementReceipt').files?.[0]):null;
+  const saved=await call('/api/ledger/change',payload);close('ledgerEditDialog');
+  const attached=await attachAfterLedgerSave_(file,saved,payload.rowId);
+  if(attached)toast(S.mode==='edit'?'修正しました':'登録しました');
+  await loadLedger();await reload(true);
+ });
+}
 async function submitReimbursement(event){event.preventDefault();await guard(async()=>{
  gateEdit();const file=await prepareReceiptFile_($('reimbursementReceipt').files?.[0]);
  const rowId='R-'+uuid();const saved=await call('/api/ledger/change',{operationId:uuid(),action:'add',kind:'reimbursement',rowId,...getReimbursementPayload('header')});
@@ -1432,7 +1435,9 @@ function bind(){
  $('visitorConfirmSave').addEventListener('click',registerVisitor_);
  $('ledgerMonth').addEventListener('change',()=>guard(loadLedger));$('prevMonth').addEventListener('click',()=>shiftMonth(-1));$('nextMonth').addEventListener('click',()=>shiftMonth(1));
  $('closeLedger').addEventListener('click',()=>close('ledgerDialog'));$('newLedgerRow').addEventListener('click',()=>openEditor());
- $('ledgerKind').addEventListener('change',updateEditorKind);$('ledgerPractice').addEventListener('change',updateEditorKind);
+ $('ledgerKind').addEventListener('change',updateEditorKind);
+ $('ledgerEditIncome').addEventListener('input',updateLedgerAmountValidity_);
+ $('ledgerEditExpense').addEventListener('input',updateLedgerAmountValidity_);
  $('cancelLedgerEdit').addEventListener('click',()=>close('ledgerEditDialog'));$('ledgerEditForm').addEventListener('submit',submitEditor);
  $('cancelConfirmAction').addEventListener('click',()=>close('confirmActionDialog'));$('doConfirmAction').addEventListener('click',executeLedgerAction);
  $('closeModal').addEventListener('click',()=>close('modal'));
