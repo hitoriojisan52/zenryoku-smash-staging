@@ -371,12 +371,20 @@ async function saveAmount(kind){
    }finally{S.pending.delete('amount');el.disabled=false;}
  });
 }
-async function openLedger(){await guard(async()=>{gateEdit();close('manageDialog');$('demoRole').closest('.role-controls').hidden=true;
+async function openLedger(){await guard(async()=>{gateEdit();close('manageDialog');
  $('ledgerMonth').value=today().slice(0,7);await loadLedger();dialog('ledgerDialog');});}
 async function loadLedger(){const month=$('ledgerMonth').value,ledger=await call('/api/ledger',{month});S.ledger=ledger;const b=$('ledgerBody');b.replaceChildren();
  const rows=[{rowId:'CARRY-'+month,date:month+'-01',label:'前月繰越',income:0,expense:0,balance:ledger.carried,confirmedBy:'',kind:'carry',status:'confirmed'},...ledger.rows.filter(r=>r.kind!=='opening')];
  for(const r of rows){const tr=document.createElement('tr');
-  for(const v of [window.SMDate.date(r.date),r.label,yen(r.income),yen(r.expense),yen(r.balance),r.confirmedBy||'']){const td=document.createElement('td');td.textContent=v;tr.append(td);}
+  // Preserve the semantic seven-column table for desktop, CSS reflows it
+  // into cards on narrow screens without touching row IDs or actions.
+  const values=[window.SMDate.date(r.date),r.label,yen(r.income),yen(r.expense),
+    yen(r.balance),r.confirmedBy||'－'];
+  const columns=['date','label','income','expense','balance','confirmed'];
+  for(let i=0;i<values.length;i++){
+   const td=document.createElement('td');td.className='ledger-col-'+columns[i];
+   td.textContent=values[i];tr.append(td);
+  }
   const actions=document.createElement('td');actions.className='ledger-row-actions';
   const future=r.date>today(),carry=r.kind==='carry',confirmed=r.status==='confirmed';
   if(carry)tr.classList.add('carry-row');
@@ -388,7 +396,7 @@ async function loadLedger(){const month=$('ledgerMonth').value,ledger=await call
    if(confirmed){
     const button=document.createElement('button');button.type='button';
     if(S.actor.role==='admin'){
-     button.className='btn-outline';button.textContent='確定解除';
+     button.className='btn-green';button.textContent='確定解除';
      button.disabled=future;
      if(!future)button.addEventListener('click',()=>ledgerAction('unlock',r));
     }else{
@@ -412,6 +420,10 @@ async function loadLedger(){const month=$('ledgerMonth').value,ledger=await call
     }
    }
    actions.append(group);
+   const status=document.createElement('span');
+   status.className='ledger-card-status '+(confirmed?'is-confirmed':'is-open');
+   status.textContent=confirmed?'✔ 確定済み':'⏳ 未確定';
+   actions.append(status);
   }else{
    const label=document.createElement('small');label.className='muted';
    label.textContent='－';actions.append(label);
