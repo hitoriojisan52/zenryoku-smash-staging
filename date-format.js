@@ -33,5 +33,16 @@ function dateTimeJst(value,weekday=true){
  }).formatToParts(d).map(p=>[p.type,p.value]));
  return date(parts.year+'-'+parts.month+'-'+parts.day,weekday)+' '+parts.hour+':'+parts.minute;
 }
-window.SMDate={date,dateTimeJst};
+function practiceLabel(practice){
+ const p=practice||{},ymd=date(p.date);
+ const hhmm=value=>{
+  const s=String(value??'').trim(),m=/^(\d{1,2}):(\d{2})$/.exec(s);
+  return m?String(Number(m[1])).padStart(2,'0')+':'+m[2]:s;
+ };
+ const start=hhmm(p.startTime),end=hhmm(p.endTime);
+ const time=start&&end?start+'～'+end:'';
+ const place=String(p.place||'開催場所未登録').trim();
+ return [ymd,time,place].filter(Boolean).join(' ');
+}
+window.SMDate={date,dateTimeJst,practiceLabel};
 })();

@@ -19,7 +19,7 @@ const shared=['.stage-ui .stage-system-message{','.stage-ui .stage-system-messag
  'font-size:13px','line-height:1.55'];
 for(const t of shared)ok(css.includes(t),'shared stage message CSS: '+t);
 for(const [p,html] of [['live',live],['match',match],['match-view',view],['guest',guest]]){
- ok(html.includes('stage-ui.css?v=1660'),p+' loads same versioned shared styles');
+ ok(html.includes('stage-ui.css?v=1661'),p+' loads same versioned shared styles');
  ok(html.includes('class="stage-system-message')||html.includes(' stage-system-message'),
   p+' has at least one system banner');
 }
@@ -48,7 +48,7 @@ for(const [section,id,kind,html] of [
  ok(tag.includes('stage-system-message--'+kind),section+' consistent visual class');
  ok(tag.includes('role="status"')&&tag.includes('aria-live="polite"'),section+' accessible inline status');
 }
-ok(live.includes('live.js?v=1660')&&match.includes('match.js?v=1660')&&
+ok(live.includes('live.js?v=1661')&&match.includes('match.js?v=1660')&&
  view.includes('match-view.js?v=1639b')&&guest.includes('guest.js?v=1639b')&&
  match.includes('access-ui.js?v=1657'),'all modified client scripts are cache-busted');
 ok(liveJs.includes("className='schedule-note stage-system-message stage-system-message--info'"),

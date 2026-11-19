@@ -28,16 +28,17 @@
   return el;
  };
  const shortDate=r=>r.date?w.SMDate.date(r.date)+' '+(r.place||''):'開催日：登録がありません';
+ const practiceOption=r=>w.SMDate.practiceLabel?r.date?w.SMDate.practiceLabel(r):shortDate(r):shortDate(r);
  function optionsFor(rows,id,practices){
   const select=$(id),old=select.value,unique=new Map();
   // Like 参加者一覧, include all practice-master dates (including those
   // with no registrations); keep history whose schedule was later removed.
   for(const p of practices){
    if(p?.practiceId&&!unique.has(p.practiceId))
-    unique.set(p.practiceId,shortDate(p)+(p.startTime?' '+p.startTime+'～'+(p.endTime||''):''));
+    unique.set(p.practiceId,practiceOption(p));
   }
   rows.forEach(r=>{
-   if(!unique.has(r.practiceId))unique.set(r.practiceId,shortDate(r));
+   if(!unique.has(r.practiceId))unique.set(r.practiceId,practiceOption(r));
   });
   const list=[{value:'all',text:'すべての日程'},...Array.from(unique,([value,text])=>({value,text}))
    .sort((a,b)=>a.text.localeCompare(b.text,'ja'))];

@@ -789,7 +789,7 @@ function validateVisitorPractices_(value){
 function renderVisitorPracticeOptions_(){
  const select=$('visitorPractice'),rows=VIS.practices,chosen=select.value;
  select.replaceChildren(...rows.map(p=>new Option(
-  window.SMDate.date(p.date)+' '+p.startTime+'～'+p.endTime+' '+p.place,p.practiceId)));
+  window.SMDate.practiceLabel(p),p.practiceId)));
  const preferred=rows.find(p=>p.practiceId===chosen)||rows.find(p=>p.practiceId===S.practiceId)||rows[0];
  if(preferred)select.value=preferred.practiceId;
  $('visitorSubmit').disabled=!preferred;
@@ -945,8 +945,7 @@ const PM_CATEGORIES={member:'メンバー',visitor:'ビジター',student:'学�
 function participantDates_(){
  const sel=$('participantPractice'),previous=PM.practiceId;
  sel.replaceChildren(...PM.practices.map(p=>new Option(
-  window.SMDate.date(p.date)+'　'+(p.place||'開催場所未登録')+
-  '　'+p.startTime+'～'+p.endTime, p.practiceId)));
+  window.SMDate.practiceLabel(p), p.practiceId)));
  if(PM.practices.some(p=>p.practiceId===previous))sel.value=previous;
  else if(PM.practices.length)sel.value=PM.practices[PM.practices.length-1].practiceId;
 }

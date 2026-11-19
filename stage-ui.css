@@ -650,3 +650,105 @@ body.stage-ui.access-v2-active #memberAccessPending .live-access-row button{
   grid-column:1;grid-row:2;
  }
 }
+
+
+/* v0.16.61: explicit row placement; original buttons/IDs/listeners persist. */
+.stage-ui #scheduleDialog .schedule-list-toolbar,
+.stage-ui #memberAccessDialog .member-pending-heading{
+ display:flex;align-items:center;justify-content:flex-end;gap:5px;
+ margin:3px 0 5px;min-width:0;
+}
+.stage-ui #scheduleDialog .schedule-list-toolbar button{
+ min-height:44px;flex:0 0 auto;
+}
+.stage-ui #memberAccessDialog .member-pending-heading{justify-content:space-between}
+.stage-ui #memberAccessDialog .member-pending-heading h3{
+ margin:0!important;min-width:0;line-height:1.2;
+}
+.stage-ui :is(#visitorDialog,#visitorAdminDialog) .stage-date-refresh-row,
+.stage-ui #participantDialog .participant-controls{
+ display:flex;align-items:center;flex-wrap:nowrap!important;
+ gap:4px;min-width:0;width:100%;
+}
+.stage-ui :is(#visitorDialog,#visitorAdminDialog) .stage-date-refresh-row select,
+.stage-ui #participantDialog .participant-controls select{
+ flex:1 1 0;min-width:0!important;max-width:none!important;width:0;
+ text-overflow:ellipsis;white-space:nowrap;
+}
+.stage-ui :is(#visitorDialog,#visitorAdminDialog) .stage-date-refresh-row button,
+.stage-ui #participantDialog .participant-controls button{
+ flex:0 0 auto;min-width:72px;min-height:44px;white-space:nowrap;
+}
+.stage-ui #visitorDialog .visitor-review-section-heading{
+ justify-content:flex-start;margin-bottom:2px;
+}
+.stage-ui #visitorDialog .visitor-review-section-heading:has(h3:only-child){margin-bottom:2px}
+
+/* Ledger: month, previous, next and + on ONE line even on compact phones.
+ * The + retains the old #newLedgerRow click event and accessibility label. */
+.stage-ui #ledgerDialog .ledger-controls{
+ display:flex;align-items:center;flex-wrap:nowrap!important;
+ justify-content:space-between;gap:3px;min-width:0;
+}
+.stage-ui #ledgerDialog .ledger-controls label{
+ flex:0 0 auto;white-space:nowrap;font-size:12px;
+}
+.stage-ui #ledgerDialog #ledgerMonth{
+ flex:1 1 95px;min-width:87px!important;max-width:none!important;
+ width:90px!important;padding-inline:1px;font-size:14px;
+}
+.stage-ui #ledgerDialog .ledger-controls button{
+ flex:0 0 auto;min-width:43px!important;min-height:44px;
+ padding-inline:3px!important;white-space:nowrap;font-size:12px!important;
+}
+.stage-ui #ledgerDialog #newLedgerRow{
+ width:44px!important;min-width:44px!important;padding-inline:0!important;
+ font-size:19px!important;font-weight:800;
+}
+@media(max-width:365px){
+ .stage-ui #ledgerDialog .ledger-controls{gap:2px;padding-inline:2px}
+ .stage-ui #ledgerDialog #ledgerMonth{min-width:82px!important;font-size:13px}
+ .stage-ui #ledgerDialog .ledger-controls button{min-width:42px!important;padding-inline:1px!important}
+}
+
+/* Closed details are centered vertically, with a consistent visible chevron
+ * instead of changing the semantics of the native <summary>. */
+.stage-ui #visitorNewFormSection > summary,
+.stage-ui #courtSettings > summary,
+.stage-ui #participantSettings > summary{
+ display:flex;align-items:center;gap:7px;min-height:44px;
+ padding-block:0!important;line-height:1.25;list-style:none;
+}
+.stage-ui #visitorNewFormSection > summary::-webkit-details-marker,
+.stage-ui #courtSettings > summary::-webkit-details-marker,
+.stage-ui #participantSettings > summary::-webkit-details-marker{display:none}
+.stage-ui #visitorNewFormSection > summary::before,
+.stage-ui #courtSettings > summary::before,
+.stage-ui #participantSettings > summary::before{
+ content:"▸";flex:0 0 auto;color:#546e7a;font-size:15px;
+}
+.stage-ui #visitorNewFormSection[open] > summary::before,
+.stage-ui #courtSettings[open] > summary::before,
+.stage-ui #participantSettings[open] > summary::before{content:"▾"}
+
+/* Maximal vertical padding reduction, no horizontal-padding changes.
+ * Preserve touch target heights and disabled/permission state. */
+.stage-ui button,
+.stage-ui input:not([type=checkbox]):not([type=radio]),
+.stage-ui select,.stage-ui textarea{
+ padding-block:0!important;
+}
+.stage-ui dialog.stage-has-toolbar .stage-dialog-toolbar-actions button{
+ padding-block:0!important;
+}
+.stage-ui :is(.dialog-input,.dialog-select),
+.stage-ui .stage-date-refresh-row select,
+.stage-ui .participant-controls select,
+.stage-ui .date-selector select{
+ min-height:44px;
+}
+.stage-ui :is(.stage-date-refresh-row,.participant-controls) button,
+.stage-ui .schedule-list-toolbar button,
+.stage-ui .member-pending-heading button{
+ min-height:44px;
+}

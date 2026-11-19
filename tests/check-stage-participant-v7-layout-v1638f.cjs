@@ -21,7 +21,7 @@ ok(panel.includes('id="participantPractice"')&&panel.includes('id="participantRe
 ok(!panel.includes('participantAdd')&&!panel.includes('ビジター追加')&&
  !panel.includes('ビジター登録'),'visitor addition removed from participant list');
 ok(!ui.includes("participantAdd"),'removed element has no click or disabled wiring');
-ok(ui.includes("(p.place||'開催場所未登録')"),'participant date selector shows venue');
+ok(ui.includes('window.SMDate.practiceLabel(p)'),'participant date selector uses shared weekday/time/venue formatter');
 ok(!html.includes('id="participantEmail"')&&!ui.includes("participantEmail"),
  'email is absent from participant list/edit UI entirely');
 ok(html.includes('id="visitorRegisterMenu"')&&html.includes('id="visitorDialog"'),
@@ -40,7 +40,7 @@ const cssChecks=[
  'min-height:44px'
 ];
 for(const rule of cssChecks)ok(html.includes(rule),'old-v7 visual baseline: '+rule);
-ok(html.includes('live.js?v=1660'),'new UI cache version');
+ok(html.includes('live.js?v=1661'),'new UI cache version');
 const begin=ui.indexOf('function renderParticipantManager_(){'),end=ui.indexOf('async function loadParticipants_(){',begin);
 ok(begin>=0&&end>begin,'render participant routine still present');
 const code=ui.slice(begin,end);

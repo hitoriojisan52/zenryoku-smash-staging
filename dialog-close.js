@@ -13,13 +13,9 @@
   'manageDialog','memberAccessDialog','cashDialog','visitorDialog',
   'visitorAdminDialog','participantDialog','scheduleDialog','ledgerDialog'
  ]);
- const topActions={
-  memberAccessDialog:['memberAccessRefresh'],
-  visitorAdminDialog:['visitorAdminRefresh'],
-  participantDialog:['participantReload'],
-  scheduleDialog:['scheduleAdd','scheduleReload'],
-  ledgerDialog:['newLedgerRow']
- };
+ // v0.16.61: all context actions belong next to their corresponding
+ // selector/section, not the title. Only Close moves into the title bar.
+ const topActions={};
  for(const dialog of document.querySelectorAll('dialog')){
   if(!screenIds.has(dialog.id))continue; // no added Close on popups or busy overlay
   const buttons=Array.from(dialog.querySelectorAll('button'));
