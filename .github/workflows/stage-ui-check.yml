@@ -44,6 +44,7 @@ on:
       - 'tests/check-stage-receipts-v1665.cjs'
       - 'tests/check-stage-history-receipt-v1666.cjs'
       - 'tests/check-stage-iphone-receipt-weekday-v1667.cjs'
+      - 'tests/check-stage-weekday-jpg10mb-v1668.cjs'
       - 'tests/check-stage-member-kana-v1657.cjs'
       - 'tests/check-stage-member-kana-approval-v1657b.cjs'
       - 'tests/check-stage-ledger-confirm-order-v1651.cjs'
@@ -137,6 +138,8 @@ jobs:
         run: node tests/check-stage-history-receipt-v1666.cjs
       - name: Verify iPhone HEIC/JPG normalization and native inline date weekday
         run: node tests/check-stage-iphone-receipt-weekday-v1667.cjs
+      - name: Verify near-date weekday and 10 MB JPG selected-photo processing
+        run: node tests/check-stage-weekday-jpg10mb-v1668.cjs
       - name: Verify LINE registration kana and unified roster sort
         run: node tests/check-stage-member-kana-v1657.cjs
       - name: Verify real GAS kana approval/edit and historical safety
