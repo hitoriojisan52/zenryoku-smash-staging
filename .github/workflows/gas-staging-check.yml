@@ -17,6 +17,7 @@ on:
       - 'tests/check-stage-line-attendance-v1645.cjs'
       - 'tests/check-stage-ledger-confirm-order-v1651.cjs'
       - 'tests/check-stage-receipt-weekday-v1665.cjs'
+      - 'tests/check-stage-receipts-v1665.cjs'
       - 'tests/check-stage-withdraw-rejoin-v1653.cjs'
       - 'tests/check-stage-member-ledger-v1656.cjs'
       - 'tests/check-stage-member-kana-v1657.cjs'
@@ -53,6 +54,7 @@ jobs:
       - run: node tests/check-stage-line-attendance-v1645.cjs
       - run: node tests/check-stage-ledger-confirm-order-v1651.cjs
       - run: node tests/check-stage-receipt-weekday-v1665.cjs
+      - run: node tests/check-stage-receipts-v1665.cjs
       - run: node tests/check-stage-withdraw-rejoin-v1653.cjs
       - run: node tests/check-stage-member-ledger-v1656.cjs
       - run: node tests/check-stage-member-kana-v1657.cjs
