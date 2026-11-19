@@ -51,6 +51,79 @@ function renderGasProfile_(timings){
  out.textContent=phases.map(([name,key])=>name+'：'+ms(key)).join('\n');
  panel.hidden=false;panel.open=true;
 }
+// v0.16.65: receipt bytes are never sent to or linked from public Drive.
+const RECEIPT_MAX_BYTES=4*1024*1024;
+let pendingHeaderReceipt=null,pendingLedgerReceipt=null,receiptBlobUrl='';
+function refreshPayoutWeekday_(dateId,labelId){
+ const raw=$(dateId).value,formatted=raw?window.SMDate.date(raw):'';
+ const suffix=/\([日月火水木金土]\)$/.exec(formatted);
+ $(labelId).textContent=suffix?suffix[0]:'';
+}
+function receiptMimeFor_(file){
+ const ext=file.name.split('.').pop().toLowerCase();
+ const mimes={jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',
+  webp:'image/webp',heic:'image/heic',heif:'image/heif',pdf:'application/pdf'};
+ const mime=mimes[ext];
+ if(!mime)throw new Error('領収書はJPEG・PNG・WebP・HEIC・PDFのみ添付できます');
+ if(file.type&&file.type!==mime&&!(ext==='jpg'&&file.type==='image/jpeg'))
+  throw new Error('領収書の拡張子と種類が一致しません');
+ return mime;
+}
+async function receiptContent_(file){
+ if(!file)throw new Error('領収書を選択してください');
+ if(file.size<=0||file.size>RECEIPT_MAX_BYTES)
+  throw new Error('領収書は4MB以下の画像またはPDFを選択してください');
+ const mimeType=receiptMimeFor_(file);
+ const result=await new Promise((resolve,reject)=>{
+  const reader=new FileReader();
+  reader.onload=()=>resolve(String(reader.result||''));
+  reader.onerror=()=>reject(new Error('領収書ファイルを読み取れませんでした'));
+  reader.readAsDataURL(file);
+ });
+ const b64=result.slice(result.indexOf(',')+1);
+ if(!/^[A-Za-z0-9+/]+={0,2}$/.test(b64))throw new Error('ファイルの読み込み結果が不正です');
+ return {filename:file.name.slice(0,120),mimeType,contentBase64:b64};
+}
+async function uploadReceipt_(rowId,expectedVersion,file,operationId){
+ return call('/api/receipt/upload',{
+  operationId,rowId,expectedVersion,...await receiptContent_(file)
+ });
+}
+function closeReceiptViewer_(){
+ close('receiptViewerDialog');
+ $('receiptPreviewImage').src='';$('receiptPreviewPdf').src='';
+ if(receiptBlobUrl){URL.revokeObjectURL(receiptBlobUrl);receiptBlobUrl='';}
+}
+async function viewReceipt_(rowId){
+ gateEdit();
+ const saved=await call('/api/receipt/get',{rowId});
+ const str=atob(saved.contentBase64);
+ const bytes=Uint8Array.from(str,ch=>ch.charCodeAt(0));
+ const blob=new Blob([bytes],{type:saved.mimeType});
+ closeReceiptViewer_();
+ receiptBlobUrl=URL.createObjectURL(blob);
+ $('receiptViewerName').textContent=saved.name;
+ const image=['image/jpeg','image/png','image/webp'].includes(saved.mimeType);
+ const pdf=saved.mimeType==='application/pdf';
+ $('receiptPreviewImage').hidden=!image;
+ $('receiptPreviewPdf').hidden=!pdf;
+ if(image)$('receiptPreviewImage').src=receiptBlobUrl;
+ if(pdf)$('receiptPreviewPdf').src=receiptBlobUrl;
+ $('receiptDownloadLink').href=receiptBlobUrl;
+ $('receiptDownloadLink').download=saved.name;
+ dialog('receiptViewerDialog');
+}
+async function uploadHomeReceipt_(file){
+ gateEdit();
+ const r=S.overview?.ledger,p=S.overview?.practice;
+ if(!r||!p||r.status==='confirmed'||r.expense<=0||p.date>today())
+  throw new Error('当日支出を保存し、未確定の開催日を選択してから添付してください');
+ if(S.pending.size||S.paymentNeedsRefresh)
+  throw new Error('処理中の集金があるため、更新してから添付してください');
+ await uploadReceipt_(r.rowId,r.version,file,uuid());
+ toast('領収書を保存しました');await reload(true);
+}
+
 function dialog(id){const e=$(id);if(e&&!e.open)e.showModal();}
 function close(id){if($(id)?.open)$(id).close();}
 function gateEdit(){if(!S.actor||!['duty','admin'].includes(S.actor.role))throw new Error('当番チームの権限がありません');}
