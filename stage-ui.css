@@ -759,22 +759,18 @@ body.stage-ui.access-v2-active #memberAccessPending .live-access-row button{
  * sizes, focus rings, disabled/permission guards and existing event nodes. */
 .stage-ui button{
  min-height:38px!important;
- box-sizing:border-box;
 }
 .stage-ui input:not([type=checkbox]):not([type=radio]):not([type=file]),
 .stage-ui select{
  height:38px!important;
  min-height:38px!important;
- box-sizing:border-box;
 }
 .stage-ui textarea{
  min-height:38px!important;
- box-sizing:border-box;
 }
 /* Native upload buttons must retain their browser-specific rendering. */
 .stage-ui input[type=file]{
  min-height:38px!important;
- box-sizing:border-box;
 }
 /* Higher specificity/important rules from the original dialog toolbar and
  * cash-denomination control would otherwise keep the older 44px height. */
