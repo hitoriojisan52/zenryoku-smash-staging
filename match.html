@@ -14,8 +14,9 @@
  </details>
  <div id="accessMessage" class="stage-system-message stage-system-message--info" role="status" aria-live="polite"></div>
  <section class="access-panel" id="accessRegistration" hidden>
-   <h2>メンバー登録申請</h2><p>初回利用時は表示名を入力して申請してください。管理者の承認後、アプリが利用できます。</p>
-   <label for="accessRegName">表示名</label><input id="accessRegName" type="text" maxlength="30" placeholder="例：全力太郎">
+   <h2>メンバー登録申請</h2><p>初回利用時は氏名とカナを入力して申請してください。管理者の承認後、アプリが利用できます。</p>
+   <label for="accessRegName">氏名</label><input id="accessRegName" type="text" maxlength="30" placeholder="例：全力太郎" autocomplete="name" required>
+   <label for="accessRegKana">氏名カナ（全角カタカナ）</label><input id="accessRegKana" type="text" maxlength="60" placeholder="例：ゼンリョクタロウ" autocomplete="off" required>
    <button id="accessApply" type="button" class="btn-green">登録を申請する</button>
  </section>
  <section class="access-panel" id="accessShare" hidden>
@@ -67,4 +68,4 @@
   </div>
 </div>
 
-<script src="date-format.js?v=1641"></script><script src="match-confirm.js?v=1648"></script><script src="runtime-config.js?v=163c"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script src="qrcode.min.js?v=160c"></script><script src="access-ui.js?v=1644"></script><script type="module" src="match.js?v=1639b"></script></body></html>
+<script src="date-format.js?v=1641"></script><script src="match-confirm.js?v=1648"></script><script src="runtime-config.js?v=163c"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script src="qrcode.min.js?v=160c"></script><script src="access-ui.js?v=1657"></script><script type="module" src="match.js?v=1639b"></script></body></html>

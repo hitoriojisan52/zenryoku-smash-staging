@@ -33,7 +33,7 @@ const DB={
 const preserved=['退会履歴','出欠回答','集金記録','全体収支管理表','試合操作履歴'];
 const baseline=Object.fromEntries(preserved.map(k=>[k,JSON.stringify(DB[k])]));
 let writes=0;
-const str_=v=>String(v??'').trim(),bool_=v=>v===true||v==='TRUE';
+const str_=v=>String(v??'').trim(),norm_=v=>String(v??'').normalize('NFKC').replace(/[\s\u00a0\u3000]+/g,''),bool_=v=>v===true||v==='TRUE';
 const fail_=(code,msg)=>{const e=new Error(msg);e.code=code;throw e;};
 const safeCell_=v=>String(v);
 const sheetRows_=(_ss,name)=>DB[name].map(r=>[...r]);
@@ -65,12 +65,12 @@ const constants={SMA_STAGE_WITHDRAW_PURPOSE_V1636:'staging-member-withdraw-v1653
  SMA_STAGE_WITHDRAW_ID_V1636:spreadsheetId};
 const names=['accessAdmin16_','accessStageWithdrawalV1636_','accessWithdrawCheckV1627_',
  'accessSheet16_','sheetRows_','accessRows16_','accessHistoryForManagerV1623_',
- 'accessRole16_','str_','bool_','conf_','withLock_','checkOpId_',
+ 'accessRole16_','str_','norm_','bool_','conf_','withLock_','checkOpId_',
  'auditExisting_','sheet_','safeCell_','fail_','audit_','SMA16',
  'SMA_STAGE_WITHDRAW_PURPOSE_V1636','SMA_STAGE_WITHDRAW_ID_V1636'];
 const values=[accessAdmin16_,()=>{throw Error('withdraw called');},
  ()=>{throw Error('check called');},accessSheet16_,sheetRows_,accessRows16_,
- accessHistoryForManagerV1623_,accessRole16_,str_,bool_,
+ accessHistoryForManagerV1623_,accessRole16_,str_,norm_,bool_,
  k=>({WITHDRAW_ENABLED:'true',STAGING_WITHDRAW_PURPOSE:'staging-member-withdraw-v1653',
    SPREADSHEET_ID:spreadsheetId}[k]||''),withLock_,checkOpId_,
  auditExisting_,sheet_,safeCell_,fail_,audit_,SMA16,...Object.values(constants)];
@@ -187,7 +187,7 @@ const labels=row=>cells(row).map(x=>x.textContent);
   !html.includes('id="memberAccessEditCloseV1656"'),
   'minimal editable-name dialog without redundant top-right Close');
  ok(worker.includes("'/api/member/manage/edit':'member.manage.edit'")&&
-  worker.includes("version:'0.16.56-stage-member-edit'"),
+  worker.includes("version:'0.16.57-stage-kana'"),
   'authenticated gateway routes name mutation with health revision');
  console.log('PASS '+n+'/'+n+' member name edit, immutable histories and role-specific ledger controls');
 })().catch(e=>{console.error(e);process.exitCode=1});

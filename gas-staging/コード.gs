@@ -376,9 +376,9 @@
  */
 var SM = {
   headers: {
-    'メンバー':['memberId','displayName','lineUserId','active','isAdmin'],
+    'メンバー':['memberId','displayName','lineUserId','active','isAdmin','nameKana'],
     // Existing v0.16 account applications; read-only source for enrollment dates.
-    '登録申請':['requestId','lineUserId','displayName','status','requestedAt','decidedBy','decidedAt','memberId'],
+    '登録申請':['requestId','lineUserId','displayName','status','requestedAt','decidedBy','decidedAt','memberId','nameKana'],
     '当番チーム':['teamId','teamName','active'],
     'チーム所属':['teamId','memberId','active'],
     '練習日程':['practiceId','date','place','startTime','endTime','hours','enabled','remark','version'],
@@ -450,7 +450,42 @@ function entries_(ss){return sheetRows_(ss,'全体収支管理表').filter(funct
 function fee_(cat,hours){var base=SM.fees[cat];var factor={2:6/8,3:7/8,4:1}[hours];if(base===undefined||factor===undefined)fail_('BAD_REQUEST','料金設定または時間区分が不正です');return Math.ceil(base*factor/100)*100;}
 function practices_(ss){return sheetRows_(ss,'練習日程').map(function(r){return {practiceId:str_(r[0]),date:ledgerDate_(r[1]),place:str_(r[2]),startTime:scheduleTime_(r[3]),endTime:scheduleTime_(r[4]),hours:Number(r[5]),enabled:bool_(r[6])};}).filter(function(p){return p.practiceId&&p.enabled;});}
 function practice_(ss,id){var found=practices_(ss).filter(function(p){return p.practiceId===id;});if(found.length!==1)fail_('NOT_FOUND','練習日程が見つかりません');return found[0];}
-function attendees_(ss,id){return sheetRows_(ss,'出欠回答').filter(function(r){return str_(r[0])===id&&bool_(r[5]);}).map(function(r){return {practiceId:id,participantId:str_(r[1]),name:norm_(r[2]),nameKana:norm_(r[3]),category:str_(r[4]),attending:true,memo:str_(r[6]),categoryVersion:Number(r[7])||0};});}
+/**
+ * v0.16.57: read-only identity overlay. Member master is authoritative for
+ * current registered name/kana, but historical 出欠回答 never gets rewritten.
+ * Duplicate/non-active member IDs cannot lend another user's identity.
+ */
+function memberRosterMapV1657_(ss){
+ var map=Object.create(null),ambiguous=Object.create(null);
+ sheetRows_(ss,'メンバー').forEach(function(m){
+  var id=str_(m[0]);if(!id)return;
+  if(map[id]){ambiguous[id]=true;return;}
+  if(bool_(m[3]))map[id]={name:norm_(m[1]),nameKana:norm_(m[5])};
+ });
+ Object.keys(ambiguous).forEach(function(id){delete map[id];});
+ return map;
+}
+function overlayMemberRosterV1657_(rows,masters){
+ return rows.map(function(r){
+  if(r.category==='visitor')return r;
+  var master=masters[r.participantId||r.participationId];
+  if(!master)return r;
+  var copy=Object.assign({},r);
+  if(master.name)copy.name=master.name;
+  if(master.nameKana)copy.nameKana=master.nameKana;
+  return copy;
+ });
+}
+function attendees_(ss,id,withCurrentMemberNames){
+ var rows=sheetRows_(ss,'出欠回答').filter(function(r){return str_(r[0])===id&&bool_(r[5]);}).map(function(r){
+  return {practiceId:id,participantId:str_(r[1]),name:norm_(r[2]),
+   nameKana:norm_(r[3]),category:str_(r[4]),attending:true,memo:str_(r[6]),
+   categoryVersion:Number(r[7])||0};
+ });
+ // Keep finance mutation fast path unchanged: only live display requests
+ // opt in to the extra account-master lookup.
+ return withCurrentMemberNames?overlayMemberRosterV1657_(rows,memberRosterMapV1657_(ss)):rows;
+}
 function paymentRows_(ss,id){return sheetRows_(ss,'集金記録').filter(function(r){return str_(r[0])===id;});}
 function practiceIncome_(ss,id,adjustment){var p=practice_(ss,id);var payments=paymentRows_(ss,id);var done={};payments.forEach(function(r){if(bool_(r[2]))done[str_(r[1])]=true;});var amount=attendees_(ss,id).reduce(function(sum,a){return sum+(done[a.participantId]?fee_(a.category,p.hours):0);},0);return amount+Number(adjustment||0);}
 /** Legacy accounting contract: chronological order is authoritative for
@@ -961,7 +996,7 @@ function overview_(ss,member,payload){var all=practices_(ss).sort(function(a,b){
  var id=str_(payload.practiceId)|| (all.length?all[all.length-1].practiceId:'');
  if(!id)return {ok:true,data:{role:member.role,actorName:member.name,practice:null,practices:[],participants:[],ledger:null,collectionAccess:{canCollect:false,reason:'開催日がありません'},expected:0,completedFee:0,completedCount:0,attendingCount:0}};
  var p=practice_(ss,id),ledgerRows=ensureCollectionLedger_(ss,member,p,entries_(ss)),access=collectionState_(ss,p,ledgerRows),pay=paymentRows_(ss,id),pm={};pay.forEach(function(r){pm[str_(r[1])]={completed:bool_(r[2]),version:Number(r[3])||0};});
- var roster=attendees_(ss,id).map(function(a){var o=pm[a.participantId]||{completed:false,version:0};return {participantId:a.participantId,name:a.name,nameKana:a.nameKana,category:a.category,fee:fee_(a.category,p.hours),attending:true,memo:a.memo,collectionCompleted:o.completed,paymentVersion:o.version,categoryVersion:a.categoryVersion};});
+ var roster=attendees_(ss,id,true).map(function(a){var o=pm[a.participantId]||{completed:false,version:0};return {participantId:a.participantId,name:a.name,nameKana:a.nameKana,category:a.category,fee:fee_(a.category,p.hours),attending:true,memo:a.memo,collectionCompleted:o.completed,paymentVersion:o.version,categoryVersion:a.categoryVersion};});
  // Shared dynamic numbering: sorted every read, never a mutation key.
  roster=SMMatchCore.numbered(roster).map(function(a){a.participantId=a.participationId;return a;});
  var ledger=ledgerRows.find(function(r){return r.rowId==='P-'+id;});var completed=roster.filter(function(a){return a.collectionCompleted;});var total=completed.reduce(function(a,b){return a+b.fee;},0);
@@ -1066,7 +1101,7 @@ function participantList_(ss,member,payload){
   var mid=str_(m[0]);
   if(!mid)return;
   if(membersById[mid])ambiguousMemberIds[mid]=true;
-  else membersById[mid]={name:norm_(m[1]),lineUserId:str_(m[2])};
+  else membersById[mid]={name:norm_(m[1]),nameKana:norm_(m[5]),lineUserId:str_(m[2])};
  });
  var reportDates=attendanceAuditDates_(ss);
  var registrationById=Object.create(null),ambiguousRegistrations=Object.create(null);
@@ -1092,6 +1127,7 @@ function participantList_(ss,member,payload){
   }
   var master=ambiguousMemberIds[r.participantId]?null:membersById[r.participantId];
   if(master&&master.name)r.name=master.name;
+  if(master&&master.nameKana)r.nameKana=master.nameKana;
   r.lineUserId=master&&/^U[0-9a-f]{32}$/i.test(master.lineUserId)?
    master.lineUserId:null;
   var reg=ambiguousRegistrations[r.participantId]?null:registrationById[r.participantId];
@@ -1106,6 +1142,14 @@ function participantList_(ss,member,payload){
   seenPayment[person]=true;paid[person]=bool_(r[2]);
  });
  rows.forEach(function(r){r.collectionCompleted=!!paid[r.participantId];});
+ // Existing participant-list still includes absentees; sort by the same
+ // category/kana/name/fixed-ID keys as LIVE collection and match numbering.
+ var categoryRank={member:1,student:2,visitor:3,duty:4,shuttle:5};
+ rows.sort(function(a,b){
+  var ar=categoryRank[a.category]||99,br=categoryRank[b.category]||99;
+  return ar-br||(a.nameKana||a.name).localeCompare(b.nameKana||b.name,'ja')||
+    a.name.localeCompare(b.name,'ja')||a.participantId.localeCompare(b.participantId);
+ });
  var ledgers=entries_(ss).filter(function(r){return r.rowId==='P-'+id;});
  if(ledgers.length>1)fail_('SETUP','対象日の収支行が重複しています');
  return {ok:true,data:{practices:dates,practiceId:id,practice:p,
@@ -1178,16 +1222,20 @@ function participantChange_(ss,member,payload,visitorDecisionInternal){
    fail_('LOCKED','ビジター区分は変更できません。新規登録はビジター申請から行ってください');
   // Member display names come from the approved member master. No name/kana
   // editing via attendance, even if the old attendance row has a stale name.
-  var canonicalName=norm_(old[2]);
+  var canonicalName=norm_(old[2]),canonicalKana=norm_(old[3]);
   if(!visitorIdentity){
    var masterMatches=sheetRows_(ss,'メンバー').filter(function(m){
     return str_(m[0])===person;
    });
    if(masterMatches.length>1)fail_('SETUP','利用登録のメンバーIDが重複しています');
-   if(masterMatches.length===1&&norm_(masterMatches[0][1]))
-    canonicalName=norm_(masterMatches[0][1]);
+   if(masterMatches.length===1){
+    if(norm_(masterMatches[0][1]))canonicalName=norm_(masterMatches[0][1]);
+    // The master kana is authoritative for the current edit form; historical
+    // 出欠回答 kana remains unchanged unless separately migrated by design.
+    if(norm_(masterMatches[0][5]))canonicalKana=norm_(masterMatches[0][5]);
+   }
    if((payload.name!==undefined&&norm_(payload.name)!==canonicalName)||
-      (payload.nameKana!==undefined&&norm_(payload.nameKana)!==norm_(old[3])))
+      (payload.nameKana!==undefined&&norm_(payload.nameKana)!==canonicalKana))
     fail_('LOCKED','メンバーの氏名・カナは参加者一覧から変更できません');
   }
   name=visitorIdentity?norm_(payload.name):canonicalName;
@@ -1640,7 +1688,7 @@ function attendanceSubmit_(ss,member,payload){
    fail_('SETUP','集金記録が残っているため新規参加連絡できません');
   if(payload.expectedVersion!==null&&payload.expectedVersion!==undefined)
    fail_('CONFLICT','参加連絡の最新版を再取得してください');
-  sheet_(ss,'出欠回答').appendRow([id,member.memberId,safeCell_(name),'',
+  sheet_(ss,'出欠回答').appendRow([id,member.memberId,safeCell_(name),safeCell_(norm_(memberMatches[0][5])),
    'member',payload.attending,safeCell_(memo),0,member.memberId]);
   result={ok:true,data:{practiceId:id,participantId:member.memberId,version:0,
    attending:payload.attending,memo:memo,action:'create'}};
@@ -1654,7 +1702,7 @@ function attendanceSubmit_(ss,member,payload){
   result=participantChange_(ss,member,{operationId:checkOpId_(payload),
    action:'edit',practiceId:id,participantId:member.memberId,
    expectedVersion:payload.expectedVersion,
-   name:name,nameKana:norm_(old[3]),category:str_(old[4]),
+   name:name,nameKana:norm_(memberMatches[0][5])||norm_(old[3]),category:str_(old[4]),
    attending:payload.attending,memo:memo});
  }
  result.data.reportedAt=now_();
@@ -1833,9 +1881,10 @@ function matchRows_(ss,name){var sh=ss.getSheetByName(name);if(!sh)fail_('SETUP'
   return sh.getLastRow()>1?sh.getRange(2,1,sh.getLastRow()-1,MATCH_SHEETS[name].length).getValues():[];}
 function matchRoster_(ss,practiceId){
   practice_(ss,practiceId);
-  return sheetRows_(ss,'出欠回答').filter(function(r){return str_(r[0])===practiceId;}).map(function(r){
+  var rows=sheetRows_(ss,'出欠回答').filter(function(r){return str_(r[0])===practiceId;}).map(function(r){
     return {participationId:str_(r[1]),name:norm_(r[2]),nameKana:norm_(r[3]),category:str_(r[4]),attending:bool_(r[5]),memo:str_(r[6])};
   });
+  return overlayMemberRosterV1657_(rows,memberRosterMapV1657_(ss));
 }
 function matchHash_(txt){return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,txt)
   .map(function(b){return ('0'+((b+256)%256).toString(16)).slice(-2);}).join('');}

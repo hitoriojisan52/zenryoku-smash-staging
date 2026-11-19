@@ -16,7 +16,7 @@ const VALID_PATHS = Object.freeze({
   '/api/member/manage/list':'member.manage.list',
   '/api/member/manage/decide':'member.manage.decide',
   '/api/member/manage/role':'member.manage.role',
-  '/api/member/manage/edit':'member.manage.edit', // v0.16.56: name only, administrator validated by GAS
+  '/api/member/manage/edit':'member.manage.edit', // v0.16.57: name and optional kana, administrator validated by GAS
   '/api/member/manage/withdraw':'member.manage.withdraw', // v0.16.53: admin-only, strictly staging-bound, opt-in
   '/api/member/manage/withdraw/check':'member.manage.withdraw.check', // v0.16.27: read-only and admin-checked by GAS
   '/api/match/share':'match.share.issue',
@@ -164,8 +164,8 @@ export async function handleRequest(request,env){
     // Public LIFF channel prefix (not a secret); disclose only a boolean,
     // never the configured environment value or any LINE token.
     const channelMatchesLiveLiff=env.LINE_LOGIN_CHANNEL_ID==='2012602642';
-    return json({ok:true,status:'deployed',version:'0.16.56-stage-member-edit',
-      codeRevision:'stage-v1656-member-editor-20261119',
+    return json({ok:true,status:'deployed',version:'0.16.57-stage-kana',
+      codeRevision:'stage-v1657-kana-registration-20261119',
       configured,channelMatchesLiveLiff});
   }
   const origin=request.headers.get('Origin')||'';
@@ -215,7 +215,20 @@ export async function handleRequest(request,env){
     const withdrawAtEdge=env.WITHDRAW_ENABLED==='true' &&
       env.WITHDRAW_STAGE_SPREADSHEET_ID==='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac' &&
       env.WORKER_PURPOSE==='staging-member-withdraw-v1653';
+    if(op==='member.apply'){
+      const kana=typeof payload.nameKana==='string'?payload.nameKana.normalize('NFKC').replace(/[\s\u00a0\u3000]+/g,''):'';
+      if(typeof payload.displayName!=='string'||!payload.displayName.trim()||
+         payload.displayName.length>30||!kana||kana.length>60||
+         !/^[ァ-ヶー・]+$/.test(kana))
+        return failure('登録申請の氏名・カナを確認してください',400,origin,'BAD_REQUEST');
+    }
     if(op==='member.manage.edit'){
+      if(Object.prototype.hasOwnProperty.call(payload,'nameKana')){
+        const kana=typeof payload.nameKana==='string'?payload.nameKana.normalize('NFKC').replace(/[\s\u00a0\u3000]+/g,''):null;
+        if(kana===null||kana.length>60||(kana&&!/^[ァ-ヶー・]+$/.test(kana))||
+           typeof payload.expectedKana!=='string'||payload.expectedKana.length>60)
+          return failure('氏名カナの修正内容が不正です',400,origin,'BAD_REQUEST');
+      }
       if(typeof payload.memberId!=='string'||!/^M-[A-Z0-9-]{2,90}$/i.test(payload.memberId)||
          typeof payload.displayName!=='string'||!payload.displayName.trim()||
          payload.displayName.length>30||

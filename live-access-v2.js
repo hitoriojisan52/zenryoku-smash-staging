@@ -129,6 +129,7 @@
   if(!snapshot.pending.length)pending.append(item('p','access-help','申請はありません。'));
   for(const p of snapshot.pending){
    const frame=cardFrame(String(p.name||'名前なし'),'利用申請','承認待ち');
+   frame.details.append(cardLine('氏名カナ：'+(p.nameKana||'未登録')));
    if(p.requestedAt)frame.details.append(cardLine('📅 申請日：'+
     (window.SMDate?.dateTimeJst?.(p.requestedAt,false)||String(p.requestedAt))));
    const accept=item('button','btn-green','承認');
@@ -142,6 +143,7 @@
   for(const m of snapshot.members){
    const frame=cardFrame(String(m.name||'名前なし'),'',m.active?'':'停止中');
    frame.card.classList.add('member-access-card-v1656');
+   frame.details.append(cardLine('氏名カナ：'+(m.nameKana||'未登録')));
    frame.details.append(cardLine('LINE ID：'+(m.lineUserId||'未紐付け')));
    frame.details.append(cardLine('📅 利用登録日：'+(
     m.registeredAt?(window.SMDate?.dateTimeJst?.(m.registeredAt,false)||String(m.registeredAt)):'未記録')));
@@ -273,12 +275,13 @@
      approve?'承認':'却下',
      data=>!data.pending.some(x=>x.requestId===p.requestId));
  }
- // The registered member name is the only editable application field.
+ // Registered member name and optional kana are the editable application fields.
  // Never edit LINE identity, memberId, roles, historical attendance or money.
  function openMemberEditor(m){
    if(busy||prompt||!m.active||actorRole!=='admin')return;
    editingMember=m;
    $('memberAccessEditNameV1656').value=m.name||'';
+   $('memberAccessEditKanaV1657').value=m.nameKana||'';
    $('memberAccessEditStatusV1656').textContent='';
    editDialog.showModal();
    $('memberAccessEditNameV1656').focus({preventScroll:true});
@@ -287,17 +290,22 @@
    event.preventDefault();
    if(busy||prompt||!editingMember)return;
    const m=editingMember;
-   const name=$('memberAccessEditNameV1656').value.normalize('NFKC').trim();
+   const name=$('memberAccessEditNameV1656').value.normalize('NFKC').replace(/[\s\u00a0\u3000]+/g,'');
+   const nameKana=$('memberAccessEditKanaV1657').value.normalize('NFKC').replace(/[\s\u00a0\u3000]+/g,'');
    if(!name||name.length>30||/[\r\n<>]/.test(name)){
     $('memberAccessEditStatusV1656').textContent='氏名を1～30文字で入力してください。';
     return;
    }
+   if(nameKana&&(nameKana.length>60||!(/^[ァ-ヶー・]+$/).test(nameKana))){
+    $('memberAccessEditStatusV1656').textContent='氏名カナは全角カタカナで入力してください。';
+    return;
+   }
    editDialog.close();editingMember=null;
-   if(name===m.name)return;
+   if(name===m.name&&nameKana===(m.nameKana||''))return;
    await mutate('/api/member/manage/edit',{
       memberId:m.memberId,displayName:name,expectedName:m.name,
-      operationId:crypto.randomUUID()
-     },'修正',data=>data.members.some(x=>x.memberId===m.memberId&&x.name===name));
+      nameKana,expectedKana:m.nameKana||'',operationId:crypto.randomUUID()
+     },'修正',data=>data.members.some(x=>x.memberId===m.memberId&&x.name===name&&x.nameKana===nameKana));
  });
  /** v0.16.53: only the verified administrator may withdraw another
   * active nonadmin member from the connected test workbook. Never retry
