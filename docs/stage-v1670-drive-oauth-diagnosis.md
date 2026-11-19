@@ -25,3 +25,11 @@
 5. 収支行は既に保存されているため、Drive復旧後は同一収支の『修正』から再添付。二重登録・確定済み収支の勝手な解除はしない。
 
 回帰: `tests/check-gas-staging-guard.cjs` で3状態の判別とマニフェスト完全保持を検証。全体収支の残高・時系列確定・Driveの公開リンク禁止・GASの固定ID保護を変更しない。
+
+## v0.16.71 — Google Drive権限の手動同意導線
+
+- 実際のclasp pull診断でSTAGING_DRIVE_CREATEFOLDER_SCOPE=auto-detectionを確認。oauthScopesは明示設定されておらず、マニフェスト宣言漏れとは断定できない。
+- Apps Scriptエディタの既存関数authorizeStagingReceiptDriveV1669にScriptApp.requireScopes(ScriptApp.AuthMode.FULL, ['https://www.googleapis.com/auth/drive'])を追加した。Googleの許可画面で実行アカウント本人がDrive権限を承認するまでフォルダ作成へ進まない。自動的な権限付与ではない。
+- 検証用SPREADSHEET_ID以外ではスコープ要求前に拒否する。既存ScriptLock、非公開Drive、収支行の二重登録防止、会計の残高・確定順序、Workerルート、本番設定は変更しない。
+- 同意済みでもcreateFolderが失敗する場合、Google Workspaceポリシー、Drive容量、実行アカウント等を別途調査。元の例外を隠す共通メッセージだけでは確定できない。
+- テストはスコープ未承認・誤環境・認可済みの3状態をモックで検証。OAuth画面とDrive実保存は実機受入待ち。
