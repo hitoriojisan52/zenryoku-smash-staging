@@ -39,8 +39,9 @@ ok(worker.indexOf('authorizeStagingReceiptDriveV1669')<0&&
  !source.slice(start,end).includes('Logger.log(')&&
  !source.slice(start,end).includes('console.log('),
  'OAuth helper is never exposed through Worker and does not log secrets');
-ok(source.includes("var id=props.getProperty('RECEIPT_FOLDER_ID')||'';")&&
+ok(source.includes("props.getProperty('RECEIPT_FOLDER_ID_V1672')")&&
+  source.includes("getProperty('RECEIPT_FOLDER_ID')")&&
  source.includes('stageReceiptFolder_();')&&
- source.includes("if(sheetId!=='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac')"),
- 'original ScriptProperties, locked private folder and staging data guard are retained');
+ source.includes("if(conf_('SPREADSHEET_ID')!=='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac')"),
+ 'new folder property, historical private folder read and staging data guard are retained');
 console.log('PASS '+count+'/'+count+' manual stage-only Drive OAuth consent prompt regression');
