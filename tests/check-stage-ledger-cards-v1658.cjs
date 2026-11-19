@@ -20,7 +20,7 @@ ok(file('dialog-close.js').includes("ledgerDialog:['newLedgerRow']")&&
 ok(css.includes('font-size:clamp(12px,3.8vw,16px)')&&
  css.includes('#ledgerDialog .stage-dialog-toolbar-actions button{'),
  'ledger header remains compact on phones');
-ok(css.includes('@media (max-width:640px)')&&
+ok(css.includes('@media (max-width:900px)')&&
  css.includes('#ledgerDialog .ledger-table tbody tr{')&&
  css.includes('display:grid;grid-template-columns:minmax(0,1fr)'),
  'mobile ledger uses real vertically stacked table-row cards');
