@@ -1926,7 +1926,22 @@ function receiptGetV1665_(ss,member,payload){
 function receiptUploadV1665_(ss,member,payload){
  requireDuty_(member);
  var opId=checkOpId_(payload),r=receiptRowV1665_(ss,payload.rowId);
- unlockable_(r);dateAllowed_(r.date);expectVersion_(r.version,payload.expectedVersion);
+ unlockable_(r);dateAllowed_(r.date);
+ // If a Drive file + ledger pointer were committed but auditing failed,
+ // recover this EXACT operation ID without attaching a duplicate file.
+ if(r.receiptFileId&&r.version===Number(payload.expectedVersion)+1){
+  try{
+   var previous=DriveApp.getFileById(r.receiptFileId),
+       detail=JSON.parse(previous.getDescription()||'{}');
+   if(detail.operationId===opId&&detail.rowId===r.rowId){
+    var recovered={ok:true,data:{rowId:r.rowId,version:r.version,
+     hasReceipt:true,filename:previous.getName(),recovered:true}};
+    audit_(ss,opId,'receipt.upload',member,r.rowId,recovered);
+    return recovered;
+   }
+  }catch(e){if(e.smCode)throw e;}
+ }
+ expectVersion_(r.version,payload.expectedVersion);
  if(r.kind==='practice'&&r.expense<=0)fail_('BAD_REQUEST','当日支出を先に登録してください');
  var name=str_(payload.filename).replace(/[\/\\\u0000-\u001f]/g,'_').slice(0,120),
      mime=str_(payload.mimeType),raw=str_(payload.contentBase64);
