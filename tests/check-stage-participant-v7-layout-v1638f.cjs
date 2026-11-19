@@ -21,7 +21,7 @@ ok(panel.includes('id="participantPractice"')&&panel.includes('id="participantRe
 ok(!panel.includes('participantAdd')&&!panel.includes('ビジター追加')&&
  !panel.includes('ビジター登録'),'visitor addition removed from participant list');
 ok(!ui.includes("participantAdd"),'removed element has no click or disabled wiring');
-ok(ui.includes("(p.place||'開催場所未登録')"),'participant date selector shows venue');
+ok(ui.includes('window.SMDate.practiceLabel(p)'),'participant date selector uses shared weekday/time/venue formatter');
 ok(!html.includes('id="participantEmail"')&&!ui.includes("participantEmail"),
  'email is absent from participant list/edit UI entirely');
 ok(html.includes('id="visitorRegisterMenu"')&&html.includes('id="visitorDialog"'),
