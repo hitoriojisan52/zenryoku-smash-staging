@@ -46,7 +46,7 @@ ok((html.match(/\bid="list"/g)||[]).length===1&&
  html.indexOf('id="adjustment"')<html.indexOf('id="confirm"'),
  'participant region sits between fixed practice header and fixed money footer');
 for(const page of ['live.html','match.html','match-view.html','guest.html']){
- ok(read(page).includes('stage-ui.css?v=1659'),page+' receives latest dense shared CSS');
+ ok(read(page).includes('stage-ui.css?v=1660'),page+' receives latest dense shared CSS');
 }
 ok(css.includes('.stage-ui{line-height:1.34}')&&
  css.includes('.stage-ui dialog p{line-height:1.4}')&&
