@@ -187,7 +187,7 @@ const labels=row=>cells(row).map(x=>x.textContent);
   !html.includes('id="memberAccessEditCloseV1656"'),
   'minimal editable-name dialog without redundant top-right Close');
  ok(worker.includes("'/api/member/manage/edit':'member.manage.edit'")&&
-  worker.includes("version:'0.16.56-stage-member-edit'"),
+  worker.includes("version:'0.16.57-stage-kana'"),
   'authenticated gateway routes name mutation with health revision');
  console.log('PASS '+n+'/'+n+' member name edit, immutable histories and role-specific ledger controls');
 })().catch(e=>{console.error(e);process.exitCode=1});
