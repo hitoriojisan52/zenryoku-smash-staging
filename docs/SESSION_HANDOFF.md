@@ -206,3 +206,11 @@
 - [詳細・実機確認](stage-v1668-weekday-jpg10mb.md)。v1668テストと既存UI/GAS/仕様テストを全て再実行。PR/CI/検証デプロイ/実機の結果は別個に記録すること。**本番未変更**。
 
 - **v0.16.68 CI・反映確認（2026/11/19）**：[PR #71](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/71) のUI/GAS/仕様優先順位CIは3件すべて成功。15/15（曜日隣接・10MB JPG）を含む既存回帰成功。検証用main `bd4a7dbf3d25c58be75ccc325bf98cfd338c42ca` へ統合し、[GitHub Pages build/deploy とCloudflare Workers Builds](https://github.com/hitoriojisan52/zenryoku-smash-staging/commit/bd4a7dbf3d25c58be75ccc325bf98cfd338c42ca/checks) 成功。今回はGAS・Workerソース変更なし（既存のGASデプロイ@36を維持）。**LINE実機で曜日の隣接位置、10MB JPGの登録・表示・画像判読性は未確認**。本番は変更しない。
+
+## 22. v0.16.69 Drive権限/立替日後日確定/練習日程曜日/領収書余白（2026/11/19）
+ 
+- 利用者の領収書保存用Driveフォルダ作成エラーを受領。**収支行は既に保存済み**。重複登録は禁止し、GASの実行主体がDrive権限を許可した後に同じ収支行の「修正」から添付し直す。検証用GAS関数 `authorizeStagingReceiptDriveV1669` を公開関数として追加し、既存のステージ固定・ScriptLock経由の非公開フォルダ作成を呼び出す（OAuthの同意は所有者本人が必要）。
+- 2026/11/19の確定済み収支が存在すると2026/11/18の新規立替精算で後日確定残高が変わるため、新規精算のGAS preflightで`LOCKED`と具体的業務メッセージを返す。旧v15の確定順序・残高・他の409競合は維持。API応答で「ほかの人が先に変更しました」と誤表示させない。
+- 練習日程追加・修正の「開催日」も精算日のネイティブdate+欄内曜日に統一（当日日付や確定ルール変更なし）。立替精算・収支編集の領収書file-selector-buttonのみ上下4px余白。
+- **仕様の相違を確認：** 全体収支管理表の未確定P行も赤「削除」ボタンから削除可能で、復旧には「練習日（削除行を再登録）」が必要。ユーザーの「マスタからしか削除できないなら区分削除」という条件は成立しないため、**区分は削除せず現状維持**。復旧機能と既存削除権限の変更には追加判断が必要。
+- [正式な影響・テスト・Drive実機手順](stage-v1669-ledger-drive-schedule-ui.md)参照。新 `tests/check-stage-reimbursement-date-drive-v1669.cjs`、旧時系列・会計/権限/集金/日程/試合回帰を実施。PR/CI/検証反映/Drive認可/実ファイル受入は別。**本番環境には反映しない**。
