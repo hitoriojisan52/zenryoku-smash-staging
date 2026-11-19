@@ -119,6 +119,9 @@ const reload=new Function('S','$','call','window','Option','renderHome',
   ui.includes('利用者の権限を確認しています')&&
   ui.includes('集金データを取得しています'),
   'startup overlay shows the currently running phase instead of one frozen generic spinner');
+ ok(ui.includes("!document.querySelector('dialog[open]')")&&
+  ui.includes('},8000);'),
+  'background polling still uses 8 seconds but yields while management modal is open');
  ok(html.includes('live.js?v=1675-startup-perf'),
   'LINE WebView fetches revised startup module, not stale cached version');
  console.log('PASS '+n+'/'+n+' single-read startup, schedule snapshot, bounded client reads and finance safety');
