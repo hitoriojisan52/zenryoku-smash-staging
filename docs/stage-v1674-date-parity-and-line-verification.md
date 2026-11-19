@@ -35,3 +35,12 @@
 - `scripts/check-stage-line-public.mjs`が `ok=true`、`status=deployed`、`configured=true`、`channelMatchesLiveLiff=true`、管理LIFF IDとWorker URLの公開設定、および公開ページの`live.js`キャッシュ版がローカルmainと一致することを検証。機密値やレスポンス本文全文は出力しない。
 - **本人のLINEトークンを取得しない・GASへのPOSTをしない・テスト用収支や参加者を登録しない**。公開ヘルスとフロント配信の検証結果を、認証を伴うLINE実機E2Eの完了と混同しない。
 - GitHub公開への反映タイミングが前後した場合に備えて、短いリトライを設ける。エラーは安全な範囲のHTTP状態と検査条件だけを出す。成功判定と実機の確認結果を別管理。
+
+## 実施済みCI・デプロイ・公開LINE疎通確認（2026/11/20 JST）
+
+- v0.16.74の改修[PR #81](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/81)はUI・GAS・仕様CIすべて成功し、検証main `c6b2f8c50bb1791b6e002163eda89d498e00a71a` へ統合。日付パリティ18/18、LINE本人参加連絡25/25、旧v15収支確定順序28/28、ビジター関連CIすべて成功。
+- 同mainの[GitHub Pages実デプロイ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44565706874)、[GAS既存デプロイ@41](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44565707792)、Cloudflare Workers Buildsすべて成功。GASは同じデプロイID、Workerコードは未変更。
+- 公開経路テスト[PR #82](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/82)をCI成功後に検証main `bd325142c9b65fff5602fa5c8d1a735df41c8b20` へ統合。対応する[Staging LINE public read-only smoke](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44567090177)は**success**。公開Workerの `ok:true` / `status:deployed` / `configured:true` / `channelMatchesLiveLiff:true`、実GitHub Pagesの版数と公開LIFF設定一致を確認。公開Worker識別子 `stage-v1665-receipt-upload-20261119` はWorker本体が従来版のままのため想定範囲。
+- 検証用Sheet「操作履歴」の操作種別列 B1:B300 を**読み取り専用**で確認。データ170件に `attendance.submit` の記録なし（2026/11/20時点）。認証済みLINE端末での出欠登録→修正→一覧への反映が成功したことを示す記録は、この範囲からは確認できない。過去の記録の種類からLINEログイン完了やWebhook疎通を推定しない。
+- **未受入**：LINEアプリでの本人認証・再ログイン、一般メンバー／当番／管理者の役割別権限、実データへの出欠登録・修正、ビジター承認反映、退会・再入会（独立の安全手順）、ユーザー別リッチメニューの切替とWebhook応答。公式アカウントの新メニュー自動切替は既存資料上、未実装/要確認のため成功扱いしない。
+- 次の操作は、管理者本人の検証用LINEから**テスト用の日程**で参加連絡を1件送信し、同じ日程・同じ本人の出欠/備考を修正し、参加者一覧・操作履歴に反映されたことを確認すること。トークン・LINEユーザーID・氏名など個人識別情報の共有は求めない。書込試験は検証環境限定、本番変更禁止。
