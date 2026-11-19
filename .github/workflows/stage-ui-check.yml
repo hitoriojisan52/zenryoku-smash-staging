@@ -40,6 +40,7 @@ on:
       - 'tests/check-stage-compact-controls-v1662.cjs'
       - 'tests/check-stage-visual-delta-v1663.cjs'
       - 'tests/check-stage-upcoming-cash-v1664.cjs'
+      - 'tests/check-stage-receipt-weekday-v1665.cjs'
       - 'tests/check-stage-member-kana-v1657.cjs'
       - 'tests/check-stage-member-kana-approval-v1657b.cjs'
       - 'tests/check-stage-ledger-confirm-order-v1651.cjs'
@@ -125,6 +126,8 @@ jobs:
         run: node tests/check-stage-visual-delta-v1663.cjs
       - name: Verify upcoming-only defaults, grouped menus, compact cash and match copy
         run: node tests/check-stage-upcoming-cash-v1664.cjs
+      - name: Verify private receipts, payout weekdays and audited deleted ledger rows
+        run: node tests/check-stage-receipt-weekday-v1665.cjs
       - name: Verify LINE registration kana and unified roster sort
         run: node tests/check-stage-member-kana-v1657.cjs
       - name: Verify real GAS kana approval/edit and historical safety
