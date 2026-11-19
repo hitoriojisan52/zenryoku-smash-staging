@@ -72,6 +72,7 @@ const reloadSource=ui.slice(a,b),S={practiceId:'',pending:new Set(),loading:fals
 const selected={items:[],value:'',replaceChildren(...items){this.items=items;}};
 let calls=0,rendered=0;
 confirmed=['PAST-C','TODAY-C','FUTURE-C'];
+serverDay=day;
 const api=async (url,payload)=>{
  calls++;assert.equal(url,'/api/overview');assert.equal(payload.selectEligible,true);
  return overview({},member,payload).data;
