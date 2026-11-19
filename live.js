@@ -463,17 +463,20 @@ async function executeLedgerAction(){close('confirmActionDialog');await guard(as
  const {act,row}=S.modalTarget;await call('/api/ledger/change',{operationId:uuid(),action:act,rowId:row.rowId,expectedVersion:row.version});
  toast((act==='confirm'?'確定':act==='unlock'?'確定解除':'削除')+'しました');if($('ledgerDialog').open)await loadLedger();await reload(false);
 });}
+function syncPayoutWeekday_(id,hint){const value=$(id).value;$(hint).textContent=value?'（'+window.SMDate.date(value).split('(')[1]:'';}
 function openEditor(row=null,kind='reimbursement'){
  S.ledgerRow=row;S.mode=row?'edit':'add';$('ledgerEditTitle').textContent=row?'収支を修正':'収支を追加';
  const targetKind=row?.kind||kind;$('ledgerKind').value=targetKind;$('ledgerKind').disabled=!!row;
  $('ledgerPayoutDate').value=row?.date||today();$('ledgerReimbursementItem').value=row?.item||'';$('ledgerReimbursementPayee').value=row?.payee||'';
+ syncPayoutWeekday_('ledgerPayoutDate','ledgerPayoutWeekday');
  $('ledgerReimbursementAmount').value=row?.expense??'';$('ledgerEditDate').value=row?.date||today();$('ledgerEditLabel').value=row?.label||'';
  $('ledgerEditIncome').value=row?.income??0;$('ledgerEditExpense').value=row?.expense??0;
  $('ledgerReimbursementReceipt').disabled=true;$('ledgerCurrentReceipt').textContent='';
  const choices=$('ledgerPractice');choices.replaceChildren();
  const existing=new Set((S.ledger?.rows||[]).filter(r=>r.kind==='practice').map(r=>r.practiceId));
+ const deleted=new Set(S.ledger?.deletedPracticeIds||[]);
  for(const p of S.overview?.practices||[]){
-  if(p.date<=today()&&!existing.has(p.practiceId))
+  if(p.date<=today()&&deleted.has(p.practiceId)&&!existing.has(p.practiceId))
    choices.append(new Option(window.SMDate.date(p.date)+' '+p.place,p.practiceId));
  }
  // Only enable the re-registration category when there is a deleted, enabled
@@ -1161,7 +1164,9 @@ function bind(){
  $('adjustment').addEventListener('change',()=>saveAmount('adjustment'));$('expense').addEventListener('change',()=>saveAmount('expense'));
  $('receiptBtn').addEventListener('click',()=>toast('領収書アップロードは未接続です'));
  $('confirm').addEventListener('click',()=>{if(!S.overview?.ledger)return;ledgerAction('confirm',S.overview.ledger);});
- $('reimbursementBtn').addEventListener('click',()=>{$('payoutDate').value=today();$('reimbursementReceipt').disabled=true;dialog('reimbursementDialog');});
+ $('reimbursementBtn').addEventListener('click',()=>{$('payoutDate').value=today();syncPayoutWeekday_('payoutDate','payoutWeekday');$('reimbursementReceipt').disabled=true;dialog('reimbursementDialog');});
+ $('payoutDate').addEventListener('change',()=>syncPayoutWeekday_('payoutDate','payoutWeekday'));
+ $('ledgerPayoutDate').addEventListener('change',()=>syncPayoutWeekday_('ledgerPayoutDate','ledgerPayoutWeekday'));
  $('cancelReimbursement').addEventListener('click',()=>close('reimbursementDialog'));$('reimbursementForm').addEventListener('submit',submitReimbursement);
  $('manageBtn').addEventListener('click',()=>dialog('manageDialog'));$('closeManage').addEventListener('click',()=>close('manageDialog'));$('openLedger').addEventListener('click',openLedger);
  prepareCashDenominations();
