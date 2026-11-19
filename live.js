@@ -6,7 +6,7 @@
 'use strict';
 const M=window.SmashModel,$=id=>document.getElementById(id),yen=n=>Number(n).toLocaleString('ja-JP')+'円';
 const CONFIG=window.SMASH_CONFIG||{};
-const S={token:'',actor:null,overview:null,practiceId:'',loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,showHistoryDates:false,confirmedPracticeKey:'',receiptPartialWarning:''};
+const S={token:'',actor:null,overview:null,practiceId:'',loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,confirmedPracticeKey:'',receiptPartialWarning:''};
 const VISITOR_MODE=(()=>{
  const q=new URLSearchParams(location.search||'');
  let state=q.get('liff.state')||'';
@@ -146,7 +146,7 @@ async function guard(action,label='処理中です…'){
  return result;
 }
 async function boot(){
- for(const id of ['confirm','reimbursementBtn','manageBtn','refresh','adjustment','expense','newLedgerRow','homeHistoryToggle'])$(id).disabled=true;
+ for(const id of ['confirm','reimbursementBtn','manageBtn','refresh','adjustment','expense','newLedgerRow'])$(id).disabled=true;
  try{
   if(!CONFIG.liveLiffId||CONFIG.liveLiffId.includes('REPLACE_')||!CONFIG.apiBaseUrl||CONFIG.apiBaseUrl.includes('REPLACE_'))throw new Error('runtime-config.js の設定が必要です');
   if(!window.liff)throw new Error('LINE SDKを読み込めませんでした');
@@ -172,7 +172,7 @@ async function boot(){
   window.SMLiveAccess?.setup({api:call,actor:S.actor});
   // All management actions disabled at startup are restored only after
   // verified duty/admin login. Keep the ledger Add button in this same list.
-  for(const id of ['reimbursementBtn','manageBtn','refresh','adjustment','expense','newLedgerRow','homeHistoryToggle'])$(id).disabled=false;
+  for(const id of ['reimbursementBtn','manageBtn','refresh','adjustment','expense','newLedgerRow'])$(id).disabled=false;
   await reload(true);setInterval(()=>{if(!document.hidden&&!S.paymentNeedsRefresh&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
   toast('接続しました');
  }catch(e){
@@ -202,19 +202,18 @@ async function reload(refreshDates){
      d=await call('/api/overview',{});notFound=true;
    }
    if(epoch!==S.updateEpoch||S.pending.size||(!notFound&&selected!==S.practiceId))return;
-   // Confirmed practice dates remain in the ledger but disappear from
-   // the collection dropdown, even when history is expanded.
+   // All unconfirmed (including formerly confirmed/unlocked and past)
+   // practice dates are selectable. Initial choice still uses the
+   // earliest available practice dated today or later.
    const confirmedIds=new Set(d.confirmedPracticeIds||[]);
    const confirmedKey=[...confirmedIds].sort().join('|');
    const statusChanged=confirmedKey!==S.confirmedPracticeKey;
-   const upcoming=window.SMDate.upcomingPractices(d.practices)
-    .filter(p=>!confirmedIds.has(p.practiceId));
-   const history=S.showHistoryDates?(d.practices||[])
-    .filter(p=>p?.practiceId&&p.date<today()&&!confirmedIds.has(p.practiceId))
-    .sort((a,b)=>b.date.localeCompare(a.date)||
-      String(a.startTime||'').localeCompare(String(b.startTime||''))||
-      String(a.practiceId).localeCompare(String(b.practiceId))):[];
-   const eligible=[...upcoming,...history];
+   const eligible=(d.practices||[])
+    .filter(p=>p?.practiceId&&!confirmedIds.has(p.practiceId))
+    .sort((a,b)=>a.date.localeCompare(b.date)||
+     String(a.startTime||'').localeCompare(String(b.startTime||''))||
+     String(a.practiceId).localeCompare(String(b.practiceId)));
+   const upcoming=eligible.filter(p=>p.date>=today());
    const target=eligible.some(p=>p.practiceId===selected)?selected:
     (upcoming[0]?.practiceId||'');
    // Legacy overview defaults to the latest date, which can be past.
@@ -223,15 +222,13 @@ async function reload(refreshDates){
     if(epoch!==S.updateEpoch||S.pending.size||selected!==S.practiceId)return;
    }
    if(refreshDates||statusChanged||!S.practiceId||notFound||target!==selected){
-    const options=[
-     ...upcoming.map(p=>new Option(window.SMDate.practiceLabel(p),p.practiceId)),
-     ...history.map(p=>new Option('履歴：'+window.SMDate.practiceLabel(p),p.practiceId))
-    ];
-    if(!upcoming.length)options.unshift(new Option('本日以降の開催日がありません',''));
+    const options=eligible.map(p=>new Option(window.SMDate.practiceLabel(p),p.practiceId));
+    if(!options.length)options.unshift(new Option('未確定の練習日がありません',''));
+    else if(!upcoming.length)options.unshift(new Option('日程を選択してください',''));
     $('date').replaceChildren(...options);
    }
    if(!target)d={...d,practice:null,participants:[],ledger:null,
-    collectionAccess:{canCollect:false,reason:'本日以降の開催日がありません'}};
+    collectionAccess:{canCollect:false,reason:'本日以降の未確定練習日がありません'}};
    S.practiceId=target;$('date').value=target;S.overview=d;
    S.confirmedPracticeKey=confirmedKey;
    S.paymentNeedsRefresh=false;
@@ -243,13 +240,6 @@ async function reload(refreshDates){
    if(S.reloadPromise===task)S.reloadPromise=null;
    S.loading=false;
  }
-}
-function toggleHomeHistory_(){
- S.showHistoryDates=!S.showHistoryDates;
- if(!S.showHistoryDates&&S.overview?.practice?.date<today())S.practiceId='';
- $('homeHistoryToggle').textContent=S.showHistoryDates?'履歴を閉じる':'履歴';
- $('homeHistoryToggle').setAttribute('aria-pressed',String(S.showHistoryDates));
- return reload(true);
 }
 function renderHome(){const v=S.overview;if(!v)return;const {practice,ledger,participants}=v;
  const receiptView=$('homeReceiptView');if(receiptView)receiptView.hidden=!ledger?.receiptFileId;
@@ -1368,7 +1358,6 @@ async function deleteParticipant_(){
 
 function bind(){
  $('date').addEventListener('change',()=>{S.practiceId=$('date').value;guard(()=>reload(false),'開催日を読み込んでいます…');});
- $('homeHistoryToggle').addEventListener('click',()=>guard(toggleHomeHistory_,'開催日履歴を読み込んでいます…'));
  $('refresh').addEventListener('click',()=>guard(async()=>{
   // Ensure the full-screen spinner is painted even if a warm cached read
   // or an overlapping automatic poll completes during the same frame.
