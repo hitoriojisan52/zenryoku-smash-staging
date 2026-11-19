@@ -1791,6 +1791,15 @@ function stageReceiptAuthorizeV1666_(){
  * No IDs, tokens, or private folder links are logged or returned.
  */
 function authorizeStagingReceiptDriveV1669(){
+ // Only the known staging workbook may request the Drive scope. This is a
+ // MANUAL action in the Apps Script editor, never a Worker/LIFF endpoint.
+ if(conf_('SPREADSHEET_ID')!=='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac')
+  fail_('FORBIDDEN','検証環境以外ではDriveの権限確認を実行できません');
+ // With auto-detected manifest scopes, an earlier granular OAuth consent
+ // may not have granted Drive. Google prompts the executing account if
+ // this scope is still missing; the script does not grant it by itself.
+ ScriptApp.requireScopes(ScriptApp.AuthMode.FULL,
+  ['https://www.googleapis.com/auth/drive']);
  return stageReceiptAuthorizeV1666_();
 }
 function receiptUpload_(ss,member,payload){
