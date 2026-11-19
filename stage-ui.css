@@ -797,3 +797,86 @@ body.stage-ui.access-v2-active #memberAccessPending .live-access-row button{
  color:#c62828;
  font-weight:700;
 }
+
+
+/* v0.16.63 — cause of unchanged visual height: v1662 removed padding
+ * but left a 38px !important height/min-height; that plus card rows and
+ * the extra line in .income-block kept the staging footer oversized.
+ * Use a clear, LATER override with target-size-equivalent 28px content
+ * height (30px including border), rather than editing padding again.
+ * No horizontal width or padding is changed here. */
+.stage-ui button{
+ min-height:30px!important;
+ line-height:1.2;
+}
+.stage-ui input:not([type=checkbox]):not([type=radio]):not([type=file]),
+.stage-ui select{
+ height:28px!important;
+ min-height:28px!important;
+ line-height:1.2;
+}
+.stage-ui textarea{
+ min-height:30px!important;
+}
+.stage-ui input[type=file]{
+ min-height:30px!important;
+}
+.stage-ui dialog.stage-has-toolbar .stage-dialog-toolbar-actions button,
+.stage-ui #ledgerDialog .ledger-controls button,
+.stage-ui #ledgerDialog #newLedgerRow{
+ min-height:30px!important;
+}
+.stage-ui .cash-count-btn{
+ height:30px!important;
+ min-height:30px!important;
+}
+/* In the staging app the two yellow/blue cash rows included a 38px
+ * input plus 4px padding on BOTH sides. Reduce just their vertical
+ * padding. Original card widths and currency placement are preserved. */
+body.stage-ui > main.container .adjustment-box,
+body.stage-ui > main.container .expense-box{
+ padding-block:2px!important;
+}
+/* The old app places the amount, expense and balance in two compact rows.
+ * The staging code forced '当日補正(+0円)' onto a third row by styling
+ * .income-block as flex-direction:column. Return to inline wrapping. */
+body.stage-ui > main.container .home-footer-bar{
+ padding-block:3px!important;
+}
+body.stage-ui > main.container .income-block{
+ flex-direction:row!important;
+ flex-wrap:wrap!important;
+ align-items:baseline;
+ column-gap:6px;
+ row-gap:0;
+}
+body.stage-ui > main.container .home-footer-row,
+body.stage-ui > main.container .home-footer-action{
+ line-height:1.2!important;
+}
+body.stage-ui > main.container .home-footer-action{
+ margin-top:2px!important;
+ padding-top:2px!important;
+}
+body.stage-ui > main.container .home-footer-action strong{
+ font-size:14px!important;
+}
+/* The main heading had increased from the original 15px to 17px; on
+ * phones it could wrap beside two header actions. Slightly reduce it. */
+body.stage-ui > main.container .app-header h1{
+ font-size:15px!important;
+ line-height:1.2!important;
+}
+@media(max-width:620px){
+ body.stage-ui > main.container .app-header h1{font-size:14px!important}
+}
+/* Highlight the collection note ONLY through color; no forced boldness. */
+.stage-ui #list .participant-card .participant-memo{
+ font-weight:400!important;
+ color:#c62828;
+}
+/* Keep the native foldable summary (not an input/button) tall enough for
+ * accurate opening/closing in compact mobile layouts. */
+.stage-ui :is(#visitorNewFormSection,#courtSettings,#participantSettings)>summary{
+ min-height:44px!important;
+}
