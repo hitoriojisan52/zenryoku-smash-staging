@@ -102,7 +102,7 @@ for(const target of ['cashDialog','cashDateDisplay','cashBook','cashActual','cas
  ok(html.includes('id="'+target+'"'),'legacy control present: '+target);
 }
 ok(!html.includes('id="cashDate"'),'cash check uses selected home day, not separate date picker');
-ok(html.includes('cash-reconcile.js?v=1637b')&&html.includes('live.js?v=1661'),
+ok(html.includes('cash-reconcile.js?v=1637b')&&html.includes('live.js?v=1662'),
  'new legacy parity files cache busted');
 for(const label of ['現金確認','枚数をリセット','リセットする','いいえ','保存する']){
  ok(html.includes(label),'legacy button text preserved: '+label);
