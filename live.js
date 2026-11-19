@@ -397,7 +397,16 @@ async function loadLedger(){const month=$('ledgerMonth').value,ledger=await call
   const columns=['date','label','income','expense','balance','confirmed'];
   for(let i=0;i<values.length;i++){
    const td=document.createElement('td');td.className='ledger-col-'+columns[i];
-   td.textContent=values[i];tr.append(td);
+   td.textContent=values[i];
+   if(i===1&&r.receiptFileId){
+    const link=document.createElement('a');link.href='#';link.className='receipt-ledger-link';
+    link.textContent=' 🧾 領収書';link.setAttribute('aria-label',r.label+' の領収書を表示');
+    link.addEventListener('click',event=>{
+     event.preventDefault();guard(()=>downloadReceipt_(r.rowId),'領収書を取得しています…');
+    });
+    td.append(link);
+   }
+   tr.append(td);
   }
   const actions=document.createElement('td');actions.className='ledger-row-actions';
   const future=r.date>today(),carry=r.kind==='carry',confirmed=r.status==='confirmed';
