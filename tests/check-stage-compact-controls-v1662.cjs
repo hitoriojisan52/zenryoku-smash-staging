@@ -47,9 +47,9 @@ ok(!latest.includes('.participant-card-memo')&&
 ok(css.includes('button:disabled')&&css.includes('color:#777f87'),
  'existing disabled button treatment remains in stylesheet');
 for(const p of ['live.html','match.html','match-view.html','guest.html']){
- ok(read(p).includes('stage-ui.css?v='+(p==='live.html'?'1672-finance-receipt':'1665')),p+' loads compact controls and memo styles');
+ ok(read(p).includes('stage-ui.css?v='+(p==='live.html'?'1673-receipt-close':'1665')),p+' loads compact controls and memo styles');
 }
-ok(html.includes('live.js?v=1672-finance-receipt'),'collection and participant memo renderer is cache-busted');
+ok(html.includes('live.js?v=1673-receipt-close'),'collection and participant memo renderer is cache-busted');
 ok(html.includes('id="adjustment"')&&html.includes('id="expense"')&&
  html.includes('id="confirm"')&&html.includes('id="list"'),
  'money inputs, Confirm and the independently scrollable list retain their original IDs');
