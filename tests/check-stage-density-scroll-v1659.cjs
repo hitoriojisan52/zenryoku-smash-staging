@@ -55,7 +55,7 @@ ok(css.includes('.stage-ui{line-height:1.34}')&&
 ok(css.includes('.stage-ui button{padding-block:3px;line-height:1.25}')&&
  css.includes('min-height:44px;line-height:1.25')&&
  css.includes('.stage-ui .manage-grid button{min-height:46px'),
- 'button text/padding is denser while actionable buttons remain >=44px');
+ 'legacy spacing rules remain with the new control-height override appended');
 ok(css.includes('.stage-ui .participant-card{padding:5px 7px;gap:5px;margin-bottom:2px}')&&
  css.includes('.stage-ui .home-footer-bar{padding:5px 7px}'),
  'collection rows and footer become more compact');
