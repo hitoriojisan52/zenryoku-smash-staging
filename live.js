@@ -983,26 +983,20 @@ function renderParticipantManager_(){
   const content=document.createElement('div');content.className='participant-card-content';
   const info=document.createElement('div');info.className='participant-card-info';
   const details=document.createElement('div');details.className='participant-card-details';
-  const line=document.createElement('span');
-  line.textContent='LINE ID：'+(p.category==='visitor'?'なし（ビジター）':(p.lineUserId||'未紐付け'));
-  details.append(line);
+  // Only participation dates and optional remarks are visible in this list.
+  // Identity tokens must not appear in member or visitor cards.
+  const displayDate=raw=>{
+   if(!raw)return '未記録';
+   const value=window.SMDate.dateTimeJst(raw,false);
+   return /^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}$/.test(value)?value:'未記録';
+  };
   const registered=document.createElement('span');
-  const dateText=p.registeredAt?window.SMDate.dateTimeJst(p.registeredAt,false):'';
-  registered.textContent='📅 登録日：'+
-    (/^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}$/.test(dateText)?dateText:'未記録');
+  registered.textContent='📅 登録日：'+displayDate(p.registeredAt);
   details.append(registered);
-  if(p.category!=='visitor'){
-   if(p.lastReportedAt&&p.lastReportedAt!==p.registeredAt){
-    const updated=document.createElement('span');
-    updated.textContent='🕒 最終連絡：'+window.SMDate.dateTimeJst(p.lastReportedAt,false);
-    details.append(updated);
-   }
-   if(p.memberRegisteredAt){
-    const memberDate=document.createElement('span');
-    memberDate.textContent='🪪 利用登録日：'+window.SMDate.dateTimeJst(p.memberRegisteredAt,false);
-    details.append(memberDate);
-   }
-  }
+  const updated=document.createElement('span');
+  updated.textContent='🕒 更新日：'+
+   (!p.updatedAt?'未記録':p.updatedAt===p.registeredAt?'未更新':displayDate(p.updatedAt));
+  details.append(updated);
   info.append(details);
   if(p.memo){
    const note=document.createElement('div');note.className='participant-card-memo';
