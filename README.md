@@ -95,3 +95,6 @@
 - 運用管理LIFF: `https://liff.line.me/2012602642-XBSkXduO?v=165a`。対戦表LIFF: `https://liff.line.me/2012602642-3FKiOTVx?v=165a`。
 - 本番構築時には専用GitHub Organization（例: `zensuma`）へ移す提案を最初に再案内する。現時点では検証用URLを維持。
 - 次の未実装：LINE友だち追加後の「新規登録」、承認/権限変更に応じたユーザー別リッチメニューの自動切り替え、練習日に対応する収支行の作成・編集画面、現金確認/参加者管理/練習日程管理。
+
+
+**v0.16.75検証反映（2026/11/20）**：[PR #84](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/84) はUI/GAS/仕様CI成功。GAS既存デプロイ`@42`、Pages、Workers Builds、公開LIFF/Workerスモーク成功。集金画面の起動速度および復旧の実機確認はまだ未実施。LINE本人参加連絡E2Eは一時停止し起動復旧を優先。本番未変更。[詳細](docs/stage-v1675-startup-performance.md)。
