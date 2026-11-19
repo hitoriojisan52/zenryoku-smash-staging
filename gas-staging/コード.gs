@@ -1003,6 +1003,23 @@ function overview_(ss,member,payload){var all=practices_(ss).sort(function(a,b){
  var visibleLedger=ledger?Object.assign({},ledger,{canConfirm:ledgerCanConfirm_(ledgerRows,ledger)}):null;
  return {ok:true,data:{role:member.role,actorName:member.name,practice:p,practices:all,participants:roster,ledger:visibleLedger,collectionAccess:access,expected:roster.reduce(function(a,b){return a+b.fee;},0),completedFee:total,completedCount:completed.length,attendingCount:roster.length}};
 }
+/* A missing practice ledger is not necessarily a DELETED ledger: unpublished,
+ * archived, or future practices must not activate the re-registration option.
+ * Only a completed, audited ledger.change/delete proves a deletion. */
+function deletedPracticeLedgerIds_(ss,existing){
+ var present={};existing.forEach(function(r){present[r.rowId]=true;});
+ var audit=sheet_(ss,'操作履歴'),last=audit.getLastRow(),deleted={};
+ if(last<2)return [];
+ var rows=audit.getRange(2,1,last-1,6).getValues();
+ rows.forEach(function(r){
+  if(str_(r[1])!=='ledger.change')return;
+  var result;try{result=JSON.parse(str_(r[5]));}catch(_){return;}
+  if(!result||result.ok!==true||!result.data||result.data.action!=='delete')return;
+  var id=str_(result.data.rowId);
+  if(/^P-[\\w-]{1,100}$/.test(id)&&!present[id])deleted[id.slice(2)]=true;
+ });
+ return Object.keys(deleted);
+}
 function monthLedger_(ss,member,payload){
  var source=entries_(ss),sorted=source.slice().sort(ledgerChronologyCompare_),
      currentMonth=today_().slice(0,7);
@@ -1029,6 +1046,7 @@ function monthLedger_(ss,member,payload){
  var within=sorted.filter(function(r){return r.date.slice(0,7)===month;});
  var carried=prior.length?prior[prior.length-1].balance:0;
  return {ok:true,data:{month,carried,rows:within,maxMonth:latest,
+   deletedPracticeIds:deletedPracticeLedgerIds_(ss,source),
   closingBalance:within.length?within[within.length-1].balance:carried,
   role:member.role}};
 }
