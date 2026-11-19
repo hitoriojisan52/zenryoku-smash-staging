@@ -315,3 +315,125 @@
  min-width:46px;min-height:40px;padding:5px 8px;font-size:12px;
 }
 .stage-ui .ledger-table .ledger-row-actions .muted{display:block;text-align:left}
+
+
+/* v0.16.58: Shared toolbar already moves original Add and Close nodes.
+ * Ensure all three elements remain on one line on narrow phones. */
+.stage-ui #ledgerDialog .stage-dialog-toolbar{
+ flex-wrap:nowrap;align-items:center;gap:5px;
+}
+.stage-ui #ledgerDialog .stage-dialog-toolbar > h2{
+ flex:1 1 auto;min-width:0;margin:0;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+ font-size:clamp(12px,3.8vw,16px);
+}
+.stage-ui #ledgerDialog .stage-dialog-toolbar-actions{
+ flex:0 0 auto;max-width:none;min-width:0;flex-wrap:nowrap;gap:4px;
+}
+.stage-ui #ledgerDialog .stage-dialog-toolbar-actions button{
+ min-width:0!important;width:auto!important;
+ padding:5px 7px!important;font-size:12px!important;
+}
+.stage-ui #ledgerDialog .stage-dialog-toolbar-actions .stage-dialog-top-close{
+ min-width:0!important;
+}
+.stage-ui #ledgerDialog .ledger-card-status{display:none}
+
+/* Smartphone-only card presentation. Retain the source 7-column table and
+ * all existing button objects/disabled rules for desktop and server safety. */
+@media (max-width:640px){
+ .stage-ui #ledgerDialog.ledger-dialog{
+  width:calc(100% - 14px);max-width:540px;
+  max-height:calc(100dvh - 16px);padding:10px 9px;overflow:hidden;
+ }
+ .stage-ui #ledgerDialog .ledger-controls{
+  gap:5px;padding:5px 6px;justify-content:space-between;
+ }
+ .stage-ui #ledgerDialog .ledger-controls input{min-width:105px;max-width:140px}
+ .stage-ui #ledgerDialog .ledger-scroll{
+  width:100%;max-height:min(63dvh,calc(100dvh - 208px));
+  overflow-y:auto;overflow-x:hidden;border:0;border-radius:0;
+ }
+ .stage-ui #ledgerDialog .ledger-table{
+  display:block;width:100%;min-width:0!important;
+  border-collapse:separate;font-size:13px;
+ }
+ .stage-ui #ledgerDialog .ledger-table thead{
+  position:absolute;clip:rect(0,0,0,0);clip-path:inset(50%);
+  width:1px;height:1px;overflow:hidden;white-space:nowrap;
+ }
+ .stage-ui #ledgerDialog .ledger-table tbody{display:block}
+ .stage-ui #ledgerDialog .ledger-table tbody tr{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,auto);
+  gap:4px 8px;align-items:center;
+  border:1px solid #d7dfe4;border-radius:9px;
+  padding:10px;margin:0 0 8px;background:#fff;
+  box-shadow:0 1px 1px #0000000a;
+ }
+ .stage-ui #ledgerDialog .ledger-table tbody tr.carry-row{
+  background:#fff9e5!important;
+ }
+ .stage-ui #ledgerDialog .ledger-table td{
+  display:block;min-width:0;width:auto;border:0;padding:0;
+  white-space:normal;overflow-wrap:anywhere;
+ }
+ .stage-ui #ledgerDialog .ledger-table td.ledger-col-date{
+  grid-column:1;grid-row:1;font-weight:700;font-size:14px;color:#37474f;
+ }
+ .stage-ui #ledgerDialog .ledger-table td.ledger-col-balance{
+  grid-column:2;grid-row:1;text-align:right;font-weight:800;font-size:14px;
+  color:#263746;font-variant-numeric:tabular-nums;white-space:nowrap;
+ }
+ .stage-ui #ledgerDialog .ledger-col-balance::before{content:"残高："}
+ .stage-ui #ledgerDialog .ledger-table td.ledger-col-label{
+  grid-column:1 / -1;grid-row:2;color:#344957;
+ }
+ .stage-ui #ledgerDialog .ledger-col-label::before{content:"項目："}
+ .stage-ui #ledgerDialog .ledger-table td.ledger-col-income{
+  grid-column:1;grid-row:3;color:#465460;
+  font-variant-numeric:tabular-nums;
+ }
+ .stage-ui #ledgerDialog .ledger-col-income::before{content:"収入："}
+ .stage-ui #ledgerDialog .ledger-table td.ledger-col-expense{
+  grid-column:2;grid-row:3;text-align:right;color:#465460;
+  font-variant-numeric:tabular-nums;
+ }
+ .stage-ui #ledgerDialog .ledger-col-expense::before{content:"支出："}
+ .stage-ui #ledgerDialog .ledger-table td.ledger-col-confirmed{
+  grid-column:1 / -1;grid-row:4;color:#576574;font-size:12px;
+ }
+ .stage-ui #ledgerDialog .ledger-col-confirmed::before{content:"確認者："}
+ .stage-ui #ledgerDialog .ledger-table td.ledger-row-actions{
+  grid-column:1 / -1;grid-row:5;
+  min-width:0!important;display:flex;align-items:center;
+  justify-content:space-between;gap:5px;
+  border-top:1px dashed #d7dfe4;padding-top:8px;
+ }
+ .stage-ui #ledgerDialog .ledger-table .ledger-action-group{
+  order:1;justify-content:flex-end;flex:none;gap:4px;
+ }
+ .stage-ui #ledgerDialog .ledger-table .ledger-action-group button{
+  min-width:44px;min-height:44px;padding:5px 7px;font-size:12px;
+ }
+ .stage-ui #ledgerDialog .ledger-card-status{
+  display:inline-flex;order:0;align-items:center;
+  font-size:12px;font-weight:700;white-space:nowrap;
+ }
+ .stage-ui #ledgerDialog .ledger-card-status.is-open{color:#ad3128}
+ .stage-ui #ledgerDialog .ledger-card-status.is-confirmed{color:#2e7d32}
+ .stage-ui #ledgerDialog .ledger-table tr.carry-row td.ledger-row-actions{
+  display:none;
+ }
+ .stage-ui #ledgerDialog .ledger-total{
+  padding-top:4px;font-size:14px;
+ }
+}
+@media (max-width:350px){
+ .stage-ui #ledgerDialog .stage-dialog-toolbar{gap:3px}
+ .stage-ui #ledgerDialog .stage-dialog-toolbar-actions{gap:3px}
+ .stage-ui #ledgerDialog .stage-dialog-toolbar-actions button{
+  padding:5px 5px!important;font-size:11px!important;
+ }
+ .stage-ui #ledgerDialog .ledger-table tbody tr{padding:8px;gap:3px 5px}
+ .stage-ui #ledgerDialog .ledger-table .ledger-action-group{gap:3px}
+}
