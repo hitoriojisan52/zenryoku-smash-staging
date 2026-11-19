@@ -66,10 +66,11 @@ const reload=new Function('S','$','call','window','Option','renderHome','syncPay
   state.overview.practice.practiceId==='P-PAST','past unconfirmed date remains selectable without a future date');
 
  // Selected day on opening participant manager uses a different nearest choice.
- ok(ui.includes("PM.practiceId=window.SMDate.nearestPractice(S.overview?.practices)?.practiceId||''")&&
+ ok(ui.includes('PM.practiceId=candidates[0]?.practiceId')&&
   ui.includes('PM.practices=selectable;PM.practiceId=target;')&&
-  ui.includes("call('/api/participant/list',{practiceId:target})"),
-  'participant management still defaults to future and explicitly gates history');
+  ui.includes("call('/api/participant/list',{practiceId:target})")&&
+  !ui.includes('toggleParticipantHistory_'),
+  'participant management defaults to closest selectable future and has no History button');
  ok(ui.includes("$('visitorMinePractice').value=''")&&
   visitor.includes("$('visitorAdminPractice').value=''")&&
   visitor.includes('const unique=new Map()')&&
