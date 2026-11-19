@@ -13,7 +13,7 @@ ok(!html.includes('id="demoRole"')&&!ui.includes("$('demoRole')"),
 ok(html.includes('id="ledgerDialog"')&&html.includes('id="newLedgerRow"')&&
  html.includes('id="closeLedger"')&&html.includes('id="ledgerBody"'),
  'original ledger dialogs, add, close and table IDs preserved');
-ok(file('dialog-close.js').includes("ledgerDialog:['newLedgerRow']")&&
+ok(!file('dialog-close.js').includes("ledgerDialog:['newLedgerRow']")&&
  css.includes('#ledgerDialog .stage-dialog-toolbar{')&&
  css.includes('flex-wrap:nowrap;align-items:center'),
  'original add/close controls align with title without duplicate actions');
@@ -38,7 +38,7 @@ ok(css.includes('.stage-ui button{min-height:44px;font-size:14px;font-weight:700
  css.includes('min-width:44px;min-height:44px;padding:5px 7px'),
  'all stage screens reduce vertical padding but card actions keep 44px tap areas');
 for(const page of ['live.html','match.html','match-view.html','guest.html']){
- ok(file(page).includes('stage-ui.css?v=1660'),page+' refreshes shared compact CSS');
+ ok(file(page).includes('stage-ui.css?v=1661'),page+' refreshes shared compact CSS');
 }
 ok(html.includes('live.js?v=1660'),'ledger JS cache bust applied');
 ok(css.includes('tr.carry-row{')&&
