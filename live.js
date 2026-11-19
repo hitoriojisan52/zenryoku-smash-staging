@@ -294,11 +294,12 @@ function renderHome(){const v=S.overview;if(!v)return;const {practice,ledger,par
   $('count').textContent='参加者：0名';$('completedCount').textContent='集金完了：0名';
   $('adjustment').value=0;$('expense').value=0;
   $('confirm').disabled=true;$('adjustment').disabled=true;$('expense').disabled=true;
-  $('cashCounter').disabled=true;$('list').replaceChildren();
+  $('cashCounter').disabled=true;$('receiptViewBtn').hidden=true;$('list').replaceChildren();
   $('collectionLockReason').textContent='本日以降の開催日がありません';
   $('collectionLockReason').hidden=false;updateFooter();return;
  }
  $('cashCounter').disabled=false;
+ $('receiptViewBtn').hidden=!ledger?.receiptFileId;
  $('place').textContent='場所：'+practice.place;$('hours').textContent='時間区分：'+practice.hours+'h';
  $('count').textContent='参加者：'+v.attendingCount+'名';$('completedCount').textContent='集金完了：'+v.completedCount+'名';
  if(document.activeElement!==$('adjustment'))$('adjustment').value=ledger?.adjustment??0;
@@ -468,7 +469,15 @@ async function loadLedger(){const month=$('ledgerMonth').value,ledger=await call
   const columns=['date','label','income','expense','balance','confirmed'];
   for(let i=0;i<values.length;i++){
    const td=document.createElement('td');td.className='ledger-col-'+columns[i];
-   td.textContent=values[i];tr.append(td);
+   td.textContent=values[i];
+   if(i===1&&r.receiptFileId&&r.kind!=='carry'){
+    const view=document.createElement('button');view.type='button';
+    view.className='receipt-row-link btn-outline';view.textContent='🧾';
+    view.title='領収書を閲覧';view.setAttribute('aria-label','領収書を閲覧');
+    view.addEventListener('click',()=>guard(()=>viewReceipt_(r.rowId),'領収書を読み込んでいます…'));
+    td.append(view);
+   }
+   tr.append(td);
   }
   const actions=document.createElement('td');actions.className='ledger-row-actions';
   const future=r.date>today(),carry=r.kind==='carry',confirmed=r.status==='confirmed';
@@ -542,12 +551,16 @@ function openEditor(row=null,kind='reimbursement'){
  $('ledgerPayoutDate').value=row?.date||today();$('ledgerReimbursementItem').value=row?.item||'';$('ledgerReimbursementPayee').value=row?.payee||'';
  $('ledgerReimbursementAmount').value=row?.expense??'';$('ledgerEditDate').value=row?.date||today();$('ledgerEditLabel').value=row?.label||'';
  $('ledgerEditIncome').value=row?.income??0;$('ledgerEditExpense').value=row?.expense??0;
- $('ledgerReimbursementReceipt').disabled=true;$('ledgerCurrentReceipt').textContent='';
+ pendingLedgerReceipt=null;
+ $('ledgerReimbursementReceipt').disabled=false;$('ledgerReimbursementReceipt').value='';
+ $('ledgerCurrentReceipt').textContent=row?.receiptFileId?'領収書は登録済みです。差し替えも可能です。':'';
+ $('ledgerCurrentReceiptBtn').hidden=!row?.receiptFileId;
+ $('ledgerReceiptStatus').textContent='';
+ refreshPayoutWeekday_('ledgerPayoutDate','ledgerPayoutWeekday');
  const choices=$('ledgerPractice');choices.replaceChildren();
- const existing=new Set((S.ledger?.rows||[]).filter(r=>r.kind==='practice').map(r=>r.practiceId));
- for(const p of S.overview?.practices||[]){
-  if(p.date<=today()&&!existing.has(p.practiceId))
-   choices.append(new Option(window.SMDate.date(p.date)+' '+p.place,p.practiceId));
+ // The server checks completed deletion audits against every ledger month.
+ for(const p of S.ledger?.restorablePractices||[]){
+  choices.append(new Option(window.SMDate.date(p.date)+' '+p.place,p.practiceId));
  }
  // Only enable the re-registration category when there is a deleted, enabled
  // practice whose ledger can be recreated. A disabled option cannot be
