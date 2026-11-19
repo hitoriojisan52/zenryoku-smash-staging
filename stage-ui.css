@@ -880,3 +880,61 @@ body.stage-ui > main.container .app-header h1{
 .stage-ui :is(#visitorNewFormSection,#courtSettings,#participantSettings)>summary{
  min-height:44px!important;
 }
+
+
+/* v0.16.64 — compact cash reconciliation without shrinking +/- button
+ * dimensions (user approved them in v1663). The original cash summary
+ * rows had 4px vertical padding each and the nine denomination rows
+ * carried an independent 45px minimum; those caused unused whitespace. */
+.stage-ui dialog#cashDialog{padding:9px 11px;}
+.stage-ui dialog#cashDialog .cash-summary{
+ padding-block:5px;
+ margin-block:3px 5px;
+}
+.stage-ui dialog#cashDialog .cash-money-row{
+ padding-block:1px;
+ line-height:1.25;
+}
+.stage-ui dialog#cashDialog .cash-denom{
+ min-height:34px;
+ padding-block:1px;
+}
+.stage-ui dialog#cashDialog .cash-actions{margin-top:5px;}
+/* A small amount of breathing room inside buttons, instead of the
+ * previous universal zero vertical padding. The minimum height stays 30px. */
+.stage-ui button{padding-block:2px!important;}
+/* Let the date selection text shrink by a couple of points. Do NOT
+ * shrink checkbox labels or the width of the selected date's input. */
+.stage-ui :is(#date,#attendancePractice,#participantPractice,#visitorPractice,
+ #visitorMinePractice,#visitorAdminPractice){
+ font-size:14px!important;
+}
+.stage-ui #matchPractice{font-size:13px!important;}
+/* Group management actions without changing each button's original ID,
+ * click handler, visibility gates or role capabilities. */
+.stage-ui #manageDialog .manage-grid .manage-section-heading{
+ grid-column:1 / -1;
+ display:block;
+ margin:4px 0 0;
+ padding:3px 5px 2px;
+ border-bottom:1px solid #d4e0e7;
+ color:#50697c;
+ font-size:12px;
+ font-weight:700;
+ line-height:1.25;
+}
+.stage-ui #manageDialog .manage-grid .manage-section-heading[hidden]{
+ display:none!important;
+}
+/* Staging match settings: shorten the two foldable summary bars but
+ * retain native <summary> semantics and their toggle affordance. */
+.stage-ui #courtSettings > summary,
+.stage-ui #participantSettings > summary{
+ min-height:36px!important;
+ padding-block:1px!important;
+ line-height:1.2;
+}
+.stage-ui #courtSettings.match-settings,
+.stage-ui #participantSettings.match-settings{margin-top:2px;}
+.stage-ui #courtSettings .match-settings-body,
+.stage-ui #participantSettings .match-settings-body{padding:4px;}

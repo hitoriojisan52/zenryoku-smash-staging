@@ -166,16 +166,18 @@ const deepText=e=>[e.textContent,...e.children.map(deepText)].filter(Boolean).jo
  ok(elements.visitorMineCards.children.length===1 &&
   deepText(elements.visitorMineCards.children[0]).includes('別日程'),
   'switching date shows matching visitor alone');
- elements.visitorMinePractice.value='all';
+ ok(!elements.visitorMinePractice.children.some(opt=>opt.value==='all'),
+  'visitor date picker excludes the all-dates option');
+ elements.visitorMinePractice.value=practiceId;
  elements.visitorMinePractice.listeners.change();
- ok(elements.visitorMineCards.children.length===4,
-  'all dates option restores all applicant statuses');
+ ok(elements.visitorMineCards.children.length===3,
+  'nearest date shows only its three request statuses');
  elements.visitorMinePractice.value='PR-EMPTY';
  elements.visitorMinePractice.listeners.change();
  ok(elements.visitorMineCards.children.length===1&&
   deepText(elements.visitorMineCards.children[0]).includes('この開催日のビジター申請はありません'),
   'selecting a master schedule date without requests shows clear empty-state message');
- elements.visitorMinePractice.value='all';
+ elements.visitorMinePractice.value=practiceId;
  elements.visitorMinePractice.listeners.change();
 
  for(const oldId of ['visitorMineMenu','visitorMineDialog','visitorMemberRefresh','visitorMineList']){
@@ -211,10 +213,10 @@ const deepText=e=>[e.textContent,...e.children.map(deepText)].filter(Boolean).jo
   ok(match&&match[0].includes('class="btn-outline"'),'close button is secondary grey: '+id);
  }
  for(const page of ['live.html','match.html','guest.html','match-view.html']){
-  ok(read(page).includes(page==='live.html'?'stage-ui.css?v=1663':'stage-ui.css?v=1663'),'same shared button CSS cache applied: '+page);
+  ok(read(page).includes(page==='live.html'?'stage-ui.css?v=1664':'stage-ui.css?v=1664'),'same shared button CSS cache applied: '+page);
  }
- ok(html.includes('date-format.js?v=1661')&&html.includes('visitor-approval.js?v=1663')&&
-  html.includes('live.js?v=1663')&&html.includes('live-access-v2.js?v=1663'),
+ ok(html.includes('date-format.js?v=1664')&&html.includes('visitor-approval.js?v=1664')&&
+  html.includes('live.js?v=1664')&&html.includes('live-access-v2.js?v=1663'),
   'staging LIFF refreshes all modified JavaScript assets');
  ok(matchConfirm.includes('match-modal-is-error')&&matchCss.includes('.match-modal-is-error .match-modal-box{border-top:4px solid #c62828}'),
   'intentional confirmation versus error popup distinction remains unchanged');

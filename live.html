@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>全力☆スマッシュ 運用管理（接続試験版）</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="live-access.css?v=162a"><link rel="stylesheet" href="live-access-v2.css?v=1656"><link rel="stylesheet" href="stage-ui.css?v=1663"><style>.collection-lock-reason{font-size:12px;background:#fff8df;color:#745217;border:1px solid #e6d19c;border-radius:5px;padding:7px 9px;margin:2px 0}.collection-lock-reason[hidden]{display:none!important}
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>全力☆スマッシュ 運用管理（接続試験版）</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="live-access.css?v=162a"><link rel="stylesheet" href="live-access-v2.css?v=1656"><link rel="stylesheet" href="stage-ui.css?v=1664"><style>.collection-lock-reason{font-size:12px;background:#fff8df;color:#745217;border:1px solid #e6d19c;border-radius:5px;padding:7px 9px;margin:2px 0}.collection-lock-reason[hidden]{display:none!important}
 .checkbox-container{display:flex;gap:5px;align-items:center;justify-content:flex-end;min-width:30px}
 .payment-checkbox-state{color:#674a00;font-size:10px;white-space:nowrap}
 .payment-checkbox-state[hidden]{display:none!important}
@@ -7,13 +7,13 @@
 
 /* v0.16.37b: recreate legacy v7 cash counter controls and confirmation steps. */
 .stage-ui dialog#cashDialog{max-width:440px;width:calc(100% - 20px);max-height:calc(100dvh - 32px);overflow-y:auto}
-.cash-status{font-size:13px!important;margin:7px 0;color:#88600d;min-height:1em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cash-summary{background:#eef2f7;padding:7px 9px;border-radius:6px;margin:6px 0 8px}
-.cash-money-row{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:4px 1px;font-size:14px}
+.cash-status{font-size:13px!important;margin:4px 0;color:#88600d;min-height:1em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cash-summary{background:#eef2f7;padding:5px 9px;border-radius:6px;margin:3px 0 5px}
+.cash-money-row{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:1px 1px;font-size:14px}
 .cash-money-row strong{white-space:nowrap;font-size:15px}
 .cash-money-row .cash-same{color:#2e7d32}.cash-money-row .cash-surplus{color:#c62828}.cash-money-row .cash-shortage{color:#1565c0}
 .cash-denominations{display:flex;flex-direction:column;gap:1px}
-.cash-denom{display:flex;justify-content:space-between;align-items:center;min-height:45px;padding:3px 1px;border-bottom:1px solid #e8edf2}
+.cash-denom{display:flex;justify-content:space-between;align-items:center;min-height:34px;padding:1px 1px;border-bottom:1px solid #e8edf2}
 .cash-denom-label{font-size:14px;font-weight:700;white-space:nowrap}
 .cash-controls{display:flex;align-items:center;gap:5px}
 .stage-ui .cash-count-btn{width:44px;min-width:44px;height:44px;min-height:44px;border-radius:6px;padding:0;font-size:22px}
@@ -21,7 +21,7 @@
 .stage-ui .cash-count-plus{background:#e3f2fd;color:#145a9a}
 .cash-count-display{min-width:28px;text-align:center;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}
 .cash-subtotal{width:83px;text-align:right;font-size:13px;color:#566573;font-variant-numeric:tabular-nums}
-.cash-actions{display:flex;gap:8px;margin-top:10px}
+.cash-actions{display:flex;gap:8px;margin-top:5px}
 .cash-actions button{flex:1;min-width:0}
 @media(max-width:370px){.cash-denom-label{font-size:13px}.cash-controls{gap:3px}.stage-ui .cash-count-btn{width:40px;min-width:40px;height:40px;min-height:40px}.cash-subtotal{width:76px}}
 
@@ -101,7 +101,7 @@ body.visitor-member #visitorMemberHome button{width:100%}
 <main class="container">
   <header class="app-header"><h1>全力☆スマッシュ 運用管理 <small class="demo-label" title="新システム用接続試験画面">接続試験</small></h1><div class="header-btns"><button id="reimbursementBtn" class="btn-outline" type="button">💴 立替精算</button><button id="manageBtn" class="btn-outline" type="button">⚙ 運用管理</button></div></header>
   
-  <div class="date-selector"><label for="date">開催日</label><select id="date"><option value="">日程を読み込んでいます…</option></select><button id="refresh" type="button">🔄 更新</button></div>
+  <div class="date-selector"><select id="date" aria-label="開催日"><option value="">日程を読み込んでいます…</option></select><button id="refresh" type="button">🔄 更新</button></div>
   <div class="info-summary"><span id="place">場所：--</span><span id="hours">時間区分：--</span></div>
   <div class="summary-info"><span id="count">参加者：0名</span><span id="completedCount">集金完了：0名</span></div>
   <p id="collectionLockReason" class="collection-lock-reason stage-system-message stage-system-message--warning" role="status" aria-live="polite" hidden></p>
@@ -127,7 +127,21 @@ body.visitor-member #visitorMemberHome button{width:100%}
 <dialog id="modal"><h2 id="modalTitle"></h2><p id="modalText"></p><div class="modal-actions"><button id="closeModal" class="btn-outline" type="button">閉じる</button></div></dialog>
 <dialog id="categoryDialog"><h2>参加区分の変更</h2><p id="categoryPerson" class="modal-subtitle"></p><label class="dialog-label" for="categorySelect">参加区分</label><select id="categorySelect" class="dialog-select"><option value="member">メンバー</option><option value="student">学生</option><option id="categorySelectVisitor" value="visitor">ビジター</option><option value="duty">当番担当</option><option value="shuttle">シャトル担当</option></select><div class="modal-actions"><button id="cancelCategory" class="btn-outline" type="button">キャンセル</button><button id="saveCategory" class="btn-green" type="button">変更する</button></div></dialog>
 <dialog id="reimbursementDialog"><h2>💴 立替精算</h2><form id="reimbursementForm"><label class="dialog-label" for="payoutDate">精算日（現金を渡した日）</label><input class="dialog-input" id="payoutDate" type="date" required><label class="dialog-label" for="reimbursementItem">費目</label><input class="dialog-input" id="reimbursementItem" maxlength="80" type="text" placeholder="例：シャトル購入代" required><label class="dialog-label" for="reimbursementPayee">立替者</label><input class="dialog-input" id="reimbursementPayee" maxlength="60" type="text" placeholder="例：全力太郎" required><label class="dialog-label" for="reimbursementAmount">精算額（円）</label><input class="dialog-input" id="reimbursementAmount" type="number" min="1" step="1" required inputmode="numeric"><label class="dialog-label" for="reimbursementReceipt">領収書</label><input class="dialog-input" id="reimbursementReceipt" type="file" accept="image/*,.pdf,application/pdf"><div class="modal-actions"><button id="cancelReimbursement" type="button" class="btn-outline">キャンセル</button><button type="submit" class="btn-green">精算を登録</button></div></form></dialog>
-<dialog id="manageDialog"><h2>⚙ 運用管理</h2><div class="manage-grid"><button id="cashCounter" type="button" class="btn-outline">💰 現金確認</button><button id="openLedger" type="button" class="btn-outline">📊 収支表</button><button id="manageSchedules" type="button" class="btn-outline">📅 練習日程</button><button id="managePeople" type="button" class="btn-outline">👥 参加者一覧</button><button id="manageAttendance" type="button" class="btn-outline">📨 自分の参加連絡</button><button id="visitorRegisterMenu" type="button" class="btn-outline">＋ ビジター申請</button><button id="visitorAdminMenu" type="button" class="btn-outline" hidden>👤 ビジター管理</button><button id="matchManage" type="button" class="btn-outline">🏸 対戦表</button><button id="manageAccess" type="button" class="btn-outline" hidden>🔐 メンバー権限管理</button></div><div class="modal-actions"><button id="closeManage" class="btn-outline" type="button">閉じる</button></div></dialog>
+<dialog id="manageDialog"><h2>⚙ 運用管理メニュー</h2>
+ <div class="manage-grid">
+  <span class="manage-section-heading" role="heading" aria-level="3">当番担当メニュー</span>
+  <button id="cashCounter" type="button" class="btn-outline">💰 現金確認</button>
+  <button id="openLedger" type="button" class="btn-outline">📊 収支表</button>
+  <button id="manageSchedules" type="button" class="btn-outline">📅 練習日程</button>
+  <button id="managePeople" type="button" class="btn-outline">👥 参加者一覧</button>
+  <button id="visitorRegisterMenu" type="button" class="btn-outline">＋ ビジター申請</button>
+  <button id="matchManage" type="button" class="btn-outline">🏸 対戦表</button>
+  <span class="manage-section-heading" id="manageAdminSection" role="heading" aria-level="3" hidden>管理者メニュー</span>
+  <button id="visitorAdminMenu" type="button" class="btn-outline" hidden>👤 ビジター管理</button>
+  <button id="manageAccess" type="button" class="btn-outline" hidden>🔐 メンバー権限管理</button>
+  <span class="manage-section-heading" role="heading" aria-level="3">検証用メニュー</span>
+  <button id="manageAttendance" type="button" class="btn-outline">📨 自分の参加連絡</button>
+ </div><div class="modal-actions"><button id="closeManage" class="btn-outline" type="button">閉じる</button></div></dialog>
 <dialog id="memberAccessDialog" aria-labelledby="memberAccessTitle">
     <h2 id="memberAccessTitle">🔐 メンバー権限管理</h2>
     <p id="memberAccessStatus" class="stage-system-message stage-system-message--info" role="status" aria-live="polite"></p>
@@ -352,5 +366,5 @@ body.visitor-member #visitorMemberHome button{width:100%}
  </p>
  <div class="modal-actions"><button id="stageErrorOkay" class="btn-outline" type="button">閉じる</button></div>
 </dialog>
-<script src="date-format.js?v=1661"></script><script src="model.js"></script><script src="access-v2-mode.js?v=1648"></script><script src="live-access.js?v=162e"></script><script src="stage-ui.js?v=1645"></script><script src="dialog-close.js?v=1661"></script><script src="live-access-v2.js?v=1663"></script><script src="runtime-config.js?v=164a"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script src="cash-reconcile.js?v=1637b"></script><script src="visitor-approval.js?v=1663"></script><script type="module" src="live.js?v=1663"></script>
+<script src="date-format.js?v=1664"></script><script src="model.js"></script><script src="access-v2-mode.js?v=1648"></script><script src="live-access.js?v=162e"></script><script src="stage-ui.js?v=1645"></script><script src="dialog-close.js?v=1661"></script><script src="live-access-v2.js?v=1663"></script><script src="runtime-config.js?v=164a"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script src="cash-reconcile.js?v=1637b"></script><script src="visitor-approval.js?v=1664"></script><script type="module" src="live.js?v=1664"></script>
 </body></html>

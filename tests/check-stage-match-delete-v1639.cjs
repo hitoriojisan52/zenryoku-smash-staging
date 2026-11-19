@@ -137,7 +137,7 @@ ok(dispatch.includes("var replay=matchDeleteArchiveStatus_")&&
 ok(dispatch.includes("applied:deleted||"),'operation lookup recognizes deleted match when active session is gone');
 ok(worker.includes("'/api/match/delete':'match.delete'"),'Worker routes authenticated delete operation');
 ok(html.includes('id="deleteMatch"')&&
- html.includes('match.js?v=1660'),'button and match frontend cache version present');
+ html.includes('match.js?v=1664'),'button and match frontend cache version present');
 ok(js.includes("$('deleteMatch').disabled=!s"),'delete disabled when no table, available after finish');
 ok(js.includes("title:'【対戦表の削除】'")&&js.includes("confirmLabel:'削除する',danger:true"),
  'destructive confirmation is mandatory');

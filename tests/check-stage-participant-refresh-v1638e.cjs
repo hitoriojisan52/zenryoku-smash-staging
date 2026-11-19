@@ -55,7 +55,7 @@ let paint=0,controls=0;
 const reload=new Function('S','$','call','window','Option','renderHome','syncPaymentControls',
  ui.slice(a,z)+'\nreturn reload;')(
  S,id=>dom[id],call,
- {SMDate:{date:v=>v}},
+ {SMDate:{date:v=>v,practiceLabel:p=>p.date,upcomingPractices:rows=>rows}},
  function Option(label,value){this.text=label;this.value=value;},
  function(){paint++},function(){controls++}
 );
@@ -89,6 +89,6 @@ const info={ok:true,practice:{practiceId:'P-TEST'},practices:[
   'manual refresh explicitly labels blocking loading dialog');
  ok(html.includes('stageBusyDialog')&&html.includes('stage-busy-spinner'),
   'full-screen common spinner remains present');
- ok(html.includes('live.js?v=1663'),'client cache-busting version advanced');
+ ok(html.includes('live.js?v=1664'),'client cache-busting version advanced');
  console.log('PASS '+n+'/'+n+' participant match guard and manual/silent polling spinner regression');
 })().catch(err=>{console.error(err);process.exitCode=1});

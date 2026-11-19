@@ -30,23 +30,24 @@
  const shortDate=r=>r.date?w.SMDate.date(r.date)+' '+(r.place||''):'開催日：登録がありません';
  const practiceOption=r=>w.SMDate.practiceLabel?r.date?w.SMDate.practiceLabel(r):shortDate(r):shortDate(r);
  function optionsFor(rows,id,practices){
-  const select=$(id),old=select.value,unique=new Map();
-  // Like 参加者一覧, include all practice-master dates (including those
-  // with no registrations); keep history whose schedule was later removed.
-  for(const p of practices){
-   if(p?.practiceId&&!unique.has(p.practiceId))
-    unique.set(p.practiceId,practiceOption(p));
+  const select=$(id),previous=select.value,today=w.SMDate.todayJst();
+  const unique=new Map();
+  // Do not delete historical requests; only hide past dates from selectors.
+  for(const p of w.SMDate.upcomingPractices(practices)){
+   if(p.practiceId&&!unique.has(p.practiceId))
+    unique.set(p.practiceId,{date:p.date,startTime:p.startTime||'',label:practiceOption(p)});
   }
-  rows.forEach(r=>{
-   if(!unique.has(r.practiceId))unique.set(r.practiceId,practiceOption(r));
-  });
-  const list=[{value:'all',text:'すべての日程'},...Array.from(unique,([value,text])=>({value,text}))
-   .sort((a,b)=>a.text.localeCompare(b.text,'ja'))];
-  select.replaceChildren(...list.map(item=>{
-   const option=node('option','',item.text);option.value=item.value;return option;
-  }));
-  select.value=list.some(o=>o.value===old)?old:'all';
-  return rows.filter(r=>select.value==='all'||r.practiceId===select.value);
+  for(const r of rows){
+   if(!r.practiceId||!r.date||r.date<today||unique.has(r.practiceId))continue;
+   unique.set(r.practiceId,{date:r.date,startTime:r.startTime||'',label:practiceOption(r)});
+  }
+  const options=[...unique].sort((a,b)=>a[1].date.localeCompare(b[1].date)||
+   a[1].startTime.localeCompare(b[1].startTime)||a[0].localeCompare(b[0]));
+  select.replaceChildren(...(options.length?options.map(([value,item])=>{
+   const option=node('option','',item.label);option.value=value;return option;
+  }):[node('option','','本日以降の開催日がありません')]));
+  select.value=unique.has(previous)?previous:(options[0]?.[0]||'');
+  return rows.filter(r=>r.practiceId===select.value);
  }
  function card(data,admin){
   const card=node('article','participant-card-item visitor-review-card');
@@ -217,6 +218,7 @@
   $('visitorAdminPractice').addEventListener('change',renderAdmin);
   $('visitorMineRefresh').addEventListener('click',()=>busy('申請状況を更新しています…',loadMine));
   $('visitorAdminMenu').addEventListener('click',()=>busy('ビジター申請を読み込んでいます…',async()=>{
+   $('visitorAdminPractice').value='';
    await loadAdmin();$('manageDialog').close();$('visitorAdminDialog').showModal();
   }));
   $('visitorAdminRefresh').addEventListener('click',()=>busy('申請を更新しています…',loadAdmin));

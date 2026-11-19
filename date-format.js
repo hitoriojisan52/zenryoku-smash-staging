@@ -44,5 +44,22 @@ function practiceLabel(practice){
  const place=String(p.place||'開催場所未登録').trim();
  return [ymd,time,place].filter(Boolean).join(' ');
 }
-window.SMDate={date,dateTimeJst,practiceLabel};
+// Staging screens must agree on TODAY in Japan, regardless of device locale.
+function todayJst(now=new Date()){
+ const parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{
+  timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'
+ }).formatToParts(now).map(p=>[p.type,p.value]));
+ return parts.year+'-'+parts.month+'-'+parts.day;
+}
+function upcomingPractices(rows,minimumDate=todayJst()){
+ return (Array.isArray(rows)?rows:[]).filter(p=>p&&typeof p.date==='string'&&
+  /^\d{4}-\d{2}-\d{2}$/.test(p.date)&&p.date>=minimumDate)
+  .slice().sort((a,b)=>a.date.localeCompare(b.date)||
+   String(a.startTime||'').localeCompare(String(b.startTime||''))||
+   String(a.practiceId||'').localeCompare(String(b.practiceId||'')));
+}
+function nearestPractice(rows,minimumDate=todayJst()){
+ return upcomingPractices(rows,minimumDate)[0]||null;
+}
+window.SMDate={date,dateTimeJst,practiceLabel,todayJst,upcomingPractices,nearestPractice};
 })();

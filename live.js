@@ -142,6 +142,7 @@ async function boot(){
   if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return;}
   S.token=liff.getIDToken();if(!S.token)throw new Error('LINE IDトークンを取得できません');
   S.actor=await call('/api/session');
+  if($('manageAdminSection'))$('manageAdminSection').hidden=S.actor.role!=='admin';
   window.SMVisitor?.setup({api:call,actor:S.actor,
    onDecision:async()=>{if(S.actor?.role!=='member'&&S.overview)await reload(true);}});
   // This link is opened from the existing LINE attendance form. An ordinary
@@ -189,10 +190,21 @@ async function reload(refreshDates){
      d=await call('/api/overview',{});notFound=true;
    }
    if(epoch!==S.updateEpoch||S.pending.size||(!notFound&&selected!==S.practiceId))return;
-   if(refreshDates||!S.practiceId||notFound){
-    $('date').replaceChildren(...d.practices.map(p=>new Option(`${window.SMDate.date(p.date)} ${p.startTime}～${p.endTime}`,p.practiceId)));
+   const upcoming=window.SMDate.upcomingPractices(d.practices);
+   const target=upcoming.some(p=>p.practiceId===selected)?selected:
+    (upcoming[0]?.practiceId||'');
+   // Legacy overview defaults to the latest date, which can be past.
+   if(target&&d.practice?.practiceId!==target){
+    d=await call('/api/overview',{practiceId:target});
+    if(epoch!==S.updateEpoch||S.pending.size||selected!==S.practiceId)return;
    }
-   S.practiceId=d.practice?.practiceId||'';$('date').value=S.practiceId;S.overview=d;
+   if(refreshDates||!S.practiceId||notFound||target!==selected){
+    $('date').replaceChildren(...upcoming.map(p=>
+     new Option(window.SMDate.practiceLabel(p),p.practiceId)));
+   }
+   if(!target)d={...d,practice:null,participants:[],ledger:null,
+    collectionAccess:{canCollect:false,reason:'本日以降の開催日がありません'}};
+   S.practiceId=target;$('date').value=target;S.overview=d;
    S.paymentNeedsRefresh=false;
    renderHome();syncPaymentControls();
  })();
@@ -210,7 +222,7 @@ function renderHome(){const v=S.overview;if(!v)return;const {practice,ledger,par
   $('adjustment').value=0;$('expense').value=0;
   $('confirm').disabled=true;$('adjustment').disabled=true;$('expense').disabled=true;
   $('cashCounter').disabled=true;$('list').replaceChildren();
-  $('collectionLockReason').textContent='開催日がありません';
+  $('collectionLockReason').textContent='本日以降の開催日がありません';
   $('collectionLockReason').hidden=false;updateFooter();return;
  }
  $('cashCounter').disabled=false;
@@ -790,7 +802,7 @@ function renderVisitorPracticeOptions_(){
  const select=$('visitorPractice'),rows=VIS.practices,chosen=select.value;
  select.replaceChildren(...rows.map(p=>new Option(
   window.SMDate.practiceLabel(p),p.practiceId)));
- const preferred=rows.find(p=>p.practiceId===chosen)||rows.find(p=>p.practiceId===S.practiceId)||rows[0];
+ const preferred=rows.find(p=>p.practiceId===chosen)||rows[0];
  if(preferred)select.value=preferred.practiceId;
  $('visitorSubmit').disabled=!preferred;
  $('visitorStatus').textContent=preferred?'':'受付中の練習日程がありません';
@@ -798,6 +810,7 @@ function renderVisitorPracticeOptions_(){
 async function openVisitorForm_(){
  let loaded=false;
  await guard(async()=>{
+  $('visitorMinePractice').value='';$('visitorPractice').value='';
   const [response]=await Promise.all([call('/api/visitor/practices'),window.SMVisitor.loadMine()]);
   VIS.practices=validateVisitorPractices_(response);
   VIS.draft=null;VIS.unknownResult=false;
@@ -853,7 +866,11 @@ async function registerVisitor_(){
   $('visitorName').value='';$('visitorKana').value='';$('visitorMemo').value='';
   // Keep the integrated screen open: the newly submitted request must be
   // visible ABOVE the next empty registration form.
-  try{await window.SMVisitor.loadMine();$('visitorNewFormSection').open=false;}
+  try{
+   // Keep a newly sent request visible even when its date is not nearest.
+   $('visitorMinePractice').value=d.practiceId;
+   await window.SMVisitor.loadMine();$('visitorNewFormSection').open=false;
+  }
   catch(_){
    $('visitorStatus').textContent='申請は受け付けられました。申請状況を「更新」で確認してください。';
   }
@@ -945,9 +962,9 @@ const PM_CATEGORIES={member:'メンバー',visitor:'ビジター',student:'学�
 function participantDates_(){
  const sel=$('participantPractice'),previous=PM.practiceId;
  sel.replaceChildren(...PM.practices.map(p=>new Option(
-  window.SMDate.practiceLabel(p), p.practiceId)));
- if(PM.practices.some(p=>p.practiceId===previous))sel.value=previous;
- else if(PM.practices.length)sel.value=PM.practices[PM.practices.length-1].practiceId;
+  window.SMDate.practiceLabel(p),p.practiceId)));
+ const selected=PM.practices.find(p=>p.practiceId===previous)||PM.practices[0];
+ sel.value=selected?.practiceId||'';
 }
 function renderParticipantManager_(){
  const list=$('participantCards');list.replaceChildren();
@@ -1016,7 +1033,13 @@ function renderParticipantManager_(){
  }
 }
 async function loadParticipants_(){
- const selected=PM.practiceId,answer=await call('/api/participant/list',{practiceId:selected});
+ const selected=PM.practiceId;
+ let answer=await call('/api/participant/list',{practiceId:selected});
+ const upcoming=window.SMDate.upcomingPractices(answer?.practices);
+ const target=upcoming.some(p=>p.practiceId===selected)?selected:
+  (upcoming[0]?.practiceId||'');
+ if(target&&answer.practiceId!==target)
+  answer=await call('/api/participant/list',{practiceId:target});
  if(!Array.isArray(answer?.practices)||!Array.isArray(answer?.participants)||
   typeof answer.practiceId!=='string'||typeof answer.financeLocked!=='boolean'||
   typeof answer.matchLocked!=='boolean')throw new Error('参加者一覧の取得結果を確認できません');
@@ -1027,14 +1050,15 @@ async function loadParticipants_(){
    throw new Error('参加者一覧のIDまたは版番号が不正です');
   unique.add(p.participantId);
  }
- PM.practices=answer.practices;PM.practiceId=answer.practiceId;PM.people=answer.participants;
- PM.financeLocked=answer.financeLocked;PM.matchLocked=answer.matchLocked;PM.uncertain=false;
+ PM.practices=upcoming;PM.practiceId=target;PM.people=target?answer.participants:[];
+ PM.financeLocked=!target||answer.financeLocked;
+ PM.matchLocked=!target||answer.matchLocked;PM.uncertain=false;
  participantDates_();$('participantPractice').value=PM.practiceId;
  renderParticipantManager_();
 }
 async function openParticipantManager_(){
  let ready=false;
- PM.practiceId=S.practiceId;
+ PM.practiceId=window.SMDate.nearestPractice(S.overview?.practices)?.practiceId||'';
  await guard(async()=>{gateEdit();await loadParticipants_();ready=true;},'参加者を読み込んでいます…');
  if(ready){close('manageDialog');dialog('participantDialog');}
 }
@@ -1201,4 +1225,5 @@ window.SMStageUX.run('読み込み中です…',boot)
  .catch(e=>window.SMStageUX.showError(e));
 
 // Match screen launch: current selected practice, same LINE login context.
-if(document.getElementById("matchManage")){document.getElementById("matchManage").addEventListener("click",()=>{if(!CONFIG.liffId||CONFIG.liffId.includes("REPLACE_")){toast("対戦表LIFFが設定されていません");return;}window.location.href="https://liff.line.me/"+encodeURIComponent(CONFIG.liffId)+"?practiceId="+encodeURIComponent(S.practiceId||"");});}
+if(document.getElementById("matchManage")){document.getElementById("matchManage").addEventListener("click",()=>{if(!CONFIG.liffId||CONFIG.liffId.includes("REPLACE_")){toast("対戦表LIFFが設定されていません");return;}const next=window.SMDate.nearestPractice(S.overview?.practices)?.practiceId||"";
+ window.location.href="https://liff.line.me/"+encodeURIComponent(CONFIG.liffId)+"?practiceId="+encodeURIComponent(next);});}
