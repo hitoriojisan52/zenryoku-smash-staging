@@ -86,6 +86,10 @@ jobs:
         run: node tests/check-stage-withdraw-rejoin-v1653.cjs
       - name: Verify v15 sequential ledger confirmations including earlier months
         run: node tests/check-stage-ledger-confirm-order-v1651.cjs
+      - name: Verify receipt permissions, audited deleted row and payout weekday
+        run: node tests/check-stage-receipt-weekday-v1665.cjs
+      - name: Verify actual receipt serialization, access and version constraints
+        run: node tests/check-stage-receipts-v1665.cjs
       - name: Verify compact operation-history scan preserves idempotency
         run: node tests/check-gas-audit-ids-v1636h.cjs
       - name: Install pinned official Google clasp

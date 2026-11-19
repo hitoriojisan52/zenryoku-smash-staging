@@ -938,3 +938,21 @@ body.stage-ui > main.container .app-header h1{
 .stage-ui #participantSettings.match-settings{margin-top:2px;}
 .stage-ui #courtSettings .match-settings-body,
 .stage-ui #participantSettings .match-settings-body{padding:4px;}
+
+/* v0.16.65 — show payout weekday without changing stored ISO date input. */
+.stage-ui .weekday-hint{display:block;margin:1px 0 3px;font-size:12px;color:#50697c;line-height:1.2}
+.stage-ui .receipt-existing{display:block;margin:2px 0;font-size:12px}
+
+
+/* v0.16.65 — date weekday beside native picker, and private receipt link. */
+.stage-ui .weekday-hint{
+ display:inline-block;margin:0 0 2px;font-size:13px;line-height:1.25;
+ color:#485d68;
+}
+.stage-ui .receipt-ledger-link{
+ display:inline-block;margin-left:5px;color:#1766a8;
+ text-decoration:underline;white-space:nowrap;font-size:12px;
+}
+.stage-ui .receipt-ledger-link:focus-visible{
+ outline:2px solid #1766a8;outline-offset:2px;
+}

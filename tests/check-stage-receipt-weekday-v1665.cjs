@@ -1,0 +1,22 @@
+#!/usr/bin/env node
+'use strict';
+const fs=require('fs'),path=require('path'),assert=require('assert'),vm=require('vm');
+const read=p=>fs.readFileSync(path.resolve(__dirname,'..',p),'utf8');
+const html=read('live.html'),js=read('live.js'),gas=read('gas-staging/コード.gs'),worker=read('cloudflare-worker/worker.js');
+let n=0;const ok=(v,msg)=>{assert.ok(v,msg);n++};
+ok(html.includes('id="payoutWeekday"')&&html.includes('id="ledgerPayoutWeekday"'),'both payout forms have weekday display');
+ok(js.includes("window.SMDate.date(value)")&&js.includes("syncPayoutWeekday_('payoutDate'")&&js.includes("syncPayoutWeekday_('ledgerPayoutDate'"),'date weekday follows input changes without changing ISO');
+const ctx={window:{}};vm.runInNewContext(read('date-format.js'),ctx);
+ok(ctx.window.SMDate.date('2026-11-28')==='2026/11/28(土)','date formatter correctly renders Saturday');
+ok(html.includes('id="homeReceipt" type="file"')&&html.includes('id="ledgerReimbursementReceipt"')&&html.includes('id="reimbursementReceipt"'),'all three receipt inputs exist');
+ok(!js.includes("領収書アップロードは未接続です")&&!js.includes("$('reimbursementReceipt').disabled=true"),'no fake upload or permanently disabled receipt picker');
+ok(js.includes("'/api/receipt/upload'")&&js.includes("'/api/receipt/get'")&&js.includes('attachAfterLedgerSave_'),'receipt UI uploads after successful ledger save and can fetch');
+ok(worker.includes("'/api/receipt/upload':'receipt.upload'")&&worker.includes("'/api/receipt/get':'receipt.get'"),'edge routes require normal LINE auth');
+ok(worker.includes("const limit=op==='receipt.upload'?2200000:32768"),'large payload limit only applies to authenticated upload endpoint');
+ok(gas.includes("function receiptUpload_(")&&gas.includes("function receiptDownload_(")&&gas.includes("stageReceiptFolder_()"),'GAS stores in configured private Drive folder and reads via auth');
+ok(gas.includes("unlockable_(row);expectVersion_(row.version,payload.expectedVersion)")&&gas.includes("if(op==='receipt.get')return withLock_"),'upload uses existing row version/lock and read remains member authenticated');
+ok(gas.includes("sh.getRange(ix+2,11,1,5).setValues"),'version and file reference are attached in one sheet update');
+ok(gas.includes("function deletedPracticeLedgerIds_(")&&gas.includes("result.data.action!=='delete'"),'only audited deleted rows can re-register');
+ok(js.includes("deleted.has(p.practiceId)")&&gas.includes("deletedPracticeLedgerIds_(ss,rows).indexOf(p.practiceId)<0"),'client and server enforce deleted practice eligibility');
+ok(html.includes('stage-ui.css?v=1665')&&html.includes('live.js?v=1665'),'new client code cache-busted');
+console.log('PASS '+n+'/'+n+' receipt upload, payout weekdays and deleted-ledger eligibility');

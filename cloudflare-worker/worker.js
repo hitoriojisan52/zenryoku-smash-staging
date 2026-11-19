@@ -29,6 +29,8 @@ const VALID_PATHS = Object.freeze({
   '/api/expense':'expense.set',
   '/api/ledger':'ledger.list',
   '/api/ledger/change':'ledger.change',
+  '/api/receipt/upload':'receipt.upload',
+  '/api/receipt/get':'receipt.get',
   '/api/cash/get':'cash.get',
   '/api/cash/save':'cash.save',
   '/api/schedule/list':'schedule.list',
@@ -164,8 +166,8 @@ export async function handleRequest(request,env){
     // Public LIFF channel prefix (not a secret); disclose only a boolean,
     // never the configured environment value or any LINE token.
     const channelMatchesLiveLiff=env.LINE_LOGIN_CHANNEL_ID==='2012602642';
-    return json({ok:true,status:'deployed',version:'0.16.57-stage-kana',
-      codeRevision:'stage-v1657-kana-registration-20261119',
+    return json({ok:true,status:'deployed',version:'0.16.65-stage-receipt',
+      codeRevision:'stage-v1665-receipt-upload-20261119',
       configured,channelMatchesLiveLiff});
   }
   const origin=request.headers.get('Origin')||'';
@@ -186,12 +188,13 @@ export async function handleRequest(request,env){
   const isGuest=op==='match.guest.get';
   const tokenMatch=/^Bearer ([A-Za-z0-9_.-]+)$/.exec(request.headers.get('Authorization')||'');
   if(!isGuest&&!tokenMatch)return failure('LINE認証が必要です',401,origin);
+  const limit=op==='receipt.upload'?2200000:32768;
   const length=Number(request.headers.get('Content-Length')||0);
-  if(length>32768)return failure('要求が大きすぎます',413,origin);
+  if(length>limit)return failure('要求が大きすぎます',413,origin);
   let phase='request_body';
   try{
     const raw=await request.text();
-    if(raw.length>32768)return failure('要求が大きすぎます',413,origin);
+    if(raw.length>limit)return failure('要求が大きすぎます',413,origin);
     let payload;
     try{payload=JSON.parse(raw);}catch(_){return failure('要求のJSON形式が不正です（診断コード：BAD_REQUEST_JSON）',400,origin,'BAD_REQUEST_JSON');}
     if(!payload||Array.isArray(payload)||typeof payload!=='object')return failure('要求形式が不正です',400,origin);
@@ -215,6 +218,30 @@ export async function handleRequest(request,env){
     const withdrawAtEdge=env.WITHDRAW_ENABLED==='true' &&
       env.WITHDRAW_STAGE_SPREADSHEET_ID==='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac' &&
       env.WORKER_PURPOSE==='staging-member-withdraw-v1653';
+    if(op==='receipt.upload'){
+      if(typeof payload.rowId!=='string'||!/^([PR]-)[A-Za-z0-9_-]{1,100}$/.test(payload.rowId)||
+         !Number.isSafeInteger(payload.expectedVersion)||payload.expectedVersion<1||
+         typeof payload.fileName!=='string'||payload.fileName.length>120||
+         !['application/pdf','image/png','image/jpeg','image/webp'].includes(payload.mimeType)||
+         typeof payload.base64!=='string'||payload.base64.length>2100000||
+         !/^[A-Za-z0-9+/]+={0,2}$/.test(payload.base64))
+        return failure('領収書の形式または対象行が不正です',400,origin,'BAD_REQUEST');
+    }
+    if(op==='receipt.get'&&
+       (typeof payload.rowId!=='string'||!/^([PR]-)[A-Za-z0-9_-]{1,100}$/.test(payload.rowId)))
+      return failure('領収書の対象行が不正です',400,origin,'BAD_REQUEST');
+    if(op==='receipt.upload'){
+      const b=payload.base64;
+      if(typeof payload.rowId!=='string'||!/^([PR])-[-_A-Za-z0-9]{4,100}$/.test(payload.rowId)||
+         !Number.isSafeInteger(payload.expectedVersion)||payload.expectedVersion<1||
+         typeof payload.fileName!=='string'||!/^.{1,100}\.(pdf|png|jpe?g|webp)$/i.test(payload.fileName)||
+         !['application/pdf','image/jpeg','image/png','image/webp'].includes(payload.mimeType)||
+         typeof b!=='string'||b.length<8||b.length>2100000||!/^[A-Za-z0-9+/]+={0,2}$/.test(b)||
+         typeof payload.operationId!=='string'||!/^[A-Za-z0-9_-]{8,100}$/.test(payload.operationId))
+        return failure('領収書の情報を確認してください',400,origin,'BAD_RECEIPT');
+    }
+    if(op==='receipt.get'&&(typeof payload.rowId!=='string'||!/^([PR])-[-_A-Za-z0-9]{4,100}$/.test(payload.rowId)))
+      return failure('領収書の対象を確認してください',400,origin,'BAD_RECEIPT');
     if(op==='member.apply'){
       const kana=typeof payload.nameKana==='string'?payload.nameKana.normalize('NFKC').replace(/[\s\u00a0\u3000]+/g,''):'';
       if(typeof payload.displayName!=='string'||!payload.displayName.trim()||
