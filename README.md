@@ -3,6 +3,7 @@
 **新しいチャットで開発を再開する場合は、必ず [開始用プロンプト](docs/NEW_CHAT_START_PROMPT.md) を使用し、[開発引継ぎ文書](docs/SESSION_HANDOFF.md) と [仕様優先順位の正式ルール](docs/SPEC_PRIORITY_POLICY.md) を確認する。**
 **GAS・Worker・PagesのGitHub経由デプロイとユーザーへの具体的な作業案内**は [DEPLOYMENT_AND_USER_ACTIONS.md](docs/DEPLOYMENT_AND_USER_ACTIONS.md) に従う（Worker v0.16.53の反映確認とGAS/Workerの設定完了報告を記録済み）。
 **退会・再入会の確定仕様と接続検証の進捗**：[v0.16.53引継ぎ](docs/stage-v1653-withdraw-rejoin.md)を参照。
+**v0.16.67（検証UI改修）：精算日曜日の欄内表示とJPG/HEIC iPhoneカメラ写真の変換**：[差分/実機受入](docs/stage-v1667-inline-weekday-iphone-receipts.md)。原画像が大きい場合は端末内でJPEG1.5MBへ縮小。既存GAS/Workerのサイズ・認証・残高・確定順序は変更しない。実機未受入、本番未変更。
 **最新v0.16.66（検証用）：履歴照会の明示切替・領収書部分失敗の安全復旧・Drive初回認可**：[承認済み仕様と受入](docs/stage-v1666-history-receipt-recovery.md)を参照。CIと検証GAS/Pages/Cloudflareチェックは成功。LINE実機の領収書実ファイル保存、OAuth認可、公開Worker応答は別途確認。本番変更なし。
 **メンバー権限管理と収支ボタンのv0.16.56仕様**：[画面・編集・確定解除の動作](docs/stage-v1656-management-ledger-ui.md)を参照。
 **v0.16.57: ユーザー確定A～Eと氏名カナ追加**：[登録・並び順・旧仕様の整合性](docs/stage-v1657-registration-kana.md)を参照。収支の未来月表示・その他の収支・全体収支表限定の確定済み1ボタンを許容し、会計確定順序は変更しない。
