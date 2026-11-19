@@ -62,21 +62,21 @@ const reload=new Function('S','$','call','window','Option','renderHome','syncPay
  ok(calls.join(',')==='P-LATE'&&state.practiceId==='P-LATE',
   'manual future-date selection survives explicit refresh');
  dates=[rows[1]];state.practiceId='P-PAST';calls=[];await reload(true);
- ok(dateNode.items.length===0&&state.practiceId===''&&state.overview.practice===null&&
+ ok(dateNode.items.length===1&&dateNode.items[0].value===''&&state.practiceId===''&&state.overview.practice===null&&
   state.overview.participants.length===0,'no future date never leaks old participant or ledger data');
 
  // Selected day on opening participant manager uses a different nearest choice.
  ok(ui.includes("PM.practiceId=window.SMDate.nearestPractice(S.overview?.practices)?.practiceId||''")&&
-  ui.includes('PM.practices=upcoming;PM.practiceId=target;')&&
+  ui.includes('PM.practices=selectable;PM.practiceId=target;')&&
   ui.includes("call('/api/participant/list',{practiceId:target})"),
-  'participant management date defaults/refresh reject old backend selection');
+  'participant management still defaults to future and explicitly gates history');
  ok(ui.includes("$('visitorMinePractice').value=''")&&
   visitor.includes("$('visitorAdminPractice').value=''")&&
   visitor.includes('const unique=new Map()')&&
   visitor.includes('r.date<today')&&
   !visitor.includes("{value:'all',text:'すべての日程'}"),
-  'both visitor lists reset on navigation, show upcoming-only and no all-dates');
- ok(visitor.includes("unique.has(previous)?previous:(options[0]?.[0]||'')")&&
+  'visitor lists default to upcoming with opt-in read-only history');
+ ok(visitor.includes("unique.has(previous)?previous:(future?.[0]||'')")&&
   ui.includes("$('visitorMinePractice').value=d.practiceId"),
   'manual day selection and newly submitted future request remain visible');
 
