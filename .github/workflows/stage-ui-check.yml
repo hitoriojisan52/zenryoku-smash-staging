@@ -33,6 +33,7 @@ on:
       - 'tests/check-stage-ledger-add-v1647.cjs'
       - 'tests/check-stage-finance-member-v1648.cjs'
       - 'tests/check-stage-member-ledger-v1656.cjs'
+      - 'tests/check-stage-ledger-cards-v1658.cjs'
       - 'tests/check-stage-member-kana-v1657.cjs'
       - 'tests/check-stage-member-kana-approval-v1657b.cjs'
       - 'tests/check-stage-ledger-confirm-order-v1651.cjs'
@@ -104,6 +105,8 @@ jobs:
         run: node tests/check-stage-finance-member-v1648.cjs
       - name: Verify admin name edit, card layout and finalized ledger roles
         run: node tests/check-stage-member-ledger-v1656.cjs
+      - name: Verify mobile ledger card UI, green unlock and compact shared buttons
+        run: node tests/check-stage-ledger-cards-v1658.cjs
       - name: Verify LINE registration kana and unified roster sort
         run: node tests/check-stage-member-kana-v1657.cjs
       - name: Verify real GAS kana approval/edit and historical safety
