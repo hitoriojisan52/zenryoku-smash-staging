@@ -217,7 +217,7 @@ async function boot(){
     (overviewMs/1000).toFixed(1)+'秒 / 合計 '+
     (totalMs/1000).toFixed(1)+'秒）');
   }
-  setInterval(()=>{if(!document.hidden&&!S.paymentNeedsRefresh&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
+  setInterval(()=>{if(!document.hidden&&!document.querySelector('dialog[open]')&&!S.paymentNeedsRefresh&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
   if(!PERF_MODE)toast('接続しました');
  }catch(e){
   $('list').textContent=e.message;throw e;
