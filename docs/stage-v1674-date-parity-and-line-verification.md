@@ -28,3 +28,10 @@
 5. 実機が必要な工程は、認証済みユーザーが実際のLINEアプリで行う必要がある。秘密値/LINE IDトークン/個人ID/メンバー名はチャットへ共有しない。本人の確認結果は画面名・成功/失敗・エラー文だけで十分。
 
 本番LINE公式アカウント/LIFF、GAS/Worker、Google Drive、会計・出欠・試合データを勝手に変更しない。
+
+## 公開LINE経路の読み取り専用スモークテスト（追加）
+
+- 新しい`stage-line-public-smoke.yml`は検証用mainへのコード反映後、公開Cloudflare WorkerのGET `/health`、公開GitHub PagesのGET `live.html`とGET `runtime-config.js`のみを取得する。
+- `scripts/check-stage-line-public.mjs`が `ok=true`、`status=deployed`、`configured=true`、`channelMatchesLiveLiff=true`、管理LIFF IDとWorker URLの公開設定、および公開ページの`live.js`キャッシュ版がローカルmainと一致することを検証。機密値やレスポンス本文全文は出力しない。
+- **本人のLINEトークンを取得しない・GASへのPOSTをしない・テスト用収支や参加者を登録しない**。公開ヘルスとフロント配信の検証結果を、認証を伴うLINE実機E2Eの完了と混同しない。
+- GitHub公開への反映タイミングが前後した場合に備えて、短いリトライを設ける。エラーは安全な範囲のHTTP状態と検査条件だけを出す。成功判定と実機の確認結果を別管理。

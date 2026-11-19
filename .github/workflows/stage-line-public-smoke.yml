@@ -1,0 +1,29 @@
+name: Staging LINE public read-only smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'live.html'
+      - 'live.js'
+      - 'runtime-config.js'
+      - 'cloudflare-worker/worker.js'
+      - 'scripts/check-stage-line-public.mjs'
+      - '.github/workflows/stage-line-public-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-line-smoke:
+    name: Verify public Worker and LIFF page only
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify public LINE channel, Worker health and LIFF entrypoint (GET only)
+        run: node scripts/check-stage-line-public.mjs
