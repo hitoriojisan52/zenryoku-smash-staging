@@ -1770,6 +1770,16 @@ function stageReceiptFolder_(){
  catch(e){fail_('SETUP','領収書の保存先にアクセスできません');}
  return folder;
 }
+/* Manually run once from the staging Apps Script editor only if Drive
+ * authorization is missing. The exact staging workbook guard executes
+ * before a private folder can be created; the lock avoids races.
+ * Never log a folder ID or make a public file link. */
+function stageReceiptAuthorizeV1666_(){
+ return withLock_(function(){
+  stageReceiptFolder_();
+  return '検証用領収書フォルダのDrive権限確認が成功しました';
+ });
+}
 function receiptUpload_(ss,member,payload){
  var id=str_(payload.rowId),row=row_(entries_(ss),id);
  if(row.kind!=='practice'&&row.kind!=='reimbursement')
