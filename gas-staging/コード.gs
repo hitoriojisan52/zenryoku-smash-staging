@@ -487,7 +487,7 @@ function attendees_(ss,id,withCurrentMemberNames){
  return withCurrentMemberNames?overlayMemberRosterV1657_(rows,memberRosterMapV1657_(ss)):rows;
 }
 function paymentRows_(ss,id){return sheetRows_(ss,'集金記録').filter(function(r){return str_(r[0])===id;});}
-function practiceIncome_(ss,id,adjustment){var p=practice_(ss,id);var payments=paymentRows_(ss,id);var done={};payments.forEach(function(r){if(bool_(r[2]))done[str_(r[1])]=true;});var amount=attendees_(ss,id).reduce(function(sum,a){return sum+(done[a.participantId]?fee_(a.category,p.hours):0);},0);return amount+Number(adjustment||0);}
+function practiceIncome_(ss,id,adjustment,knownPractice){var p=knownPractice||practice_(ss,id);var payments=paymentRows_(ss,id);var done={};payments.forEach(function(r){if(bool_(r[2]))done[str_(r[1])]=true;});var amount=attendees_(ss,id).reduce(function(sum,a){return sum+(done[a.participantId]?fee_(a.category,p.hours):0);},0);return amount+Number(adjustment||0);}
 /** Legacy accounting contract: chronological order is authoritative for
  * balances AND confirmation. Same-day entries use kind then fixed rowId,
  * exactly as the persisted ledger calculation does. */
@@ -1002,7 +1002,7 @@ function ensureCollectionLedger_(ss,member,p,oldRows,knownPractices){
  var state=collectionState_(ss,p,oldRows,knownPractices);
  if(current||!state.canStart)return oldRows;
  var rows=oldRows.map(function(r){return Object.assign({},r);});
- rows.push({date:p.date,label:p.place,income:practiceIncome_(ss,p.practiceId,0),
+ rows.push({date:p.date,label:p.place,income:practiceIncome_(ss,p.practiceId,0,p),
   expense:0,balance:0,confirmedBy:'',rowId:'P-'+p.practiceId,kind:'practice',
   practiceId:p.practiceId,status:'open',version:1,adjustment:0,
   item:'',payee:'',receiptFileId:'',createdBy:member.memberId});
@@ -1028,7 +1028,7 @@ function requireCollection_(ss,p,ledgerRows){
  */
 function overview_(ss,member,payload){
  var all=practices_(ss).sort(function(a,b){
-  return a.date.localeCompare(b.date)||a.startTime.localeCompare(b.startTime);
+  return a.date.localeCompare(b.date)||a.startTime.localeCompare(b.startTime)||a.practiceId.localeCompare(b.practiceId);
  });
  var id=str_(payload.practiceId)||(all.length?all[all.length-1].practiceId:'');
  if(!id)return {ok:true,data:{role:member.role,actorName:member.name,practice:null,practices:[],
