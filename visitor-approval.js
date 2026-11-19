@@ -43,9 +43,9 @@
   }
   const options=[...unique].sort((a,b)=>a[1].date.localeCompare(b[1].date)||
    a[1].startTime.localeCompare(b[1].startTime)||a[0].localeCompare(b[0]));
-  select.replaceChildren(...options.map(([value,item])=>{
+  select.replaceChildren(...(options.length?options.map(([value,item])=>{
    const option=node('option','',item.label);option.value=value;return option;
-  }));
+  }):[node('option','','本日以降の開催日がありません')]));
   select.value=unique.has(previous)?previous:(options[0]?.[0]||'');
   return rows.filter(r=>r.practiceId===select.value);
  }
