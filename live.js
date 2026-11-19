@@ -216,6 +216,8 @@ async function reload(refreshDates){
  }
 }
 function renderHome(){const v=S.overview;if(!v)return;const {practice,ledger,participants}=v;
+ const receiptView=$('homeReceiptView');if(receiptView)receiptView.hidden=!ledger?.receiptFileId;
+ const receiptUpload=$('receiptBtn');if(receiptUpload)receiptUpload.disabled=!ledger||ledger.status==='confirmed';
  if(!practice){
   $('place').textContent='開催日なし';$('hours').textContent='時間区分：—';
   $('count').textContent='参加者：0名';$('completedCount').textContent='集金完了：0名';
