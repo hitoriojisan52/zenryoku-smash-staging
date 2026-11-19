@@ -142,7 +142,7 @@ async function boot(){
   if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return;}
   S.token=liff.getIDToken();if(!S.token)throw new Error('LINE IDトークンを取得できません');
   S.actor=await call('/api/session');
-  $('manageAdminSection').hidden=S.actor.role!=='admin';
+  if($('manageAdminSection'))$('manageAdminSection').hidden=S.actor.role!=='admin';
   window.SMVisitor?.setup({api:call,actor:S.actor,
    onDecision:async()=>{if(S.actor?.role!=='member'&&S.overview)await reload(true);}});
   // This link is opened from the existing LINE attendance form. An ordinary
