@@ -1145,7 +1145,7 @@ function participantList_(ss,member,payload){
  var dates=practices_(ss).sort(function(a,b){return a.date.localeCompare(b.date);});
  var id=str_(payload.practiceId)||(dates.length?dates[dates.length-1].practiceId:'');
  if(!id)return {ok:true,data:{practices:[],practiceId:'',participants:[],
-   matchLocked:false,financeLocked:false,financeStatus:''}};
+   confirmedPracticeIds:[],matchLocked:false,financeLocked:false,financeStatus:''}};
  var p=practice_(ss,id),rows=participantRows_(ss,id),payments=paymentRows_(ss,id),
      seenPayment={},paid={};
  // Resolve the participant's OWN stable account ID, not the visitor sponsor.
@@ -1217,9 +1217,12 @@ function participantList_(ss,member,payload){
   return ar-br||(a.nameKana||a.name).localeCompare(b.nameKana||b.name,'ja')||
     a.name.localeCompare(b.name,'ja')||a.participantId.localeCompare(b.participantId);
  });
- var ledgers=entries_(ss).filter(function(r){return r.rowId==='P-'+id;});
+ var allLedgerRows=entries_(ss),ledgers=allLedgerRows.filter(function(r){return r.rowId==='P-'+id;});
  if(ledgers.length>1)fail_('SETUP','対象日の収支行が重複しています');
  return {ok:true,data:{practices:dates,practiceId:id,practice:p,
+  confirmedPracticeIds:allLedgerRows.filter(function(row){
+   return row.kind==='practice'&&row.status==='confirmed';
+  }).map(function(row){return row.practiceId;}),
   participants:rows,financeStatus:ledgers[0]?ledgers[0].status:'',
   financeLocked:!!ledgers[0]&&ledgers[0].status==='confirmed',
   matchLocked:participantMatchLocked_(ss,id)}};
