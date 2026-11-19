@@ -36,7 +36,7 @@ ok(css.includes('.ledger-col-balance::before{content:"残高："')&&
  'cards label finance data rather than relying on hidden table headings');
 ok(css.includes('.stage-ui button{min-height:44px;font-size:14px;font-weight:700;padding-block:5px}')&&
  css.includes('min-width:44px;min-height:44px;padding:5px 7px'),
- 'all stage screens reduce vertical padding but card actions keep 44px tap areas');
+ 'older ledger CSS remains intact and the latest compact-height override takes precedence');
 for(const page of ['live.html','match.html','match-view.html','guest.html']){
  ok(file(page).includes('stage-ui.css?v=1662'),page+' refreshes shared compact CSS');
 }
