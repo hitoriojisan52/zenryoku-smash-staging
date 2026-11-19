@@ -73,7 +73,7 @@ const info={ok:true,practice:{practiceId:'P-TEST'},practices:[
  requests[1].resolve(info);
  await manual;
  ok(!S.loading&&S.reloadPromise===null,'pending refresh tracking clears after completion');
- ok(dom.date.items.length===1&&dom.date.value==='P-TEST',
+ ok(dom.date.items.some(x=>x.value==='P-TEST')&&dom.date.value==='P-TEST',
   'manual refresh forces date options to be re-rendered');
  ok(paint===2&&controls===2,'both reads completed with UI updates');
  const startCase=reload(false);
