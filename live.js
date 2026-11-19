@@ -1181,7 +1181,8 @@ function participantDates_(){
  const upcoming=PM.practices.filter(p=>p.date>=today());
  const options=PM.practices.map(p=>new Option(
    window.SMDate.practiceLabel(p),p.practiceId));
- if(!upcoming.length)options.unshift(new Option('本日以降の開催日がありません',''));
+ if(!options.length)options.unshift(new Option('未確定の練習日がありません',''));
+ else if(!upcoming.length)options.unshift(new Option('日程を選択してください',''));
  sel.replaceChildren(...options);
  const selected=PM.practices.find(p=>p.practiceId===previous)||upcoming[0];
  sel.value=selected?.practiceId||'';
