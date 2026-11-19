@@ -34,6 +34,7 @@ on:
       - 'tests/check-stage-finance-member-v1648.cjs'
       - 'tests/check-stage-member-ledger-v1656.cjs'
       - 'tests/check-stage-member-kana-v1657.cjs'
+      - 'tests/check-stage-member-kana-approval-v1657b.cjs'
       - 'tests/check-stage-ledger-confirm-order-v1651.cjs'
       - 'tests/check-stage-withdraw-boundary.cjs'
       - 'tests/check-stage-withdraw-rejoin-v1653.cjs'
@@ -105,6 +106,8 @@ jobs:
         run: node tests/check-stage-member-ledger-v1656.cjs
       - name: Verify LINE registration kana and unified roster sort
         run: node tests/check-stage-member-kana-v1657.cjs
+      - name: Verify real GAS kana approval/edit and historical safety
+        run: node tests/check-stage-member-kana-approval-v1657b.cjs
       - name: Verify v15 strictly sequential ledger confirmation and earlier-month blockers
         run: node tests/check-stage-ledger-confirm-order-v1651.cjs
       - name: Verify staging withdrawal remains isolated
