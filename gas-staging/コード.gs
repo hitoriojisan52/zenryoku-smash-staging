@@ -515,6 +515,17 @@ function ledgerCanConfirm_(rows,target){
  return target.kind!=='opening'&&target.status!=='confirmed'&&
   target.date<=today_()&&!ledgerPriorPending_(rows,target);
 }
+/* Same exact order as legacy v15 balance calculation and confirmation. */
+function ledgerLaterConfirmed_(rows,target){
+ return rows.some(function(row){
+  return row.rowId!==target.rowId&&row.kind!=='opening'&&
+   row.status==='confirmed'&&ledgerChronologyCompare_(row,target)>0;
+ });
+}
+function ledgerCanUnlock_(rows,target){
+ return target.kind!=='opening'&&target.status==='confirmed'&&
+  !ledgerLaterConfirmed_(rows,target);
+}
 function balanceRecalc_(rows,original){
  if(rows.length>5000)fail_('LIMIT','収支行が多すぎます');
  var old={};original.forEach(function(r){old[r.rowId]=r;});
@@ -629,13 +640,8 @@ function mutateLedger_(ss,member,payload){
  var original=entries_(ss),rows=entries_(ss),action=str_(payload.action),id=str_(payload.rowId),r=null;
  if(action!=='add'){r=row_(rows,id);expectVersion_(r.version,payload.expectedVersion);}
  if(action==='add'){
-   var kind=str_(payload.kind);if(kind==='practice'){
-     var p=practice_(ss,str_(payload.practiceId));dateAllowed_(p.date);
-      if(deletedPracticeLedgerIds_(ss,rows).indexOf(p.practiceId)<0)fail_('BAD_REQUEST','削除された収支行がありません');
-      var access=collectionState_(ss,p,rows);if(!access.canStart)fail_('LOCKED',access.reason);id='P-'+p.practiceId;
-     if(rows.some(function(x){return x.rowId===id;}))fail_('CONFLICT','練習日の収支行は登録済みです');
-     r={date:p.date,label:p.place,income:practiceIncome_(ss,p.practiceId,0),expense:0,balance:0,confirmedBy:'',rowId:id,kind:'practice',practiceId:p.practiceId,status:'open',version:1,adjustment:0,item:'',payee:'',receiptFileId:'',createdBy:member.memberId};rows.push(r);
-   }else if(kind==='reimbursement'||kind==='other'){
+   var kind=str_(payload.kind);if(kind==='reimbursement'||kind==='other'){
+     
      id=str_(payload.rowId);if(!/^([RO]-)[\w-]{8,100}$/.test(id)||rows.some(function(x){return x.rowId===id;}))fail_('BAD_REQUEST','新しい収支IDが不正です');
      dateAllowed_(str_(payload.date));var income=kind==='reimbursement'?0:jpy_(payload.income,false),expense=kind==='reimbursement'?jpy_(payload.amount,false):jpy_(payload.expense,false);
      // Read-only preflight under ScriptLock. A backdated reimbursement
@@ -643,7 +649,8 @@ function mutateLedger_(ss,member,payload){
      if(kind==='reimbursement'&&original.some(function(confirmed){
        return confirmed.kind!=='opening'&&confirmed.status==='confirmed'&&confirmed.date>str_(payload.date);
      }))fail_('LOCKED','指定した精算日より後の日付に確定済みの収支が存在するため、登録できません。');
-     if(!income&&!expense||kind==='reimbursement'&&!expense)fail_('BAD_REQUEST','金額が不正です');
+     if(kind==='other'&&!income&&!expense)fail_('BAD_REQUEST','集金額または支出額を1円以上入力してください');
+     if(kind==='reimbursement'&&!expense)fail_('BAD_REQUEST','精算額を1円以上入力してください');
      var item=str_(payload.item),payee=norm_(payload.payee),label=kind==='reimbursement'?'立替精算：'+item+'（'+payee+'）':str_(payload.label);
      if(kind==='reimbursement'&&(!item||!payee)||!label)fail_('BAD_REQUEST','費目・立替者・表示名が必要です');
      r={date:payload.date,label,income,expense,balance:0,confirmedBy:'',rowId:id,kind,practiceId:'',status:'open',version:1,adjustment:0,item,payee,receiptFileId:'',createdBy:member.memberId};rows.push(r);
@@ -656,10 +663,13 @@ function mutateLedger_(ss,member,payload){
      r.item=itm;r.payee=pye;r.label='立替精算：'+itm+'（'+pye+'）';r.income=0;r.expense=amt;
    }else if(r.kind==='other'){
      r.label=str_(payload.label);r.income=jpy_(payload.income,false);r.expense=jpy_(payload.expense,false);
-     if(!r.label||!r.income&&!r.expense)fail_('BAD_REQUEST','費目か金額が不正です');
+     if(!r.label)fail_('BAD_REQUEST','開催場所・費目名は必須です');
+     if(!r.income&&!r.expense)fail_('BAD_REQUEST','集金額または支出額を1円以上入力してください');
    }else fail_('BAD_REQUEST','修正できない行です');r.version++;
  }else if(action==='delete'){
-   unlockable_(r);rows=rows.filter(function(x){return x.rowId!==id;});
+   unlockable_(r);
+   if(r.kind==='practice')fail_('FORBIDDEN','練習日の削除は練習日程マスタから行ってください');
+   rows=rows.filter(function(x){return x.rowId!==id;});
  }else if(action==='confirm'){
    unlockable_(r);dateAllowed_(r.date);
    // v15 requirement: every chronologically earlier ledger row must be
@@ -670,7 +680,10 @@ function mutateLedger_(ss,member,payload){
    r.status='confirmed';r.confirmedBy=member.name;r.version++;
  }else if(action==='unlock'){
    if(member.role!=='admin')fail_('FORBIDDEN','確定解除はシステム管理者のみ可能です');
-   if(r.status!=='confirmed')fail_('BAD_REQUEST','未確定の行です');r.status='open';r.confirmedBy='';r.version++;
+   if(r.status!=='confirmed')fail_('BAD_REQUEST','未確定の行です');
+   if(ledgerLaterConfirmed_(rows,r))
+    fail_('LOCKED','後に確定された収支があるため解除できません。同日の場合は最後の確定行から解除してください');
+   r.status='open';r.confirmedBy='';r.version++;
  }else fail_('BAD_REQUEST','操作が不正です');
  balanceRecalc_(rows,original);writeLedger_(ss,rows);
  return {ok:true,data:{rowId:id,action:action,ledger:rows}};
@@ -917,6 +930,12 @@ function scheduleChange_(ss,member,payload){
   return {ok:true,data:{practiceId:id,action:action,version:existing.version+1}};
  }
  if(action==='confirm'){
+  // Creating an earlier date would change balances of later confirmed rows.
+  // Reject without writing the schedule or the provisional practice ledger.
+  if(entries_(ss).some(function(finance){
+   return finance.kind!=='opening'&&finance.status==='confirmed'&&
+    finance.date>existing.date;
+  }))fail_('LOCKED','開催日より後の日付に確定済みの収支があるため、日程を確定できません');
   // Publication immediately creates ONE matching financial ledger row, even
   // for a future practice. Never wait for a collection-screen read to create
   // the accounting record. No collection or confirmation is permitted early.
@@ -1001,14 +1020,16 @@ function requireCollection_(ss,p,ledgerRows){
 
 function overview_(ss,member,payload){var all=practices_(ss).sort(function(a,b){return a.date.localeCompare(b.date)||a.startTime.localeCompare(b.startTime);});
  var id=str_(payload.practiceId)|| (all.length?all[all.length-1].practiceId:'');
- if(!id)return {ok:true,data:{role:member.role,actorName:member.name,practice:null,practices:[],participants:[],ledger:null,collectionAccess:{canCollect:false,reason:'開催日がありません'},expected:0,completedFee:0,completedCount:0,attendingCount:0}};
+ if(!id)return {ok:true,data:{role:member.role,actorName:member.name,practice:null,practices:[],confirmedPracticeIds:[],participants:[],ledger:null,collectionAccess:{canCollect:false,reason:'開催日がありません'},expected:0,completedFee:0,completedCount:0,attendingCount:0}};
  var p=practice_(ss,id),ledgerRows=ensureCollectionLedger_(ss,member,p,entries_(ss)),access=collectionState_(ss,p,ledgerRows),pay=paymentRows_(ss,id),pm={};pay.forEach(function(r){pm[str_(r[1])]={completed:bool_(r[2]),version:Number(r[3])||0};});
  var roster=attendees_(ss,id,true).map(function(a){var o=pm[a.participantId]||{completed:false,version:0};return {participantId:a.participantId,name:a.name,nameKana:a.nameKana,category:a.category,fee:fee_(a.category,p.hours),attending:true,memo:a.memo,collectionCompleted:o.completed,paymentVersion:o.version,categoryVersion:a.categoryVersion};});
  // Shared dynamic numbering: sorted every read, never a mutation key.
  roster=SMMatchCore.numbered(roster).map(function(a){a.participantId=a.participationId;return a;});
  var ledger=ledgerRows.find(function(r){return r.rowId==='P-'+id;});var completed=roster.filter(function(a){return a.collectionCompleted;});var total=completed.reduce(function(a,b){return a+b.fee;},0);
  var visibleLedger=ledger?Object.assign({},ledger,{canConfirm:ledgerCanConfirm_(ledgerRows,ledger)}):null;
- return {ok:true,data:{role:member.role,actorName:member.name,practice:p,practices:all,participants:roster,ledger:visibleLedger,collectionAccess:access,expected:roster.reduce(function(a,b){return a+b.fee;},0),completedFee:total,completedCount:completed.length,attendingCount:roster.length}};
+ return {ok:true,data:{role:member.role,actorName:member.name,practice:p,practices:all,confirmedPracticeIds:ledgerRows.filter(function(row){
+  return row.kind==='practice'&&row.status==='confirmed';
+ }).map(function(row){return row.practiceId;}),participants:roster,ledger:visibleLedger,collectionAccess:access,expected:roster.reduce(function(a,b){return a+b.fee;},0),completedFee:total,completedCount:completed.length,attendingCount:roster.length}};
 }
 /* A missing practice ledger is not necessarily a DELETED ledger: unpublished,
  * archived, or future practices must not activate the re-registration option.
@@ -1041,6 +1062,15 @@ function monthLedger_(ss,member,payload){
    earliestOpen=r.rowId;
   return view;
  });
+ // All months, same-day kind+rowId ordering: only the final confirmed
+ // accounting row can be unlocked, never a prior finalized balance.
+ var seenLaterConfirmed=false;
+ for(var i=sorted.length-1;i>=0;i--){
+  var x=sorted[i];
+  x.canUnlock=x.kind!=='opening'&&x.status==='confirmed'&&
+   !seenLaterConfirmed;
+  if(x.kind!=='opening'&&x.status==='confirmed')seenLaterConfirmed=true;
+ }
  // Future published practices are visible as provisional OPEN accounting rows.
  // They cannot be collected/confirmed before the practice date.
  var latest=sorted.reduce(function(max,r){
