@@ -1222,16 +1222,20 @@ function participantChange_(ss,member,payload,visitorDecisionInternal){
    fail_('LOCKED','ビジター区分は変更できません。新規登録はビジター申請から行ってください');
   // Member display names come from the approved member master. No name/kana
   // editing via attendance, even if the old attendance row has a stale name.
-  var canonicalName=norm_(old[2]);
+  var canonicalName=norm_(old[2]),canonicalKana=norm_(old[3]);
   if(!visitorIdentity){
    var masterMatches=sheetRows_(ss,'メンバー').filter(function(m){
     return str_(m[0])===person;
    });
    if(masterMatches.length>1)fail_('SETUP','利用登録のメンバーIDが重複しています');
-   if(masterMatches.length===1&&norm_(masterMatches[0][1]))
-    canonicalName=norm_(masterMatches[0][1]);
+   if(masterMatches.length===1){
+    if(norm_(masterMatches[0][1]))canonicalName=norm_(masterMatches[0][1]);
+    // The master kana is authoritative for the current edit form; historical
+    // 出欠回答 kana remains unchanged unless separately migrated by design.
+    if(norm_(masterMatches[0][5]))canonicalKana=norm_(masterMatches[0][5]);
+   }
    if((payload.name!==undefined&&norm_(payload.name)!==canonicalName)||
-      (payload.nameKana!==undefined&&norm_(payload.nameKana)!==norm_(old[3])))
+      (payload.nameKana!==undefined&&norm_(payload.nameKana)!==canonicalKana))
     fail_('LOCKED','メンバーの氏名・カナは参加者一覧から変更できません');
   }
   name=visitorIdentity?norm_(payload.name):canonicalName;
@@ -1698,7 +1702,7 @@ function attendanceSubmit_(ss,member,payload){
   result=participantChange_(ss,member,{operationId:checkOpId_(payload),
    action:'edit',practiceId:id,participantId:member.memberId,
    expectedVersion:payload.expectedVersion,
-   name:name,nameKana:norm_(old[3]),category:str_(old[4]),
+   name:name,nameKana:norm_(memberMatches[0][5])||norm_(old[3]),category:str_(old[4]),
    attending:payload.attending,memo:memo});
  }
  result.data.reportedAt=now_();
