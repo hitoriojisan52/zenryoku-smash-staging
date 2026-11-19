@@ -40,6 +40,7 @@ const conf={SPREADSHEET_ID:STAGE,WITHDRAW_ENABLED:'false',
  STAGING_WITHDRAW_PURPOSE:'staging-member-withdraw-v1653'};
 const fail_=(code,message)=>{const e=new Error(message);e.code=code;throw e};
 const str_=x=>String(x??'').trim();
+const norm_=x=>String(x??'').normalize('NFKC').replace(/[\s\u00a0\u3000]+/g,'');
 const bool_=x=>x===true||x==='TRUE'||x==='true';
 const safeCell_=x=>String(x);
 const member={memberId:ADMIN,name:'架空管理者',role:'admin'};
@@ -88,7 +89,7 @@ const accessRole16_=(row)=>row[4]?'admin':
 const historyRows=()=>db['退会履歴'].map(r=>({memberId:r[0],name:r[1],
  withdrawnAt:r[2],state:r[4]}));
 const accessHistoryForManagerV1623_=()=>historyRows();
-const deps={str_,bool_,fail_,conf_:(k)=>conf[k]||'',accessAdmin16_,
+const deps={str_,norm_,bool_,fail_,conf_:(k)=>conf[k]||'',accessAdmin16_,
  withLock_,accessSheet16_,accessRows16_,sheetRows_,sheet_,SpreadsheetApp,
  SM,SMA16,safeCell_,accessTime16_,audit_,Utilities,accessMemberRow16_,
  checkOpId_,auditExisting_,accessRole16_,accessHistoryForManagerV1623_};
@@ -140,12 +141,15 @@ blocked(()=>withdraw(),'CONFLICT','second withdrawal cannot reuse the destructiv
 const regStart=src.indexOf('function accessRegistration16_('),
  regEnd=src.indexOf('function accessAdmin16_(',regStart);
 ok(regStart>=0&&regEnd>regStart,'actual registration handler isolated');
-const register=new Function(...names,'accessStageWithdrawHistoryV1636_',
+const kanaStart=src.indexOf('function accessKanaV1657_('),kanaEnd=src.indexOf('function accessMemberRow16_(',kanaStart);
+ok(kanaStart>=0&&kanaEnd>kanaStart,'real kana normalizer located');
+const accessKanaV1657_=new Function('norm_','fail_',src.slice(kanaStart,kanaEnd)+'\nreturn accessKanaV1657_;')(norm_,fail_);
+const register=new Function(...names,'accessStageWithdrawHistoryV1636_','accessKanaV1657_',
  src.slice(regStart,regEnd)+'\nreturn accessRegistration16_;')(
- ...values,staging.accessStageWithdrawHistoryV1636_);
+ ...values,staging.accessStageWithdrawHistoryV1636_,accessKanaV1657_);
 const status=()=>register(ss,LINE,'member.status',{}).data.status;
 ok(status()==='not_requested','withdrawn LINE ID is eligible for fresh application');
-const applied=register(ss,LINE,'member.apply',{displayName:'再入会の架空メンバー'});
+const applied=register(ss,LINE,'member.apply',{displayName:'再入会の架空メンバー',nameKana:'サイニュウカイノカクウメンバー'});
 ok(applied.data.status==='pending','same LINE user can reapply normally');
 const manageStart=src.indexOf('function accessManagement16_('),
  manageEnd=src.indexOf('function accessShareIssue16_(',manageStart);
