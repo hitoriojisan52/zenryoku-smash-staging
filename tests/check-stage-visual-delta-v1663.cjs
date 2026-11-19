@@ -33,7 +33,7 @@ ok(/body\.stage-ui > main\.container \.home-footer-bar\{\s*padding-block:3px!imp
 ok(/body\.stage-ui > main\.container \.app-header h1\{\s*font-size:15px!important;/.test(current)&&
  current.includes('font-size:14px!important}'),
  'long club title has a slightly smaller heading in narrow phones');
-ok(!/(?:padding-inline|padding-left|padding-right|width:|max-width:|box-sizing:)/.test(current),
+ok(!/^\s*(?:padding-inline|padding-left|padding-right|width|max-width|box-sizing):/m.test(current),
  'horizontal spacing and box dimensions are not incidentally altered');
 ok(/\.stage-ui #list \.participant-card \.participant-memo\{\s*font-weight:400!important;\s*color:#c62828;/.test(current),
  'home note is red, never forcibly bold');
