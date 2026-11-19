@@ -166,16 +166,18 @@ const deepText=e=>[e.textContent,...e.children.map(deepText)].filter(Boolean).jo
  ok(elements.visitorMineCards.children.length===1 &&
   deepText(elements.visitorMineCards.children[0]).includes('別日程'),
   'switching date shows matching visitor alone');
- elements.visitorMinePractice.value='all';
+ ok(!elements.visitorMinePractice.children.some(opt=>opt.value==='all'),
+  'visitor date picker excludes the all-dates option');
+ elements.visitorMinePractice.value=practiceId;
  elements.visitorMinePractice.listeners.change();
- ok(elements.visitorMineCards.children.length===4,
-  'all dates option restores all applicant statuses');
+ ok(elements.visitorMineCards.children.length===3,
+  'nearest date shows only its three request statuses');
  elements.visitorMinePractice.value='PR-EMPTY';
  elements.visitorMinePractice.listeners.change();
  ok(elements.visitorMineCards.children.length===1&&
   deepText(elements.visitorMineCards.children[0]).includes('この開催日のビジター申請はありません'),
   'selecting a master schedule date without requests shows clear empty-state message');
- elements.visitorMinePractice.value='all';
+ elements.visitorMinePractice.value=practiceId;
  elements.visitorMinePractice.listeners.change();
 
  for(const oldId of ['visitorMineMenu','visitorMineDialog','visitorMemberRefresh','visitorMineList']){
