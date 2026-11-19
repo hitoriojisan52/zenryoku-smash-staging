@@ -44,6 +44,8 @@ const sheet_=(ss,n)=>sheets[n],sheetRows_=(ss,n)=>DB[n].map(r=>[...r]);
 const accessSheet16_=(ss,n)=>{if(!sheets[n])fail_('SETUP','missing');return sheets[n]};
 const accessRows16_=(s,w)=>DB[s.name].map(r=>r.slice(0,w));
 const accessAdmin16_=actor=>{if(actor.role!=='admin')fail_('FORBIDDEN','admin only')};
+const accessMemberRow16_=(_ss,id)=>DB['メンバー'].find(m=>m[2]===id)||null;
+const accessTime16_=()=> '2026-11-19T13:00:00.000Z';
 const accessHistoryForManagerV1623_=()=>[],accessRole16_=m=>m[4]?'admin':'member';
 const auditExisting_=(ss,id,op,actor)=>{
  const row=DB['操作履歴'].find(r=>r[0]===id);
@@ -64,11 +66,13 @@ const names=['accessAdmin16_','accessStageWithdrawalV1636_','accessWithdrawCheck
  'accessSheet16_','sheetRows_','accessRows16_','accessHistoryForManagerV1623_',
  'accessRole16_','str_','norm_','bool_','conf_','withLock_','checkOpId_',
  'auditExisting_','sheet_','safeCell_','fail_','audit_','SMA16',
- 'SMA_STAGE_WITHDRAW_PURPOSE_V1636','SMA_STAGE_WITHDRAW_ID_V1636','accessKanaV1657_'];
+ 'SMA_STAGE_WITHDRAW_PURPOSE_V1636','SMA_STAGE_WITHDRAW_ID_V1636','accessKanaV1657_',
+ 'accessMemberRow16_','Utilities','accessTime16_'];
 const values=[accessAdmin16_,()=>fail_('FORBIDDEN','withdraw disabled'),()=>fail_('FORBIDDEN','preview disabled'),
  accessSheet16_,sheetRows_,accessRows16_,accessHistoryForManagerV1623_,accessRole16_,
  str_,norm_,bool_,()=>'',withLock_,p=>p.operationId,auditExisting_,sheet_,safeCell_,fail_,audit_,
- SMA16,'not_enabled','test_only',accessKanaV1657_];
+ SMA16,'not_enabled','test_only',accessKanaV1657_,
+ accessMemberRow16_,Utilities,accessTime16_];
 const manage=new Function(...names,src.slice(start,end)+'\nreturn accessManagement16_;')(...values);
 const actor={role:'admin',memberId:ADMIN},ss={getId:()=> 'TEST-SHEET'};
 let pending=manage(ss,actor,'member.manage.list',{}).data.pending;
