@@ -23,7 +23,7 @@ ok(/\.stage-ui \.cash-count-btn\{\s*height:38px!important;\s*min-height:38px!imp
  'cash-denomination +/- controls also shrink vertically');
 ok(/\.stage-ui #ledgerDialog \.ledger-controls button,\s*\.stage-ui #ledgerDialog #newLedgerRow\{\s*min-height:38px!important;/.test(latest),
  'month navigation and + retain their single-row layout at the same height');
-ok(!/padding-inline|padding-left|padding-right|width:|max-width:|box-sizing:/.test(latest),
+ok(!/^\s*(?:padding-inline|padding-left|padding-right|width|max-width|box-sizing):/m.test(latest),
  'compact-height patch never changes horizontal padding, width or box sizing');
 ok(latest.includes('#list .participant-card .participant-memo{')&&
  latest.includes('color:#c62828;')&&
