@@ -60,13 +60,31 @@ async function call(path,payload={}){
  // Invalidate responses from reads that started before a write.
  if(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change','/api/schedule/change','/api/visitor/register','/api/visitor/request','/api/visitor/decide','/api/visitor/modify','/api/participant/change','/api/attendance/submit'].includes(path))S.updateEpoch++;
  const startedAt=performance.now();
- const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},body:JSON.stringify(payload),cache:'no-store'});
- if(PERF_MODE){
+ // Bound only bootstrap/ordinary reads. NEVER abort accounting writes:
+ // after a client timeout the server could still commit the transaction.
+ const boundedRead=['/api/session','/api/overview','/api/participant/list',
+  '/api/visitor/practices','/api/visitor/mine'].includes(path);
+ const controller=boundedRead&&typeof AbortController!=='undefined'?new AbortController():null;
+ const timer=controller?setTimeout(()=>controller.abort(),25000):null;
+ let response,value;
+ try{
+  response=await fetch(url,{method:'POST',
+   headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},
+   body:JSON.stringify(payload),cache:'no-store',
+   ...(controller?{signal:controller.signal}:{})});
+  if(PERF_MODE){
    S.lastPerf={path,totalMs:Math.round(performance.now()-startedAt),
-     serverTiming:response.headers.get('Server-Timing')||''};
+    serverTiming:response.headers.get('Server-Timing')||''};
    console.info('[STAGE PERF]',S.lastPerf.path,S.lastPerf.totalMs+'ms',S.lastPerf.serverTiming);
- }
- let value;try{value=await response.json();}catch{throw new Error('サーバーからの応答を読み取れません');}
+  }
+  try{value=await response.json();}catch{throw new Error('サーバーからの応答を読み取れません');}
+ }catch(e){
+  if(controller?.signal.aborted){
+   const error=new Error('読み込みが25秒以内に完了しませんでした。通信状態を確認し、画面を開き直すか「更新」で最新の状態を確認してください。');
+   error.code='REQUEST_TIMEOUT';throw error;
+  }
+  throw e;
+ }finally{if(timer!==null)clearTimeout(timer);}
  if(!response.ok||!value.ok){const err=new Error(value.error||'処理を完了できませんでした');err.status=response.status;err.code=String(value.code||'');throw err;}
  return value.data;
 }
@@ -150,10 +168,24 @@ async function boot(){
  try{
   if(!CONFIG.liveLiffId||CONFIG.liveLiffId.includes('REPLACE_')||!CONFIG.apiBaseUrl||CONFIG.apiBaseUrl.includes('REPLACE_'))throw new Error('runtime-config.js の設定が必要です');
   if(!window.liff)throw new Error('LINE SDKを読み込めませんでした');
-  await liff.init({liffId:CONFIG.liveLiffId,withLoginOnExternalBrowser:true});
+  const startupStart=performance.now(),authStart=performance.now();
+  $('stageBusyLabel').textContent='LINE認証を確認しています…';
+  let liffTimer;
+  try{
+   await Promise.race([
+    liff.init({liffId:CONFIG.liveLiffId,withLoginOnExternalBrowser:true}),
+    new Promise((_,reject)=>{liffTimer=setTimeout(()=>reject(
+     Object.assign(new Error('LINEの初期化が20秒以内に完了しませんでした。LINEからアプリを開き直してください。'),{code:'REQUEST_TIMEOUT'})
+    ),20000);})
+   ]);
+  }finally{if(liffTimer!==undefined)clearTimeout(liffTimer);}
+  const authMs=Math.round(performance.now()-authStart);
   if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return;}
   S.token=liff.getIDToken();if(!S.token)throw new Error('LINE IDトークンを取得できません');
+  $('stageBusyLabel').textContent='利用者の権限を確認しています…';
+  const sessionStart=performance.now();
   S.actor=await call('/api/session');
+  const sessionMs=Math.round(performance.now()-sessionStart);
   if($('manageAdminSection'))$('manageAdminSection').hidden=S.actor.role!=='admin';
   window.SMVisitor?.setup({api:call,actor:S.actor,
    onDecision:async()=>{if(S.actor?.role!=='member'&&S.overview)await reload(true);}});
@@ -173,8 +205,20 @@ async function boot(){
   // All management actions disabled at startup are restored only after
   // verified duty/admin login. Keep the ledger Add button in this same list.
   for(const id of ['reimbursementBtn','manageBtn','refresh','adjustment','expense','newLedgerRow'])$(id).disabled=false;
-  await reload(true);setInterval(()=>{if(!document.hidden&&!S.paymentNeedsRefresh&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
-  toast('接続しました');
+  $('stageBusyLabel').textContent='集金データを取得しています…';
+  const overviewStart=performance.now();
+  await reload(true);
+  const overviewMs=Math.round(performance.now()-overviewStart);
+  if(PERF_MODE){
+   const totalMs=Math.round(performance.now()-startupStart);
+   console.info('[STAGE STARTUP]',{authMs,sessionMs,overviewMs,totalMs});
+   toast('接続しました（LINE '+(authMs/1000).toFixed(1)+'秒 / 会員確認 '+
+    (sessionMs/1000).toFixed(1)+'秒 / 集金読込 '+
+    (overviewMs/1000).toFixed(1)+'秒 / 合計 '+
+    (totalMs/1000).toFixed(1)+'秒）');
+  }
+  setInterval(()=>{if(!document.hidden&&!document.querySelector('dialog[open]')&&!S.paymentNeedsRefresh&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
+  if(!PERF_MODE)toast('接続しました');
  }catch(e){
   $('list').textContent=e.message;throw e;
  }
@@ -195,11 +239,11 @@ async function reload(refreshDates){
  const task=(async()=>{
    const epoch=S.updateEpoch,selected=S.practiceId;
    let d,notFound=false;
-   try{d=await call('/api/overview',{practiceId:S.practiceId});}
+   try{d=await call('/api/overview',{practiceId:S.practiceId,selectEligible:true});}
    catch(e){
      // A second device may have deleted the previously selected schedule.
      if(e.status!==404||!selected)throw e;
-     d=await call('/api/overview',{});notFound=true;
+     d=await call('/api/overview',{selectEligible:true});notFound=true;
    }
    if(epoch!==S.updateEpoch||S.pending.size||(!notFound&&selected!==S.practiceId))return;
    // All unconfirmed (including formerly confirmed/unlocked and past)

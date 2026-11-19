@@ -14,6 +14,7 @@ ok(start>=0&&end>start,'actual boot implementation remains locatable');
 const body=js.slice(start,end);
 const makeBoot=new Function('$','CONFIG','window','liff','S','call','gateEdit','reload',
  'setInterval','toast','VISITOR_MODE','document','VIS','validateVisitorPractices_',
+ 'PERF_MODE','performance',
  body+'\nreturn boot;');
 const initiallyDisabled=['confirm','reimbursementBtn','manageBtn','refresh',
  'adjustment','expense','newLedgerRow'];
@@ -52,7 +53,7 @@ async function scenario(role){
  env.window.liff=env.liff; // real boot checks both window.liff and the LIFF instance
  const boot=makeBoot($,env.config,env.window,env.liff,state,env.call,
   env.gateEdit,env.reload,()=>{calls.push('interval')},()=>{},
-  false,env.document,VIS,x=>x.practices);
+  false,env.document,VIS,x=>x.practices,false,{now:()=>1000});
  const work=boot();
  for(const id of initiallyDisabled)ok($(id).disabled,
   'boot disables '+id+' until the session is verified: '+role);
@@ -80,7 +81,7 @@ async function scenario(role){
  ok(denied.error?.message==='権限がありません','unknown role fails authorization');
  ok(denied.$('newLedgerRow').disabled,'unknown role cannot enable ledger Add');
  ok(html.includes('id="newLedgerRow" class="btn-green" type="button"')&&
-    html.includes('live.js?v=1674-date-parity'),'original Add control and cache-busted script retained');
+    html.includes('live.js?v=1675-startup-perf'),'original Add control and cache-busted script retained');
  ok(js.includes("$('newLedgerRow').addEventListener('click',()=>openEditor())"),
     'ledger Add still invokes original editor function');
  const editorStart=js.indexOf('function openEditor('),editorEnd=js.indexOf('function updateEditorKind(',editorStart);

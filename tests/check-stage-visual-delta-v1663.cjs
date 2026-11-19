@@ -67,6 +67,6 @@ for(const p of ['live.html','match.html','match-view.html','guest.html']){
 }
 ok(html.includes('live-access-v2.js?v=1663')&&
  html.includes('visitor-approval.js?v=1664')&&
- html.includes('live.js?v=1674-date-parity'),
+ html.includes('live.js?v=1675-startup-perf'),
  'all new UI text and home layout assets are cache-busted');
 console.log('PASS '+n+'/'+n+' real visual height fixes, memo weight and business screen labels');

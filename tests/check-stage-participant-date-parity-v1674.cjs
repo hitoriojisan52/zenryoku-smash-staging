@@ -134,7 +134,7 @@ const participant=participantFns.loadParticipants_;
   'participant backend reuses its one existing ledger read for confirmation metadata');
  ok(gas.slice(first,after).includes("financeLocked:!!ledgers[0]&&ledgers[0].status==='confirmed'"),
   'confirmed-today read access does not lift finance modification lock');
- ok(html.includes('live.js?v=1674-date-parity'),
+ ok(html.includes('live.js?v=1675-startup-perf'),
   'LINE WebView receives refreshed date selector controller');
  console.log('PASS '+n+'/'+n+' collection/participant same-day and past-open calendar parity');
 })().catch(e=>{console.error(e);process.exitCode=1});

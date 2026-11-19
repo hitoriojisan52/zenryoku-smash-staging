@@ -487,7 +487,7 @@ function attendees_(ss,id,withCurrentMemberNames){
  return withCurrentMemberNames?overlayMemberRosterV1657_(rows,memberRosterMapV1657_(ss)):rows;
 }
 function paymentRows_(ss,id){return sheetRows_(ss,'集金記録').filter(function(r){return str_(r[0])===id;});}
-function practiceIncome_(ss,id,adjustment){var p=practice_(ss,id);var payments=paymentRows_(ss,id);var done={};payments.forEach(function(r){if(bool_(r[2]))done[str_(r[1])]=true;});var amount=attendees_(ss,id).reduce(function(sum,a){return sum+(done[a.participantId]?fee_(a.category,p.hours):0);},0);return amount+Number(adjustment||0);}
+function practiceIncome_(ss,id,adjustment,knownPractice){var p=knownPractice||practice_(ss,id);var payments=paymentRows_(ss,id);var done={};payments.forEach(function(r){if(bool_(r[2]))done[str_(r[1])]=true;});var amount=attendees_(ss,id).reduce(function(sum,a){return sum+(done[a.participantId]?fee_(a.category,p.hours):0);},0);return amount+Number(adjustment||0);}
 /** Legacy accounting contract: chronological order is authoritative for
  * balances AND confirmation. Same-day entries use kind then fixed rowId,
  * exactly as the persisted ledger calculation does. */
@@ -976,8 +976,10 @@ function scheduleChange_(ss,member,payload){
  * after the immediately preceding published meeting's ledger is finalized.
  * The hours field is the fee category, NOT the meeting's elapsed duration.
  */
-function collectionState_(ss,p,ledgerRows){
- var ordered=practices_(ss).slice().sort(function(a,b){return a.date.localeCompare(b.date)||a.practiceId.localeCompare(b.practiceId);});
+function collectionState_(ss,p,ledgerRows,knownPractices){
+ // Reuse the same schedule snapshot for this overview request. Mutation
+ // callers without a snapshot retain the legacy authoritative read.
+ var ordered=(knownPractices||practices_(ss)).slice().sort(function(a,b){return a.date.localeCompare(b.date)||a.practiceId.localeCompare(b.practiceId);});
  var previous=null;
  for(var i=0;i<ordered.length;i++)if(ordered[i].date<p.date)previous=ordered[i];
  var previousLedger=previous?ledgerRows.find(function(r){return r.rowId==='P-'+previous.practiceId;}):null;
@@ -995,12 +997,12 @@ function collectionState_(ss,p,ledgerRows){
   previousPracticeId:previous?previous.practiceId:'',
   reason:reasons.join('／')+(reasons.length?'のため集金できません':'')};
 }
-function ensureCollectionLedger_(ss,member,p,oldRows){
+function ensureCollectionLedger_(ss,member,p,oldRows,knownPractices){
  var current=oldRows.find(function(r){return r.rowId==='P-'+p.practiceId;});
- var state=collectionState_(ss,p,oldRows);
+ var state=collectionState_(ss,p,oldRows,knownPractices);
  if(current||!state.canStart)return oldRows;
  var rows=oldRows.map(function(r){return Object.assign({},r);});
- rows.push({date:p.date,label:p.place,income:practiceIncome_(ss,p.practiceId,0),
+ rows.push({date:p.date,label:p.place,income:practiceIncome_(ss,p.practiceId,0,p),
   expense:0,balance:0,confirmedBy:'',rowId:'P-'+p.practiceId,kind:'practice',
   practiceId:p.practiceId,status:'open',version:1,adjustment:0,
   item:'',payee:'',receiptFileId:'',createdBy:member.memberId});
@@ -1018,18 +1020,67 @@ function requireCollection_(ss,p,ledgerRows){
  return access;
 }
 
-function overview_(ss,member,payload){var all=practices_(ss).sort(function(a,b){return a.date.localeCompare(b.date)||a.startTime.localeCompare(b.startTime);});
- var id=str_(payload.practiceId)|| (all.length?all[all.length-1].practiceId:'');
- if(!id)return {ok:true,data:{role:member.role,actorName:member.name,practice:null,practices:[],confirmedPracticeIds:[],participants:[],ledger:null,collectionAccess:{canCollect:false,reason:'開催日がありません'},expected:0,completedFee:0,completedCount:0,attendingCount:0}};
- var p=practice_(ss,id),ledgerRows=ensureCollectionLedger_(ss,member,p,entries_(ss)),access=collectionState_(ss,p,ledgerRows),pay=paymentRows_(ss,id),pm={};pay.forEach(function(r){pm[str_(r[1])]={completed:bool_(r[2]),version:Number(r[3])||0};});
- var roster=attendees_(ss,id,true).map(function(a){var o=pm[a.participantId]||{completed:false,version:0};return {participantId:a.participantId,name:a.name,nameKana:a.nameKana,category:a.category,fee:fee_(a.category,p.hours),attending:true,memo:a.memo,collectionCompleted:o.completed,paymentVersion:o.version,categoryVersion:a.categoryVersion};});
- // Shared dynamic numbering: sorted every read, never a mutation key.
- roster=SMMatchCore.numbered(roster).map(function(a){a.participantId=a.participationId;return a;});
- var ledger=ledgerRows.find(function(r){return r.rowId==='P-'+id;});var completed=roster.filter(function(a){return a.collectionCompleted;});var total=completed.reduce(function(a,b){return a+b.fee;},0);
- var visibleLedger=ledger?Object.assign({},ledger,{canConfirm:ledgerCanConfirm_(ledgerRows,ledger)}):null;
- return {ok:true,data:{role:member.role,actorName:member.name,practice:p,practices:all,confirmedPracticeIds:ledgerRows.filter(function(row){
+/**
+ * Fast startup: select the nearest selectable day in the SAME authenticated,
+ * locked overview request instead of loading the legacy last day and then
+ * making a second Worker -> LINE verify -> GAS roundtrip.
+ * Opt-in selectEligible preserves legacy API behavior for other callers.
+ */
+function overview_(ss,member,payload){
+ var all=practices_(ss).sort(function(a,b){
+  return a.date.localeCompare(b.date)||a.startTime.localeCompare(b.startTime)||a.practiceId.localeCompare(b.practiceId);
+ });
+ var id=str_(payload.practiceId)||(all.length?all[all.length-1].practiceId:'');
+ if(!id)return {ok:true,data:{role:member.role,actorName:member.name,practice:null,practices:[],
+   confirmedPracticeIds:[],participants:[],ledger:null,
+   collectionAccess:{canCollect:false,reason:'開催日がありません'},
+   expected:0,completedFee:0,completedCount:0,attendingCount:0}};
+ var ledgerRows=entries_(ss);
+ var confirmedIds=ledgerRows.filter(function(row){
   return row.kind==='practice'&&row.status==='confirmed';
- }).map(function(row){return row.practiceId;}),participants:roster,ledger:visibleLedger,collectionAccess:access,expected:roster.reduce(function(a,b){return a+b.fee;},0),completedFee:total,completedCount:completed.length,attendingCount:roster.length}};
+ }).map(function(row){return row.practiceId;});
+ if(payload.selectEligible===true){
+  var confirmed=Object.create(null);
+  confirmedIds.forEach(function(id){confirmed[id]=true;});
+  var day=today_();
+  var eligible=all.filter(function(p){
+   return !confirmed[p.practiceId]||p.date===day;
+  });
+  var selected=eligible.find(function(p){return p.practiceId===str_(payload.practiceId);});
+  var nearest=eligible.find(function(p){return p.date>=day;});
+  id=(selected||nearest||{}).practiceId||'';
+ }
+ if(!id)return {ok:true,data:{role:member.role,actorName:member.name,
+  practice:null,practices:all,confirmedPracticeIds:confirmedIds,
+  participants:[],ledger:null,
+  collectionAccess:{canCollect:false,reason:'本日以降の未確定練習日がありません'},
+  expected:0,completedFee:0,completedCount:0,attendingCount:0}};
+ // This matches practice_'s duplicate-ID and enabled guards, without a
+ // second physical read of the same 練習日程 tab.
+ var matches=all.filter(function(p){return p.practiceId===id;});
+ if(matches.length!==1)fail_('NOT_FOUND','練習日程が見つかりません');
+ var p=matches[0];
+ ledgerRows=ensureCollectionLedger_(ss,member,p,ledgerRows,all);
+ var access=collectionState_(ss,p,ledgerRows,all),pay=paymentRows_(ss,id),pm={};
+ pay.forEach(function(r){pm[str_(r[1])]={completed:bool_(r[2]),version:Number(r[3])||0};});
+ var roster=attendees_(ss,id,true).map(function(a){
+  var o=pm[a.participantId]||{completed:false,version:0};
+  return {participantId:a.participantId,name:a.name,nameKana:a.nameKana,category:a.category,
+   fee:fee_(a.category,p.hours),attending:true,memo:a.memo,
+   collectionCompleted:o.completed,paymentVersion:o.version,categoryVersion:a.categoryVersion};
+ });
+ roster=SMMatchCore.numbered(roster).map(function(a){a.participantId=a.participationId;return a;});
+ var ledger=ledgerRows.find(function(r){return r.rowId==='P-'+id;});
+ var completed=roster.filter(function(a){return a.collectionCompleted;});
+ var total=completed.reduce(function(a,b){return a+b.fee;},0);
+ var visibleLedger=ledger?Object.assign({},ledger,{canConfirm:ledgerCanConfirm_(ledgerRows,ledger)}):null;
+ return {ok:true,data:{role:member.role,actorName:member.name,practice:p,practices:all,
+  confirmedPracticeIds:ledgerRows.filter(function(row){
+   return row.kind==='practice'&&row.status==='confirmed';
+  }).map(function(row){return row.practiceId;}),
+  participants:roster,ledger:visibleLedger,collectionAccess:access,
+  expected:roster.reduce(function(a,b){return a+b.fee;},0),
+  completedFee:total,completedCount:completed.length,attendingCount:roster.length}};
 }
 /* A missing practice ledger is not necessarily a DELETED ledger: unpublished,
  * archived, or future practices must not activate the re-registration option.
