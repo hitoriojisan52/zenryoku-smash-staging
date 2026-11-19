@@ -184,7 +184,7 @@ const deepText=e=>[e.textContent,...e.children.map(deepText)].filter(Boolean).jo
   ok(!html.includes('id="'+oldId+'"'),'obsolete standalone element removed: '+oldId);
   ok(!ui.includes("$('"+oldId+"')"),'no stale listener or DOM reference: '+oldId);
  }
- ok(ui.includes("render('visitorMineCards',optionsFor(mineRows,'visitorMinePractice',mineDates),false)")&&
+ ok(ui.includes("render('visitorMineCards',optionsFor(mineRows,'visitorMinePractice',mineDates,mineHistoryVisible),false)")&&
   !ui.includes("render('visitorMineList'"),
   'request status refreshed only in integrated screen');
  ok(liveJs.includes("const [response]=await Promise.all([call('/api/visitor/practices'),window.SMVisitor.loadMine()])"),
