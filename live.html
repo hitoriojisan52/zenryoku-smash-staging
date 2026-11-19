@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>全力☆スマッシュ 運用管理（接続試験版）</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="live-access.css?v=162a"><link rel="stylesheet" href="live-access-v2.css?v=1656"><link rel="stylesheet" href="stage-ui.css?v=1658b"><style>.collection-lock-reason{font-size:12px;background:#fff8df;color:#745217;border:1px solid #e6d19c;border-radius:5px;padding:7px 9px;margin:2px 0}.collection-lock-reason[hidden]{display:none!important}
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>全力☆スマッシュ 運用管理（接続試験版）</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="live-access.css?v=162a"><link rel="stylesheet" href="live-access-v2.css?v=1656"><link rel="stylesheet" href="stage-ui.css?v=1659"><style>.collection-lock-reason{font-size:12px;background:#fff8df;color:#745217;border:1px solid #e6d19c;border-radius:5px;padding:7px 9px;margin:2px 0}.collection-lock-reason[hidden]{display:none!important}
 .checkbox-container{display:flex;gap:5px;align-items:center;justify-content:flex-end;min-width:30px}
 .payment-checkbox-state{color:#674a00;font-size:10px;white-space:nowrap}
 .payment-checkbox-state[hidden]{display:none!important}
@@ -109,7 +109,7 @@ body.visitor-member #visitorMemberHome button{width:100%}
     <summary>直近の集金操作：GAS内部の処理時間（診断）</summary>
     <pre id="perfBreakdownText" style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.6"></pre>
   </details>
-  <div class="list" id="list"></div>
+  <div class="list" id="list" role="region" aria-label="集金対象の参加者一覧" tabindex="0"></div>
   <div class="adjustment-box"><label for="adjustment">当日補正</label><span><input id="adjustment" type="number" value="0" step="1" inputmode="numeric"> 円</span></div>
   <div class="expense-box"><label for="expense">当日支出</label><div class="expense-actions"><button id="receiptBtn" type="button" class="btn-blue receipt-btn">🧾 領収書</button><span><input id="expense" type="number" value="0" min="0" step="1" inputmode="numeric"> 円</span></div></div>
   <div class="home-footer-bar"><div class="home-footer-row"><div class="income-block"><span id="income">集金額：0円 / 0円</span><span id="adjustmentDisplay">当日補正：(+0円)</span></div><span id="expenseDisplay">支出：0円</span></div><div class="home-footer-action"><strong id="balance">残金：0円</strong><button id="confirm" class="btn-green" type="button">収支を確定</button></div></div>
