@@ -1016,7 +1016,7 @@ function deletedPracticeLedgerIds_(ss,existing){
   var result;try{result=JSON.parse(str_(r[5]));}catch(_){return;}
   if(!result||result.ok!==true||!result.data||result.data.action!=='delete')return;
   var id=str_(result.data.rowId);
-  if(/^P-[\\w-]{1,100}$/.test(id)&&!present[id])deleted[id.slice(2)]=true;
+  if(/^P-[\w-]{1,100}$/.test(id)&&!present[id])deleted[id.slice(2)]=true;
  });
  return Object.keys(deleted);
 }
