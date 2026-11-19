@@ -625,12 +625,42 @@ function setCategory_(ss,member,payload){
  if(paid)writeLedger_(ss,ledgerRows);
  return {ok:true,data:{practiceId:id,participantId:person,category:cat,fee:fee_(cat,p.hours),categoryVersion:current+1,ledgerVersion:ledger.version,balance:ledger.balance}};
 }
+/**
+ * Authorize reconstruction only when this exact practice ledger line was
+ * successfully deleted, and it remains absent across ALL months.
+ */
+function ledgerDeletedPracticesV1665_(ss){
+ var deleted=Object.create(null);
+ sheetRows_(ss,'操作履歴').forEach(function(a){
+  if(str_(a[1])!=='ledger.change')return;
+  var rowId=str_(a[4]);
+  if(!/^P-[\w-]{2,100}$/.test(rowId))return;
+  try{
+   var result=JSON.parse(str_(a[5]));
+   if(result&&result.ok===true&&result.data&&result.data.action==='delete'&&
+      str_(result.data.rowId)===rowId)deleted[rowId]=true;
+  }catch(_){/* Corrupted or unrelated audits cannot authorize a restore. */}
+ });
+ return deleted;
+}
+function ledgerRestorablePracticesV1665_(ss,allRows){
+ var existing=Object.create(null);
+ allRows.forEach(function(r){existing[r.rowId]=true;});
+ var deleted=ledgerDeletedPracticesV1665_(ss);
+ return practices_(ss).filter(function(p){
+  return p.date<=today_()&&deleted['P-'+p.practiceId]&&!existing['P-'+p.practiceId];
+ }).map(function(p){return {practiceId:p.practiceId,date:p.date,place:p.place};});
+}
+
 function mutateLedger_(ss,member,payload){
  var original=entries_(ss),rows=entries_(ss),action=str_(payload.action),id=str_(payload.rowId),r=null;
  if(action!=='add'){r=row_(rows,id);expectVersion_(r.version,payload.expectedVersion);}
  if(action==='add'){
    var kind=str_(payload.kind);if(kind==='practice'){
-     var p=practice_(ss,str_(payload.practiceId));dateAllowed_(p.date);var access=collectionState_(ss,p,rows);if(!access.canStart)fail_('LOCKED',access.reason);id='P-'+p.practiceId;
+     var p=practice_(ss,str_(payload.practiceId));dateAllowed_(p.date);
+     if(!ledgerRestorablePracticesV1665_(ss,rows).some(function(q){return q.practiceId===p.practiceId;}))
+      fail_('LOCKED','削除履歴のある再登録可能な練習日がありません');
+     var access=collectionState_(ss,p,rows);if(!access.canStart)fail_('LOCKED',access.reason);id='P-'+p.practiceId;
      if(rows.some(function(x){return x.rowId===id;}))fail_('CONFLICT','練習日の収支行は登録済みです');
      r={date:p.date,label:p.place,income:practiceIncome_(ss,p.practiceId,0),expense:0,balance:0,confirmedBy:'',rowId:id,kind:'practice',practiceId:p.practiceId,status:'open',version:1,adjustment:0,item:'',payee:'',receiptFileId:'',createdBy:member.memberId};rows.push(r);
    }else if(kind==='reimbursement'||kind==='other'){
@@ -1029,6 +1059,7 @@ function monthLedger_(ss,member,payload){
  var within=sorted.filter(function(r){return r.date.slice(0,7)===month;});
  var carried=prior.length?prior[prior.length-1].balance:0;
  return {ok:true,data:{month,carried,rows:within,maxMonth:latest,
+  restorablePractices:ledgerRestorablePracticesV1665_(ss,source),
   closingBalance:within.length?within[within.length-1].balance:carried,
   role:member.role}};
 }
