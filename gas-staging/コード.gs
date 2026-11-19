@@ -1748,9 +1748,24 @@ function attendanceSubmit_(ss,member,payload){
  * Upload is bound to a ledger row and version under the existing script lock.
  */
 function stageReceiptFolder_(){
- var id=conf_('RECEIPT_FOLDER_ID');
+ // Staging-only guard: never auto-create a folder when this code is copied
+ // into production without a separately reviewed production migration.
+ var sheetId=conf_('SPREADSHEET_ID');
+ if(sheetId!=='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac')
+  fail_('FORBIDDEN','検証環境以外では領収書を保存できません');
+ var props=PropertiesService.getScriptProperties();
+ var id=props.getProperty('RECEIPT_FOLDER_ID')||'';
+ if(!id){
+  // This function is called under the existing ScriptLock, preventing
+  // multiple first-use folders. Root Drive folder inherits PRIVATE ACL.
+  var created;
+  try{created=DriveApp.createFolder('全力☆スマッシュ_検証用領収書');}
+  catch(e){fail_('SETUP','領収書保存用Driveフォルダを作成できません（GASのDrive権限を確認してください）');}
+  id=created.getId();
+  props.setProperty('RECEIPT_FOLDER_ID',id);
+ }
  if(!/^[A-Za-z0-9_-]{15,150}$/.test(id))
-  fail_('SETUP','領収書の保存先が未設定です。検証用Driveフォルダを設定してください');
+  fail_('SETUP','領収書フォルダの識別情報が不正です');
  var folder;try{folder=DriveApp.getFolderById(id);folder.getName();}
  catch(e){fail_('SETUP','領収書の保存先にアクセスできません');}
  return folder;
