@@ -126,3 +126,9 @@ ChatGPTに実施可能な範囲は自分で完了し、**ユーザー操作が�
 - 公開[Worker /health](https://zenryoku-smash-staging-api.hitori-ojisan-52.workers.dev/health)は当該修正後の応答を**未取得**。期待する`version=0.16.56-stage-member-edit`／`codeRevision=stage-v1656-member-editor-20261119`を安全な公開情報として確認する。GitHub/Cloudflareビルド成功と`/health`応答の直接確認を区別する。
 - Worker/GASの環境変数とGASスクリプトプロパティは2026/11/19にユーザーが設定完了報告済み。**今回の変更による設定キー・値の追加・変更はない**。再入力や手動コード貼り付けを依頼しない。
 - 本番は事前承認制。LINE管理者本人のUI操作はChatGPTが代行できないので、必要な操作先リンク、対象ユーザー、確認値・期待画面・返信してほしい最小情報を指示する。詳細は[管理機能の変更履歴](stage-v1656-management-ledger-ui.md)。
+
+## 2026/11/19のv0.16.57追記（PR #52）
+
+- 検証用GitHub main SHA `707de66fdb2d110e530dc2fbdf366d53469d5e77`。UI/GAS/仕様CI成功、GitHub Pages成功、GAS既存デプロイ更新（clasp v32）成功、Cloudflare Workers Builds成功。詳細は[仕様・検証記録](stage-v1657-registration-kana.md)。
+- Worker公開`/health`のv0.16.57応答とLINE実機は未確認。期待する公開応答`version:0.16.57-stage-kana`、`codeRevision:stage-v1657-kana-registration-20261119`。GitHub成功だけで実疎通成功とは断定しない。
+- 検証用Sheetsに追加した`メンバー!F1`と`登録申請!I1`のnameKanaヘッダーは確認済み。ユーザーに再入力を依頼しない。本番は承認制のまま。
