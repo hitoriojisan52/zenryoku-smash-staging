@@ -26,3 +26,12 @@
 - UI/GAS/仕様CI、旧会計順序、退会・ビジター・LINE本人出欠認証の擬似テスト成功を別途確認。Pages、GAS既存デプロイ、Cloudflare Workers Builds、公開WorkerとLIFFの配信状態も独立確認する。
 - **まだ解明されていない点**：利用者の実機の起動が止まった正確な工程、LINE/Googleの実応答時間。静的コードの2回読込が原因候補だが、今回の『開かなくなった』直接原因と断定しない。`?perf=1` で実機起動時間を確認するまで『高速化実測済み』と表現しない。
 - LINE参加連絡の実機E2Eは未完了のまま。このホーム起動問題の復旧と安全性を先に確認し、その後に本人出欠送信/修正・権限別受入へ復帰する。
+
+
+## 自動検証とデプロイの結果（2026/11/20）
+
+- [PR #84](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/84)：UI/GAS/仕様優先順位のCI全成功後、検証main `0e7a3e285bf5126fb3c2e7ef28637d76ddac230c` へ統合。旧確定順序/集金/LINE本人出欠/管理者起動の回帰成功。
+- [検証GAS自動デプロイ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44636157487)成功（同一検証用Webアプリを`Redeployed *** @42`）。スクリプト設定・本番GASを変更せず。
+- [検証Pagesデプロイ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44636152010)成功。Cloudflare Workers Builds成功（Workerの動作コードは変更していない）。
+- [公開LINE/WorkerのGET-onlyスモーク](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44636157544)成功。最初の2回はPages新版の反映待ちで、その後公開ページ最新版とWorker configured/channelMatchesLiveLiff=trueを確認。実LINEアカウントの操作ではない。
+- **受入待ち**：LINEの検証用LIFFを通常起動し、スピナーが終了して集金管理が表示されるか。起動時間が長ければ `https://liff.line.me/2012602642-XBSkXduO?perf=1` でLINE/会員確認/集金読込/合計を確認し、工程名・エラーメッセージのみ共有。秘密値・メンバー個人情報を報告させない。性能の実測改善とは未判定。
