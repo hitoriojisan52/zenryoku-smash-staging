@@ -40,7 +40,19 @@ function history(file){
 }
 const manifestPath=path.join(remote,'appsscript.json');
 if(!fs.existsSync(manifestPath))throw Error('Remote Apps Script manifest is missing; refusing push');
-try{JSON.parse(textFile(manifestPath));}catch(e){throw Error('Remote manifest is not valid JSON');}
+let remoteManifest;
+try{remoteManifest=JSON.parse(textFile(manifestPath));}
+catch(e){throw Error('Remote manifest is not valid JSON');}
+// Read-only OAuth declaration diagnostic. Do not output the manifest or any
+// OAuth tokens. This does not certify that the GAS owner granted the scope,
+// and it NEVER changes the remote appsscript.json.
+const scopes=remoteManifest.oauthScopes;
+if(scopes!==undefined&&(!Array.isArray(scopes)||scopes.some(x=>typeof x!=='string')))
+  throw Error('Remote manifest has an invalid oauthScopes declaration; refusing push');
+const driveScope='https://www.googleapis.com/auth/drive';
+const driveScopeStatus=scopes===undefined?'auto-detection':
+  scopes.includes(driveScope)?'declared':'missing-required-drive-scope';
+console.log('STAGING_DRIVE_CREATEFOLDER_SCOPE='+driveScopeStatus);
 const overlay=[];
 for(const base of files){
  const file=base+'.gs';
