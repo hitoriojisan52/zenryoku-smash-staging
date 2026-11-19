@@ -22,3 +22,14 @@
 - `RECEIPT_FOLDER_ID` は以前の保存先として残し、`RECEIPT_FOLDER_ID_V1672` のみ新規作成時に利用。旧ファイルへのアクセス時にも認証とフォルダID照合を行う。
 - 実機では【収支表P行の削除ボタンが非活性、R/Oは従来どおり】【同日最終行のみ解除可能】【過去未確定日程のプルダウンと解除後の再表示】【0/0で送信前エラー】【新親フォルダ内への実ファイル保存】【旧新領収書の画像・PDFプレビュー】を確認する。
 - CIとデプロイの成功は、LINE実機WebViewのBlob表示、Drive子フォルダ作成と閲覧権限の受入成功を意味しない。結果は実機検証後に更新する。
+
+
+## v0.16.72 検証環境反映結果（2026-11-19）
+
+- [PR #78](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/78) は、UI回帰・GAS安全・仕様優先順位の**3系統CIすべて成功**後、検証用main SHA `b61f051896c38764a6637a6582060f6c65597470` へsquash統合。
+- [GitHub Pages build/deploy](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44555400895) 成功。既存の[検証用GAS Webアプリ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44555401243) は同一デプロイ先へ `Redeployed *** @40`、成功。Cloudflare Workers Buildsチェックも同一main SHAに対して成功（Workerソース変更なし）。
+- 旧v15会計時系列・残高・管理権限・ビジター/出欠/集金/対戦表・退会の回帰と新テスト `tests/check-stage-finance-guard-v1672.cjs` がCI合格。失敗した古いテストの期待値は今回のユーザー変更範囲とキャッシュ番号のみ更新。
+- **実機受入未完了**：LINEアプリでの集金日程（未確定過去日・確定解除後の再表示）、同日最終確定行の確定解除、練習日収支の削除禁止、0/0の事前エラー、領収書画像/PDFプレビュー。
+- **Drive実処理未完了**：ユーザーが許可したリンク共有親「全力IT」の配下に新しい領収書用子フォルダをGASが作成できるか、格納後の読み出し、既存私有フォルダ領収書の参照継続を実機で確認する。コード反映のみではDrive子フォルダは作成されない。**既存の領収書は移動・削除しない。**
+- Pages/Workerのチェック成功と、匿名公開HTTP経由の `/health` / LINE実機の実応答成功は別。今回公開HTTPの取得は検証できなかったため、運用受入として完了扱いしない。
+- **本番環境：変更なし。** 本番デプロイは事前承認制。
