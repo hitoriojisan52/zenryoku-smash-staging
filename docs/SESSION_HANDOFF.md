@@ -204,3 +204,5 @@
 - 実機画像に基づきv0.16.67の精算日曜日が入力欄の右端に寄る問題をCSSで修正し、日付文字のすぐ隣（`left:calc(10.5ch + 9px)`）に表示。ネイティブ日付選択、日付値、費目/立替者/金額、保存ボタン等は不変。
 - 約10MBのJPG元画像はv0.16.67時点で25MBまで選択可能であったため、**受入条件を新たな回帰試験で保証**。Drive保存は従来の1.5MB以内へクライアント内圧縮。10MBをそのまま無圧縮で保存する変更は未承認（Worker/GASの転送/容量/実機速度の安全仕様へ影響）。PDF1.5MBは維持。
 - [詳細・実機確認](stage-v1668-weekday-jpg10mb.md)。v1668テストと既存UI/GAS/仕様テストを全て再実行。PR/CI/検証デプロイ/実機の結果は別個に記録すること。**本番未変更**。
+
+- **v0.16.68 CI・反映確認（2026/11/19）**：[PR #71](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/71) のUI/GAS/仕様優先順位CIは3件すべて成功。15/15（曜日隣接・10MB JPG）を含む既存回帰成功。検証用main `bd4a7dbf3d25c58be75ccc325bf98cfd338c42ca` へ統合し、[GitHub Pages build/deploy とCloudflare Workers Builds](https://github.com/hitoriojisan52/zenryoku-smash-staging/commit/bd4a7dbf3d25c58be75ccc325bf98cfd338c42ca/checks) 成功。今回はGAS・Workerソース変更なし（既存のGASデプロイ@36を維持）。**LINE実機で曜日の隣接位置、10MB JPGの登録・表示・画像判読性は未確認**。本番は変更しない。
