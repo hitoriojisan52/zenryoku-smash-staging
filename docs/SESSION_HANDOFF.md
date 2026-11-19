@@ -198,3 +198,9 @@
 - [差分・回帰テスト・実機手順](stage-v1667-inline-weekday-iphone-receipts.md)。新tests/check-stage-iphone-receipt-weekday-v1667.cjsで挙動を模擬。PR/CI/検証Pages反映/LINE実機受入は独立に確認して完了を記録する。**本番未変更**。
 
 - **v0.16.67反映結果（2026/11/19）**：PR #69は新24/24テストを含む全3系統CI成功後、検証用main SHA ee66b9535fa4c1fb14e42f8b25adcfa2528fe633 に統合。GitHub Pages build/deployとCloudflare Workers Buildsチェック成功。GAS/Worker本体は未変更。iPhone実機HEIC/写真選択・変換後JPEGのDrive登録/表示・細かい文字の判読性は未受入。本番未変更。
+
+## 21. v0.16.68 曜日を日付の直後へ／10MB JPGの受入（2026/11/19）
+
+- 実機画像に基づきv0.16.67の精算日曜日が入力欄の右端に寄る問題をCSSで修正し、日付文字のすぐ隣（`left:calc(10.5ch + 9px)`）に表示。ネイティブ日付選択、日付値、費目/立替者/金額、保存ボタン等は不変。
+- 約10MBのJPG元画像はv0.16.67時点で25MBまで選択可能であったため、**受入条件を新たな回帰試験で保証**。Drive保存は従来の1.5MB以内へクライアント内圧縮。10MBをそのまま無圧縮で保存する変更は未承認（Worker/GASの転送/容量/実機速度の安全仕様へ影響）。PDF1.5MBは維持。
+- [詳細・実機確認](stage-v1668-weekday-jpg10mb.md)。v1668テストと既存UI/GAS/仕様テストを全て再実行。PR/CI/検証デプロイ/実機の結果は別個に記録すること。**本番未変更**。

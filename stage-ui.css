@@ -962,13 +962,17 @@ body.stage-ui > main.container .app-header h1{
 .stage-ui .payout-date-field{
  position:relative;display:block;width:100%;min-width:0;
 }
+/* v0.16.68: anchor the weekday to the left date text, NOT the right
+   dropdown icon. CSS ch tracks the visible 10-character yyyy/mm/dd width
+   while allowing the native picker to stay at the far right. */
 .stage-ui .payout-date-field input[type="date"]{
  display:block;width:100%;box-sizing:border-box;padding-right:87px!important;
 }
 .stage-ui .payout-date-field .weekday-hint{
- position:absolute;top:50%;right:43px;transform:translateY(-50%);
+ position:absolute;top:50%;left:calc(10.5ch + 9px);right:auto;
+ transform:translateY(-50%);
  display:block;margin:0;padding:0 2px;z-index:1;
- font-size:13px;line-height:1;color:#485d68;white-space:nowrap;
+ font-size:16px;line-height:1;color:#485d68;white-space:nowrap;
  pointer-events:none;background:#fff;
 }
 .stage-ui .payout-date-field input[type="date"]:disabled + .weekday-hint{

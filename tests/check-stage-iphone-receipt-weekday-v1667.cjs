@@ -14,7 +14,7 @@ const fields=[...html.matchAll(re)];
 ok(fields.length===2&&fields[0][1]==='payoutDate'&&fields[1][1]==='ledgerPayoutDate',
  'both reimbursement date inputs and weekday hints share one wrapper');
 ok(css.includes('.payout-date-field{')&&
- css.includes('position:absolute;top:50%;right:43px;')&&
+ css.includes('position:absolute;top:50%;left:calc(10.5ch + 9px);right:auto;')&&
  css.includes('pointer-events:none;background:#fff;')&&
  css.includes('input[type="date"]')&&
  css.includes('padding-right:87px!important;'),
