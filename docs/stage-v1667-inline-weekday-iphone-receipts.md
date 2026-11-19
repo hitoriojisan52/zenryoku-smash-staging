@@ -19,3 +19,9 @@
 - 新テスト tests/check-stage-iphone-receipt-weekday-v1667.cjs で両画面の欄内曜日・JPG無変換・HEIC→JPEG・JPEG縮小・PDF制約・変換失敗・収支行保存前処理を保護する。既存全会計/権限/集金/試合/退会も回帰。
 - LINE実機のiPhone写真/カメラ選択、Driveアップロード/閲覧、文字の判読性は未受入。自動テスト合格やGitHub反映と混同しない。
 - 本番環境は明示承認まで変更しない。検証用Sheets/Driveに保存されている既存収支・領収書の自動書換え/削除もしない。
+
+## GitHub検証用環境への反映状況（2026/11/19）
+
+- [PR #69](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/69)：UI/GAS/仕様優先順位CIが3件とも成功し検証用mainへ統合、SHA ee66b9535fa4c1fb14e42f8b25adcfa2528fe633。
+- [GitHub Pagesの公開ジョブ](https://github.com/hitoriojisan52/zenryoku-smash-staging/commit/ee66b9535fa4c1fb14e42f8b25adcfa2528fe633/checks)：build/deploy成功、Cloudflare Workers Builds成功。Worker本体は変更なし、GASコード/デプロイは前回@36を維持。
+- **LINE実機のiPhoneカメラ選択/HEIC→JPEG変換、写真サイズと領収書の可読性、Drive保存/取得は引き続き未受入。公開Worker /health実応答は未取得。**
