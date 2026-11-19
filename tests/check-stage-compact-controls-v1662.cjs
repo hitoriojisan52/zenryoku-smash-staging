@@ -26,8 +26,9 @@ ok(/\.stage-ui #ledgerDialog \.ledger-controls button,\s*\.stage-ui #ledgerDialo
 ok(!/padding-inline|padding-left|padding-right|width:|max-width:|box-sizing:/.test(latest),
  'compact-height patch never changes horizontal padding, width or box sizing');
 ok(latest.includes('#list .participant-card .participant-memo{')&&
- latest.includes('color:#c62828;')&&latest.includes('font-weight:700;'),
- 'only the collection HOME memo has a bold red style');
+ latest.includes('color:#c62828;')&&
+ latest.includes('font-weight:400!important;'),
+ 'collection HOME remark is red without forced bold styling');
 ok(js.includes("memo.className='meta participant-memo'")&&
  js.includes("memo.textContent='📝 '+p.memo"),
  'real payment-list renderer keeps the memo text and supplies a unique red class');
@@ -46,9 +47,9 @@ ok(!latest.includes('.participant-card-memo')&&
 ok(css.includes('button:disabled')&&css.includes('color:#777f87'),
  'existing disabled button treatment remains in stylesheet');
 for(const p of ['live.html','match.html','match-view.html','guest.html']){
- ok(read(p).includes('stage-ui.css?v=1662'),p+' loads compact controls and memo styles');
+ ok(read(p).includes('stage-ui.css?v=1663'),p+' loads compact controls and memo styles');
 }
-ok(html.includes('live.js?v=1662'),'collection and participant memo renderer is cache-busted');
+ok(html.includes('live.js?v=1663'),'collection and participant memo renderer is cache-busted');
 ok(html.includes('id="adjustment"')&&html.includes('id="expense"')&&
  html.includes('id="confirm"')&&html.includes('id="list"'),
  'money inputs, Confirm and the independently scrollable list retain their original IDs');
