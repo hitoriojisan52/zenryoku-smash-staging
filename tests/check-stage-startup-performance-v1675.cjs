@@ -18,7 +18,7 @@ const days=[
  {practiceId:'FUTURE-O',date:offset(2),startTime:'09:00',place:'未来未確定',hours:4},
  {practiceId:'FUTURE-C',date:offset(3),startTime:'09:00',place:'未来確定',hours:4}
 ];
-let confirmed=['PAST-C','TODAY-C','FUTURE-C'],readSchedules=0,readLedger=0,ensured=0,collections=0;
+let confirmed=['PAST-C','TODAY-C','FUTURE-C'],serverDay=day,readSchedules=0,readLedger=0,ensured=0,collections=0;
 const functionBody=gas.slice(gas.indexOf('function overview_(ss,member,payload){'),
  gas.indexOf('/* A missing practice ledger',gas.indexOf('function overview_(')));
 ok(functionBody.includes('selectEligible===true')&&
@@ -33,7 +33,7 @@ const overview=new Function('practices_','str_','entries_','today_','fail_',
   rowId:'P-'+id,kind:'practice',practiceId:id,date:days.find(d=>d.practiceId===id).date,
   status:'confirmed',version:1,balance:0
  }));},
- ()=>day,(code,message)=>{throw Object.assign(Error(message),{smCode:code});},
+ ()=>serverDay,(code,message)=>{throw Object.assign(Error(message),{smCode:code});},
  (_ss,_member,_p,rows,known)=>{ensured++;assert.equal(known.length,days.length);return rows;},
  (_ss,p,rows,known)=>{collections++;assert.equal(known.length,days.length);
   return {canCollect:!confirmed.includes(p.practiceId),reason:'閲覧'};},
@@ -54,6 +54,9 @@ ok(data.practice.practiceId==='TODAY-C','future confirmed date is not chosen by 
 data=run({selectEligible:true,practiceId:'TODAY-O'});
 ok(data.practice.practiceId==='TODAY-O','manual selection of a different same-day open session is preserved');
 confirmed=['PAST-C','TODAY-C','TODAY-O','FUTURE-C','FUTURE-O'];
+// Confirmed today must remain selectable, so advance the calendar past
+// the final existing meeting before asserting the no-upcoming case.
+serverDay=offset(4);
 data=run({selectEligible:true,practiceId:''});
 ok(data.practice===null&&data.practices.length===6&&data.confirmedPracticeIds.length===5,
  'when only old unconfirmed days exist, initial view is empty without writing a ledger');
