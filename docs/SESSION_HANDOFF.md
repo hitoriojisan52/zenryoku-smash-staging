@@ -268,3 +268,7 @@
 - LIFF `liff.init` 20秒、基本読込APIは25秒でエラーダイアログを表示。**会計・出欠・領収書等の書込APIはAbort/自動再送なし**。初期画面では進行中工程名を表示。`perf=1`でLINE初期化/会員確認/集金読込/合計を秒単位で表示。
 - ホーム8秒自動更新は管理ダイアログが開いている間だけ休止し、戻れば再開。自動更新は全画面ロックしない。収支確定順序/同日確定解除/残高、会員権限、本人LINE識別、ビジターの修正ロックは不変更。
 - [技術的根拠・試験・実機確認](stage-v1675-startup-performance.md)。旧v1674の日付表示仕様も維持。今回の起動不能の**直接原因と改善後の実測時間は実機未確認**。GitHubのCI・デプロイ合格だけで実機復旧済みと表現しない。LINE本人参加連絡E2Eはホーム起動の復旧確認後に再開。本番未変更。
+
+
+- **v0.16.75検証main統合と反映確認（2026/11/20）**：[PR #84](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/84) UI/GAS/仕様CI3件成功後、main `0e7a3e285bf5126fb3c2e7ef28637d76ddac230c` へ統合。新単一起動/読込タイムアウト/旧会計無変更の回帰を通過。GAS既存デプロイ `@42`、[GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44636152010)、Cloudflare Workers Builds成功。[公開LIFF/Workerスモーク](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44636157544)も成功（2回の配信反映待ち後、公開配信版数一致）。実機の起動再開・通信時間は未確認。**本番未変更**。
+- **全体性能の次の点検対象**：月別収支/参加者一覧/ビジター画面の複数Sheet読込、全APIでの本人認証・GAS起動とロック待ち、集金チェック保存の実測。これらは旧会計/認証を壊す可能性があるため今回の一次復旧では無闇にキャッシュ・権限スキップを追加しない。ユーザーの実機で `?perf=1` 起動時間および問題発生フェーズを確認した後に次の最適化を決める。
