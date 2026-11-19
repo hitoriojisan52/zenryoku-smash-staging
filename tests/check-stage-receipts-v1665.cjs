@@ -65,6 +65,7 @@ const ctx={
  DriveApp:mockDrive,PropertiesService:{getScriptProperties:()=>props},
  conf_:k=>k==='SPREADSHEET_ID'?environmentId:'',
  str_:v=>String(v??'').trim(),
+ safeCell_:v=>String(v),
  row_:(rows,id)=>{const match=rows.find(r=>r.rowId===id);if(!match)throw Error('NOT_FOUND');return match},
  entries_:()=>[{...row}],
  fail_:(code,msg)=>{const err=Error(msg);err.code=code;throw err},
