@@ -37,3 +37,13 @@
 - GAS・Worker/Pagesは**検証ブランチPRのCI成功後のみ**mainに統合。Worker公開`/health`には `version:0.16.57-stage-kana` と `codeRevision:stage-v1657-kana-registration-20261119`を期待。GitHub Checksと公開/health、管理者LINEからの申請・承認・修正は別に確認。
 - 実在LINE本人のカナ申請/管理者承認/出欠/対戦表番号/退会・再入会の実機E2Eは**未実施**。個人のLINE IDやアクセストークンを要求しない。
 - 本番のLINEリッチメニュー、GAS、Worker、スプレッドシート、Secretsには触れない。
+
+
+## 5. PR・検証環境デプロイ結果（2026/11/19実確認）
+
+- [PR #52](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/52) はUI、GAS、仕様優先順位の**3系統CIがすべて成功**し、検証main `707de66fdb2d110e530dc2fbdf366d53469d5e77` にsquashマージ済み。
+- [GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44427065958)のbuild/deploy/report-build-statusは全成功。
+- [GAS自動デプロイ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44427066598)は成功。claspログに「Updating the EXISTING GAS deployment」「Redeployed *** @32」と記録。既存デプロイを更新し、新しいデプロイIDは発行していない。
+- 同一main SHAの [Workers Builds](https://github.com/hitoriojisan52/zenryoku-smash-staging/commit/707de66fdb2d110e530dc2fbdf366d53469d5e77/checks)チェックは成功。ただし公開 [Worker /health](https://zenryoku-smash-staging-api.hitori-ojisan-52.workers.dev/health) は外部接続の制約で**実応答を取得できていない**。ユーザーが`version=0.16.57-stage-kana`および`codeRevision=stage-v1657-kana-registration-20261119`の表示を確認する。
+- LINE本人の新規登録カナ、管理者承認、氏名・カナ修正、参加者一覧・対戦表の番号、確定後の役割別1ボタンは引き続き**実機E2E未確認**。ユーザーのLINE認証を代理しない。
+- 本番デプロイ、Secrets、LINEリッチメニュー、本番データは変更なし。
