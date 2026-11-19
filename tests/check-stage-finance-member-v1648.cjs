@@ -142,10 +142,9 @@ ok(ui.includes("group.className='ledger-action-group'")&&
 ok(ui.includes("const titles={confirm:'【収支の確定】'")&&
  ui.includes('window.SMDate.date(row.date)'),
  'finance confirm includes bracketed title and meeting date');
-ok(ui.includes("querySelector('option[value=\"practice\"]').disabled=!available"),
- 'practice re-registration category is disabled when there are no candidates');
-ok(ui.includes("if(kind==='practice'&&(!$('ledgerPractice').value||$('ledgerPractice').disabled))"),
- 'empty practice selector cannot be submitted via direct script');
+ok(!html.includes('練習日（削除行を再登録）')&&
+ !ui.includes('ledgerPractice')&&gas.includes("if(r.kind==='practice')fail_('FORBIDDEN'"),
+ 'practice row deletion and re-registration are disallowed, including direct server API');
 ok(ui.includes('ledger.maxMonth||today().slice(0,7)')&&
  gas.includes('maxMonth:latest'),'future published ledgers visible in month navigation');
 const mStart=gas.indexOf('function monthLedger_('),mEnd=gas.indexOf('\nfunction ',mStart+10);
