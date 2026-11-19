@@ -22,3 +22,7 @@
 - 既存のv0.16.67テストを曜日の新しい配置へ更新し、UI/GAS双方のCIで新旧の会計、集金、参加者、試合、退会、旧v15確定順序の回帰を確認。
 - 新しいCSSクエリ `?v=1667-near1668` によりLINE WebViewのキャッシュ更新。`live.js` は変更不要で `?v=1667` を維持。
 - 開発対象は検証用 `hitoriojisan52/zenryoku-smash-staging` のみ。本番GAS・Worker・LINE・Sheetsは事前承認なしに変更しない。
+
+## 検証用GitHub反映結果
+
+- **v0.16.68 CI・反映確認（2026/11/19）**：[PR #71](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/71) のUI/GAS/仕様優先順位CIは3件すべて成功。15/15（曜日隣接・10MB JPG）を含む既存回帰成功。検証用main `bd4a7dbf3d25c58be75ccc325bf98cfd338c42ca` へ統合し、[GitHub Pages build/deploy とCloudflare Workers Builds](https://github.com/hitoriojisan52/zenryoku-smash-staging/commit/bd4a7dbf3d25c58be75ccc325bf98cfd338c42ca/checks) 成功。今回はGAS・Workerソース変更なし（既存のGASデプロイ@36を維持）。**LINE実機で曜日の隣接位置、10MB JPGの登録・表示・画像判読性は未確認**。本番は変更しない。
