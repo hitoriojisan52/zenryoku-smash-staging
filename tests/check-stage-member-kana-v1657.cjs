@@ -17,7 +17,7 @@ ok(core.includes("'登録申請':['requestId','lineUserId','displayName','status
 ok(access.includes("regHeader: ['requestId','lineUserId','displayName','status','requestedAt','decidedBy','decidedAt','memberId','nameKana']"),'header contract');
 ok(matchHTML.includes('id="accessRegKana"')&&accessUI.includes("{displayName:name,nameKana}"),'LIFF collects and posts kana');
 ok(liveHTML.includes('id="memberAccessEditKanaV1657"')&&managerUI.includes('expectedKana:m.nameKana'), 'admin editor preserves optimistic concurrency for kana');
-ok(worker.includes("version:'0.16.57-stage-kana'")&&worker.includes("if(op==='member.apply')"),'Worker health and edge validation');
+ok(worker.includes("version:'0.16.65-stage-receipt'")&&worker.includes("if(op==='member.apply')"),'Worker health and edge validation');
 
 const kanaStart=access.indexOf('function accessKanaV1657_('),kanaEnd=access.indexOf('function accessMemberRow16_(',kanaStart);
 ok(kanaStart>=0&&kanaEnd>kanaStart,'real GAS kana validator available');
