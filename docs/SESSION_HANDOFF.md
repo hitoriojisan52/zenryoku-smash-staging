@@ -253,3 +253,10 @@
 - LINE E2Eは未完了の認識が妥当。実装済みの本人参加連絡/LIFF・各種APIの擬似連携CIと、実LINE端末での認証/出欠登録/修正/役割別表示/権限/LINE公式メニュー・Webhook受入を区別する。[v1674の仕様・LINE検証順](stage-v1674-date-parity-and-line-verification.md)。本番は承認制。
 
 - **v0.16.74 LINE公開経路の後続検証**：`scripts/check-stage-line-public.mjs`と`.github/workflows/stage-line-public-smoke.yml`を追加。検証mainへのpush後、認証不要の`/health`・公開LIFFエントリページ・公開ランタイム設定をGETのみで照合（LIFFチャネル一致、Worker設定存在、最新`live.js`配信）。個人情報・秘密値・GAS/Sheets更新なし。**LINE OAuthログイン、本人出欠POST、リッチメニュー切替/Webhookと権限別実機動作までは検証しない**。公開チェックの成否と実機E2Eを分けて報告する。
+
+### 26.1 v0.16.74 検証デプロイとLINE公開経路の実確認（2026/11/20）
+
+- 日付統一[PR #81](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/81)はUI/GAS/仕様CI成功。新日程テスト18/18、LINE本人参加連絡25/25、旧収支確定順序28/28を確認。main `c6b2f8c50bb1791b6e002163eda89d498e00a71a`。GitHub PagesとGAS既存デプロイ@41成功、Cloudflare Workers Builds成功。
+- 公開LIFF/Worker読み取り専用疎通[PR #82](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/82)を検証main `bd325142c9b65fff5602fa5c8d1a735df41c8b20` に統合。専用[Actions実行](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44567090177)はsuccess、公開Worker /healthの設定済み・チャネル一致と配信されたLIFF画面最新版・runtime-configの一致をGETだけで確認。ユーザー本人のLINEログインではない。
+- 接続検証用スプレッドシートの操作履歴 B1:B300（operation列）170件を読むだけで確認した結果、`attendance.submit`なし。実LINE参加連絡の送信・修正、Webhook、役割別LINE E2E、ユーザー別リッチメニューは未受入。実機操作が必要な最初の項目は**検証用LIFFで本人出欠を送信→同じ日程を修正→参加者一覧への反映**。機密のLINEユーザーIDやトークンは報告させない。
+- [手順と状態表](stage-v1674-date-parity-and-line-verification.md)参照。実機確認の結果なしにLINE機能完成・本番移行可能とは宣言しない。本番は個別承認制を維持。
