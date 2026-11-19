@@ -2,7 +2,7 @@
 
 このファイルは、新しいChatGPTチャットで必ず最初に確認する**継続開発用の入口**。
 単なる実装履歴ではなく、旧アプリの業務仕様を無断変更しないための確認事項。
-更新日: 2026-11-19 / ユーザー指定の仕様優先順位と接続検証用デプロイを引継ぎ。**最新main基準：staging v0.16.67（精算日曜日の欄内表示、iPhone HEIC/JPG写真変換）。PR #69のUI/GAS/仕様CI全成功、Pages/Cloudflare Workers Builds成功。GASは前回@36を維持（コード変更なし）。公開Worker実応答・iPhone LINE実機受入は未完了。本番未変更。**v0.16.53は退会結合試験当時の基準であり、現在の実装バージョンではない。CI/デプロイ/実機確認を混同せず毎回確認する。
+更新日: 2026-11-19 / ユーザー指定の仕様優先順位と接続検証用デプロイを引継ぎ。**最新main基準：staging v0.16.69（立替精算の日付確定ルール・日程曜日欄内表示・Drive認可手順）。PR #73のUI/GAS/仕様CI成功、Pages・GAS既存デプロイ@37・Cloudflare Workers Builds成功。Drive OAuth同意と実ファイル保存は未受入。本番変更なし。**v0.16.53は退会結合試験当時の基準であり、現在の実装バージョンではない。CI/デプロイ/実機確認を混同せず毎回確認する。
 
 ## 1. 最優先原則
 
@@ -214,3 +214,5 @@
 - 練習日程追加・修正の「開催日」も精算日のネイティブdate+欄内曜日に統一（当日日付や確定ルール変更なし）。立替精算・収支編集の領収書file-selector-buttonのみ上下4px余白。
 - **仕様の相違を確認：** 全体収支管理表の未確定P行も赤「削除」ボタンから削除可能で、復旧には「練習日（削除行を再登録）」が必要。ユーザーの「マスタからしか削除できないなら区分削除」という条件は成立しないため、**区分は削除せず現状維持**。復旧機能と既存削除権限の変更には追加判断が必要。
 - [正式な影響・テスト・Drive実機手順](stage-v1669-ledger-drive-schedule-ui.md)参照。新 `tests/check-stage-reimbursement-date-drive-v1669.cjs`、旧時系列・会計/権限/集金/日程/試合回帰を実施。PR/CI/検証反映/Drive認可/実ファイル受入は別。**本番環境には反映しない**。
+
+- **v0.16.69検証反映結果（2026/11/19）**：[PR #73](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/73) の3系統CI成功、17/17新規回帰・28/28旧v15確定順序成功。main `78be72e8edb056315d0c0dec90d56964d57875eb`、[Pages build/deploy](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44534424826) 成功、[GAS自動デプロイ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44534426454) 成功・既存デプロイ@37、[Workers Buildsチェック](https://github.com/hitoriojisan52/zenryoku-smash-staging/commit/78be72e8edb056315d0c0dec90d56964d57875eb/checks) 成功。**OAuth許可・領収書実アップロード・日程曜日と選択ボタンの実機表示は未受入**。本番未変更。
