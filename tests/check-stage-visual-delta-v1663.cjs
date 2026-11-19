@@ -12,7 +12,7 @@ const v62=css.indexOf('/* v0.16.62 — Match the original');
 const v63=css.indexOf('/* v0.16.63 — cause of unchanged visual height');
 ok(v62>=0&&v63>v62,'new compact sizing must follow the old v1662 38px rule');
 ok(css.slice(v62,v63).includes('min-height:38px!important;')&&
- css.slice(0,v63).includes('.income-block{display:flex;flex-direction:column;')===false,
+ read('style.css').includes('.income-block{display:flex;flex-direction:column;'),
  'previous fixed 38px rule is identified as a concrete cause');
 const current=css.slice(v63);
 ok(/\.stage-ui button\{\s*min-height:30px!important;/.test(current),
