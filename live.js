@@ -131,7 +131,7 @@ async function call(path,payload={}){
  if(!S.token||!CONFIG.apiBaseUrl)throw new Error('LINE認証またはAPI設定がありません');
  const url=CONFIG.apiBaseUrl.replace(/\/$/,'')+path;
  // Invalidate responses from reads that started before a write.
- if(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change','/api/schedule/change','/api/visitor/register','/api/visitor/request','/api/visitor/decide','/api/visitor/modify','/api/participant/change','/api/attendance/submit'].includes(path))S.updateEpoch++;
+ if(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/receipt/upload','/api/ledger/change','/api/schedule/change','/api/visitor/register','/api/visitor/request','/api/visitor/decide','/api/visitor/modify','/api/participant/change','/api/attendance/submit'].includes(path))S.updateEpoch++;
  const startedAt=performance.now();
  const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},body:JSON.stringify(payload),cache:'no-store'});
  if(PERF_MODE){
@@ -149,9 +149,10 @@ const MAX_PAYMENT_IN_FLIGHT=2;
 function syncPaymentControls(){
  const pending=S.pending.size>0,ledger=S.overview?.ledger,access=S.overview?.collectionAccess;
  const locked=!ledger||ledger.status==='confirmed'||access?.canCollect===false;
- for(const id of ['date','refresh','reimbursementBtn','manageBtn']){
+ for(const id of ['date','refresh','reimbursementBtn','manageBtn','receiptBtn','receiptViewBtn']){
    const el=$(id);if(el)el.disabled=pending||(id==='date'&&!S.overview?.practice);
  }
+ if($('receiptBtn'))$('receiptBtn').disabled=pending||locked;
  if($('confirm'))$('confirm').disabled=pending||locked||
     S.overview?.practice?.date>today()||ledger?.canConfirm!==true;
  for(const id of ['adjustment','expense']){
@@ -1297,9 +1298,35 @@ function bind(){
  },'データを更新しています…'));
  $('categoryDialog').addEventListener('close',()=>{S.modalTarget=null;});$('cancelCategory').addEventListener('click',()=>close('categoryDialog'));$('saveCategory').addEventListener('click',saveCategory);
  $('adjustment').addEventListener('change',()=>saveAmount('adjustment'));$('expense').addEventListener('change',()=>saveAmount('expense'));
- $('receiptBtn').addEventListener('click',()=>toast('領収書アップロードは未接続です'));
+ $('receiptBtn').addEventListener('click',()=>{
+  const r=S.overview?.ledger;
+  if(!r||r.expense<=0||r.status==='confirmed'){
+   toast('当日支出を保存した未確定の日程で領収書を添付できます');return;
+  }
+  $('expenseReceiptFile').click();
+ });
+ $('expenseReceiptFile').addEventListener('change',()=>{
+  const file=$('expenseReceiptFile').files?.[0];
+  if(file)guard(()=>uploadHomeReceipt_(file),'領収書をアップロードしています…');
+  $('expenseReceiptFile').value='';
+ });
+ $('receiptViewBtn').addEventListener('click',()=>guard(
+  ()=>viewReceipt_(S.overview?.ledger?.rowId),'領収書を表示しています…'));
+ $('receiptViewerClose').addEventListener('click',closeReceiptViewer_);
+ $('receiptViewerDialog').addEventListener('close',closeReceiptViewer_);
+ $('ledgerCurrentReceiptBtn').addEventListener('click',()=>guard(
+  ()=>viewReceipt_(S.ledgerRow?.rowId),'領収書を表示しています…'));
+ $('payoutDate').addEventListener('input',()=>refreshPayoutWeekday_('payoutDate','payoutWeekday'));
+ $('ledgerPayoutDate').addEventListener('input',()=>refreshPayoutWeekday_('ledgerPayoutDate','ledgerPayoutWeekday'));
  $('confirm').addEventListener('click',()=>{if(!S.overview?.ledger)return;ledgerAction('confirm',S.overview.ledger);});
- $('reimbursementBtn').addEventListener('click',()=>{$('payoutDate').value=today();$('reimbursementReceipt').disabled=true;dialog('reimbursementDialog');});
+ $('reimbursementBtn').addEventListener('click',()=>{
+  pendingHeaderReceipt=null;
+  $('reimbursementForm').reset();$('payoutDate').value=today();
+  $('reimbursementReceipt').disabled=false;
+  $('reimbursementReceiptStatus').textContent='';
+  refreshPayoutWeekday_('payoutDate','payoutWeekday');
+  dialog('reimbursementDialog');
+ });
  $('cancelReimbursement').addEventListener('click',()=>close('reimbursementDialog'));$('reimbursementForm').addEventListener('submit',submitReimbursement);
  $('manageBtn').addEventListener('click',()=>dialog('manageDialog'));$('closeManage').addEventListener('click',()=>close('manageDialog'));$('openLedger').addEventListener('click',openLedger);
  prepareCashDenominations();
