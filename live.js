@@ -379,7 +379,7 @@ async function loadLedger(){const month=$('ledgerMonth').value,ledger=await call
   // Preserve the semantic seven-column table for desktop, CSS reflows it
   // into cards on narrow screens without touching row IDs or actions.
   const values=[window.SMDate.date(r.date),r.label,yen(r.income),yen(r.expense),
-    yen(r.balance),r.confirmedBy||'－'];
+    yen(r.balance),r.confirmedBy||''];
   const columns=['date','label','income','expense','balance','confirmed'];
   for(let i=0;i<values.length;i++){
    const td=document.createElement('td');td.className='ledger-col-'+columns[i];
