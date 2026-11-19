@@ -6,7 +6,7 @@ const ui=read('live.js'),worker=read('cloudflare-worker/worker.js'),html=read('l
 let n=0;
 const ok=(x,m)=>{assert.ok(x,m);n++};
 function span(a,b){const i=ui.indexOf(a),j=ui.indexOf(b,i);assert.ok(i>=0&&j>i);return ui.slice(i,j)}
-ok(html.includes('live.js?v=1665'),'latest finance client version');
+ok(html.includes('live.js?v=1667'),'latest finance client version');
 ok(worker.includes("version:'0.16.65-stage-receipt'"),'expected Worker version');
 ok(worker.includes("env.WITHDRAW_ENABLED==='true'"),'withdraw mutation remains closed by default');
 ok(worker.includes("env.WORKER_PURPOSE==='staging-member-withdraw-v1653'"),'stage-only purpose guard intact');
