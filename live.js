@@ -589,20 +589,72 @@ function getReimbursementPayload(prefix){return {date:$(prefix==='ledger'?'ledge
  payee:M.normalizeName($(prefix==='ledger'?'ledgerReimbursementPayee':'reimbursementPayee').value),
  amount:Number($(prefix==='ledger'?'ledgerReimbursementAmount':'reimbursementAmount').value)};}
 async function submitEditor(event){event.preventDefault();await guard(async()=>{
- gateEdit();const kind=$('ledgerKind').value;let payload={operationId:uuid(),action:S.mode==='edit'?'edit':'add',kind};
- if(kind==='practice'&&(!$('ledgerPractice').value||$('ledgerPractice').disabled))
-  throw new Error('再登録できる練習日がありません');
- if(S.mode==='edit'){payload.rowId=S.ledgerRow.rowId;payload.expectedVersion=S.ledgerRow.version;}
- else if(kind!=='practice')payload.rowId=(kind==='reimbursement'?'R-':'O-')+uuid();
- if(kind==='reimbursement')Object.assign(payload,getReimbursementPayload('ledger'));
- else if(kind==='practice')payload.practiceId=$('ledgerPractice').value;
- else Object.assign(payload,{date:$('ledgerEditDate').value,label:$('ledgerEditLabel').value.trim(),income:Number($('ledgerEditIncome').value),expense:Number($('ledgerEditExpense').value)});
- await call('/api/ledger/change',payload);close('ledgerEditDialog');toast(S.mode==='edit'?'修正しました':'登録しました');await loadLedger();await reload(false);
-});}
+ gateEdit();
+ const kind=$('ledgerKind').value,file=$('ledgerReimbursementReceipt').files?.[0]||null;
+ // Reject unsupported files BEFORE posting financial amounts.
+ if(!pendingLedgerReceipt&&kind==='reimbursement'&&file)await receiptContent_(file);
+ if(!pendingLedgerReceipt){
+  let payload={operationId:uuid(),action:S.mode==='edit'?'edit':'add',kind};
+  if(kind==='practice'&&(!$('ledgerPractice').value||$('ledgerPractice').disabled))
+   throw new Error('再登録できる練習日がありません');
+  if(S.mode==='edit'){payload.rowId=S.ledgerRow.rowId;payload.expectedVersion=S.ledgerRow.version;}
+  else if(kind!=='practice')payload.rowId=(kind==='reimbursement'?'R-':'O-')+uuid();
+  if(kind==='reimbursement')Object.assign(payload,getReimbursementPayload('ledger'));
+  else if(kind==='practice')payload.practiceId=$('ledgerPractice').value;
+  else Object.assign(payload,{date:$('ledgerEditDate').value,
+   label:$('ledgerEditLabel').value.trim(),income:Number($('ledgerEditIncome').value),
+   expense:Number($('ledgerEditExpense').value)});
+  const result=await call('/api/ledger/change',payload);
+  const changed=result.ledger?.find(r=>r.rowId===payload.rowId);
+  if(kind==='reimbursement'&&file){
+   if(!changed||!Number.isInteger(changed.version))
+    throw new Error('収支登録は完了した可能性があります。更新して領収書を確認してください');
+   pendingLedgerReceipt={rowId:changed.rowId,version:changed.version,operationId:uuid()};
+  }
+ }
+ if(pendingLedgerReceipt){
+  if(!file)throw new Error('収支は保存済みです。領収書を選択してアップロードを再試行してください');
+  try{
+   await uploadReceipt_(pendingLedgerReceipt.rowId,pendingLedgerReceipt.version,file,pendingLedgerReceipt.operationId);
+  }catch(e){
+   $('ledgerReceiptStatus').textContent='収支は保存済みです。領収書だけを再試行してください。';
+   throw new Error('収支は登録済みですが、領収書の保存を確認できません：'+e.message);
+  }
+ }
+ pendingLedgerReceipt=null;
+ close('ledgerEditDialog');toast(S.mode==='edit'?'修正しました':'登録しました');
+ await loadLedger();await reload(false);
+},'収支と領収書を保存しています…');}
 async function submitReimbursement(event){event.preventDefault();await guard(async()=>{
- gateEdit();await call('/api/ledger/change',{operationId:uuid(),action:'add',kind:'reimbursement',rowId:'R-'+uuid(),...getReimbursementPayload('header')});
- close('reimbursementDialog');$('reimbursementForm').reset();toast('立替精算を登録しました');await reload(false);
-});}
+ gateEdit();
+ const file=$('reimbursementReceipt').files?.[0]||null;
+ if(!pendingHeaderReceipt){
+  if(file)await receiptContent_(file);
+  const rowId='R-'+uuid();
+  const result=await call('/api/ledger/change',{
+   operationId:uuid(),action:'add',kind:'reimbursement',rowId,
+   ...getReimbursementPayload('header')
+  });
+  if(file){
+   const created=result.ledger?.find(r=>r.rowId===rowId);
+   if(!created||!Number.isInteger(created.version))
+    throw new Error('収支登録は完了した可能性があります。更新して領収書を確認してください');
+   pendingHeaderReceipt={rowId,version:created.version,operationId:uuid()};
+  }
+ }
+ if(pendingHeaderReceipt){
+  if(!file)throw new Error('精算は登録済みです。領収書を再選択してアップロードしてください');
+  try{
+   await uploadReceipt_(pendingHeaderReceipt.rowId,pendingHeaderReceipt.version,file,pendingHeaderReceipt.operationId);
+  }catch(e){
+   $('reimbursementReceiptStatus').textContent='精算額の登録は完了しました。領収書のみ再試行してください。';
+   throw new Error('精算は登録済みですが、領収書の保存を確認できません：'+e.message);
+  }
+ }
+ pendingHeaderReceipt=null;close('reimbursementDialog');
+ $('reimbursementForm').reset();$('reimbursementReceiptStatus').textContent='';
+ toast('立替精算を登録しました');await reload(false);
+},'立替精算と領収書を保存しています…');}
 
 // v0.16.37b: legacy v7 surface, new ID-based cash audit backend.
 // This optional check stores denomination snapshots, NEVER mutates ledger money.
