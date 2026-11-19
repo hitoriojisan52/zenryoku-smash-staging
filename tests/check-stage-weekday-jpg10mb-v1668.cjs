@@ -17,7 +17,7 @@ ok(html.includes('stage-ui.css?v=1667-near1668'),
 ok(/\.stage-ui \.payout-date-field \.weekday-hint\{\s*position:absolute;top:50%;left:calc\(10\.5ch \+ 9px\);right:auto;/.test(css),
  'weekday is adjacent to the left-aligned date rather than the picker icon');
 ok(css.includes('pointer-events:none;background:#fff;')&&
- css.includes('padding-right:9px!important;')&&
+ css.includes('padding-right:87px!important;')&&
  !css.includes('right:43px;')&&
  !css.includes('padding-right:87px!important;'),
  'overlay does not intercept native calendar and no obsolete right-edge spacing remains');
