@@ -52,7 +52,7 @@ const dom={date:{value:'P-TEST',items:[],replaceChildren(...opts){this.items=opt
 const requests=[];
 const call=()=>new Promise((resolve,reject)=>{requests.push({resolve,reject})});
 let paint=0,controls=0;
-const reload=new Function('S','
+const reload=new Function('S','$','call','window','Option','renderHome','syncPaymentControls','today',
  ui.slice(a,z)+'\nreturn reload;')(
  S,id=>dom[id],call,
  {SMDate:{date:v=>v,practiceLabel:p=>p.date,upcomingPractices:rows=>rows}},
