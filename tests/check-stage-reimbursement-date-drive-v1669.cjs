@@ -51,7 +51,7 @@ ok(!worker.includes("authorizeStagingReceiptDriveV1669"),
  'Drive authorization helper is never exposed as a Worker route');
 ok(gas.includes('function authorizeStagingReceiptDriveV1669(){')&&
  gas.includes('return stageReceiptAuthorizeV1666_();')&&
- gas.includes("if(sheetId!=='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac')"),
+ gas.includes("if(conf_('SPREADSHEET_ID')!=='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac')"),
  'manual Drive preflight is public in Apps Script but still staging-ID guarded');
 const match=html.match(/<span class="payout-date-field"><input id="scheduleDate" class="dialog-input" type="date" lang="ja" required><small id="scheduleWeekday" class="weekday-hint" aria-live="polite"><\/small><\/span>/);
 ok(!!match,'practice schedule creation/edit shares the compact in-field weekday control');
@@ -88,7 +88,7 @@ ok(data.scheduleWeekday.textContent==='（金）',
 data.scheduleDate.value='';fn.updateScheduleWeekday_();
 ok(data.scheduleWeekday.textContent==='',
  'clearing the schedule date removes the stale weekday');
-ok(html.includes('stage-ui.css?v=1667-near1668-sched1669')&&
- html.includes('live.js?v=1667-sched1669'),
+ok(html.includes('stage-ui.css?v=1672-finance-receipt')&&
+ html.includes('live.js?v=1672-finance-receipt'),
  'LINE WebView picks up fresh weekday JS/CSS without changing other screens');
 console.log('PASS '+n+'/'+n+' finance chronological error, Drive preflight, schedule weekday and picker padding');
