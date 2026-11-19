@@ -224,3 +224,7 @@
 - v1670のclasp pull読み取り専用マニフェスト診断でSTAGING_DRIVE_CREATEFOLDER_SCOPE=auto-detection。明示的なoauthScopes宣言なし。既存manifestは自動変更しない。
 - v1671で既存の所有者手動関数authorizeStagingReceiptDriveV1669にGoogle標準requireScopesを追加。Google Driveのフルスコープを本人が必要に応じて明示承認し、その後に既存の検証用非公開フォルダ初期化を実行する。非検証IDはスコープ要求前に拒否。
 - [診断と実機手順](stage-v1670-drive-oauth-diagnosis.md)。CI/デプロイとOAuth本人同意/領収書実保存を区別。保存済みの収支行は再登録せず修正から再添付。本番、残高、会計の確定順序は不変更。
+
+
+- **v0.16.70確定診断**：[PR #75](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/75) CI成功、検証mainに統合。GitHub Actionsの実際のclasp pullからSTAGING_DRIVE_CREATEFOLDER_SCOPE=auto-detectionを確認。GAS既存デプロイ@38更新成功。oauthScopesは明示されておらず、Drive承認の有無は不明。
+- **v0.16.71検証反映**：[PR #76](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/76) UI/GAS/仕様CI全成功、検証main be2516593f8086b2cafd204e9ee8f98d735ffb00に統合。Pages、Cloudflare Workers Builds成功、GAS既存デプロイ@39へ更新成功。明示的なDrive同意確認の処理だけを手動関数へ追加。**Google OAuth承認と実Drive保存は利用者の実機検証待ち**。マニフェスト/本番環境/会計データは変更なし。
