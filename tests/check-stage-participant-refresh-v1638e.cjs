@@ -52,7 +52,47 @@ const dom={date:{value:'P-TEST',items:[],replaceChildren(...opts){this.items=opt
 const requests=[];
 const call=()=>new Promise((resolve,reject)=>{requests.push({resolve,reject})});
 let paint=0,controls=0;
-const reload=new Function('S','$','call','window','Option','renderHome','syncPaymentControls',
+const reload=new Function('S','
+ ui.slice(a,z)+'\nreturn reload;')(
+ S,id=>dom[id],call,
+ {SMDate:{date:v=>v,practiceLabel:p=>p.date,upcomingPractices:rows=>rows}},
+ function Option(label,value){this.text=label;this.value=value;},
+ function(){paint++},function(){controls++},()=> '2026-11-19'
+);
+const info={ok:true,practice:{practiceId:'P-TEST'},practices:[
+ {practiceId:'P-TEST',date:'2026-11-18',startTime:'09:00',endTime:'12:00'}]};
+(async()=>{
+ const auto=reload(false);
+ ok(requests.length===1&&S.loading,'automatic poll begins one read');
+ const manual=reload(true);
+ ok(requests.length===1&&S.loading,'manual refresh waits instead of being dropped');
+ requests[0].resolve(info);
+ await auto;
+ for(let i=0;i<10&&requests.length<2;i++)await Promise.resolve();
+ ok(requests.length===2,'manual refresh starts its own read after silent poll');
+ requests[1].resolve(info);
+ await manual;
+ ok(!S.loading&&S.reloadPromise===null,'pending refresh tracking clears after completion');
+ ok(dom.date.items.length===1&&dom.date.value==='P-TEST',
+  'manual refresh forces date options to be re-rendered');
+ ok(paint===2&&controls===2,'both reads completed with UI updates');
+ const startCase=reload(false);
+ requests[2].reject(new Error('transient stale background read'));
+ await assert.rejects(startCase,/transient/);n++;
+ const retry=reload(true);
+ ok(requests.length===4,'manual refresh still works after failed automatic poll');
+ requests[3].resolve(info);await retry;
+ ok(!S.loading&&S.reloadPromise===null,'failure does not lock refresh indefinitely');
+ ok(ui.includes("requestAnimationFrame(()=>requestAnimationFrame(resolve))"),
+  'manual refresh gives overlay spinner a full paint frame before reading');
+ ok(ui.includes("'データを更新しています…'"),
+  'manual refresh explicitly labels blocking loading dialog');
+ ok(html.includes('stageBusyDialog')&&html.includes('stage-busy-spinner'),
+  'full-screen common spinner remains present');
+ ok(html.includes('live.js?v=1672-finance-receipt'),'client cache-busting version advanced');
+ console.log('PASS '+n+'/'+n+' participant match guard and manual/silent polling spinner regression');
+})().catch(err=>{console.error(err);process.exitCode=1});
+,'call','window','Option','renderHome','syncPaymentControls','today',
  ui.slice(a,z)+'\nreturn reload;')(
  S,id=>dom[id],call,
  {SMDate:{date:v=>v,practiceLabel:p=>p.date,upcomingPractices:rows=>rows}},
