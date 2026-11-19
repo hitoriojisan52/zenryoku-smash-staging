@@ -60,9 +60,9 @@ const allIds=[...html.matchAll(/\bid="([^"]+)"/g)].map(x=>x[1]);
 ok(new Set(allIds).size===allIds.length,'entire management page has no duplicate IDs');
 for(const id of ['scheduleAdd','scheduleReload','participantReload','memberAccessRefresh',
  'visitorAdminRefresh','newLedgerRow']){
- ok(js.includes("'"+id+"'"),'shared toolbar has explicit original action: '+id);
+ ok(!js.includes("['"+id+"']"),'context action no longer forcibly moves into heading: '+id);
  ok((ui+access+vis).includes("'"+id+"'"),
-  'reparented action remains bound by application logic: '+id);
+  'original action remains bound by application logic: '+id);
 }
 for(const id of ['scheduleAdd','participantClose','visitorMineRefresh','memberAccessRefresh',
  'visitorAdminRefresh','participantReload','attendanceReload','newLedgerRow']){
