@@ -218,6 +218,18 @@ export async function handleRequest(request,env){
     const withdrawAtEdge=env.WITHDRAW_ENABLED==='true' &&
       env.WITHDRAW_STAGE_SPREADSHEET_ID==='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac' &&
       env.WORKER_PURPOSE==='staging-member-withdraw-v1653';
+    if(op==='receipt.upload'){
+      if(typeof payload.rowId!=='string'||!/^([PR]-)[A-Za-z0-9_-]{1,100}$/.test(payload.rowId)||
+         !Number.isSafeInteger(payload.expectedVersion)||payload.expectedVersion<1||
+         typeof payload.fileName!=='string'||payload.fileName.length>120||
+         !['application/pdf','image/png','image/jpeg','image/webp'].includes(payload.mimeType)||
+         typeof payload.base64!=='string'||payload.base64.length>2100000||
+         !/^[A-Za-z0-9+/]+={0,2}$/.test(payload.base64))
+        return failure('領収書の形式または対象行が不正です',400,origin,'BAD_REQUEST');
+    }
+    if(op==='receipt.get'&&
+       (typeof payload.rowId!=='string'||!/^([PR]-)[A-Za-z0-9_-]{1,100}$/.test(payload.rowId)))
+      return failure('領収書の対象行が不正です',400,origin,'BAD_REQUEST');
     if(op==='member.apply'){
       const kana=typeof payload.nameKana==='string'?payload.nameKana.normalize('NFKC').replace(/[\s\u00a0\u3000]+/g,''):'';
       if(typeof payload.displayName!=='string'||!payload.displayName.trim()||
