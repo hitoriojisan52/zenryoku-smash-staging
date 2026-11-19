@@ -113,8 +113,8 @@ ok(!('email' in baseline.participants[0])&&
  baseline.participants[0].memberRegisteredAt==='2026-11-17T03:30:00.000Z',
  'attendance card tracks first and latest LINE report, keeps account application separate');
 ok(baseline.participants[1].registeredAt==='2026-11-18 13:20:00'&&
- baseline.participants[1].updatedAt==='2026-11-18 14:20:00',
- 'visitor signup uses approval date; completed edit archive is the update date');
+ baseline.participants[1].updatedAt===null,
+ 'visitor signup uses approval date; no change record must not imply an update');
 ok(baseline.participants[0].lineUserId==='U'+'a'.repeat(32)&&
  baseline.participants[1].lineUserId===null,
  'attendee memberId resolves own LINE subject, not duty member or visitor sponsor');
