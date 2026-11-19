@@ -260,3 +260,11 @@
 - 公開LIFF/Worker読み取り専用疎通[PR #82](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/82)を検証main `bd325142c9b65fff5602fa5c8d1a735df41c8b20` に統合。専用[Actions実行](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44567090177)はsuccess、公開Worker /healthの設定済み・チャネル一致と配信されたLIFF画面最新版・runtime-configの一致をGETだけで確認。ユーザー本人のLINEログインではない。
 - 接続検証用スプレッドシートの操作履歴 B1:B300（operation列）170件を読むだけで確認した結果、`attendance.submit`なし。実LINE参加連絡の送信・修正、Webhook、役割別LINE E2E、ユーザー別リッチメニューは未受入。実機操作が必要な最初の項目は**検証用LIFFで本人出欠を送信→同じ日程を修正→参加者一覧への反映**。機密のLINEユーザーIDやトークンは報告させない。
 - [手順と状態表](stage-v1674-date-parity-and-line-verification.md)参照。実機確認の結果なしにLINE機能完成・本番移行可能とは宣言しない。本番は個別承認制を維持。
+
+## 27. v0.16.75 集金管理画面の起動遅延・停止対策（2026/11/20）
+
+- ユーザーが『読み込みが長く、集金管理画面が開かなくなった』と報告。暫定原因候補はUIの起動時 `/api/overview` の2回連続アクセス（旧GAS既定選択が最新日、UIで直近の未来日を再選択）、GAS内の日程マスタの重複参照、LINE/Worker/GAS通信のタイムアウトなし、管理画面を開いていても8秒ホーム自動取得が続く負荷。
+- v1675はGAS認証・lockのある `overview_(... selectEligible:true)` で最初から日程候補・確定済み当日の選択を決定し通常1回で返す。後方互換でフラグがないAPIの既定値は維持。GAS同一overview内の日程参照結果を再使用。自動確定前収支作成の既存固定行ID・監査・残高保護はそのまま。
+- LIFF `liff.init` 20秒、基本読込APIは25秒でエラーダイアログを表示。**会計・出欠・領収書等の書込APIはAbort/自動再送なし**。初期画面では進行中工程名を表示。`perf=1`でLINE初期化/会員確認/集金読込/合計を秒単位で表示。
+- ホーム8秒自動更新は管理ダイアログが開いている間だけ休止し、戻れば再開。自動更新は全画面ロックしない。収支確定順序/同日確定解除/残高、会員権限、本人LINE識別、ビジターの修正ロックは不変更。
+- [技術的根拠・試験・実機確認](stage-v1675-startup-performance.md)。旧v1674の日付表示仕様も維持。今回の起動不能の**直接原因と改善後の実測時間は実機未確認**。GitHubのCI・デプロイ合格だけで実機復旧済みと表現しない。LINE本人参加連絡E2Eはホーム起動の復旧確認後に再開。本番未変更。
