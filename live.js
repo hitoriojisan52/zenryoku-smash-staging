@@ -301,6 +301,7 @@ function renderHome(){const v=S.overview;if(!v)return;const {practice,ledger,par
  }
  $('cashCounter').disabled=false;
  $('receiptViewBtn').hidden=!ledger?.receiptFileId;
+ $('receiptBtn').textContent=ledger?.receiptFileId?'🧾 差替':'🧾 領収書';
  $('place').textContent='場所：'+practice.place;$('hours').textContent='時間区分：'+practice.hours+'h';
  $('count').textContent='参加者：'+v.attendingCount+'名';$('completedCount').textContent='集金完了：'+v.completedCount+'名';
  if(document.activeElement!==$('adjustment'))$('adjustment').value=ledger?.adjustment??0;
