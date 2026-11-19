@@ -251,3 +251,5 @@
 - v1674はGAS `participantList_` の既存entries_読込から`confirmedPracticeIds`を返すだけ（追加のSheets読込/書込なし）。LIFF側の両画面は`未確定/解除済み OR 日本時間の当日`でフィルタ。過去未確定も一覧に含め、未来直近を初期選択。**確定済み当日は閲覧だけ**で集金・参加者修正/削除権限は開放しない。集金日程はJST深夜0時の切替にも対応。
 - ビジター申請・退会履歴・会計履歴・試合進行/集金/GAS本人確認の仕様は不変。旧v15の収支確定順序・残高計算は保持。
 - LINE E2Eは未完了の認識が妥当。実装済みの本人参加連絡/LIFF・各種APIの擬似連携CIと、実LINE端末での認証/出欠登録/修正/役割別表示/権限/LINE公式メニュー・Webhook受入を区別する。[v1674の仕様・LINE検証順](stage-v1674-date-parity-and-line-verification.md)。本番は承認制。
+
+- **v0.16.74 LINE公開経路の後続検証**：`scripts/check-stage-line-public.mjs`と`.github/workflows/stage-line-public-smoke.yml`を追加。検証mainへのpush後、認証不要の`/health`・公開LIFFエントリページ・公開ランタイム設定をGETのみで照合（LIFFチャネル一致、Worker設定存在、最新`live.js`配信）。個人情報・秘密値・GAS/Sheets更新なし。**LINE OAuthログイン、本人出欠POST、リッチメニュー切替/Webhookと権限別実機動作までは検証しない**。公開チェックの成否と実機E2Eを分けて報告する。
