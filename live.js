@@ -6,7 +6,7 @@
 'use strict';
 const M=window.SmashModel,$=id=>document.getElementById(id),yen=n=>Number(n).toLocaleString('ja-JP')+'円';
 const CONFIG=window.SMASH_CONFIG||{};
-const S={token:'',actor:null,overview:null,practiceId:'',loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,confirmedPracticeKey:'',receiptPartialWarning:''};
+const S={token:'',actor:null,overview:null,practiceId:'',loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,confirmedPracticeKey:'',selectableDayKey:'',receiptPartialWarning:''};
 const VISITOR_MODE=(()=>{
  const q=new URLSearchParams(location.search||'');
  let state=q.get('liff.state')||'';
@@ -208,12 +208,14 @@ async function reload(refreshDates){
    const confirmedIds=new Set(d.confirmedPracticeIds||[]);
    const confirmedKey=[...confirmedIds].sort().join('|');
    const statusChanged=confirmedKey!==S.confirmedPracticeKey;
+   const selectableDayKey=today();
+   const dayChanged=selectableDayKey!==S.selectableDayKey;
    const eligible=(d.practices||[])
-    .filter(p=>p?.practiceId&&!confirmedIds.has(p.practiceId))
+    .filter(p=>p?.practiceId&&(!confirmedIds.has(p.practiceId)||p.date===selectableDayKey))
     .sort((a,b)=>a.date.localeCompare(b.date)||
      String(a.startTime||'').localeCompare(String(b.startTime||''))||
      String(a.practiceId).localeCompare(String(b.practiceId)));
-   const upcoming=eligible.filter(p=>p.date>=today());
+   const upcoming=eligible.filter(p=>p.date>=selectableDayKey);
    const target=eligible.some(p=>p.practiceId===selected)?selected:
     (upcoming[0]?.practiceId||'');
    // Legacy overview defaults to the latest date, which can be past.
@@ -221,7 +223,7 @@ async function reload(refreshDates){
     d=await call('/api/overview',{practiceId:target});
     if(epoch!==S.updateEpoch||S.pending.size||selected!==S.practiceId)return;
    }
-   if(refreshDates||statusChanged||!S.practiceId||notFound||target!==selected){
+   if(refreshDates||statusChanged||dayChanged||!S.practiceId||notFound||target!==selected){
     const options=eligible.map(p=>new Option(window.SMDate.practiceLabel(p),p.practiceId));
     if(!options.length)options.unshift(new Option('未確定の練習日がありません',''));
     else if(!upcoming.length)options.unshift(new Option('日程を選択してください',''));
@@ -231,6 +233,7 @@ async function reload(refreshDates){
     collectionAccess:{canCollect:false,reason:'本日以降の未確定練習日がありません'}};
    S.practiceId=target;$('date').value=target;S.overview=d;
    S.confirmedPracticeKey=confirmedKey;
+   S.selectableDayKey=selectableDayKey;
    S.paymentNeedsRefresh=false;
    renderHome();syncPaymentControls();
  })();
@@ -1170,15 +1173,16 @@ async function saveMemberAttendance_(event){
 // v0.16.43: stable member identity is read-only in participant edits.
 // Unlinked LINE subject is shown explicitly; visitor identities remain separately editable.
 const PM={practices:[],practiceId:'',people:[],editing:null,deleting:null,
-  matchLocked:false,financeLocked:false,uncertain:false,showHistoryDates:false};
+  matchLocked:false,financeLocked:false,uncertain:false};
 const PM_CATEGORIES={member:'メンバー',visitor:'ビジター',student:'学生',
  duty:'当番担当',shuttle:'シャトル担当'};
 function participantDates_(){
  const sel=$('participantPractice'),previous=PM.practiceId;
  const upcoming=PM.practices.filter(p=>p.date>=today());
  const options=PM.practices.map(p=>new Option(
-   (p.date<today()?'履歴：':'')+window.SMDate.practiceLabel(p),p.practiceId));
- if(!upcoming.length)options.unshift(new Option('本日以降の開催日がありません',''));
+   window.SMDate.practiceLabel(p),p.practiceId));
+ if(!options.length)options.unshift(new Option('未確定の練習日がありません',''));
+ else if(!upcoming.length)options.unshift(new Option('日程を選択してください',''));
  sel.replaceChildren(...options);
  const selected=PM.practices.find(p=>p.practiceId===previous)||upcoming[0];
  sel.value=selected?.practiceId||'';
@@ -1252,13 +1256,16 @@ function renderParticipantManager_(){
 async function loadParticipants_(){
  const selected=PM.practiceId;
  let answer=await call('/api/participant/list',{practiceId:selected});
- const upcoming=window.SMDate.upcomingPractices(answer?.practices);
- const history=PM.showHistoryDates?(answer?.practices||[])
-  .filter(p=>p?.practiceId&&p.date<today())
-  .sort((a,b)=>b.date.localeCompare(a.date)||
-    String(a.startTime||'').localeCompare(String(b.startTime||''))||
-    String(a.practiceId).localeCompare(String(b.practiceId))):[];
- const selectable=[...upcoming,...history];
+ // Keep the participant picker identical to collection: all unconfirmed
+ // dates (including past), plus a confirmed practice only on today's date.
+ // Confirmed-day read access never removes financeLocked server protection.
+ const confirmedIds=new Set(answer?.confirmedPracticeIds||[]);
+ const selectable=(answer?.practices||[])
+  .filter(p=>p?.practiceId&&(!confirmedIds.has(p.practiceId)||p.date===today()))
+  .sort((a,b)=>a.date.localeCompare(b.date)||
+   String(a.startTime||'').localeCompare(String(b.startTime||''))||
+   String(a.practiceId).localeCompare(String(b.practiceId)));
+ const upcoming=selectable.filter(p=>p.date>=today());
  const target=selectable.some(p=>p.practiceId===selected)?selected:
   (upcoming[0]?.practiceId||'');
  if(target&&answer.practiceId!==target)
@@ -1281,10 +1288,16 @@ async function loadParticipants_(){
 }
 async function openParticipantManager_(){
  let ready=false;
- PM.showHistoryDates=false;
- $('participantHistoryToggle').textContent='履歴';
- $('participantHistoryToggle').setAttribute('aria-pressed','false');
- PM.practiceId=window.SMDate.nearestPractice(S.overview?.practices)?.practiceId||'';
+ // Opening the screen always defaults to the nearest selectable date today
+ // or later. A manually selected past open date remains selectable afterward.
+ const confirmedIds=new Set(S.overview?.confirmedPracticeIds||[]);
+ const candidates=(S.overview?.practices||[])
+  .filter(p=>p?.practiceId&&p.date>=today()&&
+   (!confirmedIds.has(p.practiceId)||p.date===today()))
+  .sort((a,b)=>a.date.localeCompare(b.date)||
+   String(a.startTime||'').localeCompare(String(b.startTime||''))||
+   String(a.practiceId).localeCompare(String(b.practiceId)));
+ PM.practiceId=candidates[0]?.practiceId||'';
  await guard(async()=>{gateEdit();await loadParticipants_();ready=true;},'参加者を読み込んでいます…');
  if(ready){close('manageDialog');dialog('participantDialog');}
 }
@@ -1292,13 +1305,6 @@ async function switchParticipantDate_(){
  const id=$('participantPractice').value;
  PM.practiceId=id;
  await guard(loadParticipants_,'参加者を読み込んでいます…');
-}
-async function toggleParticipantHistory_(){
- PM.showHistoryDates=!PM.showHistoryDates;
- if(!PM.showHistoryDates&&PM.practices.find(p=>p.practiceId===PM.practiceId)?.date<today())PM.practiceId='';
- $('participantHistoryToggle').textContent=PM.showHistoryDates?'履歴を閉じる':'履歴';
- $('participantHistoryToggle').setAttribute('aria-pressed',String(PM.showHistoryDates));
- await guard(loadParticipants_,'参加者履歴を読み込んでいます…');
 }
 function openParticipantEditor_(p){
  if(PM.uncertain||PM.financeLocked||PM.matchLocked)return;
@@ -1437,7 +1443,7 @@ function bind(){
  $('attendanceForm').addEventListener('submit',saveMemberAttendance_);
  $('attendanceCancel').addEventListener('click',()=>close('attendanceDialog'));
  $('participantPractice').addEventListener('change',switchParticipantDate_);
- $('participantHistoryToggle').addEventListener('click',toggleParticipantHistory_);
+
  $('participantReload').addEventListener('click',()=>guard(loadParticipants_,'参加者を読み込んでいます…'));
  $('participantClose').addEventListener('click',()=>close('participantDialog'));
  $('participantEditCancel').addEventListener('click',()=>close('participantEditDialog'));

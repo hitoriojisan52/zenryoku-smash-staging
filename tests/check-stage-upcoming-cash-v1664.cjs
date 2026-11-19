@@ -66,10 +66,11 @@ const reload=new Function('S','$','call','window','Option','renderHome','syncPay
   state.overview.practice.practiceId==='P-PAST','past unconfirmed date remains selectable without a future date');
 
  // Selected day on opening participant manager uses a different nearest choice.
- ok(ui.includes("PM.practiceId=window.SMDate.nearestPractice(S.overview?.practices)?.practiceId||''")&&
+ ok(ui.includes('PM.practiceId=candidates[0]?.practiceId')&&
   ui.includes('PM.practices=selectable;PM.practiceId=target;')&&
-  ui.includes("call('/api/participant/list',{practiceId:target})"),
-  'participant management still defaults to future and explicitly gates history');
+  ui.includes("call('/api/participant/list',{practiceId:target})")&&
+  !ui.includes('toggleParticipantHistory_'),
+  'participant management defaults to closest selectable future and has no History button');
  ok(ui.includes("$('visitorMinePractice').value=''")&&
   visitor.includes("$('visitorAdminPractice').value=''")&&
   visitor.includes('const unique=new Map()')&&
@@ -123,7 +124,7 @@ const reload=new Function('S','$','call','window','Option','renderHome','syncPay
   ok(read(p).includes('stage-ui.css?v='+(p==='live.html'?'1673-receipt-close':'1665')),p+' has cache-busted compact style');
  }
  ok(html.includes('date-format.js?v=1664')&&html.includes('visitor-approval.js?v=1664')&&
-  html.includes('live.js?v=1673-receipt-close')&&matchHtml.includes('match.js?v=1664'),
+  html.includes('live.js?v=1674-date-parity')&&matchHtml.includes('match.js?v=1664'),
   'all changed date/navigation handlers have updated script URLs');
  console.log('PASS '+n+'/'+n+' upcoming date defaults, compact cash, grouped menus and match copy');
 })().catch(e=>{console.error(e);process.exitCode=1});
