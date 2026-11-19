@@ -33,7 +33,8 @@ let rows={
   ['P-OTHER','M-O',true,1,'M-DUTY','2026-11-18 11:30']
  ],
  '試合セッション':[],
- '参加者操作アーカイブ':[],
+ '参加者操作アーカイブ':[['OP-OLD-EDIT','P-TODAY','V-A','edit','{}',
+  '2026-11-18 14:20:00','M-DUTY','completed']],
  '操作履歴':[
   ['OP-AT-1','attendance.submit','M-A','2026-11-18 20:10:00','P-TODAY|M-A','{}'],
   ['OP-AT-2','attendance.submit','M-A','2026-11-18 20:40:00','P-TODAY|M-A','{}']
@@ -109,10 +110,12 @@ ok(baseline.participants.length===2&&baseline.participants[0].collectionComplete
 ok(!('email' in baseline.participants[0])&&
  baseline.participants[0].registeredAt==='2026-11-18 20:10:00'&&
  baseline.participants[0].lastReportedAt==='2026-11-18 20:40:00'&&
+ baseline.participants[0].updatedAt==='2026-11-18 20:40:00'&&
  baseline.participants[0].memberRegisteredAt==='2026-11-17T03:30:00.000Z',
  'attendance card tracks first and latest LINE report, keeps account application separate');
-ok(baseline.participants[1].registeredAt==='2026-11-18 13:20:00',
- 'approved visitor registration date equals approval timestamp, NOT request timestamp');
+ok(baseline.participants[1].registeredAt==='2026-11-18 13:20:00'&&
+ baseline.participants[1].updatedAt==='2026-11-18 14:20:00',
+ 'visitor signup uses approval date; completed edit archive is the update date');
 ok(baseline.participants[0].lineUserId==='U'+'a'.repeat(32)&&
  baseline.participants[1].lineUserId===null,
  'attendee memberId resolves own LINE subject, not duty member or visitor sponsor');
