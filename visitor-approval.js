@@ -13,6 +13,7 @@
  };
  let api=null,actor=null,selected=null,editTarget=null,deleteTarget=null;
  let refreshAfterDecision=null,mineRows=[],adminRows=[],mineDates=[],adminDates=[];
+ let mineHistoryVisible=false,adminHistoryVisible=false;
  const node=(tag,cls,text)=>{
   const el=document.createElement(tag);if(cls)el.className=cls;
   if(text!==undefined)el.textContent=String(text);
@@ -29,27 +30,35 @@
  };
  const shortDate=r=>r.date?w.SMDate.date(r.date)+' '+(r.place||''):'開催日：登録がありません';
  const practiceOption=r=>w.SMDate.practiceLabel?r.date?w.SMDate.practiceLabel(r):shortDate(r):shortDate(r);
- function optionsFor(rows,id,practices){
+ function optionsFor(rows,id,practices,showHistory=false){
   const select=$(id),previous=select.value,today=w.SMDate.todayJst();
   const unique=new Map();
-  // Do not delete historical requests; only hide past dates from selectors.
-  for(const p of w.SMDate.upcomingPractices(practices)){
-   if(p.practiceId&&!unique.has(p.practiceId))
-    unique.set(p.practiceId,{date:p.date,startTime:p.startTime||'',label:practiceOption(p)});
+  const dated=showHistory?(Array.isArray(practices)?practices:[]):w.SMDate.upcomingPractices(practices);
+  for(const p of dated){
+   if(!p.practiceId||(!showHistory&&p.date<today)||unique.has(p.practiceId))continue;
+   unique.set(p.practiceId,{date:p.date,startTime:p.startTime||'',label:practiceOption(p)});
   }
   for(const r of rows){
-   if(!r.practiceId||!r.date||r.date<today||unique.has(r.practiceId))continue;
+   if(!r.practiceId||!r.date||(r.date<today&&!showHistory)||unique.has(r.practiceId))continue;
    unique.set(r.practiceId,{date:r.date,startTime:r.startTime||'',label:practiceOption(r)});
   }
-  const options=[...unique].sort((a,b)=>a[1].date.localeCompare(b[1].date)||
-   a[1].startTime.localeCompare(b[1].startTime)||a[0].localeCompare(b[0]));
-  select.replaceChildren(...(options.length?options.map(([value,item])=>{
-   const option=node('option','',item.label);option.value=value;return option;
-  }):[node('option','','本日以降の開催日がありません')]));
-  select.value=unique.has(previous)?previous:(options[0]?.[0]||'');
+  const options=[...unique].sort((a,b)=>{
+   const oldA=a[1].date<today,oldB=b[1].date<today;
+   if(oldA!==oldB)return oldA?1:-1;
+   return (oldA?b[1].date.localeCompare(a[1].date):a[1].date.localeCompare(b[1].date))||
+    a[1].startTime.localeCompare(b[1].startTime)||a[0].localeCompare(b[0]);
+  });
+  const future=options.find(([,item])=>item.date>=today);
+  const choices=options.map(([value,item])=>{
+   const option=node('option','',(item.date<today?'履歴：':'')+item.label);option.value=value;return option;
+  });
+  if(!future){const placeholder=node('option','','本日以降の開催日がありません');placeholder.value='';choices.unshift(placeholder);}
+  select.replaceChildren(...choices);
+  select.value=unique.has(previous)?previous:(future?.[0]||'');
   return rows.filter(r=>r.practiceId===select.value);
  }
  function card(data,admin){
+  const isHistory=!!data.date&&data.date<w.SMDate.todayJst();
   const card=node('article','participant-card-item visitor-review-card');
   const head=node('div','participant-card-title visitor-review-heading');
   const who=node('span','participant-card-person');
@@ -79,7 +88,7 @@
   if(admin){
    for(const [action,label] of [['approve','承認'],['reject','却下']]){
     const button=node('button',action==='reject'?'btn-danger':'btn-green',label);
-    button.type='button';button.disabled=(data.status==='rejected')||
+    button.type='button';button.disabled=isHistory||(data.status==='rejected')||
      (action==='approve'&&data.status!=='pending');
     if(!button.disabled)button.addEventListener('click',()=>openConfirm(data,action));
     actions.append(button);
@@ -88,8 +97,8 @@
    const edit=node('button','participant-btn-edit','修正');
    const remove=node('button','participant-btn-delete','削除');
    edit.type='button';remove.type='button';
-   edit.disabled=data.status!=='approved';
-   remove.disabled=data.status!=='pending';
+   edit.disabled=isHistory||data.status!=='approved';
+   remove.disabled=isHistory||data.status!=='pending';
    if(!edit.disabled)edit.addEventListener('click',()=>openEdit(data));
    if(!remove.disabled)remove.addEventListener('click',()=>openDelete(data));
    actions.append(edit,remove);
@@ -107,10 +116,10 @@
   rows.forEach(r=>target.append(card(r,admin)));
  }
  function renderMine(){
-  render('visitorMineCards',optionsFor(mineRows,'visitorMinePractice',mineDates),false);
+  render('visitorMineCards',optionsFor(mineRows,'visitorMinePractice',mineDates,mineHistoryVisible),false);
  }
  function renderAdmin(){
-  render('visitorAdminCards',optionsFor(adminRows,'visitorAdminPractice',adminDates),true);
+  render('visitorAdminCards',optionsFor(adminRows,'visitorAdminPractice',adminDates,adminHistoryVisible),true);
  }
  async function loadMine(){
   if(!api)return [];
@@ -135,7 +144,7 @@
   adminRows=result.requests;renderAdmin();return adminRows;
  }
  function openConfirm(data,action){
-  if(actor?.role!=='admin'||!STATUS[data.status]||data.status==='rejected'||
+  if(actor?.role!=='admin'||(data.date&&data.date<w.SMDate.todayJst())||!STATUS[data.status]||data.status==='rejected'||
      (action==='approve'&&data.status!=='pending'))return;
   selected={requestId:data.requestId,practiceId:data.practiceId,
    expectedVersion:data.version,action};
@@ -162,7 +171,7 @@
   });
  }
  function openEdit(data){
-  if(data.status!=='approved')return;
+  if(data.status!=='approved'||(data.date&&data.date<w.SMDate.todayJst()))return;
   editTarget={requestId:data.requestId,expectedVersion:data.version};
   $('visitorMineEditName').value=data.name||'';
   $('visitorMineEditKana').value=data.nameKana||'';
@@ -194,7 +203,7 @@
   });
  }
  function openDelete(data){
-  if(data.status!=='pending')return;
+  if(data.status!=='pending'||(data.date&&data.date<w.SMDate.todayJst()))return;
   deleteTarget={requestId:data.requestId,expectedVersion:data.version};
   $('visitorMineDeleteText').textContent=data.name+'さんの承認待ち申請を削除しますか？'+
    '削除後は管理者による承認ができなくなります。';
@@ -214,11 +223,25 @@
   });
  }
  function bind(){
+  $('visitorMineHistoryToggle').addEventListener('click',()=>{
+   mineHistoryVisible=!mineHistoryVisible;
+   $('visitorMineHistoryToggle').textContent=mineHistoryVisible?'履歴を閉じる':'履歴';
+   $('visitorMineHistoryToggle').setAttribute('aria-pressed',String(mineHistoryVisible));
+   renderMine();
+  });
+  $('visitorAdminHistoryToggle').addEventListener('click',()=>{
+   adminHistoryVisible=!adminHistoryVisible;
+   $('visitorAdminHistoryToggle').textContent=adminHistoryVisible?'履歴を閉じる':'履歴';
+   $('visitorAdminHistoryToggle').setAttribute('aria-pressed',String(adminHistoryVisible));
+   renderAdmin();
+  });
   $('visitorMinePractice').addEventListener('change',renderMine);
   $('visitorAdminPractice').addEventListener('change',renderAdmin);
   $('visitorMineRefresh').addEventListener('click',()=>busy('申請状況を更新しています…',loadMine));
   $('visitorAdminMenu').addEventListener('click',()=>busy('ビジター申請を読み込んでいます…',async()=>{
-   $('visitorAdminPractice').value='';
+   $('visitorAdminPractice').value='';adminHistoryVisible=false;
+   $('visitorAdminHistoryToggle').textContent='履歴';
+   $('visitorAdminHistoryToggle').setAttribute('aria-pressed','false');
    await loadAdmin();$('manageDialog').close();$('visitorAdminDialog').showModal();
   }));
   $('visitorAdminRefresh').addEventListener('click',()=>busy('申請を更新しています…',loadAdmin));

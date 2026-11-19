@@ -101,7 +101,7 @@ body.visitor-member #visitorMemberHome button{width:100%}
 <main class="container">
   <header class="app-header"><h1>全力☆スマッシュ 運用管理 <small class="demo-label" title="新システム用接続試験画面">接続試験</small></h1><div class="header-btns"><button id="reimbursementBtn" class="btn-outline" type="button">💴 立替精算</button><button id="manageBtn" class="btn-outline" type="button">⚙ 運用管理</button></div></header>
   
-  <div class="date-selector"><select id="date" aria-label="開催日"><option value="">日程を読み込んでいます…</option></select><button id="refresh" type="button">🔄 更新</button></div>
+  <div class="date-selector"><select id="date" aria-label="開催日"><option value="">日程を読み込んでいます…</option></select><button id="refresh" type="button">🔄 更新</button><button id="homeHistoryToggle" type="button" class="btn-outline" aria-pressed="false" title="過去の開催日を選択肢に表示" disabled>履歴</button></div>
   <div class="info-summary"><span id="place">場所：--</span><span id="hours">時間区分：--</span></div>
   <div class="summary-info"><span id="count">参加者：0名</span><span id="completedCount">集金完了：0名</span></div>
   <p id="collectionLockReason" class="collection-lock-reason stage-system-message stage-system-message--warning" role="status" aria-live="polite" hidden></p>
@@ -188,7 +188,7 @@ body.visitor-member #visitorMemberHome button{width:100%}
    
   </div>
   <label for="visitorMinePractice" class="dialog-label">表示する開催日</label>
-  <div class="stage-date-refresh-row"><select id="visitorMinePractice" class="dialog-select" aria-label="ビジターの申請日程を選択"></select><button id="visitorMineRefresh" class="btn-blue" type="button">🔄 更新</button></div>
+  <div class="stage-date-refresh-row"><select id="visitorMinePractice" class="dialog-select" aria-label="ビジターの申請日程を選択"></select><button id="visitorMineRefresh" class="btn-blue" type="button">🔄 更新</button><button id="visitorMineHistoryToggle" type="button" class="btn-outline" aria-pressed="false">履歴</button></div>
   <div id="visitorMineCards" class="visitor-review-list" role="status" aria-live="polite"></div>
  </section>
  <details id="visitorNewFormSection" class="visitor-new-form-section">
@@ -211,7 +211,7 @@ body.visitor-member #visitorMemberHome button{width:100%}
  <h2 id="visitorAdminTitle">👤 ビジター管理</h2>
 
  <label for="visitorAdminPractice" class="dialog-label">表示する開催日</label>
- <div class="stage-date-refresh-row"><select id="visitorAdminPractice" class="dialog-select" aria-label="審査対象の日程を選択"></select><button id="visitorAdminRefresh" class="btn-blue" type="button">🔄 更新</button></div>
+ <div class="stage-date-refresh-row"><select id="visitorAdminPractice" class="dialog-select" aria-label="審査対象の日程を選択"></select><button id="visitorAdminRefresh" class="btn-blue" type="button">🔄 更新</button><button id="visitorAdminHistoryToggle" type="button" class="btn-outline" aria-pressed="false">履歴</button></div>
  <div id="visitorAdminCards" class="visitor-review-list" role="status" aria-live="polite"></div>
  <div class="modal-actions"><button id="visitorAdminClose" class="btn-outline" type="button">閉じる</button></div>
 </dialog>
@@ -257,7 +257,7 @@ body.visitor-member #visitorMemberHome button{width:100%}
 </dialog>
 <dialog id="participantDialog" aria-labelledby="participantTitle">
  <div class="participant-heading"><h2 id="participantTitle">👥 参加者一覧</h2><button id="participantClose" class="btn-outline" type="button">✕ 閉じる</button></div>
- <div class="participant-controls"><select id="participantPractice" class="dialog-select" aria-label="開催日を選択"></select><button id="participantReload" class="btn-blue" type="button">🔄 更新</button></div>
+ <div class="participant-controls"><select id="participantPractice" class="dialog-select" aria-label="開催日を選択"></select><button id="participantReload" class="btn-blue" type="button">🔄 更新</button><button id="participantHistoryToggle" class="btn-outline" type="button" aria-pressed="false">履歴</button></div>
  <p id="participantNotice" class="schedule-note stage-system-message stage-system-message--warning" role="status" aria-live="polite" hidden></p>
  <div id="participantCards" class="participant-cards" aria-live="polite"></div>
 </dialog>
@@ -366,5 +366,5 @@ body.visitor-member #visitorMemberHome button{width:100%}
  </p>
  <div class="modal-actions"><button id="stageErrorOkay" class="btn-outline" type="button">閉じる</button></div>
 </dialog>
-<script src="date-format.js?v=1664"></script><script src="model.js"></script><script src="access-v2-mode.js?v=1648"></script><script src="live-access.js?v=162e"></script><script src="stage-ui.js?v=1645"></script><script src="dialog-close.js?v=1661"></script><script src="live-access-v2.js?v=1663"></script><script src="runtime-config.js?v=164a"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script src="cash-reconcile.js?v=1637b"></script><script src="visitor-approval.js?v=1664"></script><script type="module" src="live.js?v=1665"></script>
+<script src="date-format.js?v=1664"></script><script src="model.js"></script><script src="access-v2-mode.js?v=1648"></script><script src="live-access.js?v=162e"></script><script src="stage-ui.js?v=1645"></script><script src="dialog-close.js?v=1661"></script><script src="live-access-v2.js?v=1663"></script><script src="runtime-config.js?v=164a"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script src="cash-reconcile.js?v=1637b"></script><script src="visitor-approval.js?v=1664-h1666"></script><script type="module" src="live.js?v=1665-h1666"></script>
 </body></html>
