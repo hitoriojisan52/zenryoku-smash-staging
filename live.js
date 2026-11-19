@@ -170,12 +170,15 @@ async function boot(){
   if(!window.liff)throw new Error('LINE SDKを読み込めませんでした');
   const startupStart=performance.now(),authStart=performance.now();
   $('stageBusyLabel').textContent='LINE認証を確認しています…';
-  await Promise.race([
-   liff.init({liffId:CONFIG.liveLiffId,withLoginOnExternalBrowser:true}),
-   new Promise((_,reject)=>setTimeout(()=>reject(
-    Object.assign(new Error('LINEの初期化が20秒以内に完了しませんでした。LINEからアプリを開き直してください。'),{code:'REQUEST_TIMEOUT'})
-   ),20000))
-  ]);
+  let liffTimer;
+  try{
+   await Promise.race([
+    liff.init({liffId:CONFIG.liveLiffId,withLoginOnExternalBrowser:true}),
+    new Promise((_,reject)=>{liffTimer=setTimeout(()=>reject(
+     Object.assign(new Error('LINEの初期化が20秒以内に完了しませんでした。LINEからアプリを開き直してください。'),{code:'REQUEST_TIMEOUT'})
+    ),20000);})
+   ]);
+  }finally{if(liffTimer!==undefined)clearTimeout(liffTimer);}
   const authMs=Math.round(performance.now()-authStart);
   if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return;}
   S.token=liff.getIDToken();if(!S.token)throw new Error('LINE IDトークンを取得できません');
