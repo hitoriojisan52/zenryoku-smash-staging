@@ -6,12 +6,13 @@
 (function(){
  'use strict';
  const clean=s=>String(s||'').replace(/\s+/g,'').replace(/^[✕×]/,'');
- // Navigation/management SCREENS only. Editing, confirmation and error
+ // Navigation/management screens and the receipt viewer. Editing, confirmation and error
  // POPUPS retain their existing bottom Cancel/Close/Execute controls; they
  // must never acquire an extra synthetic top-right Close.
  const screenIds=new Set([
   'manageDialog','memberAccessDialog','cashDialog','visitorDialog',
-  'visitorAdminDialog','participantDialog','scheduleDialog','ledgerDialog'
+  'visitorAdminDialog','participantDialog','scheduleDialog','ledgerDialog',
+  'receiptPreviewDialog'
  ]);
  // v0.16.61: all context actions belong next to their corresponding
  // selector/section, not the title. Only Close moves into the title bar.
