@@ -634,7 +634,8 @@ async function attachAfterLedgerSave_(file,ledgerResult,rowId){
 }
 
 function syncPayoutWeekday_(id,hint){const value=$(id).value,formatted=value?window.SMDate.date(value):'';
- $(hint).textContent=formatted.includes('(')?'（'+formatted.split('(')[1]:'';}
+ const weekday=/\(([^)]+)\)$/.exec(formatted);
+ $(hint).textContent=weekday?'（'+weekday[1]+'）':'';}
 function openEditor(row=null,kind='reimbursement'){
  S.ledgerRow=row;S.mode=row?'edit':'add';$('ledgerEditTitle').textContent=row?'収支を修正':'収支を追加';
  const targetKind=row?.kind||kind;$('ledgerKind').value=targetKind;$('ledgerKind').disabled=!!row;
