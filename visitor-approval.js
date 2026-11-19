@@ -69,8 +69,7 @@
   const fields=[
    shortDate(data),
    '📅 申請日：'+formatRequestedAt_(data.requestedAt),
-   admin?'👤 申請者：'+(data.requestedByName||'不明'):'',
-   ''
+   admin?'👤 申請者：'+(data.requestedByName||'不明'):''
   ].filter(Boolean);
   for(const field of fields)details.append(node('span','',field));
   info.append(details);
