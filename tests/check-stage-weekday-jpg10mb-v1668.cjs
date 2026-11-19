@@ -19,7 +19,7 @@ ok(/\.stage-ui \.payout-date-field \.weekday-hint\{\s*position:absolute;top:50%;
 ok(css.includes('pointer-events:none;background:#fff;')&&
  css.includes('padding-right:87px!important;')&&
  !css.includes('right:43px;')&&
- !css.includes('padding-right:87px!important;'),
+ css.includes('display:block;width:100%;box-sizing:border-box;padding-right:87px!important;'),
  'overlay does not intercept native calendar and no obsolete right-edge spacing remains');
 for(const input of ['payoutDate','ledgerPayoutDate']){
  ok(new RegExp('<span class="payout-date-field"><input[^>]+id="'+input+'" type="date" required><small[^>]+class="weekday-hint"').test(html),
