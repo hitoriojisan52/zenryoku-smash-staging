@@ -6,7 +6,7 @@
 'use strict';
 const M=window.SmashModel,$=id=>document.getElementById(id),yen=n=>Number(n).toLocaleString('ja-JP')+'円';
 const CONFIG=window.SMASH_CONFIG||{};
-const S={token:'',actor:null,overview:null,practiceId:'',loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,showHistoryDates:false,receiptPartialWarning:''};
+const S={token:'',actor:null,overview:null,practiceId:'',loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,showHistoryDates:false,confirmedPracticeKey:'',receiptPartialWarning:''};
 const VISITOR_MODE=(()=>{
  const q=new URLSearchParams(location.search||'');
  let state=q.get('liff.state')||'';
@@ -127,8 +127,8 @@ async function showPaymentError_(error){
 }
 async function guard(action,label='処理中です…'){
  if(S.pending.size){toast('集金処理中です。完了後に操作してください。');return;}
- let error=null;
- try{await window.SMStageUX.run(label,action);}
+ let error=null,result;
+ try{result=await window.SMStageUX.run(label,action);}
  catch(e){error=e;}
  // The ledger may have been saved even when the subsequent receipt upload fails.
  // A persistent dialog appears only AFTER the busy overlay is closed.
@@ -143,6 +143,7 @@ async function guard(action,label='処理中です…'){
   await window.SMStageUX.showError(error);
   if(error.status===409)await reload(false).catch(()=>{});
  }
+ return result;
 }
 async function boot(){
  for(const id of ['confirm','reimbursementBtn','manageBtn','refresh','adjustment','expense','newLedgerRow','homeHistoryToggle'])$(id).disabled=true;
@@ -201,9 +202,15 @@ async function reload(refreshDates){
      d=await call('/api/overview',{});notFound=true;
    }
    if(epoch!==S.updateEpoch||S.pending.size||(!notFound&&selected!==S.practiceId))return;
-   const upcoming=window.SMDate.upcomingPractices(d.practices);
+   // Confirmed practice dates remain in the ledger but disappear from
+   // the collection dropdown, even when history is expanded.
+   const confirmedIds=new Set(d.confirmedPracticeIds||[]);
+   const confirmedKey=[...confirmedIds].sort().join('|');
+   const statusChanged=confirmedKey!==S.confirmedPracticeKey;
+   const upcoming=window.SMDate.upcomingPractices(d.practices)
+    .filter(p=>!confirmedIds.has(p.practiceId));
    const history=S.showHistoryDates?(d.practices||[])
-    .filter(p=>p?.practiceId&&p.date<today())
+    .filter(p=>p?.practiceId&&p.date<today()&&!confirmedIds.has(p.practiceId))
     .sort((a,b)=>b.date.localeCompare(a.date)||
       String(a.startTime||'').localeCompare(String(b.startTime||''))||
       String(a.practiceId).localeCompare(String(b.practiceId))):[];
@@ -215,7 +222,7 @@ async function reload(refreshDates){
     d=await call('/api/overview',{practiceId:target});
     if(epoch!==S.updateEpoch||S.pending.size||selected!==S.practiceId)return;
    }
-   if(refreshDates||!S.practiceId||notFound||target!==selected){
+   if(refreshDates||statusChanged||!S.practiceId||notFound||target!==selected){
     const options=[
      ...upcoming.map(p=>new Option(window.SMDate.practiceLabel(p),p.practiceId)),
      ...history.map(p=>new Option('履歴：'+window.SMDate.practiceLabel(p),p.practiceId))
@@ -226,6 +233,7 @@ async function reload(refreshDates){
    if(!target)d={...d,practice:null,participants:[],ledger:null,
     collectionAccess:{canCollect:false,reason:'本日以降の開催日がありません'}};
    S.practiceId=target;$('date').value=target;S.overview=d;
+   S.confirmedPracticeKey=confirmedKey;
    S.paymentNeedsRefresh=false;
    renderHome();syncPaymentControls();
  })();
@@ -448,8 +456,8 @@ async function loadLedger(){const month=$('ledgerMonth').value,ledger=await call
     const button=document.createElement('button');button.type='button';
     if(S.actor.role==='admin'){
      button.className='btn-green';button.textContent='確定解除';
-     button.disabled=future;
-     if(!future)button.addEventListener('click',()=>ledgerAction('unlock',r));
+     button.disabled=future||r.canUnlock!==true;
+     if(!button.disabled)button.addEventListener('click',()=>ledgerAction('unlock',r));
     }else{
      button.className='btn-green';button.textContent='確定済み';
      button.disabled=true;
@@ -457,7 +465,7 @@ async function loadLedger(){const month=$('ledgerMonth').value,ledger=await call
     group.append(button);
    }else{
     const canEdit=!future&&r.kind!=='practice';
-    const canDelete=!future;
+    const canDelete=!future&&r.kind!=='practice';
     // GAS calculates canConfirm across all prior months and same-day lines.
     const canConfirm=!future&&r.canConfirm===true;
     const slots=[['修正','edit',canEdit],['削除','delete',canDelete],
@@ -486,6 +494,8 @@ async function loadLedger(){const month=$('ledgerMonth').value,ledger=await call
 }
 function ledgerAction(act,row){
  if(act==='confirm'&&row.canConfirm!==true)return;
+ if(act==='unlock'&&row.canUnlock!==true)return;
+ if(act==='delete'&&row.kind==='practice')return;
  if(act==='edit'){openEditor(row);return;}
  S.modalTarget={act,row};
  const titles={confirm:'【収支の確定】',delete:'【収支の削除】',unlock:'【確定の解除】'};
@@ -500,7 +510,7 @@ function ledgerAction(act,row){
 }
 async function executeLedgerAction(){close('confirmActionDialog');await guard(async()=>{
  const {act,row}=S.modalTarget;await call('/api/ledger/change',{operationId:uuid(),action:act,rowId:row.rowId,expectedVersion:row.version});
- toast((act==='confirm'?'確定':act==='unlock'?'確定解除':'削除')+'しました');if($('ledgerDialog').open)await loadLedger();await reload(false);
+ toast((act==='confirm'?'確定':act==='unlock'?'確定解除':'削除')+'しました');if($('ledgerDialog').open)await loadLedger();await reload(true);
 });}
 
 const RECEIPT_MAX_BYTES=1500000;
