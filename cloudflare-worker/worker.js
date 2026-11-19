@@ -29,6 +29,8 @@ const VALID_PATHS = Object.freeze({
   '/api/expense':'expense.set',
   '/api/ledger':'ledger.list',
   '/api/ledger/change':'ledger.change',
+  '/api/receipt/upload':'receipt.upload',
+  '/api/receipt/get':'receipt.get',
   '/api/cash/get':'cash.get',
   '/api/cash/save':'cash.save',
   '/api/schedule/list':'schedule.list',
@@ -187,11 +189,11 @@ export async function handleRequest(request,env){
   const tokenMatch=/^Bearer ([A-Za-z0-9_.-]+)$/.exec(request.headers.get('Authorization')||'');
   if(!isGuest&&!tokenMatch)return failure('LINE認証が必要です',401,origin);
   const length=Number(request.headers.get('Content-Length')||0);
-  if(length>32768)return failure('要求が大きすぎます',413,origin);
+  if(length>(op==='receipt.upload'?5650000:32768))return failure('要求が大きすぎます',413,origin);
   let phase='request_body';
   try{
     const raw=await request.text();
-    if(raw.length>32768)return failure('要求が大きすぎます',413,origin);
+    if(raw.length>(op==='receipt.upload'?5650000:32768))return failure('要求が大きすぎます',413,origin);
     let payload;
     try{payload=JSON.parse(raw);}catch(_){return failure('要求のJSON形式が不正です（診断コード：BAD_REQUEST_JSON）',400,origin,'BAD_REQUEST_JSON');}
     if(!payload||Array.isArray(payload)||typeof payload!=='object')return failure('要求形式が不正です',400,origin);
@@ -215,6 +217,21 @@ export async function handleRequest(request,env){
     const withdrawAtEdge=env.WITHDRAW_ENABLED==='true' &&
       env.WITHDRAW_STAGE_SPREADSHEET_ID==='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac' &&
       env.WORKER_PURPOSE==='staging-member-withdraw-v1653';
+    if(op==='receipt.upload'){
+      if(typeof payload.rowId!=='string'||!/^[PR]-[\w-]{8,110}$/.test(payload.rowId)||
+         typeof payload.operationId!=='string'||!/^[\w-]{8,100}$/.test(payload.operationId)||
+         !Number.isSafeInteger(payload.expectedVersion)||payload.expectedVersion<1||
+         typeof payload.filename!=='string'||!payload.filename.trim()||
+         payload.filename.length>120||
+         !['image/jpeg','image/png','image/webp','image/heic','image/heif','application/pdf'].includes(payload.mimeType)||
+         typeof payload.contentBase64!=='string'||payload.contentBase64.length<16||
+         payload.contentBase64.length>5600000||payload.contentBase64.length%4!==0||
+         !/^[A-Za-z0-9+/]+={0,2}$/.test(payload.contentBase64))
+        return failure('領収書ファイル・収支行の情報が不正です',400,origin,'BAD_REQUEST');
+    }
+    if(op==='receipt.get'&&(typeof payload.rowId!=='string'||
+       !/^[PR]-[\w-]{8,110}$/.test(payload.rowId)))
+      return failure('領収書の収支行IDが不正です',400,origin,'BAD_REQUEST');
     if(op==='member.apply'){
       const kana=typeof payload.nameKana==='string'?payload.nameKana.normalize('NFKC').replace(/[\s\u00a0\u3000]+/g,''):'';
       if(typeof payload.displayName!=='string'||!payload.displayName.trim()||
