@@ -6,7 +6,7 @@
 'use strict';
 const M=window.SmashModel,$=id=>document.getElementById(id),yen=n=>Number(n).toLocaleString('ja-JP')+'円';
 const CONFIG=window.SMASH_CONFIG||{};
-const S={token:'',actor:null,overview:null,practiceId:'',loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,confirmedPracticeKey:'',receiptPartialWarning:''};
+const S={token:'',actor:null,overview:null,practiceId:'',loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,confirmedPracticeKey:'',selectableDayKey:'',receiptPartialWarning:''};
 const VISITOR_MODE=(()=>{
  const q=new URLSearchParams(location.search||'');
  let state=q.get('liff.state')||'';
@@ -208,12 +208,14 @@ async function reload(refreshDates){
    const confirmedIds=new Set(d.confirmedPracticeIds||[]);
    const confirmedKey=[...confirmedIds].sort().join('|');
    const statusChanged=confirmedKey!==S.confirmedPracticeKey;
+   const selectableDayKey=today();
+   const dayChanged=selectableDayKey!==S.selectableDayKey;
    const eligible=(d.practices||[])
-    .filter(p=>p?.practiceId&&(!confirmedIds.has(p.practiceId)||p.date===today()))
+    .filter(p=>p?.practiceId&&(!confirmedIds.has(p.practiceId)||p.date===selectableDayKey))
     .sort((a,b)=>a.date.localeCompare(b.date)||
      String(a.startTime||'').localeCompare(String(b.startTime||''))||
      String(a.practiceId).localeCompare(String(b.practiceId)));
-   const upcoming=eligible.filter(p=>p.date>=today());
+   const upcoming=eligible.filter(p=>p.date>=selectableDayKey);
    const target=eligible.some(p=>p.practiceId===selected)?selected:
     (upcoming[0]?.practiceId||'');
    // Legacy overview defaults to the latest date, which can be past.
@@ -221,7 +223,7 @@ async function reload(refreshDates){
     d=await call('/api/overview',{practiceId:target});
     if(epoch!==S.updateEpoch||S.pending.size||selected!==S.practiceId)return;
    }
-   if(refreshDates||statusChanged||!S.practiceId||notFound||target!==selected){
+   if(refreshDates||statusChanged||dayChanged||!S.practiceId||notFound||target!==selected){
     const options=eligible.map(p=>new Option(window.SMDate.practiceLabel(p),p.practiceId));
     if(!options.length)options.unshift(new Option('未確定の練習日がありません',''));
     else if(!upcoming.length)options.unshift(new Option('日程を選択してください',''));
@@ -231,6 +233,7 @@ async function reload(refreshDates){
     collectionAccess:{canCollect:false,reason:'本日以降の未確定練習日がありません'}};
    S.practiceId=target;$('date').value=target;S.overview=d;
    S.confirmedPracticeKey=confirmedKey;
+   S.selectableDayKey=selectableDayKey;
    S.paymentNeedsRefresh=false;
    renderHome();syncPaymentControls();
  })();
