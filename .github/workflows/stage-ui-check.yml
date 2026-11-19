@@ -68,6 +68,8 @@ on:
       - 'tests/check-stage-finance-v1636c.cjs'
       - 'tests/check-ui-standards.cjs'
       - '.github/workflows/stage-ui-check.yml'
+      - 'scripts/check-stage-line-public.mjs'
+      - '.github/workflows/stage-line-public-smoke.yml'
 permissions:
   contents: read
 jobs:
@@ -167,3 +169,5 @@ jobs:
         run: node tests/check-stage-withdraw-rejoin-v1653.cjs
       - name: Verify GAS payment timing without extra sheet writes
         run: node tests/check-gas-payment-profile.cjs
+      - name: Syntax-check public staging LINE read-only smoke
+        run: node --check scripts/check-stage-line-public.mjs
