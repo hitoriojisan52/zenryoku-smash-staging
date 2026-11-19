@@ -894,7 +894,8 @@ async function openScheduleMaster_(){
 }
 function updateScheduleWeekday_(){
  const date=$('scheduleDate').value;
- $('scheduleWeekday').textContent=scheduleDateValid_(date)?window.SMDate.date(date,true):'';
+ if(!scheduleDateValid_(date)){$('scheduleWeekday').textContent='';return;}
+ syncPayoutWeekday_('scheduleDate','scheduleWeekday');
 }
 function openScheduleEditor_(row=null){
  SC.editing=row;

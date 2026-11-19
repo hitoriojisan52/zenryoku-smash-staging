@@ -978,3 +978,23 @@ body.stage-ui > main.container .app-header h1{
 .stage-ui .payout-date-field input[type="date"]:disabled + .weekday-hint{
  background:#f1f2f4;color:#687680;
 }
+
+/* v0.16.69: schedule add/edit keeps the same in-field weekday placement
+   as payout dates. This overrides the legacy below-input schedule hint
+   (inline CSS in live.html) without changing the native date input. */
+.stage-ui #scheduleEditDialog #scheduleWeekday{
+ position:absolute;top:50%;left:calc(10.5ch + 9px);right:auto;
+ transform:translateY(-50%);
+ display:block;min-height:0;margin:0;padding:0 2px;
+ font-size:16px;line-height:1;color:#485d68;background:#fff;
+ pointer-events:none;white-space:nowrap;
+}
+.stage-ui #scheduleEditDialog #scheduleDate:disabled + #scheduleWeekday{
+ background:#f1f2f4;color:#687680;
+}
+/* Add modest vertical breathing room inside the two visible receipt
+   upload picker buttons; do not change any file input IDs or heights. */
+.stage-ui #reimbursementReceipt::file-selector-button,
+.stage-ui #ledgerReimbursementReceipt::file-selector-button{
+ padding-block:4px!important;
+}

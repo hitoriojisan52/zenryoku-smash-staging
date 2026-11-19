@@ -638,6 +638,11 @@ function mutateLedger_(ss,member,payload){
    }else if(kind==='reimbursement'||kind==='other'){
      id=str_(payload.rowId);if(!/^([RO]-)[\w-]{8,100}$/.test(id)||rows.some(function(x){return x.rowId===id;}))fail_('BAD_REQUEST','新しい収支IDが不正です');
      dateAllowed_(str_(payload.date));var income=kind==='reimbursement'?0:jpy_(payload.income,false),expense=kind==='reimbursement'?jpy_(payload.amount,false):jpy_(payload.expense,false);
+     // Read-only preflight under ScriptLock. A backdated reimbursement
+     // cannot alter any previously confirmed, later-date balance.
+     if(kind==='reimbursement'&&original.some(function(confirmed){
+       return confirmed.kind!=='opening'&&confirmed.status==='confirmed'&&confirmed.date>str_(payload.date);
+     }))fail_('LOCKED','指定した精算日より後の日付に確定済みの収支が存在するため、登録できません。');
      if(!income&&!expense||kind==='reimbursement'&&!expense)fail_('BAD_REQUEST','金額が不正です');
      var item=str_(payload.item),payee=norm_(payload.payee),label=kind==='reimbursement'?'立替精算：'+item+'（'+payee+'）':str_(payload.label);
      if(kind==='reimbursement'&&(!item||!payee)||!label)fail_('BAD_REQUEST','費目・立替者・表示名が必要です');
@@ -1779,6 +1784,14 @@ function stageReceiptAuthorizeV1666_(){
   stageReceiptFolder_();
   return '検証用領収書フォルダのDrive権限確認が成功しました';
  });
+}
+/**
+ * Manually runnable, staging-only Drive OAuth preflight. The account invoking
+ * this must match the existing staging Web App deployment's executing account.
+ * No IDs, tokens, or private folder links are logged or returned.
+ */
+function authorizeStagingReceiptDriveV1669(){
+ return stageReceiptAuthorizeV1666_();
 }
 function receiptUpload_(ss,member,payload){
  var id=str_(payload.rowId),row=row_(entries_(ss),id);

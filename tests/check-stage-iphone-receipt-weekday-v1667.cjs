@@ -20,7 +20,7 @@ ok(css.includes('.payout-date-field{')&&
  css.includes('padding-right:87px!important;'),
  'weekday renders within input perimeter without blocking native date picker');
 const wrapper=html.match(/<span class="payout-date-field">/g)||[];
-ok(wrapper.length===2&&
+ok(wrapper.length===3&&
  !html.includes('id="payoutDate" type="text"')&&
  !html.includes('id="ledgerPayoutDate" type="text"'),
  'native calendar/date-value controls remain unchanged');
