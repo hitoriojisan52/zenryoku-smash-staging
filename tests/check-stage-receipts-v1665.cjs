@@ -58,7 +58,7 @@ const ctx={
   row.version=values[0][0];row.receiptFileId=values[0][4];
  }})})
 };
-const begin=gas.indexOf('function stageReceiptGuard_('),end=gas.indexOf('function dispatch_(',begin);
+const begin=gas.indexOf('var STAGE_RECEIPT_PARENT_V1672_='),end=gas.indexOf('function dispatch_(',begin);
 ok(begin>=0&&end>begin,'actual GAS staging receipt functions are isolateable');
 vm.createContext(ctx);vm.runInContext(gas.slice(begin,end),ctx);
 const pdf=Buffer.from('%PDF-1.4\nTest receipt\n').toString('base64');
