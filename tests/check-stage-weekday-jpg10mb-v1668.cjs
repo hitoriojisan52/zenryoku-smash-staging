@@ -12,7 +12,7 @@ const html=read('live.html'),css=read('stage-ui.css'),js=read('live.js'),
 let tests=0;const ok=(v,m)=>{assert.ok(v,m);tests++};
 new Function(js);tests++;
 
-ok(html.includes('stage-ui.css?v=1667-near1668'),
+ok(html.includes('stage-ui.css?v=1672-finance-receipt'),
  'LINE WebView receives a distinct CSS asset after this visual fix');
 ok(/\.stage-ui \.payout-date-field \.weekday-hint\{\s*position:absolute;top:50%;left:calc\(10\.5ch \+ 9px\);right:auto;/.test(css),
  'weekday is adjacent to the left-aligned date rather than the picker icon');

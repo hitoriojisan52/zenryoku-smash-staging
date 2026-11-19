@@ -46,24 +46,24 @@ const api=async(path,payload)=>{
  return {practice:{practiceId:payload.practiceId||'P-PAST',date:old,place:'旧日程'},
   practices:dates,participants:[],ledger:{},collectionAccess:{canCollect:true}};
 };
-const reload=new Function('S','$','call','window','Option','renderHome','syncPaymentControls',
+const reload=new Function('S','$','call','window','Option','renderHome','syncPaymentControls','today',
  ui.slice(start,end)+'\nreturn reload;')(
  state,id=>id==='date'?dateNode:null,api,{SMDate:D},
  function Option(text,value){this.text=text;this.value=value},
- ()=>{renders++},()=>{controls++});
+ ()=>{renders++},()=>{controls++},()=> t);
 (async()=>{
  await reload(true);
  ok(calls.join(',')===',P-TODAY-EARLY'&&state.practiceId==='P-TODAY-EARLY'&&
-  dateNode.value==='P-TODAY-EARLY'&&dateNode.items.length===4,
-  'first load corrects legacy old-date default and hides historical option');
- ok(dateNode.items.every(i=>!i.text.includes('前回'))&&
-  renders===1&&controls===1,'no old date appears or is rendered as current money');
+  dateNode.value==='P-TODAY-EARLY'&&dateNode.items.length===5,
+  'first load defaults nearest today while displaying past unconfirmed options');
+ ok(dateNode.items.some(i=>i.text.includes('前回'))&&
+  renders===1&&controls===1,'historical unconfirmed schedule remains selectable on home screen');
  state.practiceId='P-LATE';calls=[];await reload(true);
  ok(calls.join(',')==='P-LATE'&&state.practiceId==='P-LATE',
   'manual future-date selection survives explicit refresh');
  dates=[rows[1]];state.practiceId='P-PAST';calls=[];await reload(true);
- ok(dateNode.items.length===1&&dateNode.items[0].value===''&&state.practiceId===''&&state.overview.practice===null&&
-  state.overview.participants.length===0,'no future date never leaks old participant or ledger data');
+ ok(dateNode.items.some(i=>i.value==='P-PAST')&&state.practiceId==='P-PAST'&&
+  state.overview.practice.practiceId==='P-PAST','past unconfirmed date remains selectable without a future date');
 
  // Selected day on opening participant manager uses a different nearest choice.
  ok(ui.includes("PM.practiceId=window.SMDate.nearestPractice(S.overview?.practices)?.practiceId||''")&&
@@ -120,10 +120,10 @@ const reload=new Function('S','$','call','window','Option','renderHome','syncPay
   css.includes('.stage-ui #participantSettings.match-settings{margin-top:2px;}'),
   'buttons retain a little inside spacing; match foldable rows become shorter');
  for(const p of ['live.html','match.html','guest.html','match-view.html']){
-  ok(read(p).includes('stage-ui.css?v='+(p==='live.html'?'1667':'1665')),p+' has cache-busted compact style');
+  ok(read(p).includes('stage-ui.css?v='+(p==='live.html'?'1672-finance-receipt':'1665')),p+' has cache-busted compact style');
  }
  ok(html.includes('date-format.js?v=1664')&&html.includes('visitor-approval.js?v=1664')&&
-  html.includes('live.js?v=1667')&&matchHtml.includes('match.js?v=1664'),
+  html.includes('live.js?v=1672-finance-receipt')&&matchHtml.includes('match.js?v=1664'),
   'all changed date/navigation handlers have updated script URLs');
  console.log('PASS '+n+'/'+n+' upcoming date defaults, compact cash, grouped menus and match copy');
 })().catch(e=>{console.error(e);process.exitCode=1});

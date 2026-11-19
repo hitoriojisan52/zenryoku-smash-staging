@@ -16,37 +16,43 @@ const past=plus(-2),future=plus(2);
 const dates=[{practiceId:'P-PAST',date:past,startTime:'13:00',place:'前回会場'},
  {practiceId:'P-FUTURE',date:future,startTime:'09:00',place:'次回会場'}];
 const state={pending:new Set(),loading:false,reloadPromise:null,updateEpoch:0,
- practiceId:'',paymentNeedsRefresh:false,showHistoryDates:false};
+ practiceId:'',paymentNeedsRefresh:false,confirmedPracticeKey:''};
 const dateNode={value:'',items:[],replaceChildren(...children){this.items=children;}};
 const calls=[];
+let confirmedIds=[];
 const api=async(_path,payload)=>{
  calls.push(payload.practiceId||'');
  const target=dates.find(p=>p.practiceId===payload.practiceId)||dates[0];
- return {practice:target,practices:dates,participants:[],ledger:null,
-  collectionAccess:{canCollect:false,reason:'閲覧のみ'}};
+ return {practice:target,practices:dates,confirmedPracticeIds:confirmedIds,
+  participants:[],ledger:null,collectionAccess:{canCollect:false,reason:'閲覧のみ'}};
 };
-const reloadSource=ui.slice(ui.indexOf('async function reload(refreshDates){'),ui.indexOf('function toggleHomeHistory_(){'));
-ok(reloadSource.includes('const history=S.showHistoryDates?'),'history remains explicitly opted in');
+const reloadSource=ui.slice(ui.indexOf('async function reload(refreshDates){'),ui.indexOf('function renderHome(){'));
+ok(reloadSource.includes('const eligible=(d.practices||[])')&&
+ !ui.includes('function toggleHomeHistory_(){'),
+ 'collection picker always exposes unconfirmed past dates; no history toggle');
 const reload=new Function('S','$','call','window','Option','renderHome','syncPaymentControls','today',
  reloadSource+'return reload;')(
  state,id=>id==='date'?dateNode:null,api,{SMDate:D},
  function Option(text,value){this.text=text;this.value=value;},()=>{},()=>{},()=>day);
 (async()=>{
  await reload(true);
- ok(state.practiceId==='P-FUTURE'&&dateNode.items.length===1,
-  'default remains nearest future, not the past');
- state.showHistoryDates=true;await reload(true);
- ok(dateNode.items.length===2&&dateNode.items[1].text.startsWith('履歴：'),
-  'history opt-in makes old practice available but does not auto-select it');
+ ok(state.practiceId==='P-FUTURE'&&dateNode.items.length===2&&
+  dateNode.items.some(o=>o.value==='P-PAST'),
+  'default remains nearest future, but past unconfirmed date is directly selectable');
  state.practiceId='P-PAST';await reload(true);
  ok(state.practiceId==='P-PAST'&&state.overview.practice.practiceId==='P-PAST'&&
-  dateNode.value==='P-PAST','historical collection view reads exact practice without write');
- state.showHistoryDates=false;state.practiceId='';await reload(true);
- ok(state.practiceId==='P-FUTURE'&&dateNode.items.length===1,
-  'switching off history returns to future default');
- ok(html.includes('id="homeHistoryToggle"')&&html.includes('id="participantHistoryToggle"')&&
+  dateNode.value==='P-PAST','old unconfirmed practice stays selected for inspection');
+ confirmedIds=['P-PAST'];state.practiceId='';await reload(true);
+ ok(state.practiceId==='P-FUTURE'&&dateNode.items.length===1&&
+  dateNode.items[0].value==='P-FUTURE',
+  'confirmed practice disappears from collection picker immediately');
+ confirmedIds=[];await reload(true);
+ ok(dateNode.items.some(o=>o.value==='P-PAST'),
+  'unlocked practice returns to collection picker without history button');
+ ok(!html.includes('id="homeHistoryToggle"')&&
+  html.includes('id="participantHistoryToggle"')&&
   html.includes('id="visitorMineHistoryToggle"')&&html.includes('id="visitorAdminHistoryToggle"'),
-  'compact history toggles exist only on approved retrospective management screens');
+  'only collection history toggle removed; participant and visitor history retained');
  ok(ui.includes('PM.showHistoryDates=false;')&&ui.includes('const selectable=[...upcoming,...history]')&&
   ui.includes('PM.practices=selectable;PM.practiceId=target;'),
   'participant management preserves future default with historical lookup');
@@ -121,7 +127,7 @@ const reload=new Function('S','$','call','window','Option','renderHome','syncPay
   gas.includes('function stageReceiptAuthorizeV1666_()')&&
   gas.includes('stageReceiptFolder_();'),
   'one-time staging Drive authorization path and persistent receipt warning are wired');
- ok(html.includes('live.js?v=1667')&&
+ ok(html.includes('live.js?v=1672-finance-receipt')&&
   html.includes('visitor-approval.js?v=1664-h1666'),
   'LIFF WebView fetches fresh code after history additions');
  console.log('PASS '+count+'/'+count+' history isolation and receipt partial-save recovery');

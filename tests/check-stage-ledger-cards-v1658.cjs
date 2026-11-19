@@ -38,9 +38,9 @@ ok(css.includes('.stage-ui button{min-height:44px;font-size:14px;font-weight:700
  css.includes('min-width:44px;min-height:44px;padding:5px 7px'),
  'older ledger CSS remains intact and the latest compact-height override takes precedence');
 for(const page of ['live.html','match.html','match-view.html','guest.html']){
- ok(file(page).includes('stage-ui.css?v='+(page==='live.html'?'1667':'1665')),page+' refreshes shared compact CSS');
+ ok(file(page).includes('stage-ui.css?v='+(page==='live.html'?'1672-finance-receipt':'1665')),page+' refreshes shared compact CSS');
 }
-ok(html.includes('live.js?v=1667'),'ledger JS cache bust applied');
+ok(html.includes('live.js?v=1672-finance-receipt'),'ledger JS cache bust applied');
 ok(css.includes('tr.carry-row{')&&
  css.includes('#ledgerDialog .ledger-table tbody tr.carry-row'),
  'carry-forward light yellow styling preserved in both layouts');
@@ -61,7 +61,7 @@ const rows=[
  {rowId:'R-LATE',date:'2026-11-11',label:'立替精算',kind:'reimbursement',
  status:'open',canConfirm:false,version:2,income:0,expense:50,balance:850},
  {rowId:'R-CLOSED',date:'2026-11-12',label:'確定済み試験',kind:'reimbursement',
- status:'confirmed',canConfirm:false,version:3,income:10,expense:0,balance:860},
+ status:'confirmed',canConfirm:false,canUnlock:true,version:3,income:10,expense:0,balance:860},
  {rowId:'P-FUTURE',date:'2026-11-29',label:'未来日',kind:'practice',
  status:'open',canConfirm:false,version:4,income:0,expense:0,balance:860}
 ];
@@ -94,9 +94,9 @@ const status=i=>card(i).children[6].children[1];
  ok(status(1).textContent==='⏳ 未確定'&&status(1).className.includes('is-open'),
   'open card has a visible compact status label');
  ok(buttons(1).map(x=>x.textContent).join('|')==='修正|削除|確定'&&
-  buttons(1)[0].disabled&&buttons(1)[1].className==='btn-danger'&&
+  buttons(1)[0].disabled&&buttons(1)[1].className==='btn-danger'&&buttons(1)[1].disabled&&
   !buttons(1)[2].disabled,
-  'open practice has fixed slots, disabled edit, red delete and valid confirm');
+  'open practice has fixed slots, disabled edit/delete and valid confirm');
  buttons(1)[2].handlers.click();
  ok(calls.length===1&&calls[0].action==='confirm'&&calls[0].rowId==='P-EARLY',
   'same operation handler still receives unchanged row ID');

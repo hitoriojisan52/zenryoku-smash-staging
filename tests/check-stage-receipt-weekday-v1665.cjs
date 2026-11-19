@@ -16,7 +16,7 @@ ok(worker.includes("const limit=op==='receipt.upload'?2200000:32768"),'large pay
 ok(gas.includes("function receiptUpload_(")&&gas.includes("function receiptDownload_(")&&gas.includes("stageReceiptFolder_()"),'GAS stores in configured private Drive folder and reads via auth');
 ok(gas.includes("unlockable_(row);expectVersion_(row.version,payload.expectedVersion)")&&gas.includes("if(op==='receipt.get')return withLock_"),'upload uses existing row version/lock and read remains member authenticated');
 ok(gas.includes("sh.getRange(ix+2,11,1,5).setValues"),'version and file reference are attached in one sheet update');
-ok(gas.includes("function deletedPracticeLedgerIds_(")&&gas.includes("result.data.action!=='delete'"),'only audited deleted rows can re-register');
-ok(js.includes("deleted.has(p.practiceId)")&&gas.includes("deletedPracticeLedgerIds_(ss,rows).indexOf(p.practiceId)<0"),'client and server enforce deleted practice eligibility');
-ok(html.includes('stage-ui.css?v=1667')&&html.includes('live.js?v=1667'),'new client code cache-busted');
+ok(gas.includes("if(r.kind==='practice')fail_('FORBIDDEN'")&& !html.includes('練習日（削除行を再登録）'), 'deleted practice row restoration is no longer supported; delete via schedule master');
+ok(!js.includes("deleted.has(p.practiceId)")&&gas.includes("kind==='reimbursement'||kind==='other'"), 'only other/reimbursement ledger row creation is supported');
+ok(html.includes('stage-ui.css?v=1672-finance-receipt')&&html.includes('live.js?v=1672-finance-receipt'),'new client code cache-busted');
 console.log('PASS '+n+'/'+n+' receipt upload, payout weekdays and deleted-ledger eligibility');

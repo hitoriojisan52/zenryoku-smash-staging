@@ -3,6 +3,7 @@
 **新しいチャットで開発を再開する場合は、必ず [開始用プロンプト](docs/NEW_CHAT_START_PROMPT.md) を使用し、[開発引継ぎ文書](docs/SESSION_HANDOFF.md) と [仕様優先順位の正式ルール](docs/SPEC_PRIORITY_POLICY.md) を確認する。**
 **GAS・Worker・PagesのGitHub経由デプロイとユーザーへの具体的な作業案内**は [DEPLOYMENT_AND_USER_ACTIONS.md](docs/DEPLOYMENT_AND_USER_ACTIONS.md) に従う（Worker v0.16.53の反映確認とGAS/Workerの設定完了報告を記録済み）。
 **退会・再入会の確定仕様と接続検証の進捗**：[v0.16.53引継ぎ](docs/stage-v1653-withdraw-rejoin.md)を参照。
+**v0.16.72（検証用次版）**：練習日収支の削除を練習日程マスタに一本化し、旧再登録区分を削除。後続確定行のある確定解除を非活性化、同日最終行のみ可能。収支追加の0/0事前エラー、集金管理の未確定全日程表示・履歴ボタン削除、日程確定時の後日確定チェック、領収書のアプリ内表示、所有者が公開を許容した「全力IT」配下への新規保存。旧証憑は移動しない。[仕様・実機受入](docs/stage-v1672-finance-receipt-history.md)。本番未反映。
 **v0.16.69（検証のみ）**：後日確定行がある過去日立替精算の拒否理由を具体化、練習日程追加の開催日を欄内曜日へ、領収書選択ボタンの上下余白調整。Driveの手動OAuth確認用関数を追加。全体収支管理表の練習日行は削除可能なため、再登録区分の削除は保留。[仕様・復旧手順](docs/stage-v1669-ledger-drive-schedule-ui.md)。実機未受入、本番未変更。
 **v0.16.68（検証UI調整）**：曜日を日付欄内の年月日直後に配置。約10MBのJPGを元画像として選択し、既存の1.5MB上限へ圧縮保存することを回帰試験で明文化。[詳細](docs/stage-v1668-weekday-jpg10mb.md)。GAS・Workerは変更なし、本番反映なし。実機確認待ち。
 **v0.16.67（検証UI改修）：精算日曜日の欄内表示とJPG/HEIC iPhoneカメラ写真の変換**：[差分/実機受入](docs/stage-v1667-inline-weekday-iphone-receipts.md)。原画像が大きい場合は端末内でJPEG1.5MBへ縮小。既存GAS/Workerのサイズ・認証・残高・確定順序は変更しない。実機未受入、本番未変更。

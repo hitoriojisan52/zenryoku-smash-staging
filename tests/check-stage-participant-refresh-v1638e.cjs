@@ -52,12 +52,12 @@ const dom={date:{value:'P-TEST',items:[],replaceChildren(...opts){this.items=opt
 const requests=[];
 const call=()=>new Promise((resolve,reject)=>{requests.push({resolve,reject})});
 let paint=0,controls=0;
-const reload=new Function('S','$','call','window','Option','renderHome','syncPaymentControls',
+const reload=new Function('S','$','call','window','Option','renderHome','syncPaymentControls','today',
  ui.slice(a,z)+'\nreturn reload;')(
  S,id=>dom[id],call,
  {SMDate:{date:v=>v,practiceLabel:p=>p.date,upcomingPractices:rows=>rows}},
  function Option(label,value){this.text=label;this.value=value;},
- function(){paint++},function(){controls++}
+ function(){paint++},function(){controls++},()=> '2026-11-19'
 );
 const info={ok:true,practice:{practiceId:'P-TEST'},practices:[
  {practiceId:'P-TEST',date:'2026-11-18',startTime:'09:00',endTime:'12:00'}]};
@@ -73,7 +73,7 @@ const info={ok:true,practice:{practiceId:'P-TEST'},practices:[
  requests[1].resolve(info);
  await manual;
  ok(!S.loading&&S.reloadPromise===null,'pending refresh tracking clears after completion');
- ok(dom.date.items.length===1&&dom.date.value==='P-TEST',
+ ok(dom.date.items.some(x=>x.value==='P-TEST')&&dom.date.value==='P-TEST',
   'manual refresh forces date options to be re-rendered');
  ok(paint===2&&controls===2,'both reads completed with UI updates');
  const startCase=reload(false);
@@ -89,6 +89,6 @@ const info={ok:true,practice:{practiceId:'P-TEST'},practices:[
   'manual refresh explicitly labels blocking loading dialog');
  ok(html.includes('stageBusyDialog')&&html.includes('stage-busy-spinner'),
   'full-screen common spinner remains present');
- ok(html.includes('live.js?v=1667'),'client cache-busting version advanced');
+ ok(html.includes('live.js?v=1672-finance-receipt'),'client cache-busting version advanced');
  console.log('PASS '+n+'/'+n+' participant match guard and manual/silent polling spinner regression');
 })().catch(err=>{console.error(err);process.exitCode=1});

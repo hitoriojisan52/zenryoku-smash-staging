@@ -98,7 +98,7 @@ ok(!visitor.includes("{value:'all',text:'すべての日程'}")&&
  visitor.includes('unique.has(previous)?previous'),
  'all/past dates excluded and manually chosen future date preserved');
 ok(html.includes('date-format.js?v=1664')&&html.includes('visitor-approval.js?v=1664')&&
- html.includes('dialog-close.js?v=1661')&&html.includes('stage-ui.css?v=1667')&&
- html.includes('live.js?v=1667'),
+ html.includes('dialog-close.js?v=1661')&&html.includes('stage-ui.css?v=1672-finance-receipt')&&
+ html.includes('live.js?v=1672-finance-receipt'),
  'all versioned page dependencies load new layout and date labels');
 console.log('PASS '+checks+'/'+checks+' schedule/context controls, compact taps and Japanese dropdown labels');

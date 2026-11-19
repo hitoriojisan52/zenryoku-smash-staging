@@ -134,7 +134,7 @@ const rows=[
  {rowId:'R-OPEN',date:'2026-11-11',label:'立替精算',kind:'reimbursement',status:'open',
   canConfirm:true,version:1,income:0,expense:5,balance:5},
  {rowId:'R-CLOSED',date:'2026-11-12',label:'確定済み',kind:'reimbursement',status:'confirmed',
-  canConfirm:false,version:2,income:0,expense:0,balance:5},
+  canConfirm:false,canUnlock:true,version:2,income:0,expense:0,balance:5},
  {rowId:'P-FUTURE',date:'2026-12-12',label:'未来練習',kind:'practice',status:'open',
   canConfirm:false,version:1,income:0,expense:0,balance:5},
 ];
@@ -153,7 +153,7 @@ const labels=row=>cells(row).map(x=>x.textContent);
  await renderLedger();
  ok(nodes.ledgerBody.children.length===5,'carry plus all practice/reimbursement rows rendered');
  ok(labels(1).join(',')==='修正,削除,確定'&&
-   cells(1)[0].disabled&&cells(1)[2].disabled,
+   cells(1)[0].disabled&&cells(1)[1].disabled&&cells(1)[2].disabled,
    'unconfirmed practice keeps disabled edit/confirm without hiding three slots');
  ok(labels(2).join(',')==='修正,削除,確定'&&
   cells(2)[1].className==='btn-danger'&&!cells(2)[2].disabled,
