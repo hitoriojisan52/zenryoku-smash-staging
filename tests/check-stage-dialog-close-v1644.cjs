@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-// v0.16.48: only navigation screens have a top-right Close.
+// v0.16.73: navigation screens and the receipt viewer have a top-right Close.
 // Confirmation/edit/error popups retain their original footer actions.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const read=p=>fs.readFileSync(path.resolve(__dirname,'..',p),'utf8');
@@ -35,7 +35,8 @@ const screens={
  visitorAdminDialog:{close:'visitorAdminClose',top:['visitorAdminRefresh']},
  participantDialog:{close:'participantClose',top:['participantReload'],heading:'participant-heading'},
  scheduleDialog:{close:'scheduleClose',top:['scheduleAdd','scheduleReload'],heading:'schedule-heading'},
- ledgerDialog:{close:'closeLedger',top:['newLedgerRow']}
+ ledgerDialog:{close:'closeLedger',top:['newLedgerRow']},
+ receiptPreviewDialog:{close:'receiptPreviewClose'}
 };
 const popups={
  modal:{close:'closeModal'},categoryDialog:{cancel:'cancelCategory'},
@@ -117,7 +118,7 @@ ok(!all.find(d=>d.id==='stageBusyDialog').querySelector('button'),
  'busy lock has no controls');
 ok(!js.includes('position:absolute')&&!css.includes('.stage-close-row'),
  'old overlapping Close implementation remains removed');
-ok(html.includes('dialog-close.js?v=1661')&&html.includes('stage-ui.css?v=1672-finance-receipt'),
+ok(html.includes('dialog-close.js?v=1673-receipt-close')&&html.includes('stage-ui.css?v=1673-receipt-close'),
  'mobile web UI loads versioned scripts');
 ok(!match.includes('id="matchConfirmClose"')&&
  !confirm.includes("byId('matchConfirmClose')")&&
