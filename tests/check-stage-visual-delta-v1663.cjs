@@ -55,10 +55,12 @@ ok(access.includes("'🔤 氏名カナ：'+")&&
  access.includes("'📅 登録日：'+")&&
  !access.includes("'📅 利用登録日：'+"),
  'member management shows emoji labels and shorter registration date');
+const noteRule=current.match(/\.stage-ui #list \.participant-card \.participant-memo\{([^}]+)\}/)?.[1]||'';
 ok(ui.includes("memo.className='meta participant-memo'")&&
- !current.includes('font-weight:700;')&&
+ noteRule.includes('font-weight:400!important;')&&
+ !noteRule.includes('font-weight:700;')&&
  ui.includes("note.textContent='📝 '+p.memo"),
- 'payment note styling and separate roster note labels remain correct');
+ 'payment note styling is normal weight even when other headings are bold');
 for(const p of ['live.html','match.html','match-view.html','guest.html']){
  ok(read(p).includes('stage-ui.css?v=1664'),
   p+' busts the old cached 38px CSS for real LINE webview reload');
