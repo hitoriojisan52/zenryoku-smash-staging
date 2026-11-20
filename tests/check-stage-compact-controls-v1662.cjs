@@ -33,7 +33,7 @@ ok(js.includes("memo.className='meta participant-memo'")&&
  js.includes("memo.textContent='📝 '+p.memo"),
  'real payment-list renderer keeps the memo text and supplies a unique red class');
 const start=js.indexOf('function renderParticipantManager_(){'),
- end=js.indexOf('async function loadParticipants_(){',start);
+ end=js.indexOf('async function loadParticipants_(',start);
 ok(start>0&&end>start,'real participant list renderer found');
 const roster=js.slice(start,end);
 ok(roster.includes("note.textContent='📝 '+p.memo")&&
