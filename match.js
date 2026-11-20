@@ -159,7 +159,7 @@ async function change(action,payload={}){if(!isDuty())throw Error('対戦表の�
 const Startup={scriptStarted:performance.now(),timings:{}};
 async function timedStartup(key,fn){
  const start=performance.now();
- try{return await fn();}finally{Startup.timings[key]=Math.round(performance.now()-start);}
+ try{return await deadlineMatch_(Promise.resolve().then(fn),false);}finally{Startup.timings[key]=Math.round(performance.now()-start);}
 }
 // v0.16 staging: members share one LIFF; read-only members use existing safe APIs.
 async function openGeneralMemberView16_(){
