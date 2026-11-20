@@ -67,7 +67,7 @@ const rows=[
 ];
 const payload={carried:900,rows,maxMonth:'2026-11',closingBalance:860};
 const S={actor:{role:'duty'},ledger:null},calls=[];
-const lStart=ui.indexOf('async function loadLedger(){'),
+const lStart=ui.indexOf('async function loadLedger('),
  lEnd=ui.indexOf('function ledgerAction(',lStart);
 ok(lStart>=0&&lEnd>lStart,'real ledger renderer extracted from LIVE code');
 const render=new Function('$','call','S','document','today','window','yen','ledgerAction',
