@@ -362,8 +362,8 @@ async function boot(){
   S.token=liff.getIDToken();if(!S.token)throw new Error('LINE IDトークンを取得できません');
   $('stageBusyLabel').textContent='利用者の権限を確認しています…';
   const sessionStart=performance.now();
-  setupRegistration_();
-  if(REGISTRATION_MODE){
+  if(typeof setupRegistration_==='function')setupRegistration_();
+  if(typeof REGISTRATION_MODE!=='undefined'&&REGISTRATION_MODE){
    // The tester has no member record yet. Keep the management controls inert.
    document.body.classList.add('stage-member-locked');
    for(const el of document.querySelectorAll('main button,main select,main input'))el.disabled=true;
