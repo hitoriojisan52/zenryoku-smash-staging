@@ -510,9 +510,32 @@ async function saveAmount(kind){
    }finally{S.pending.delete('amount');el.disabled=false;}
  });
 }
-async function openLedger(){await guard(async()=>{gateEdit();close('manageDialog');
- $('ledgerMonth').value=today().slice(0,7);await loadLedger();dialog('ledgerDialog');});}
-async function loadLedger(){const month=$('ledgerMonth').value,ledger=await call('/api/ledger',{month});S.ledger=ledger;const b=$('ledgerBody');b.replaceChildren();
+function ledgerLoadingRow_(month){
+ const body=$('ledgerBody');body.replaceChildren();
+ const tr=document.createElement('tr');tr.className='carry-row';
+ for(const value of [window.SMDate.date(month+'-01'),'前月繰越','—','—','読み込み中…','', '—']){
+  const td=document.createElement('td');td.textContent=value;tr.append(td);
+ }
+ body.append(tr);
+ $('ledgerTotal').textContent='残金：読み込み中…';
+ $('prevMonth').disabled=true;$('nextMonth').disabled=true;
+ $('newLedgerRow').disabled=true;
+}
+function readLedgerScreen_(){
+ const month=$('ledgerMonth').value;
+ ledgerLoadingRow_(month);
+ return readScreen_('ledgerDialog','先月繰り越しと収支明細を読み込んでいます…',
+  isCurrent=>loadLedger(isCurrent),()=>{
+   $('prevMonth').disabled=false;
+   $('newLedgerRow').disabled=false;
+  });
+}
+function openLedger(){
+ gateEdit();close('manageDialog');
+ $('ledgerMonth').value=today().slice(0,7);
+ S.ledger=null;return readLedgerScreen_();
+}
+async function loadLedger(isCurrent=()=>true){const month=$('ledgerMonth').value,ledger=await call('/api/ledger',{month});if(!isCurrent())return;S.ledger=ledger;const b=$('ledgerBody');b.replaceChildren();
  const rows=[{rowId:'CARRY-'+month,date:month+'-01',label:'前月繰越',income:0,expense:0,balance:ledger.carried,confirmedBy:'',kind:'carry',status:'confirmed'},...ledger.rows.filter(r=>r.kind!=='opening')];
  for(const r of rows){const tr=document.createElement('tr');
   // Preserve the semantic seven-column table for desktop, CSS reflows it
@@ -905,22 +928,21 @@ function validateCashSnapshot_(result,practiceId){
   throw new Error('金種の種類が一致しません');
  return {result,counts};
 }
-async function refreshCashSnapshot_(){
+async function refreshCashSnapshot_(isCurrent=()=>true){
  const practiceId=S.practiceId;
  cashSnapshot=null;renderCash();
  const response=await call('/api/cash/get',{practiceId});
+ if(!isCurrent())return;
  if(practiceId!==S.practiceId)throw new Error('開催日が変更されました。もう一度現金確認を開いてください');
  const validated=validateCashSnapshot_(response,practiceId);
  cashSnapshot=response;cashCountsState=validated.counts;renderCash();
 }
-async function openCash(){
- let ready=false;
- await guard(async()=>{
-  gateEdit();if(!CASH)throw new Error('現金確認機能の読み込みに失敗しました');
-  await refreshCashSnapshot_();
-  ready=true;
- });
- if(ready){close('manageDialog');dialog('cashDialog');}
+function openCash(){
+ gateEdit();if(!CASH)throw new Error('現金確認機能の読み込みに失敗しました');
+ cashSnapshot=null;cashCountsState=blankCashCounts();renderCash();
+ close('manageDialog');
+ return readScreen_('cashDialog','現金確認の帳簿残高を読み込んでいます…',
+  isCurrent=>refreshCashSnapshot_(isCurrent));
 }
 function resetCashCounts(){
  cashCountsState=blankCashCounts();renderCash();toast('枚数をリセットしました');
@@ -1006,8 +1028,9 @@ function renderScheduleMaster_(){
   card.append(head,details,actions);list.append(card);
  }
 }
-async function loadScheduleMaster_(){
+async function loadScheduleMaster_(isCurrent=()=>true){
  const d=await call('/api/schedule/list');
+ if(!isCurrent())return;
  if(!Array.isArray(d?.schedules)||d.schedules.some(r=>!r?.practiceId||
    !scheduleDateValid_(r.date)||!Number.isSafeInteger(r.version)||typeof r.enabled!=='boolean')){
   throw new Error('練習日程マスタの取得結果を確認できません');
@@ -1015,10 +1038,13 @@ async function loadScheduleMaster_(){
  SC.rows=d.schedules.slice().sort((a,b)=>a.date.localeCompare(b.date)||a.startTime.localeCompare(b.startTime));
  renderScheduleMaster_();
 }
-async function openScheduleMaster_(){
- let loaded=false;
- await guard(async()=>{gateEdit();await loadScheduleMaster_();loaded=true;},'日程を読み込んでいます…');
- if(loaded){close('manageDialog');dialog('scheduleDialog');}
+function openScheduleMaster_(){
+ gateEdit();close('manageDialog');
+ SC.rows=[];$('scheduleList').textContent='練習日程を読み込んでいます…';
+ $('scheduleAdd').disabled=true;
+ return readScreen_('scheduleDialog','練習日程マスタを読み込んでいます…',
+  isCurrent=>loadScheduleMaster_(isCurrent),
+  ()=>$('scheduleAdd').disabled=false);
 }
 function updateScheduleWeekday_(){
  const date=$('scheduleDate').value;
@@ -1349,9 +1375,10 @@ function renderParticipantManager_(){
   content.append(info,actions);card.append(head,content);list.append(card);
  }
 }
-async function loadParticipants_(){
+async function loadParticipants_(isCurrent=()=>true){
  const selected=PM.practiceId;
  let answer=await call('/api/participant/list',{practiceId:selected});
+ if(!isCurrent())return;
  // Keep the participant picker identical to collection: all unconfirmed
  // dates (including past), plus a confirmed practice only on today's date.
  // Confirmed-day read access never removes financeLocked server protection.
@@ -1366,6 +1393,7 @@ async function loadParticipants_(){
   (upcoming[0]?.practiceId||'');
  if(target&&answer.practiceId!==target)
   answer=await call('/api/participant/list',{practiceId:target});
+ if(!isCurrent())return;
  if(!Array.isArray(answer?.practices)||!Array.isArray(answer?.participants)||
   typeof answer.practiceId!=='string'||typeof answer.financeLocked!=='boolean'||
   typeof answer.matchLocked!=='boolean')throw new Error('参加者一覧の取得結果を確認できません');
@@ -1382,8 +1410,7 @@ async function loadParticipants_(){
  participantDates_();$('participantPractice').value=PM.practiceId;
  renderParticipantManager_();
 }
-async function openParticipantManager_(){
- let ready=false;
+function openParticipantManager_(){
  // Opening the screen always defaults to the nearest selectable date today
  // or later. A manually selected past open date remains selectable afterward.
  const confirmedIds=new Set(S.overview?.confirmedPracticeIds||[]);
@@ -1394,13 +1421,19 @@ async function openParticipantManager_(){
    String(a.startTime||'').localeCompare(String(b.startTime||''))||
    String(a.practiceId).localeCompare(String(b.practiceId)));
  PM.practiceId=candidates[0]?.practiceId||'';
- await guard(async()=>{gateEdit();await loadParticipants_();ready=true;},'参加者を読み込んでいます…');
- if(ready){close('manageDialog');dialog('participantDialog');}
+ gateEdit();close('manageDialog');
+ PM.people=[];PM.practices=[];PM.financeLocked=true;PM.matchLocked=true;PM.uncertain=true;
+ $('participantCards').textContent='参加者を読み込んでいます…';
+ $('participantPractice').disabled=true;
+ return readScreen_('participantDialog','参加者一覧を読み込んでいます…',
+  isCurrent=>loadParticipants_(isCurrent),
+  ()=>$('participantPractice').disabled=false);
 }
-async function switchParticipantDate_(){
- const id=$('participantPractice').value;
- PM.practiceId=id;
- await guard(loadParticipants_,'参加者を読み込んでいます…');
+function switchParticipantDate_(){
+ PM.practiceId=$('participantPractice').value;
+ $('participantCards').textContent='参加者を読み込んでいます…';
+ return readScreen_('participantDialog','選択した日の参加者を読み込んでいます…',
+  isCurrent=>loadParticipants_(isCurrent));
 }
 function openParticipantEditor_(p){
  if(PM.uncertain||PM.financeLocked||PM.matchLocked)return;
@@ -1524,7 +1557,8 @@ function bind(){
  $('scheduleDate').addEventListener('input',updateScheduleWeekday_);
  $('scheduleAdd').addEventListener('click',()=>openScheduleEditor_());
  $('scheduleClose').addEventListener('click',()=>close('scheduleDialog'));
- $('scheduleReload').addEventListener('click',()=>guard(loadScheduleMaster_,'日程を読み込んでいます…'));
+ $('scheduleReload').addEventListener('click',()=>readScreen_('scheduleDialog','練習日程を更新しています…',
+ isCurrent=>loadScheduleMaster_(isCurrent)));
  $('scheduleEditCancel').addEventListener('click',()=>close('scheduleEditDialog'));
  $('scheduleEditForm').addEventListener('submit',saveScheduleMaster_);
  $('scheduleActionCancel').addEventListener('click',()=>close('scheduleActionDialog'));
@@ -1540,7 +1574,8 @@ function bind(){
  $('attendanceCancel').addEventListener('click',()=>close('attendanceDialog'));
  $('participantPractice').addEventListener('change',switchParticipantDate_);
 
- $('participantReload').addEventListener('click',()=>guard(loadParticipants_,'参加者を読み込んでいます…'));
+ $('participantReload').addEventListener('click',()=>readScreen_('participantDialog','参加者を更新しています…',
+ isCurrent=>loadParticipants_(isCurrent)));
  $('participantClose').addEventListener('click',()=>close('participantDialog'));
  $('participantEditCancel').addEventListener('click',()=>close('participantEditDialog'));
  $('participantEditForm').addEventListener('submit',saveParticipantEdit_);
@@ -1552,7 +1587,7 @@ function bind(){
  $('visitorForm').addEventListener('submit',confirmVisitorForm_);
  $('visitorConfirmCancel').addEventListener('click',()=>close('visitorConfirmDialog'));
  $('visitorConfirmSave').addEventListener('click',registerVisitor_);
- $('ledgerMonth').addEventListener('change',()=>guard(loadLedger));$('prevMonth').addEventListener('click',()=>shiftMonth(-1));$('nextMonth').addEventListener('click',()=>shiftMonth(1));
+ $('ledgerMonth').addEventListener('change',readLedgerScreen_);$('prevMonth').addEventListener('click',()=>shiftMonth(-1));$('nextMonth').addEventListener('click',()=>shiftMonth(1));
  $('closeLedger').addEventListener('click',()=>close('ledgerDialog'));$('newLedgerRow').addEventListener('click',()=>openEditor());
  $('ledgerKind').addEventListener('change',updateEditorKind);
  $('ledgerEditIncome').addEventListener('input',updateLedgerAmountValidity_);
@@ -1565,7 +1600,7 @@ function shiftMonth(amount){
  const [year,month]=$('ledgerMonth').value.split('-').map(Number);
  const dt=new Date(Date.UTC(year,month-1+amount,1)),next=dt.toISOString().slice(0,7);
  if(next>(S.ledger?.maxMonth||today().slice(0,7)))return;
- $('ledgerMonth').value=next;guard(loadLedger);
+ $('ledgerMonth').value=next;readLedgerScreen_();
 }
 bind();
 window.SMStageUX.run('読み込み中です…',boot)
