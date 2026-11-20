@@ -35,3 +35,12 @@
 - 更新：`tests/check-stage-participant-v7-layout-v1638f.cjs` — ビジターの削除は赤い非活性ボタン、修正・非ビジター削除と旧カードレイアウトは維持。
 - 実機受入は別途：一般メンバーから権限別画面を開ける、3権限を切り替えても実際の権限は変わらない、ビジター参加者の削除は非活性、管理者側の却下は従来の確認画面を表示、確定・権限・履歴保護。
 - 本番環境は事前承認なしに変更しない。検証環境でもテストのための実退会・収支確定解除・ビジター却下は自動実行しない。
+
+## v0.16.79 検証main統合・反映・回帰確認（2026-11-20）
+
+- [PR #92](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/92)を検証用mainへ統合（SHA 38b9cbbf61ff3cd4e4d989ade58b066f90432cda）。仕様保護/支払・UI回帰/GAS安全性の3系統CI成功。
+- 新規権限プレビュー・ビジター削除テスト **31/31件**、既存ビジター審査 **75/75件**、参加者旧カード **54/54件**、旧会計確定順序 **28/28件**成功。
+- [検証GAS既存Webアプリ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44674048032)の更新成功。ログ「Redeployed *** @45」とGASソース照合成功を確認。新規のGAS Webアプリを作成していない。
+- [GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44674047143)のbuild/deploy成功。Cloudflare Workers Builds成功（Worker本体ソースは不変更）。
+- [公開LINE/Worker GET-only疎通](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44674048018)成功。ただし認証済みLINE実機の権限プレビュー・管理者却下・参加者一覧ボタンは未受入。
+- **本番未変更・ユーザー事前承認制継続。** 検証データを削除するビジター却下の実行は今回行っていない。申請者本人による承認待ち取消の廃止は未決・現状維持。
