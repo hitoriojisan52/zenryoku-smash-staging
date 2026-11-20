@@ -750,3 +750,12 @@
 - Cloudflare画面の`Production`は新Worker自身の公開環境表示であり、全力☆スマッシュ運用の本番環境を意味しない。初期Hello Worldソースはスクリーンショットから直接確認できないため**未確認**。GitHubからの初回デプロイ前に所有チェックで検査して、不一致なら停止する。
 - **次はユーザーの一度限りの設定**：Cloudflareで既存の`zenryoku-smash-d1-pilot-stage`のみに限定した`Individual Workers > Editor` API Tokenを作成、GitHub Environment `d1-staging` のSecret `D1_WORKER_STAGE_API_TOKEN`へ登録、Variable `D1_WORKER_STAGE_DEPLOY_ENABLED=true`を設定。既存D1 Token/Account/DB ID、mainブランチ制限、Worker・LINE/GAS/Sheets設定は不変更。個人情報/会計のデータ移行は禁止。
 - PR CI、main統合/Worker実デプロイ/ネイティブGETは**実際の結果を確認してから**各々別記する。本番反映は承認制。
+
+
+## 69. D1 native Worker初回デプロイの実行とHTTP検証失敗への対応（2026/11/21）
+
+- ユーザー提供のGitHub Environment画面で`main`限定、Secret `D1_STAGE_API_TOKEN`・`D1_WORKER_STAGE_API_TOKEN`の2件、Variables`D1_STAGE_ACCOUNT_ID`・`D1_STAGE_DATABASE_ID`・`D1_WORKER_STAGE_DEPLOY_ENABLED=true`の3件を確認（トークン値は取得/受信していない）。
+- 既存の[独立D1 Worker Actions #44804229743](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44804229743)の`deploy-native-worker`ジョブをChatGPTがGitHub Actionsで再実行。**初期設定・D1 Account/UUID/名前照合・独立Workerの所有検査（初期Hello World starter）・Wrangler dry-run・独立Workerのdeploy・一時Bearer生成・`wrangler secret put PILOT_READ_TOKEN`はsuccess**。他Workerの変更・既存GAS/LIFF/Sheetsデータの移行はなし。
+- 同ジョブの最後の`Real Worker to D1 native binding read-only smoke and p50 p95`が**failure（contract mismatch）**。旧`scripts/d1-stage-worker-probe.cjs`のエラーメッセージはセキュリティ上詳細を隠しており、初回ログだけでは不一致となったHTTPステータス・D1結果を特定できない。**Worker経由のD1検証/性能測定を成功とは扱わない。**
+- 対策PR：読み取りのみのGETでWorker secretのEdge反映を短く待機（最大7回・1.5秒間隔、書き込みやユーザー業務の再送なし）、異常時はステータス/認められた固定エラーコードだけをログ記録する。Auth/秘密情報・レスポンス本文・URL/個人情報のログ出力禁止は継続。
+- 次：PR CI・旧会計/参加者/退会/試合回帰合格後に検証用mainへ統合し、自動リモート試験で実Worker GET（無認証拒否、POST拒否、0件、p50/p95）を再確認。失敗すればログのステータスに基づき追加修正。**本番デプロイは未承認・未実施**。
