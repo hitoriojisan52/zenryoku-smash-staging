@@ -23,8 +23,17 @@ ok(/\.stage-ui \.cash-count-btn\{\s*height:38px!important;\s*min-height:38px!imp
  'cash-denomination +/- controls also shrink vertically');
 ok(/\.stage-ui #ledgerDialog \.ledger-controls button,\s*\.stage-ui #ledgerDialog #newLedgerRow\{\s*min-height:38px!important;/.test(latest),
  'month navigation and + retain their single-row layout at the same height');
-ok(!/^\s*(?:padding-inline|padding-left|padding-right|width|max-width|box-sizing):/m.test(latest),
+// The v0.16.93 explicitly requested amount-save left alignment is a separate
+// isolated rule, NOT part of the historical 38px compact-control patch.
+// Preserve the original patch's horizontal sizing invariants while validating
+// the new money-field pair separately in v1693.
+const messageLayoutStart=css.indexOf('/* v0.16.93 canonical screen status placement',mark);
+ok(messageLayoutStart>mark,'new alignment rules are isolated after prior compact styling');
+const compactLegacy=css.slice(mark,messageLayoutStart);
+ok(!/^\s*(?:padding-inline|padding-left|padding-right|width|max-width|box-sizing):/m.test(compactLegacy),
  'compact-height patch never changes horizontal padding, width or box sizing');
+ok(!/\.stage-ui (?:\.adjustment-box|\.expense-box) input\{/.test(css.slice(messageLayoutStart)),
+ 'v1693 does not resize numeric inputs or touch legacy field width');
 ok(latest.includes('#list .participant-card .participant-memo{')&&
  latest.includes('color:#c62828;')&&
  latest.includes('font-weight:400!important;'),
