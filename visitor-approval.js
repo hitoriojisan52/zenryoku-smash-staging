@@ -223,12 +223,7 @@
   });
  }
  function bind(){
-  $('visitorMineHistoryToggle').addEventListener('click',()=>{
-   mineHistoryVisible=!mineHistoryVisible;
-   $('visitorMineHistoryToggle').textContent=mineHistoryVisible?'履歴を閉じる':'履歴';
-   $('visitorMineHistoryToggle').setAttribute('aria-pressed',String(mineHistoryVisible));
-   renderMine();
-  });
+  // Personal history toggle removed; date selector remains available.
   $('visitorAdminHistoryToggle').addEventListener('click',()=>{
    adminHistoryVisible=!adminHistoryVisible;
    $('visitorAdminHistoryToggle').textContent=adminHistoryVisible?'履歴を閉じる':'履歴';
@@ -238,12 +233,19 @@
   $('visitorMinePractice').addEventListener('change',renderMine);
   $('visitorAdminPractice').addEventListener('change',renderAdmin);
   $('visitorMineRefresh').addEventListener('click',()=>busy('申請状況を更新しています…',loadMine));
-  $('visitorAdminMenu').addEventListener('click',()=>busy('ビジター申請を読み込んでいます…',async()=>{
+  $('visitorAdminMenu').addEventListener('click',async()=>{
+   if(actor?.role!=='admin')return;
    $('visitorAdminPractice').value='';adminHistoryVisible=false;
    $('visitorAdminHistoryToggle').textContent='履歴';
    $('visitorAdminHistoryToggle').setAttribute('aria-pressed','false');
-   await loadAdmin();$('manageDialog').close();$('visitorAdminDialog').showModal();
-  }));
+   $('visitorAdminCards').textContent='ビジター申請を読み込んでいます…';
+   $('manageDialog').close();$('visitorAdminDialog').showModal();
+   try{await loadAdmin();}
+   catch(e){if($('visitorAdminDialog').open){
+    $('visitorAdminCards').textContent='読み込みに失敗しました。「更新」で再取得してください。';
+    await w.SMStageUX.showError(e);
+   }}
+  });
   $('visitorAdminRefresh').addEventListener('click',()=>busy('申請を更新しています…',loadAdmin));
   $('visitorAdminClose').addEventListener('click',()=>$('visitorAdminDialog').close());
   $('visitorDecisionCancel').addEventListener('click',()=>{selected=null;$('visitorDecisionDialog').close()});
