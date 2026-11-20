@@ -9,7 +9,8 @@ const html=read('live.html'),live=read('live.js'),role=read('stage-role-preview.
  gas=read('gas-staging/コード.gs'),access=read('gas-staging/AccessAndGuestV160.gs'),
  worker=read('cloudflare-worker/worker.js'),css=read('stage-ui.css');
 let n=0;function ok(v,msg){assert.ok(v,msg);n++}
-for(const code of [live,role,gas,access,worker]){new Function(code);n++}
+for(const code of [live,role,gas,access]){new Function(code);n++}
+new Function(worker.replace('export async function','async function').replace('export default {fetch:handleRequest};',''));n++;
 const header=html.slice(html.indexOf('<header class="app-header">'),html.indexOf('</header>'));
 ok(header.indexOf('id="stageRolePreviewOpen"')>=0&&
  header.indexOf('id="stageRolePreviewOpen"')<header.indexOf('id="reimbursementBtn"'),
