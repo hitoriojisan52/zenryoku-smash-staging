@@ -1,4 +1,7 @@
 
+**v0.16.82検証反映結果**：PR #98（main `73f20e4f153c3a7747653d2a3628a981fb9fc0df`）の3系統CI成功。GitHub Pages/Cloudflare Workers Builds/公開LINE GET-only成功、GAS既存Webアプリ **@47** 更新・pushソース照合成功。実機15秒通信の再発/復旧・画面内＋ポップアップ・診断時間内訳は未受入。[検証用LIFF](https://liff.line.me/2012602642-XBSkXduO) / [計測](https://liff.line.me/2012602642-XBSkXduO?perf=1)。本番未変更。
+
+
 **v0.16.82（検証環境・通信エラー統一/性能診断）**：「Failed to fetch」を日本語に統一。全画面の赤枠ポップアップと画面内赤枠を併用。集金ホームの15秒タイムアウト後は更新ボタンを再活性化し、失敗後の自動8秒再通信は停止（手動更新で復帰）。練習日程マスタを管理者メニューへ移動（GAS側の従来認可は不変更）。`?perf=1`でLINE/Worker/GASの安全な時間内訳を表示し、GASロック/残高計算は維持。詳細は[引継ぎ](docs/SESSION_HANDOFF.md)。本番未反映。
 
 # 全力☆スマッシュ｜検証用GitHub Pages
