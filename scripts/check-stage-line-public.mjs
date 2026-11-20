@@ -11,8 +11,8 @@ const registrationPageUrl='https://hitoriojisan52.github.io/zenryoku-smash-stagi
 const registrationSource=fs.readFileSync(new URL('../registration.html',import.meta.url),'utf8');
 const registrationJsSource=fs.readFileSync(new URL('../registration.js',import.meta.url),'utf8');
 const stageCssSource=fs.readFileSync(new URL('../stage-ui.css',import.meta.url),'utf8');
-const registrationScript=registrationSource.match(/<script src="(registration\\.js\\?v=[^"]+)" defer>/)?.[1];
-const registrationCss=registrationSource.match(/href="(stage-ui\\.css\\?v=[^"]+)"/)?.[1];
+const registrationScript=registrationSource.match(/<script src="(registration\.js\?v=[^"]+)" defer>/)?.[1];
+const registrationCss=registrationSource.match(/href="(stage-ui\.css\?v=[^"]+)"/)?.[1];
 assert.ok(registrationScript&&registrationCss,'Registration page must reference versioned JS/CSS');
 const sourceHtml=fs.readFileSync(new URL('../live.html',import.meta.url),'utf8');
 const expectedScript=sourceHtml.match(/<script type="module" src="(live\.js\?v=[^"]+)"/)?.[1];
@@ -42,7 +42,7 @@ async function smoke(){
  const publishedCss=await fetchText(new URL(registrationCss,registrationPageUrl).href);
  assert.equal(publishedCss.trim(),stageCssSource.trim(),
   'GitHub Pages has not yet served the latest shared message CSS');
- const expectedLiveCss=sourceHtml.match(/href="(stage-ui\\.css\\?v=[^"]+)"/)?.[1];
+ const expectedLiveCss=sourceHtml.match(/href="(stage-ui\.css\?v=[^"]+)"/)?.[1];
  assert.ok(expectedLiveCss&&html.includes(expectedLiveCss),
   'Management page must reference latest shared CSS cache version');
  const config=await fetchText(configUrl);
