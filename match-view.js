@@ -15,6 +15,21 @@ function viewMessage_(text,kind='error'){
  const target=$('matchViewNotice');target.textContent=String(text||'');target.hidden=!text;
  for(const style of ['info','warning','error'])target.classList.toggle('stage-system-message--'+style,style===kind);
 }
+function viewErrorText_(e){
+ const raw=String(e?.message||'');
+ if(e?.code==='REQUEST_TIMEOUT')return '通信がタイムアウトしました（15秒）。更新してください。';
+ if(/Failed to fetch|NetworkError|Load failed|fetch failed/i.test(raw))
+  return '通信に失敗しました。更新してください。';
+ return raw||'読み込みに失敗しました。';
+}
+function showViewError_(e){
+ const text=viewErrorText_(e);
+ viewMessage_(text);
+ $('matchViewErrorText').textContent=text;
+ const dialog=$('matchViewErrorDialog');
+ if(!dialog.open)dialog.showModal();
+}
+$('matchViewErrorClose').addEventListener('click',()=>$('matchViewErrorDialog').close());
 function render(view){
  const s=view.session,body=$('matchBody');body.replaceChildren();viewMessage_('');
  if(!s){
@@ -60,15 +75,15 @@ async function init(){
    select.replaceChildren(new Option('選択可能な開催日がありません',''));
    $('matchHeader').textContent='対戦表を表示できる開催日がありません';
   }
- }catch(e){viewMessage_(e.message||String(e));}
+ }catch(e){showViewError_(e);}
  finally{$('refreshMatch').disabled=loading||!practiceId;}
 }
 $('matchPractice').onchange=async()=>{
  practiceId=$('matchPractice').value;
- try{await load();}catch(e){viewMessage_(e.message||String(e));}
+ try{await load();}catch(e){showViewError_(e);}
 };
 $('refreshMatch').onclick=async()=>{
  if($('refreshMatch').disabled)return;
- try{await load();}catch(e){viewMessage_(e.message||String(e));}
+ try{await load();}catch(e){showViewError_(e);}
 };
 init();
