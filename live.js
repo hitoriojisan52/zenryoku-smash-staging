@@ -820,6 +820,7 @@ function openEditor(row=null,kind='reimbursement'){
  syncPayoutWeekday_('ledgerPayoutDate','ledgerPayoutWeekday');
  $('ledgerReimbursementAmount').value=row?.expense??'';$('ledgerEditDate').value=row?.date||today();$('ledgerEditLabel').value=row?.label||'';
  $('ledgerEditIncome').value=row?.income??0;$('ledgerEditExpense').value=row?.expense??0;
+ syncPayoutWeekday_('ledgerEditDate','ledgerEditWeekday');
  $('ledgerReimbursementReceipt').disabled=targetKind!=='reimbursement';$('ledgerReimbursementReceipt').value='';
  $('ledgerCurrentReceipt').textContent=row?.receiptFileId?'登録済みの領収書があります':'';
  $('ledgerViewReceipt').hidden=!row?.receiptFileId;
@@ -1629,6 +1630,8 @@ function bind(){
  $('ledgerMonth').addEventListener('change',readLedgerScreen_);$('prevMonth').addEventListener('click',()=>shiftMonth(-1));$('nextMonth').addEventListener('click',()=>shiftMonth(1));
  $('closeLedger').addEventListener('click',()=>close('ledgerDialog'));$('newLedgerRow').addEventListener('click',()=>openEditor());
  $('ledgerKind').addEventListener('change',updateEditorKind);
+ $('ledgerEditDate').addEventListener('change',()=>syncPayoutWeekday_('ledgerEditDate','ledgerEditWeekday'));
+ $('ledgerEditDate').addEventListener('input',()=>syncPayoutWeekday_('ledgerEditDate','ledgerEditWeekday'));
  $('ledgerEditIncome').addEventListener('input',updateLedgerAmountValidity_);
  $('ledgerEditExpense').addEventListener('input',updateLedgerAmountValidity_);
  $('cancelLedgerEdit').addEventListener('click',()=>close('ledgerEditDialog'));$('ledgerEditForm').addEventListener('submit',submitEditor);
