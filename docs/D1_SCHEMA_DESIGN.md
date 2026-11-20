@@ -76,3 +76,12 @@
 - 次にスキーマをD1へ適用したとしても、まだサービスAPIは存在しない。現行運用画面は一切変わらず、既存データをD1へコピーもしない。
 - その後の別PRで**D1読み取り専用API（架空fixtureだけ）**を分離実装し、本人認証・ロール・CORSの安全性を検証。必要な外部Workerの新規作成や認証の手動設定があれば、ユーザー初期設定必須条件との兼ね合いを先に報告する。
 - 本番D1本格導入は、この段階の「テーブル構造」をそのまま本番確定スキーマと見なさず、業務ロジックのパリティ・全データ照合・実機確認と明示承認後に判断。
+
+
+## 7. 検証環境への実反映とリモートデータ安全確認（2026/11/21）
+
+- [PR #128](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/128) は`schema-safety` / `spec-contract` の両CI成功後に検証main `80d6caddbf2171232a33933ba30f396dd9317f12`に統合。GAS既存会計・出欠・退会・試合の回帰、スキーマの20テーブル/複合キー/履歴保持/版数CAS/時系列をオフラインで検証。
+- [D1 migration Actions #44790938084](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44790938084) はAccount+UUID+DB名照合、`0002_business_skeleton.sql`をremoteに適用成功（33 commands / status ✅）、既存`stage_d1_bootstrap`の0件read-only SQL成功。GitHub PagesとWorkers Buildsも成功（Workerコード変更なし）、GASは従前の検証@51のまま。
+- [PR #129](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/129) で追加した`scripts/d1-staging-remote-smoke.cjs`は、**SQL SELECTだけ**で実D1の全20業務テーブル名と、各テーブルの件数合計、初期probe件数を検査。D1用Actions [#44791526275](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44791526275)でremote照合・migration再実行`No migrations to apply`、read-only検査`business table count=20; all business rows=0; probe rows=0; PASS`を確認。D1用既存シークレットの再発行/再設定は不要。
+- この結果は**空テーブル構造のデプロイと読み取り確認**のみ。LIFF→Worker→D1通信、実データ全行移行、実機性能比較、会計API/認証ロジックの等価性とバックアップ復旧、個人情報の取り扱いの判断は未実施。現行GAS+Sheetsが唯一のデータ正本、本番未変更。
+- リモートの`business_rows=0`ゲートは意図的に維持。将来の実データ移行の承認・安全設計が済むまでは誤投入を明示的に失敗扱いにする。データ移行時にこのガードを削る場合も、新しいmigration設計・バックアップ/二重書込防止・テストのPRレビューが必要。

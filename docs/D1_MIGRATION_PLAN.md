@@ -83,3 +83,11 @@ D1の正式なマイグレーション履歴`d1_migrations`を利用する。同
 - [21タブ棚卸しと業務20テーブル設計](D1_SCHEMA_DESIGN.md)を参照。現行の確定業務仕様を優先し、**データ移転と認可/会計API切替は未実施**。
 - 新規`0002_business_skeleton.sql`と`tests/check-d1-business-schema.py`は、SQLの追加構造と残高/時系列、退会履歴、複合キー、競合バージョンなどを**オフライン架空値**で確認する。SQL内に実名、LINE ID、架空データの本体値を持たない。
 - D1へ空テーブルを追加しても既存GAS/Sheetsは唯一の正本。業務上の完了扱いとしない。将来の実データ移行は同時書込み禁止・スナップショット照合・バックアップ/ロールバック・アクセス制御・本人認証の等価性・本番承認が前提。
+
+
+## 第2工程の確定検証結果（2026/11/21）
+
+- [D1スキーマ設計](D1_SCHEMA_DESIGN.md)、[PR #128](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/128)（スキーマ）、[PR #129](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/129)（read-only現物チェック）。Cloudflare側で`0002_business_skeleton.sql`適用済み。SQLの空テーブル20件の存在と全件ゼロをremote SELECTで確定。
+- GitHub CIで旧GAS会計確定順序、本人出欠、退会・再入会、試合作成、SQL FK/UNIQUE/CAS/時系列の契約を確認。旧GAS/Worker/LIFF/Google Sheetsの業務コードと原本の書込なし。
+- **次工程**：既存GAS/Workerの認証・権限を維持した読み取り専用パイロット設計と、テストデータの匿名/架空fixtureだけによる同条件の性能比較。既存WorkerにD1バインドを追加するか、独立Workerを設けるかは、権限/トークンの重複・公開CORS/本番干渉を評価し、設計/仕様の承認後に実装する。
+- **保留**：業務データのD1移行・正本切替、現金/会計保存・試合進行などの書込API、バックアップ/復旧/監査長期保存と本番承認。本段階ではユーザーの追加初期設定は不要。

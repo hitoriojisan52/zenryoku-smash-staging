@@ -1,4 +1,4 @@
-**D1第2工程（2026/11/21・検証用PR）**：検証用Google Sheetsの21タブ（案内1＋業務20）のヘッダーとGAS/Worker仕様を読取専用で棚卸しし、業務20空テーブルと既存の収支時系列・本人ID履歴・版番号/冪等・試合版保護のCIを提案。業務データ移行・既存API/WorkerのD1切替は**未実施**。[D1スキーマ設計](docs/D1_SCHEMA_DESIGN.md)。
+**D1第2工程（2026/11/21・検証反映・読み取り確認済み）**：[PR #128](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/128)で21タブ（案内1＋業務20）の棚卸しとD1空20テーブルを実装。旧会計/出欠/退会/試合回帰CI成功、Cloudflareの`0002_business_skeleton.sql`適用成功。[PR #129](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/129)で**実D1リモート20テーブル存在・業務0件・検証0件をread-onlyで確認**。業務データ移行・既存API/WorkerのD1切替は**未実施**。[D1スキーマ設計](docs/D1_SCHEMA_DESIGN.md)。
 
 **D1移行基盤 初期リモート検証成功（2026/11/21）**：GitHub Environment `d1-staging`（mainのみ）にユーザーがD1専用API TokenとAccount/Database IDを登録。既存[Actions #44781121812](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44781121812)をChatGPTが再実行し、CloudflareのDB名・UUID・アカウント一致検査、`0001_bootstrap_probe.sql`のremote適用 ✅、`stage_d1_bootstrap`へのread-only SELECT（0件・success）✅をジョブログで確認。**現行Worker/LIFF/GAS/Sheetsの接続先・機能は不変更。本番未反映**。[移行計画](docs/D1_MIGRATION_PLAN.md)／[引継ぎ](docs/SESSION_HANDOFF.md)。
 
