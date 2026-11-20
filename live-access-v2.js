@@ -16,7 +16,8 @@
   const el=$('memberAccessStatus');el.textContent=String(s||'');
   el.classList?.toggle?.('stage-inline-read-loading',loading);
   el.classList?.toggle?.('stage-system-message--error',error);
-  el.classList?.toggle?.('stage-system-message--info',!error);
+  el.classList?.toggle?.('stage-system-message--info',!error&&loading);
+  el.classList?.toggle?.('stage-system-message--neutral',!error&&!loading);
  };
  function item(tag,cls,label){
    const x=document.createElement(tag);if(cls)x.className=cls;
