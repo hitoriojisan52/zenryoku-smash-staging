@@ -796,3 +796,12 @@
 - `d1-staging/phase5/schedule-list-offline.sql`は固定SELECT・パラメータ化された架空データの**候補のみ**。`tests/check-d1-phase5-schedule.py`はインメモリSQLiteに0001/0002を適用して架空日程のみを生成し、日付境界・非公開行・並び・重複日程拒否・クエリ専用を確認。**実Sheet全セル型/日時・各種権限/監査がD1で完全再現できたという主張ではない**。
 - CloudflareのService BindingはGateway→内部Workerの接続候補だが、既存`wrangler.toml`へのBinding追加を伴い、LINE/当番/管理者権限とデータ正本の再設計が必要。本工程では既存Gateway/LIFF/GAS/Sheets、稼働中D1パイロット、Cloudflare Secret、実D1レコード、本番環境を変更しない。
 - 当節は**PR CI・main統合・GitHub Pages/Workers Buildsの結果確認前**の記録。実施結果は確認後に別記する。次はPRのCI（新規2ゲート＋既存会計/出欠/退会/試合回帰）を確認し、検証mainへ統合、全20業務タブの実データ型・二重化可否を読み取り専用で棚卸しする。業務データ複写/本番切替は承認前には行わない。
+
+
+## 74. D1第5工程 PR #143 統合・CI/検証環境ビルド照合（2026/11/21）
+
+- [PR #143](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/143) で固定47 API全経路のD1自動切替禁止、GAS上の`overview`の副作用・LINE認証・当番権限・出欠履歴/試合/収支ロック、日程の公開前表示・重複、会計繰越と確定順を安全ゲート化。D1日程の候補固定SELECTとSQLiteメモリ内の架空fixture等価性試験を追加。**既存Worker・GAS・LIFF・Sheets・D1既存データ・Cloudflare Secret・本番設定はいずれも変更なし**。
+- [PRのD1 schema-safety Actions #44836556525](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44836556525)：`schema-safety` success。`check-d1-phase5-route-parity.cjs`、`check-d1-phase5-schedule.py`に加え、従来の会計確定順序/LINE本人出欠/退会・再入会/試合作成とD1既存スキーマ・認可の回帰も**全成功**。`spec-contract`（同PR）success。
+- PRのsquash統合後、検証用main `0dd0872749a9c38a6eb7ff33e77e579927b510d4`。同main [GitHub Pages Actions #44836610360](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44836610360) build / deploy / report-build-status **success**、`Workers Builds: zenryoku-smash-staging-api` **success**。このmainにはD1のWorkerバインディング/SQL Migration/既存Workerコード変更がないため、D1 Remoteの操作・本番切替は実行していない。
+- **未完了**：実Google Sheets全20業務タブのデータ/セル型の完全棚卸し、収支・出欠・試合/履歴のロスレスなD1複写/権限/バックアップ、2 WorkerのService Binding、旧アプリとD1の**同量・同条件**でのHTTP/LINE実機性能比較。新規候補SQLの`schedule.list`は「本日のJST」と役割確認・実日付型変換・全表一意性の整合などを満たした本番APIではなく、GASの正本を保持する。
+- **次回に着手する作業**：検証用Sheetの20業務タブ（最優先：練習日程・出欠回答・集金記録・全体収支管理表・操作履歴）のヘッダー、実データ件数、重複ID/日付、書式/日付型、監査と参照孤立を**読み取り専用**で確認し、個人情報をログ/PRに載せない統計報告とロスレス変換のBLOCK判定を実装。GatewayにService Bindingを追加する案は既存コード/権限への影響を先に提示し、ユーザー判断前に配備しない。本番移行も明示承認制。
