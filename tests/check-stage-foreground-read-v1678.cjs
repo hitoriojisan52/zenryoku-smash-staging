@@ -39,9 +39,9 @@ function screen(id){
 for(const id of ['cashDialog',...Object.keys(refreshIds)])screen(id);
 const source=live.slice(live.indexOf('const screenReadEpoch_='),live.indexOf('async function boot(){'));
 ok(source.includes('function updateReadScreenStatus_'),'status update uses existing inline banner');
-const readControls=new Function('$','document','window',source+
+const readControls=new Function('$','document','window','S',source+
  '\nreturn {readScreen_,updateReadScreenStatus_};')(
- id=>screens[id]||buttons[id],doc,{});
+ id=>screens[id]||buttons[id],doc,{}, {silentRefreshPausedUntil:0});
 const readScreen_=readControls.readScreen_,update=readControls.updateReadScreenStatus_;
 (async()=>{
  for(const [id,btn] of Object.entries(refreshIds)){
