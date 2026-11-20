@@ -29,6 +29,8 @@ ok(helper.includes('window.SMStageUX.showError(e)'),
  'failed read uses persistent error dialog only when still open');
 const amount=section('async function saveAmount(', 'async function openLedger(');
 ok(!amount.includes('await guard('),'amount changes use no full-screen spinner');
+ok(amount.includes('expectedVersion:ledger.version')&&amount.includes('operationId:uuid()'),
+ 'amount save retains server ledger-version and idempotency safeguards');
 ok(amount.includes("S.pending.add('amount')")&&amount.includes("syncPaymentControls()"),
  'amount writes protect concurrent ledger-version conflicts');
 ok(amount.includes('S.paymentNeedsRefresh=true')&&amount.includes('showError(e)'),
