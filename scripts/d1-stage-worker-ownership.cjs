@@ -6,12 +6,25 @@ const ACCOUNT='5817f07a73dbb56011012074ce1b11c5';
 const WORKER='zenryoku-smash-d1-pilot-stage-20261121';
 const MARKER='ZENRYOKU_D1_PILOT_STAGE_REPO_20261121';
 function check(status,body) {
-  if(status===404) return 'new';
+  // New Worker creation requires product-level Workers Admin. The user first
+  // creates an exact-name Hello World stub in the Cloudflare dashboard; CI is
+  // granted ONLY Individual Workers Editor for that already-existing Worker.
+  if(status===404) throw new Error('Isolated pilot Worker must first be created via Dashboard');
   assert.equal(status,200,'Cannot verify isolated staging Worker ownership');
-  assert.ok(typeof body==='string'&&body.length>0&&body.length<2_000_000,'Unexpected Worker content');
-  assert.ok(body.includes(MARKER),'Worker with this name exists but is not our isolated pilot');
-  return 'ours';
+  assert.ok(typeof body==='string'&&body.length>0&&body.length<200000,'Unexpected Worker content');
+  if(body.includes(MARKER)) return 'ours';
+  // One-time adoption is allowed only for the tiny unmodified Hello World
+  // default template, not arbitrary existing scripts or operational Workers.
+  const source=body.trim();
+  assert.ok(source.length<12000,'Unexpected starter Worker size');
+  assert.match(source,/export\\s+default\\s*\\{/,'Not a plain JavaScript starter Worker');
+  assert.match(source,/new\\s+Response\\s*\\(/,'Expected Hello World starter response');
+  assert.match(source,/Hello\\s+(?:World|Worker)!?/i,'Expected Hello World starter text');
+  assert.doesNotMatch(source,/\\b(?:GAS_WEB_APP_URL|LINE_LOGIN|D1_STAGE|ZENRYOKU_STAGE_DB|operationId|Bearer|sharedSecret|fetch\\s*\\(\\s*['"]https?:)/i,
+    'Not an untouched starter Worker');
+  return 'starter';
 }
+
 async function run() {
   assert.equal((process.env.D1_STAGE_ACCOUNT_ID||'').toLowerCase(),ACCOUNT,'Wrong Cloudflare account');
   const token=process.env.CLOUDFLARE_API_TOKEN;
@@ -30,7 +43,9 @@ async function run() {
   console.log('PASS: exact isolated Worker script ownership: '+result+' (existing Worker gateway not touched)');
 }
 if(process.argv[2]==='self-test') {
-  assert.equal(check(404,''),'new');
+  assert.throws(()=>check(404,''),'Missing initial Worker should fail closed');
+  assert.equal(check(200,"export default {async fetch(request,env,ctx){return new Response('Hello World!')}}"),'starter');
+  assert.throws(()=>check(200,"export default {async fetch(){return new Response('Hello World!')} async post(){return fetch('https://example.com')}}"));
   assert.equal(check(200,'export default {fetch(){return new Response("'+MARKER+'")}}'),'ours');
   assert.throws(()=>check(200,'existing unrelated script'));
   assert.throws(()=>check(403,''));
