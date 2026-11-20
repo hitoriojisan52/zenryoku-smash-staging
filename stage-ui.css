@@ -1047,9 +1047,9 @@ body.stage-ui > main.container .app-header h1{
  * Blue=processing, yellow=warning, red=error; warning symbol is decorative
  * CSS, not copied into user data or log records. Use pre-existing spinner
  * for an animated blue pending request. */
-.stage-ui .stage-system-message:not(.stage-system-message--info):not(.stage-system-message--error):not(.stage-inline-read-loading)::before{
- content:"⚠️";display:inline-block;margin-right:5px;vertical-align:baseline;
-}
+/* v0.16.85: removed a legacy catch-all warning icon. It had higher
+   specificity than --success and --processing, overriding ticks/spinners.
+   Only --warning may show the warning symbol (defined below). */
 .stage-ui #stageRolePreviewDialog .stage-role-preview-note{margin:7px 0}
 .stage-ui .app-header .header-btns #stageRolePreviewOpen{white-space:nowrap}
 @media(max-width:560px){
@@ -1066,7 +1066,6 @@ body.stage-ui > main.container .app-header h1{
  * blue = processing with spinner, green = success, yellow = warning, red = error.
  * Static guidance is ordinary prose, never a processing system message. */
 .stage-ui .stage-system-message--success{background:#e9f7ec;border-color:#b9dec3;color:#205c32}
-.stage-ui .stage-system-message--success:not(:empty)::before{content:"✓";display:inline-block;margin-right:7px;font-weight:800}
 /* Only actual in-flight reads get the spinner. Legacy --info includes static notes; do not animate them. */
 .stage-ui .stage-system-message--processing{background:#eef5fb;border-color:#bfdaee;color:#2d506d}
 .stage-ui .stage-system-message--processing:not(:empty)::before{content:"";display:inline-block;width:12px;height:12px;box-sizing:border-box;border:2px solid #bdd7ea;border-top-color:#1976d2;border-radius:50%;margin-right:7px;vertical-align:-2px;animation:stage-ui-spin .8s linear infinite}
