@@ -1062,6 +1062,9 @@ body.stage-ui > main.container .app-header h1{
  content:"❌";display:inline-block;margin-right:5px;vertical-align:baseline;
 }
 
+/* v0.16.87: Passive explanations and empty states are neutral rather than blue. */
+.stage-ui .stage-system-message--neutral{background:#f4f6f8;border-color:#d8e0e7;color:#425466}
+
 /* v0.16.84: canonical system-message semantics across all screens.
  * blue = processing with spinner, green = success, yellow = warning, red = error.
  * Static guidance is ordinary prose, never a processing system message. */
