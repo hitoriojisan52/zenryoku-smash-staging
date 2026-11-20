@@ -34,11 +34,7 @@ const fakeDocument={
  };}
 };
 const window={};
-const state={silentRefreshPausedUntil:0};
-const openScreen=new Function('$','document','window','S',
- ui.slice(from,to)+'\nreturn readScreen_;')(
- id=>{assert.equal(id,'cashDialog');return dlg;},fakeDocument,window,state);
-let finishFirst;
+const openScreen=new Function('let finishFirst;
 const pendingFirst=new Promise(resolve=>{finishFirst=resolve;});
 const first=openScreen('cashDialog','帳簿残高を読み込んでいます…',async isCurrent=>{
  await pendingFirst;if(isCurrent())uiWrites++;
@@ -139,7 +135,7 @@ dlg.close();finishFirst();
 })().catch(e=>{console.error(e);process.exitCode=1});
 ,'document','window','S',
  ui.slice(from,to)+'\nreturn readScreen_;')(
- id=>{assert.equal(id,'cashDialog');return dlg;},fakeDocument,window,state);
+ id=>{assert.equal(id,'cashDialog');return dlg;},fakeDocument,window,{silentRefreshPausedUntil:0});
 let finishFirst;
 const pendingFirst=new Promise(resolve=>{finishFirst=resolve;});
 const first=openScreen('cashDialog','帳簿残高を読み込んでいます…',async isCurrent=>{
