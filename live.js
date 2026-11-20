@@ -6,7 +6,7 @@
 'use strict';
 const M=window.SmashModel,$=id=>document.getElementById(id),yen=n=>Number(n).toLocaleString('ja-JP')+'円';
 const CONFIG=window.SMASH_CONFIG||{};
-const S={token:'',actor:null,overview:null,practiceId:'',registrationOnly:false,homeReadFailed:false,loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,confirmedPracticeKey:'',selectableDayKey:'',receiptPartialWarning:''};
+const S={token:'',actor:null,overview:null,practiceId:'',registrationOnly:false,homeReadFailed:false,silentRefreshPausedUntil:0,loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,confirmedPracticeKey:'',selectableDayKey:'',receiptPartialWarning:''};
 const VISITOR_MODE=(()=>{
  const q=new URLSearchParams(location.search||'');
  let state=q.get('liff.state')||'';
@@ -90,7 +90,11 @@ function requestTimeoutError_(isWrite){
  const e=new Error(isWrite?'通信がタイムアウトしました（15秒）。保存結果を更新で確認してください。':'通信がタイムアウトしました（15秒）。再度お試しください。');
  e.code=isWrite?'OPERATION_UNCONFIRMED':'REQUEST_TIMEOUT';return e;
 }
-async function call(path,payload={}){
+function readCancelled_(){
+ const e=new Error('画面を閉じたため読み込みを中止しました。');
+ e.code='READ_CANCELLED';return e;
+}
+async function call(path,payload={},options={}){
  if(!S.token||!CONFIG.apiBaseUrl)throw new Error('LINE認証またはAPI設定がありません');
  const url=CONFIG.apiBaseUrl.replace(/\/$/,'')+path,isWrite=MUTATING_ENDPOINTS.has(path);
  if(isWrite)S.updateEpoch++;
@@ -98,7 +102,11 @@ async function call(path,payload={}){
  if(PERF_MODE&&path==='/api/overview')S.lastOverviewProfile=null;
  let diagnosticTiming='',diagnosticOutcome='ok';
  // Reads can abort. Writes must never abort/retry: GAS may commit.
+ const externalSignal=options?.signal;
+ if(!isWrite&&externalSignal?.aborted)throw readCancelled_();
  const controller=!isWrite&&typeof AbortController!=='undefined'?new AbortController():null;
+ const onClose=()=>{if(controller)controller.abort();};
+ if(controller&&externalSignal)externalSignal.addEventListener('abort',onClose,{once:true});
  let timer,expired=false;
  const timeout=new Promise((_,reject)=>{
   timer=setTimeout(()=>{expired=true;if(controller)controller.abort();reject(requestTimeoutError_(isWrite));},REQUEST_TIMEOUT_MS);
@@ -123,11 +131,13 @@ async function call(path,payload={}){
  try{return await Promise.race([work,timeout]);}
  catch(e){
   diagnosticOutcome=expired||e?.name==='AbortError'?'timeout':'error';
+  if(!expired&&!isWrite&&externalSignal?.aborted)throw readCancelled_();
   if(expired||e?.name==='AbortError')throw requestTimeoutError_(isWrite);
   throw e;
  }
  finally{
   clearTimeout(timer);
+  if(controller&&externalSignal)externalSignal.removeEventListener('abort',onClose);
   if(PERF_MODE)profileApiRequest_(path,performance.now()-startedAt,diagnosticTiming,diagnosticOutcome);
  }
 }
@@ -245,6 +255,8 @@ function readScreen_(id,label,loader,onComplete,force=false){
  if(!screen.dataset.readCloseBound){
   screen.dataset.readCloseBound='1';
   screen.addEventListener('close',()=>{
+   S.silentRefreshPausedUntil=Date.now()+10000;
+   screenReadActive_.get(id)?.controller?.abort();
    screenReadEpoch_.set(id,(screenReadEpoch_.get(id)||0)+1);
    screenReadActive_.delete(id);
   });
@@ -252,6 +264,7 @@ function readScreen_(id,label,loader,onComplete,force=false){
  if(!screen.open)screen.showModal();
  const refreshId=screenReadRefreshIds_[id],refreshButton=refreshId?$(refreshId):null;
  if(refreshButton)refreshButton.disabled=true;
+ const controller=typeof AbortController!=='undefined'?new AbortController():null;
  const state=screenReadStatus_(id);
  state.hidden=false;
  state.classList.remove('stage-system-message--warning');
@@ -260,6 +273,7 @@ function readScreen_(id,label,loader,onComplete,force=false){
  state.classList.add('stage-inline-read-loading');
  state.textContent=label;
  const current=()=>screen.open&&screenReadEpoch_.get(id)===version;
+ current.signal=controller?.signal;
  const promise=Promise.resolve().then(()=>loader(current))
   .then(()=>{
    if(!current())return;
@@ -278,7 +292,7 @@ function readScreen_(id,label,loader,onComplete,force=false){
    if(screenReadActive_.get(id)?.version===version)
     screenReadActive_.delete(id);
   });
- screenReadActive_.set(id,{version,promise});
+ screenReadActive_.set(id,{version,promise,controller});
  return promise;
 }
 window.SMStageRead={open:readScreen_};
@@ -365,7 +379,9 @@ async function boot(){
     (overviewMs/1000).toFixed(1)+'秒 / 合計 '+
     (totalMs/1000).toFixed(1)+'秒）');
   }
-  setInterval(()=>{if(!document.hidden&&!document.querySelector('dialog[open]')&&!S.paymentNeedsRefresh&&!S.homeReadFailed&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
+  setInterval(()=>{if(!document.hidden&&Date.now()>=S.silentRefreshPausedUntil&&
+   !document.querySelector('dialog[open]')&&!S.paymentNeedsRefresh&&!S.homeReadFailed&&
+   S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
   if(!PERF_MODE)toast('接続しました');
  }catch(e){
   if(S.actor&&['duty','admin'].includes(S.actor.role)&&S.homeReadFailed){
@@ -697,7 +713,7 @@ function openLedger(){
  $('ledgerMonth').value=today().slice(0,7);
  S.ledger=null;return readLedgerScreen_();
 }
-async function loadLedger(isCurrent=()=>true){const month=$('ledgerMonth').value,ledger=await call('/api/ledger',{month});if(!isCurrent())return;S.ledger=ledger;const b=$('ledgerBody');b.replaceChildren();
+async function loadLedger(isCurrent=()=>true){const month=$('ledgerMonth').value,ledger=await call('/api/ledger',{month},{signal:isCurrent.signal});if(!isCurrent())return;S.ledger=ledger;const b=$('ledgerBody');b.replaceChildren();
  const rows=[{rowId:'CARRY-'+month,date:month+'-01',label:'前月繰越',income:0,expense:0,balance:ledger.carried,confirmedBy:'',kind:'carry',status:'confirmed'},...ledger.rows.filter(r=>r.kind!=='opening')];
  for(const r of rows){const tr=document.createElement('tr');
   // Preserve the semantic seven-column table for desktop, CSS reflows it
@@ -1197,7 +1213,7 @@ function renderScheduleMaster_(){
  }
 }
 async function loadScheduleMaster_(isCurrent=()=>true){
- const d=await call('/api/schedule/list');
+ const d=await call('/api/schedule/list',{},{signal:isCurrent.signal});
  if(!isCurrent())return;
  if(!Array.isArray(d?.schedules)||d.schedules.some(r=>!r?.practiceId||
    !scheduleDateValid_(r.date)||!Number.isSafeInteger(r.version)||typeof r.enabled!=='boolean')){
@@ -1422,7 +1438,7 @@ function renderMemberAttendance_(){
  $('attendanceSave').disabled=AT.uncertain||!response||response.locked;
 }
 async function loadMemberAttendance_(isCurrent=()=>true){
- const result=await call('/api/attendance/mine');
+ const result=await call('/api/attendance/mine',{},{signal:isCurrent.signal});
  if(!isCurrent())return;
  if(!result||!Array.isArray(result.practices)||!Array.isArray(result.answers))
   throw new Error('参加連絡の取得結果を確認できません');
@@ -1562,7 +1578,7 @@ function renderParticipantManager_(){
 }
 async function loadParticipants_(isCurrent=()=>true){
  const selected=PM.practiceId;
- let answer=await call('/api/participant/list',{practiceId:selected});
+ let answer=await call('/api/participant/list',{practiceId:selected},{signal:isCurrent.signal});
  if(!isCurrent())return;
  // Keep the participant picker identical to collection: all unconfirmed
  // dates (including past), plus a confirmed practice only on today's date.
@@ -1577,7 +1593,7 @@ async function loadParticipants_(isCurrent=()=>true){
  const target=selectable.some(p=>p.practiceId===selected)?selected:
   (upcoming[0]?.practiceId||'');
  if(target&&answer.practiceId!==target)
-  answer=await call('/api/participant/list',{practiceId:target});
+  answer=await call('/api/participant/list',{practiceId:target},{signal:isCurrent.signal});
  if(!isCurrent())return;
  if(!Array.isArray(answer?.practices)||!Array.isArray(answer?.participants)||
   typeof answer.practiceId!=='string'||typeof answer.financeLocked!=='boolean'||
