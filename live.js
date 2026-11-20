@@ -94,13 +94,14 @@ const MAX_PAYMENT_IN_FLIGHT=2;
 function syncPaymentControls(){
  const pending=S.pending.size>0,ledger=S.overview?.ledger,access=S.overview?.collectionAccess;
  const locked=!ledger||ledger.status==='confirmed'||access?.canCollect===false;
+ const savingAmount=S.pending.has('amount');
  for(const id of ['date','refresh','reimbursementBtn','manageBtn']){
    const el=$(id);if(el)el.disabled=pending||(id==='date'&&!Array.from(el.options||[]).some(o=>!!o.value));
  }
  if($('confirm'))$('confirm').disabled=pending||locked||
     S.overview?.practice?.date>today()||ledger?.canConfirm!==true;
  for(const id of ['adjustment','expense']){
-   const el=$(id);if(el)el.disabled=pending||locked;
+   const el=$(id);if(el)el.disabled=pending||locked||S.paymentNeedsRefresh;
  }
  // A failed payment requires a manual reconciliation. Disable every unchecked
  // row as well as the in-flight rows until the latest overview is fetched.
@@ -108,7 +109,7 @@ function syncPaymentControls(){
  if(list&&typeof list.querySelectorAll==='function'){
    for(const checkbox of list.querySelectorAll('.participant-card input[type="checkbox"]')){
      const id=checkbox.closest('.participant-card')?.dataset?.id;
-     checkbox.disabled=locked||S.paymentNeedsRefresh||S.pending.has(id);
+     checkbox.disabled=locked||savingAmount||S.paymentNeedsRefresh||S.pending.has(id);
    }
  }
 }
@@ -488,27 +489,55 @@ async function saveCategory(){
    }finally{S.pending.delete(key);}
  });
 }
+// A field-level status, never a global spinner. The ledger version is still
+// protected: while one money change is in flight, payment checkboxes and
+// other finance actions are disabled (not auto-queued or retried).
 async function saveAmount(kind){
- await guard(async()=>{
-   const v=S.overview,ledger=v?.ledger;if(!ledger)throw new Error('収支行がありません');gateEdit();
-   const el=$(kind==='adjustment'?'adjustment':'expense'),value=Number(el.value),old=ledger[kind];
-   if(!Number.isSafeInteger(value)||kind==='expense'&&value<0){el.value=old;throw new Error('金額を確認してください');}
-   S.pending.add('amount');el.disabled=true;updateFooter();
-   try{
-     const saved=await call(kind==='adjustment'?'/api/adjustment':'/api/expense',
-       {operationId:uuid(),practiceId:S.practiceId,value,expectedVersion:ledger.version});
-     if(saved?.practiceId!==S.practiceId||!Number.isSafeInteger(saved.ledgerVersion)||
-       !Number.isSafeInteger(saved.income)||!Number.isSafeInteger(saved.expense)||
-       !Number.isSafeInteger(saved.adjustment)||!Number.isSafeInteger(saved.balance)){
-       const e=new Error('保存結果を確認できませんでした。「更新」で最新状態をご確認ください。');e.appliedButRefreshFailed=true;throw e;
-     }
-     Object.assign(ledger,{version:saved.ledgerVersion,income:saved.income,expense:saved.expense,
-       adjustment:saved.adjustment,balance:saved.balance});
-     el.value=ledger[kind];updateFooter();
-     toast((kind==='adjustment'?'当日補正':'当日支出')+'を更新しました');
-   }catch(e){if(!e.appliedButRefreshFailed){el.value=old;updateFooter();}throw e;
-   }finally{S.pending.delete('amount');el.disabled=false;}
- });
+ const el=$(kind==='adjustment'?'adjustment':'expense');
+ const status=$(kind==='adjustment'?'adjustmentStatus':'expenseStatus');
+ const v=S.overview,ledger=v?.ledger,old=ledger?.[kind];
+ if(!ledger||!S.actor||!['duty','admin'].includes(S.actor.role))return;
+ if(S.pending.size||S.paymentNeedsRefresh||ledger.status==='confirmed'){
+  el.value=old;toast('ほかの集金処理が完了してから操作してください');return;
+ }
+ const value=Number(el.value);
+ if(!Number.isSafeInteger(value)||kind==='expense'&&value<0){
+  el.value=old;
+  status.textContent='金額を確認してください';
+  return;
+ }
+ if(value===old)return;
+ const practiceId=S.practiceId,expectedVersion=ledger.version;
+ S.pending.add('amount');status.textContent=(kind==='adjustment'?'当日補正':'当日支出')+'を保存中…';
+ el.disabled=true;syncPaymentControls();updateFooter();
+ let error=null;
+ try{
+  const saved=await call(kind==='adjustment'?'/api/adjustment':'/api/expense',
+   {operationId:uuid(),practiceId,value,expectedVersion});
+  if(saved?.practiceId!==practiceId||!Number.isSafeInteger(saved.ledgerVersion)||
+   saved.ledgerVersion<=expectedVersion||!Number.isSafeInteger(saved.income)||
+   !Number.isSafeInteger(saved.expense)||!Number.isSafeInteger(saved.adjustment)||
+   !Number.isSafeInteger(saved.balance)){
+   const e=new Error('保存結果を確認できませんでした。「更新」で最新状態をご確認ください。');
+   e.code='OPERATION_UNCONFIRMED';throw e;
+  }
+  Object.assign(ledger,{version:saved.ledgerVersion,income:saved.income,
+   expense:saved.expense,adjustment:saved.adjustment,balance:saved.balance});
+  el.value=ledger[kind];status.textContent='保存しました';
+  updateFooter();toast((kind==='adjustment'?'当日補正':'当日支出')+'を更新しました');
+ }catch(e){
+  error=e;
+  // The server may have committed despite an unreachable response. Block
+  // new finance writes until a verified manual refresh; never auto-retry.
+  S.paymentNeedsRefresh=true;
+  el.value=old;updateFooter();
+  status.textContent='結果を確認できません。更新してください';
+ }finally{
+  S.pending.delete('amount');
+  el.disabled=S.paymentNeedsRefresh||ledger.status==='confirmed';
+  syncPaymentControls();
+ }
+ if(error)await window.SMStageUX.showError(error);
 }
 function ledgerLoadingRow_(month){
  const body=$('ledgerBody');body.replaceChildren();
