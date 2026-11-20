@@ -66,11 +66,11 @@ for(const [start,end] of [['function visitorMine_(','function visitorAdminList_(
 ok(visitor.includes('!Array.isArray(result.confirmedPracticeIds)')&&
  !visitor.includes('adminHistoryVisible')&&!html.includes('id="visitorAdminHistoryToggle"'),
  'missing financial state fails closed and no admin history toggle remains');
-ok(live.includes("replaceChildren(new Option('日程を読み込んでいます…',''))")&&
- visitor.includes("replaceChildren(node('option','','日程を読み込んでいます…'))")&&
+ok(live.includes("replaceChildren(new Option('',''))")&&
+ visitor.includes("replaceChildren(node('option','',''))")&&
  live.includes("$('visitorMinePractice').disabled=true")&&
  visitor.includes("$('visitorAdminPractice').disabled=true"),
- 'requester and admin controls show loading text and stay disabled until ready');
+ 'requester and admin controls remain blank and disabled while reading; blue banner supplies activity text');
 ok(live.includes("state.classList.add('stage-inline-read-loading')")&&
  live.includes("state.classList.remove('stage-inline-read-loading')")&&
  access.includes("'stage-inline-read-loading',loading")&&
