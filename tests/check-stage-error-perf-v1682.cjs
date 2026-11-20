@@ -25,8 +25,10 @@ ok(live.includes('window.SMStageUX?.errorDetails?.(error)?.message')&&
 ok(live.includes("if(window.SMStageUX?.isBusy?.()===false)void window.SMStageUX.showError(e)")&&
  live.includes("if($('refresh')&&S.pending.size===0)$('refresh').disabled=false"),
  'home read failure displays modal and still offers manual Refresh');
-ok(live.includes("!S.homeReadFailed&&S.pending.size===0&&!S.loading"),
- 'failed background overview no longer creates repeated high-concurrency polling');
+ok(live.includes("!S.homeReadFailed&&")&&
+ live.includes("S.pending.size===0&&!S.loading")&&
+ live.includes("Date.now()>=S.silentRefreshPausedUntil"),
+ 'failed overview stays paused and closing a screen yields before next silent poll');
 ok(live.includes('window.SMStageUX?.clearInlineError?.()'),
  'successful home refresh clears previous red error');
 ok(live.includes("profileTimings:true")&&
