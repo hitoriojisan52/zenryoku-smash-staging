@@ -9,7 +9,7 @@
  const dialog=$('stageRolePreviewDialog'),confirm=$('stageRolePreviewConfirmDialog');
  const select=$('stageRolePreviewSelect'),save=$('stageRolePreviewSave'),
   close=$('stageRolePreviewClose'),status=$('stageRolePreviewActual');
- let api=null,currentRole='',canSwitch=false,canDemote=false,loading=false,
+ let api=null,currentRole='',canSwitch=false,canDemote=false,loading=false,saving=false,
   pendingTarget='',readEpoch=0;
  function message(text,type='info',spinning=false){
   status.textContent=text||'';
@@ -22,7 +22,7 @@
   select.disabled=loading||!canSwitch;
   save.disabled=loading||!canSwitch||!names[target]||target===currentRole||
    (currentRole==='admin'&&target!=='admin'&&!canDemote);
-  close.disabled=loading;
+  close.disabled=saving;
  }
  async function refresh(epoch){
   loading=true;canSwitch=false;
@@ -66,7 +66,7 @@
   confirm.close();
   if(!canSwitch||!names[target]||target===currentRole)return;
   const expected=currentRole;
-  loading=true;controls();
+  loading=true;saving=true;controls();
   try{
    await w.SMStageUX.run('ご自身の権限を変更しています…',async()=>{
     // Never resubmit this write automatically after a network interruption.
@@ -85,15 +85,18 @@
    // A timed-out mutation could have committed. Do not retry automatically.
    message('変更結果を確認できません：'+String(e?.message||e)+
     '。この画面を閉じて開き直し、現在の権限を確認してください。','error');
-   canSwitch=false;loading=false;controls();
+   canSwitch=false;loading=false;saving=false;controls();
   }
  }
  $('stageRolePreviewOpen').addEventListener('click',open);
  select.addEventListener('change',controls);
  save.addEventListener('click',ask);
- close.addEventListener('click',()=>{if(!loading)dialog.close();});
- dialog.addEventListener('cancel',e=>{if(loading)e.preventDefault();});
- dialog.addEventListener('close',()=>{readEpoch++;pendingTarget='';});
+ close.addEventListener('click',()=>{if(!saving)dialog.close();});
+ dialog.addEventListener('cancel',e=>{if(saving)e.preventDefault();});
+ dialog.addEventListener('close',()=>{
+  readEpoch++;pendingTarget='';
+  if(!saving){loading=false;controls();}
+ });
  $('stageRolePreviewConfirmCancel').addEventListener('click',()=>{
   pendingTarget='';confirm.close();
  });
