@@ -96,7 +96,7 @@ function syncPaymentControls(){
  const locked=!ledger||ledger.status==='confirmed'||access?.canCollect===false;
  const savingAmount=S.pending.has('amount');
  for(const id of ['date','refresh','reimbursementBtn','manageBtn','receiptBtn']){
-   const el=$(id);if(el)el.disabled=pending||S.homeReadFailed||(id==='date'&&!Array.from(el.options||[]).some(o=>!!o.value));
+   const el=$(id);if(el)el.disabled=pending||(S.homeReadFailed&&id!=='refresh')||(id==='date'&&!Array.from(el.options||[]).some(o=>!!o.value));
  }
  if($('confirm'))$('confirm').disabled=pending||locked||
     S.overview?.practice?.date>today()||ledger?.canConfirm!==true;
