@@ -759,3 +759,11 @@
 - 同ジョブの最後の`Real Worker to D1 native binding read-only smoke and p50 p95`が**failure（contract mismatch）**。旧`scripts/d1-stage-worker-probe.cjs`のエラーメッセージはセキュリティ上詳細を隠しており、初回ログだけでは不一致となったHTTPステータス・D1結果を特定できない。**Worker経由のD1検証/性能測定を成功とは扱わない。**
 - 対策PR：読み取りのみのGETでWorker secretのEdge反映を短く待機（最大7回・1.5秒間隔、書き込みやユーザー業務の再送なし）、異常時はステータス/認められた固定エラーコードだけをログ記録する。Auth/秘密情報・レスポンス本文・URL/個人情報のログ出力禁止は継続。
 - 次：PR CI・旧会計/参加者/退会/試合回帰合格後に検証用mainへ統合し、自動リモート試験で実Worker GET（無認証拒否、POST拒否、0件、p50/p95）を再確認。失敗すればログのステータスに基づき追加修正。**本番デプロイは未承認・未実施**。
+
+
+## 70. D1 Worker自動配布後の認可確認：POSTが一時的401・調査継続（2026/11/21）
+
+- [PR #139](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/139)はCI成功→main `5644f995ec5ede20277d05931d31495f8634b3a6`に統合。読取専用GETのbounded readiness（最大7回/1.5秒）、秘密値を表示しないステータスコード診断を追加。
+- mainの[Actions #44807828712](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44807828712)で既存検証Workerの所有マーカー照合、D1 ID/名前照合、dry run、実Worker deploy、一時Bearer生成・`PILOT_READ_TOKEN` secret更新まで**success**。最終HTTP試験は**failure**、ログは`stage=write-rejection expected=405 observed=401 code=PILOT_UNAUTHORIZED`。この時点で認証付きGET（練習日・月別収支件数0）と不正Bearer 401は通過したが、POST拒否の結果が期待と異なる。**HTTP試験/性能評価完了扱い禁止**。
+- 初回公開とSecret更新が別CloudflareデプロイとなりEdgeで一時的に旧Bearerを認証する可能性があるが、**原因は未確定**。次PRでPOST（実装されていない、必ず拒否する方法）と旧API経路GETの**401/PILOT_UNAUTHORIZED時のみ**短く再試行し、最終的な405/404契約を緩めず、回数超過はエラーとする。SQL更新/業務データ書込みや重複決済等は一切せず、秘密/レスポンス本文は出力しない。
+- 次：PR CI/旧会計・本人出欠・退会・試合回帰を実施後main統合→再リモート検証の全ステップを確認→成功で初めてWorker Native D1 HTTP p50/p95を報告。失敗時はステータス別の根本原因を再調査。検証用の新独立Workerだけ変更。本番Worker・GAS・LIFF・Sheets未変更。

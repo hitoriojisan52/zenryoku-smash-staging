@@ -67,6 +67,22 @@ async function awaitReadable(url, token, path, keys){
   }
   throw new Error('stage=readiness exhausted');
 }
+async function awaitRejectedRequest(url,token,path,method,expected,stage) {
+  // Updating the temporary Worker secret is itself a separate Cloudflare
+  // deployment. During short edge propagation windows a request can hit an
+  // older secret and receive 401 instead of the expected 405/404.
+  // Retry only against our fixed count-only pilot; POST is never implemented.
+  for(let attempt=0;attempt<8;attempt++){
+    const result=await fetchResult(url,token,path,method);
+    if(result.response.status===expected) return result;
+    if(result.response.status!==401 ||
+       safeCode(result.json)!=='PILOT_UNAUTHORIZED' || attempt===7){
+      expectHttp(stage,result.response,result.json,expected);
+    }
+    await sleep(1200);
+  }
+  throw new Error('stage='+stage+' exhausted');
+}
 function assertEmpty(data,keys){
   assert.equal(data?.ok,true);
   assert.equal(data?.mode,'staging-counts-only');
@@ -86,11 +102,9 @@ async function run(urlFile,tokenFile){
   const invalid=await fetchResult(url,token+'invalid',practice);
   expectHttp('invalid-bearer',invalid.response,invalid.json,401);
   assert.equal(invalid.json?.ok,false);
-  const method=await fetchResult(url,token,practice,'POST');
-  expectHttp('write-rejection',method.response,method.json,405);
+  const method=await awaitRejectedRequest(url,token,practice,'POST',405,'write-rejection');
   assert.equal(method.json?.ok,false);
-  const unknown=await fetchResult(url,token,'/api/overview');
-  expectHttp('legacy-route-rejection',unknown.response,unknown.json,404);
+  const unknown=await awaitRejectedRequest(url,token,'/api/overview','GET',404,'legacy-route-rejection');
   // No request is retried; these GET requests read empty aggregates only.
   const durations=[];
   for(let i=0;i<WARMUP+SAMPLES;i++){
@@ -127,6 +141,8 @@ if(process.argv[2]==='self-test'){
   };
   assert.equal(expect(),'stage=unit-test expected=200 observed=401 code=PILOT_UNAUTHORIZED');
   assert.equal(safeCode({code:'ARBITRARY_PRIVATE_ERROR'}),'UNKNOWN');
+  assert.equal(safeCode({code:'PILOT_UNAUTHORIZED'}),'PILOT_UNAUTHORIZED');
+  assert.match(awaitRejectedRequest.toString(),/PILOT_UNAUTHORIZED/);
   assert.equal(percentile([4,2,3,1],.5),2);
   assert.equal(percentile([4,2,3,1],.95),4);
   assert.throws(()=>assertEmpty({ok:true,mode:'staging-counts-only',data:{practiceCount:1}},['practiceCount']));
