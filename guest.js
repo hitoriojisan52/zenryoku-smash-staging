@@ -4,7 +4,22 @@ const API='https://zenryoku-smash-staging-api.hitori-ojisan-52.workers.dev/api/m
 const $=id=>document.getElementById(id);
 const token=new URLSearchParams(location.hash.replace(/^#/, '')).get('t')||'';
 const el=(tag,cls,value)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(value!==undefined)n.textContent=value;return n;};
-let inFlight=false;
+let inFlight=false,autoPausedOnError=false;
+function guestErrorText_(e){
+ const raw=String(e?.message||'');
+ if(e?.code==='REQUEST_TIMEOUT')return '通信がタイムアウトしました（15秒）。更新してください。';
+ if(/Failed to fetch|NetworkError|fetch failed|Load failed/i.test(raw))
+  return '通信に失敗しました。更新してください。';
+ return raw||'対戦表を読み込めませんでした。';
+}
+function showGuestError_(e){
+ const message=guestErrorText_(e);
+ $('guestNotice').textContent=message;$('guestNotice').hidden=false;
+ $('guestErrorText').textContent=message;
+ const dialog=$('guestErrorDialog');if(!dialog.open)dialog.showModal();
+ autoPausedOnError=true;
+}
+$('guestErrorClose').addEventListener('click',()=>$('guestErrorDialog').close());
 async function load(){if(inFlight)return;inFlight=true;const refresh=$('guestRefresh');refresh.disabled=true;refresh.textContent='更新中…';try{
  if(!/^[0-9a-f]{64}$/.test(token))throw Error('閲覧リンクが無効です。担当者から新しいQRをご案内ください。');
  let timer;
@@ -18,6 +33,7 @@ async function load(){if(inFlight)return;inFlight=true;const refresh=$('guestRef
  })(),timeout]).finally(()=>clearTimeout(timer));
  const data=result.data;
  $('guestNotice').textContent='';$('guestNotice').hidden=true;
+ autoPausedOnError=false;
  $('guestPractice').textContent=window.SMDate.date(data.practice.date)+'　'+data.practice.place;
  $('guestStatus').textContent=data.state==='not_created'?'対戦表はまだ作成されていません':data.state==='finished'?'進行終了':data.state==='ready'?'試合開始前':'第'+data.currentRound+'試合を進行中';
  const box=$('guestRounds');box.replaceChildren();
@@ -41,9 +57,8 @@ async function load(){if(inFlight)return;inFlight=true;const refresh=$('guestRef
  }catch(e){
   $('guestStatus').textContent='対戦表を表示できません';
   $('guestPractice').textContent='';$('guestRounds').replaceChildren();$('guestExpiry').textContent='';
-  $('guestNotice').textContent=e.message||'読み込めませんでした';
-  $('guestNotice').hidden=false;
+  showGuestError_(e);
  }
  finally{inFlight=false;refresh.disabled=false;refresh.textContent='🔄 更新';}}
-$('guestRefresh').addEventListener('click',load);load();setInterval(()=>{if(!document.hidden)load();},15000);
+$('guestRefresh').addEventListener('click',load);load();setInterval(()=>{if(!document.hidden&&!autoPausedOnError)load();},15000);
 })();
