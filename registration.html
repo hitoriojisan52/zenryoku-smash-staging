@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>全力☆スマッシュ 利用申請</title>
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="stage-ui.css?v=1684-message-policy">
+<link rel="stylesheet" href="registration.css?v=1684">
+</head><body class="stage-ui registration-page">
+<main class="registration-shell">
+ <h1>📝 利用申請</h1>
+ <p class="registration-description">全力☆スマッシュの利用申請を行います。申請後は管理者の承認をお待ちください。</p>
+ <p id="registrationStatus" class="stage-system-message stage-system-message--info stage-inline-read-loading" role="status" aria-live="polite">LINE認証を確認しています…</p>
+ <form id="registrationForm" hidden>
+  <label for="registrationName">氏名</label>
+  <input id="registrationName" name="displayName" maxlength="30" placeholder="例：全力太郎" autocomplete="name" required>
+  <label for="registrationKana">氏名カナ（全角カタカナ）</label>
+  <input id="registrationKana" name="nameKana" maxlength="60" placeholder="例：ゼンリョクタロウ" required>
+  <button type="submit" id="registrationSubmit" class="registration-primary">利用申請する</button>
+ </form>
+ <div class="registration-actions"><button id="registrationRefresh" type="button">🔄 更新</button><button id="registrationClose" type="button">✕ 閉じる</button></div>
+</main>
+<dialog id="registrationConfirm"><h2>利用申請の確認</h2><p>入力した内容で利用申請しますか？</p><div class="registration-actions"><button id="registrationCancel" type="button">戻る</button><button id="registrationConfirmSubmit" type="button" class="registration-primary">申請する</button></div></dialog>
+<dialog id="registrationError" role="alertdialog" aria-labelledby="registrationErrorTitle"><h2 id="registrationErrorTitle">操作できませんでした</h2><p id="registrationErrorMessage" class="stage-system-message stage-system-message--error" role="alert"></p><button id="registrationErrorClose" type="button">閉じる</button></dialog>
+<script src="runtime-config.js"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script src="registration.js?v=1684" defer></script>
+</body></html>
