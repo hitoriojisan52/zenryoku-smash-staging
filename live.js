@@ -6,7 +6,7 @@
 'use strict';
 const M=window.SmashModel,$=id=>document.getElementById(id),yen=n=>Number(n).toLocaleString('ja-JP')+'円';
 const CONFIG=window.SMASH_CONFIG||{};
-const S={token:'',actor:null,overview:null,practiceId:'',loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,confirmedPracticeKey:'',selectableDayKey:'',receiptPartialWarning:''};
+const S={token:'',actor:null,overview:null,practiceId:'',loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,overviewLoadFailed:false,mutationUncertain:false,confirmedPracticeKey:'',selectableDayKey:'',receiptPartialWarning:''};
 const VISITOR_MODE=(()=>{
  const q=new URLSearchParams(location.search||'');
  let state=q.get('liff.state')||'';
@@ -60,15 +60,26 @@ async function call(path,payload={}){
  // Invalidate responses from reads that started before a write.
  if(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change','/api/schedule/change','/api/visitor/register','/api/visitor/request','/api/visitor/decide','/api/visitor/modify','/api/participant/change','/api/attendance/submit'].includes(path))S.updateEpoch++;
  const startedAt=performance.now();
- // Bound only bootstrap/ordinary reads. NEVER abort accounting writes:
- // after a client timeout the server could still commit the transaction.
+ // v0.16.81: 15 seconds for every network operation INCLUDING JSON parsing.
+ // Only proven reads are aborted; a mutation may already have committed in
+ // GAS, so a timed-out write is NOT aborted, retried or treated as unsaved.
  const boundedRead=['/api/session','/api/overview','/api/participant/list',
-  '/api/visitor/practices','/api/visitor/mine'].includes(path);
+  '/api/visitor/practices','/api/visitor/mine','/api/visitor/admin-list',
+  '/api/attendance/mine','/api/ledger','/api/cash/get',
+  '/api/schedule/list','/api/schedule/delete-preview','/api/receipt/get',
+  '/api/member/status','/api/member/manage/list','/api/member/manage/withdraw/check',
+  '/api/match/practices','/api/match/get','/api/match/bootstrap',
+  '/api/match/operation','/api/match/line','/api/roster/line']
+  .includes(path)||(path==='/api/stage/self-role'&&payload.action==='status');
+ if(!boundedRead&&S.mutationUncertain){
+  const err=new Error('保存結果を「更新」で確認してください。');
+  err.code='OPERATION_UNCONFIRMED';err.mutationUncertain=true;throw err;
+ }
  const controller=boundedRead&&typeof AbortController!=='undefined'?new AbortController():null;
- const timer=controller?setTimeout(()=>controller.abort(),25000):null;
- let response,value;
- try{
-  response=await fetch(url,{method:'POST',
+ const timeoutMs=15000;
+ let timer=null;
+ const task=(async()=>{
+  const response=await fetch(url,{method:'POST',
    headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},
    body:JSON.stringify(payload),cache:'no-store',
    ...(controller?{signal:controller.signal}:{})});
@@ -77,26 +88,60 @@ async function call(path,payload={}){
     serverTiming:response.headers.get('Server-Timing')||''};
    console.info('[STAGE PERF]',S.lastPerf.path,S.lastPerf.totalMs+'ms',S.lastPerf.serverTiming);
   }
-  try{value=await response.json();}catch{throw new Error('サーバーからの応答を読み取れません');}
- }catch(e){
-  if(controller?.signal.aborted){
-   const error=new Error('読み込みが25秒以内に完了しませんでした。通信状態を確認し、画面を開き直すか「更新」で最新の状態を確認してください。');
+  let value;
+  try{value=await response.json();}catch(e){
+   if(controller?.signal.aborted)throw e;
+   throw new Error('サーバーの応答を読み取れませんでした。');
+  }
+  return {response,value};
+ })();
+ const deadline=new Promise((_,reject)=>{
+  timer=setTimeout(()=>{
+   if(boundedRead)controller?.abort();
+   const error=new Error(boundedRead?
+    '通信が15秒以内に完了しませんでした。「更新」で再確認してください。':
+    '通信が15秒以内に完了しませんでした。保存結果を「更新」で確認してください。');
+   error.code=boundedRead?'REQUEST_TIMEOUT':'OPERATION_UNCONFIRMED';
+   if(!boundedRead){
+    error.mutationUncertain=true;S.mutationUncertain=true;
+   }
+   reject(error);
+  },timeoutMs);
+ });
+ let response,value;
+ try{({response,value}=await Promise.race([task,deadline]));}
+ catch(e){
+  // The deadline is authoritative even if AbortController wins the race.
+  if(controller?.signal.aborted&&e?.code!=='REQUEST_TIMEOUT'){
+   const error=new Error('通信が15秒以内に完了しませんでした。「更新」で再確認してください。');
    error.code='REQUEST_TIMEOUT';throw error;
   }
   throw e;
- }finally{if(timer!==null)clearTimeout(timer);}
- if(!response.ok||!value.ok){const err=new Error(value.error||'処理を完了できませんでした');err.status=response.status;err.code=String(value.code||'');throw err;}
+ }finally{clearTimeout(timer);}
+ if(!response.ok||!value.ok){
+  const err=new Error(value.error||'処理を完了できませんでした。');
+  err.status=response.status;err.code=String(value.code||'');
+  // Server-side 5xx/504 during a write cannot prove the update was rolled
+  // back. Preserve the operationId and show "verify before retry".
+  if(!boundedRead&&response.status>=500){
+   err.mutationUncertain=true;err.code='OPERATION_UNCONFIRMED';
+   S.mutationUncertain=true;
+  }
+  throw err;
+ }
  return value.data;
 }
 // Collection checkboxes are independent. Only up to two requests leave this page
 // concurrently. Apps Script's lock remains the source of truth for the ledger.
 const MAX_PAYMENT_IN_FLIGHT=2;
 function syncPaymentControls(){
- const pending=S.pending.size>0,ledger=S.overview?.ledger,access=S.overview?.collectionAccess;
- const locked=!ledger||ledger.status==='confirmed'||access?.canCollect===false;
+ const pending=S.pending.size>0,ledger=S.overview?.ledger,access=S.overview?.collectionAccess,
+  unavailable=S.overviewLoadFailed===true||S.mutationUncertain===true;
+ const locked=unavailable||!ledger||ledger.status==='confirmed'||access?.canCollect===false;
  const savingAmount=S.pending.has('amount');
  for(const id of ['date','refresh','reimbursementBtn','manageBtn']){
-   const el=$(id);if(el)el.disabled=pending||(id==='date'&&!Array.from(el.options||[]).some(o=>!!o.value));
+   const el=$(id);if(el)el.disabled=pending||(id!=='refresh'&&unavailable)||
+    (id==='date'&&!Array.from(el.options||[]).some(o=>!!o.value));
  }
  if($('confirm'))$('confirm').disabled=pending||locked||
     S.overview?.practice?.date>today()||ledger?.canConfirm!==true;
@@ -228,8 +273,9 @@ function readScreen_(id,label,loader,onComplete,force=false){
    state.hidden=false;state.classList.remove('stage-inline-read-loading');
    state.classList.remove('stage-system-message--info');
    state.classList.add('stage-system-message--error');
-   state.textContent='読み込みできませんでした：'+String(error?.message||error)+
-    '。閉じるか「更新」から再試行してください。';
+   state.textContent=['REQUEST_TIMEOUT','GAS_TIMEOUT','LINE_VERIFY_TIMEOUT'].includes(error?.code)?
+    '読み込みが15秒以内に完了しませんでした。「更新」で再確認してください。':
+    '読み込みに失敗しました。「更新」で再確認してください。';
   }).finally(()=>{
    if(current()&&refreshButton)refreshButton.disabled=false;
    if(screenReadActive_.get(id)?.version===version)
@@ -239,8 +285,25 @@ function readScreen_(id,label,loader,onComplete,force=false){
  return promise;
 }
 window.SMStageRead={open:readScreen_};
+// A failed overview never leaves home finance/management actions enabled.
+// Keep Update available after a foreground failure for verified staff only.
+function homeReadFailure_(error){
+ S.overviewLoadFailed=true;
+ const box=$('homeReadError');
+ if(box){
+  box.textContent=['REQUEST_TIMEOUT','GAS_TIMEOUT','LINE_VERIFY_TIMEOUT'].includes(error?.code)?
+   '読み込みが15秒以内に完了しませんでした。「更新」で再確認してください。':
+   '読み込みに失敗しました。「更新」で再確認してください。';
+  box.hidden=false;
+ }
+ for(const id of ['reimbursementBtn','receiptBtn','manageBtn']){
+  const control=$(id);if(control)control.disabled=true;
+ }
+ syncPaymentControls();
+ $('refresh').disabled=!(S.actor&&['duty','admin'].includes(S.actor.role));
+}
 async function boot(){
- for(const id of ['confirm','reimbursementBtn','manageBtn','refresh','adjustment','expense','newLedgerRow'])$(id).disabled=true;
+ for(const id of ['confirm','reimbursementBtn','receiptBtn','manageBtn','refresh','adjustment','expense','newLedgerRow'])$(id).disabled=true;
  try{
   if(!CONFIG.liveLiffId||CONFIG.liveLiffId.includes('REPLACE_')||!CONFIG.apiBaseUrl||CONFIG.apiBaseUrl.includes('REPLACE_'))throw new Error('runtime-config.js の設定が必要です');
   if(!window.liff)throw new Error('LINE SDKを読み込めませんでした');
@@ -251,8 +314,8 @@ async function boot(){
    await Promise.race([
     liff.init({liffId:CONFIG.liveLiffId,withLoginOnExternalBrowser:true}),
     new Promise((_,reject)=>{liffTimer=setTimeout(()=>reject(
-     Object.assign(new Error('LINEの初期化が20秒以内に完了しませんでした。LINEからアプリを開き直してください。'),{code:'REQUEST_TIMEOUT'})
-    ),20000);})
+     Object.assign(new Error('LINE認証が15秒以内に完了しませんでした。LINEから開き直してください。'),{code:'REQUEST_TIMEOUT'})
+    ),15000);})
    ]);
   }finally{if(liffTimer!==undefined)clearTimeout(liffTimer);}
   const authMs=Math.round(performance.now()-authStart);
@@ -285,7 +348,7 @@ async function boot(){
    const notice=document.createElement('p');
    notice.className='stage-system-message stage-system-message--warning';
    notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');
-   notice.textContent='メンバー権限では運用管理を操作できません。検証用の「権限切換」から管理者・当番担当へ戻せます。';
+   notice.textContent='メンバー権限では運用管理機能を利用できません。';
    $('list').replaceChildren(notice);
    for(const control of document.querySelectorAll('main button,main select,main input,main textarea')){
     if(control.id!=='stageRolePreviewOpen')control.disabled=true;
@@ -314,7 +377,7 @@ async function boot(){
   setInterval(()=>{if(!document.hidden&&!document.querySelector('dialog[open]')&&!S.paymentNeedsRefresh&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
   if(!PERF_MODE)toast('接続しました');
  }catch(e){
-  $('list').textContent=e.message;throw e;
+  homeReadFailure_(e);throw e;
  }
 }
 async function reload(refreshDates){
@@ -373,10 +436,16 @@ async function reload(refreshDates){
    S.confirmedPracticeKey=confirmedKey;
    S.selectableDayKey=selectableDayKey;
    S.paymentNeedsRefresh=false;
+   S.overviewLoadFailed=false;
+   // Explicit successful foreground refresh reconciles an uncertain write.
+   // Silent 8-second polling MUST NOT release the write-safety latch.
+   if(refreshDates)S.mutationUncertain=false;
+   const homeError=$('homeReadError');if(homeError){homeError.textContent='';homeError.hidden=true;}
    renderHome();syncPaymentControls();
  })();
  S.reloadPromise=task;
  try{return await task;}
+ catch(error){homeReadFailure_(error);throw error;}
  finally{
    if(S.reloadPromise===task)S.reloadPromise=null;
    S.loading=false;
@@ -384,7 +453,7 @@ async function reload(refreshDates){
 }
 function renderHome(){const v=S.overview;if(!v)return;const {practice,ledger,participants}=v;
  const receiptView=$('homeReceiptView');if(receiptView)receiptView.hidden=!ledger?.receiptFileId;
- const receiptUpload=$('receiptBtn');if(receiptUpload)receiptUpload.disabled=!ledger||ledger.status==='confirmed';
+ const receiptUpload=$('receiptBtn');if(receiptUpload)receiptUpload.disabled=S.overviewLoadFailed||S.mutationUncertain||!ledger||ledger.status==='confirmed';
  if(!practice){
   $('place').textContent='開催日なし';$('hours').textContent='時間区分：—';
   $('count').textContent='参加者：0名';$('completedCount').textContent='集金完了：0名';

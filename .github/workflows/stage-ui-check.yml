@@ -56,6 +56,7 @@ on:
       - 'tests/check-stage-foreground-read-v1678.cjs'
       - 'tests/check-stage-role-preview-visitor-delete-v1679.cjs'
       - 'tests/check-stage-self-role-v1680.cjs'
+      - 'tests/check-stage-timeouts-message-v1681.cjs'
       - 'tests/check-stage-member-kana-v1657.cjs'
       - 'tests/check-stage-member-kana-approval-v1657b.cjs'
       - 'tests/check-stage-ledger-confirm-order-v1651.cjs'
@@ -175,6 +176,8 @@ jobs:
         run: node tests/check-stage-role-preview-visitor-delete-v1679.cjs
       - name: Verify one-owner staging self-role recovery and member management lock
         run: node tests/check-stage-self-role-v1680.cjs
+      - name: Verify 15s timeouts, uncertain mutations and error message standards
+        run: node tests/check-stage-timeouts-message-v1681.cjs
       - name: Verify LINE registration kana and unified roster sort
         run: node tests/check-stage-member-kana-v1657.cjs
       - name: Verify real GAS kana approval/edit and historical safety

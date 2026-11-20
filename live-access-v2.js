@@ -61,10 +61,10 @@
    });
  }
  function errorDetails(e){
-   if(e?.appliedButRefreshFailed)return {title:'変更結果を確認してください',message:'更新された可能性があります。\n「更新」で最新状態をご確認ください。'};
-   if(e?.mutationUncertain)return {title:'変更結果を確認してください',message:'通信が切れました。\n「更新」で結果をご確認ください。'};
-   if(e?.status===409)return {title:'内容が変わりました',message:'別の人が先に変更しました。\n「更新」してからやり直してください。'};
-   if(isUncertain(e))return {title:'通信エラー',message:'通信できませんでした。\n「更新」でやり直してください。'};
+   if(e?.appliedButRefreshFailed)return {title:'変更結果を確認してください',message:'保存済みの可能性があります。「更新」で確認してください。'};
+   if(e?.mutationUncertain)return {title:'変更結果を確認してください',message:'保存結果を「更新」で確認してください。'};
+   if(e?.status===409)return {title:'内容が変わりました',message:'別の操作で更新されました。「更新」で確認してください。'};
+   if(isUncertain(e))return {title:'通信エラー',message:'通信できませんでした。「更新」で確認してください。'};
    return {title:'操作できませんでした',message:String(e?.message||'もう一度お試しください。')};
  }
  function showError(e){const info=errorDetails(e);return ask({title:info.title,message:info.message,label:'閉じる'},true);}
@@ -266,7 +266,7 @@
      if(!first)toast('更新しました。');
      return true;
    }catch(e){
-     if(current())status('読み込みに失敗しました：'+String(e?.message||e),false,true);
+     if(current())status(e?.code==='REQUEST_TIMEOUT'?'読み込みが15秒以内に完了しませんでした。「更新」で再確認してください。':'読み込みに失敗しました。「更新」で再確認してください。',false,true);
      return false;
    }finally{
      if(current())$('memberAccessRefresh').disabled=false;

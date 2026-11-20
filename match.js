@@ -26,36 +26,76 @@ async function mutation(path,payload){
    let verification;
    try{verification=await request('/api/match/operation',{
      practiceId:payload.practiceId,operationId:payload.operationId});}
-   catch(_){const err=Error('通信が途切れ、操作結果を確認できません。通信回復後に「更新」で最新の状態を確認してください。');
+   catch(_){const err=Error('操作結果を確認できません。「更新」で確認してください。');
      err.code='OPERATION_UNKNOWN';throw err;}
    if(verification.applied){
      try{const latest=await request('/api/match/get',{practiceId:payload.practiceId});
        latest.recoveredOperation=true;return latest;}
-     catch(_){const err=Error('操作は保存済みと確認できましたが、最新情報を取得できません。画面の「更新」を押してください。');
+     catch(_){const err=Error('保存済みですが、再取得に失敗しました。「更新」で確認してください。');
        err.code='APPLIED_REFRESH_FAILED';throw err;}
    }
-   const err=Error('操作が反映されたことを確認できませんでした。最新の内容を確認してから再操作してください。');
+   const err=Error('保存結果が不明です。「更新」で確認してください。');
    err.code='OPERATION_UNCONFIRMED';throw err;
  }
 }
 
 async function request(path,payload={}){
  if(!S.token||!CFG.apiBaseUrl)throw Error('LINE認証またはAPI設定がありません');
- const res=await fetch(CFG.apiBaseUrl.replace(/\/$/,'')+path,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},body:JSON.stringify(payload),cache:'no-store'});
-
- if(path==='/api/match/bootstrap'){
+ // A 15s deadline includes receiving and parsing the JSON response.
+ // Never abort/replay a match mutation: GAS may still be applying it.
+ const boundedRead=['/api/session','/api/member/status','/api/match/bootstrap',
+  '/api/match/practices','/api/match/get','/api/match/line',
+  '/api/match/operation','/api/roster/line'].includes(path);
+ const controller=boundedRead&&typeof AbortController!=='undefined'?new AbortController():null;
+ let timer;
+ const work=(async()=>{
+  const res=await fetch(CFG.apiBaseUrl.replace(/\/$/,'')+path,{
+   method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},
+   body:JSON.stringify(payload),cache:'no-store',...(controller?{signal:controller.signal}:{})
+  });
+  if(path==='/api/match/bootstrap'){
    const names={line:'workerLine',gas:'workerGas',gas_post:'workerGasPost',gas_content:'workerGasContent'};
    const header=res.headers.get('Server-Timing')||'';
    for(const value of header.split(',')){
-     const match=/^\s*(line|gas|gas_post|gas_content);dur=(\d+(?:\.\d+)?)\s*$/.exec(value);
-     if(match){
-       const ms=Number(match[2]);
-       if(Number.isFinite(ms)&&ms>=0&&ms<=300000)Startup.timings[names[match[1]]]=Math.round(ms);
-     }
+    const match=/^\s*(line|gas|gas_post|gas_content);dur=(\d+(?:\.\d+)?)\s*$/.exec(value);
+    if(match){
+     const ms=Number(match[2]);
+     if(Number.isFinite(ms)&&ms>=0&&ms<=300000)Startup.timings[names[match[1]]]=Math.round(ms);
+    }
    }
+  }
+  let data;try{data=await res.json();}catch(e){
+   if(controller?.signal.aborted)throw e;
+   throw Error('サーバーの応答を読み取れませんでした。');
+  }
+  return {res,data};
+ })();
+ const deadline=new Promise((_,reject)=>{
+  timer=setTimeout(()=>{
+   if(boundedRead)controller?.abort();
+   const error=Error(boundedRead?
+    '読み込みが15秒以内に完了しませんでした。「更新」で再確認してください。':
+    '操作結果を15秒以内に確認できませんでした。「更新」で確認してください。');
+   error.code=boundedRead?'REQUEST_TIMEOUT':'OPERATION_UNCONFIRMED';
+   if(!boundedRead)error.mutationUncertain=true;
+   reject(error);
+  },15000);
+ });
+ let res,data;
+ try{({res,data}=await Promise.race([work,deadline]));}
+ catch(e){
+  if(controller?.signal.aborted&&e?.code!=='REQUEST_TIMEOUT'){
+   const error=Error('読み込みが15秒以内に完了しませんでした。「更新」で再確認してください。');
+   error.code='REQUEST_TIMEOUT';throw error;
+  }
+  throw e;
+ }finally{clearTimeout(timer);}
+ if(!res.ok||!data.ok){
+  const e=Error(data.error||'操作できませんでした。');e.code=data.code;e.status=res.status;
+  if(!boundedRead&&res.status>=500)e.mutationUncertain=true;
+  throw e;
  }
- let data;try{data=await res.json();}catch{throw Error('API応答を取得できません');}
- if(!res.ok||!data.ok){const e=Error(data.error||'操作できませんでした');e.code=data.code;e.status=res.status;throw e;}return data.data;
+ return data.data;
 }
 const isDuty=()=>['duty','admin'].includes(S.actor?.role);
 const operationId=()=>crypto.randomUUID();
@@ -148,7 +188,20 @@ async function change(action,payload={}){if(!isDuty())throw Error('対戦表の�
 const Startup={scriptStarted:performance.now(),timings:{}};
 async function timedStartup(key,fn){
  const start=performance.now();
- try{return await fn();}finally{Startup.timings[key]=Math.round(performance.now()-start);}
+ let timer;
+ try{
+  if(key!=='liff')return await fn(); // API calls have their own 15s budgets.
+  return await Promise.race([
+   Promise.resolve().then(fn),
+   new Promise((_,reject)=>{timer=setTimeout(()=>{
+    const e=Error('LINE認証が15秒以内に完了しませんでした。LINEから開き直してください。');
+    e.code='REQUEST_TIMEOUT';reject(e);
+   },15000);})
+  ]);
+ }finally{
+  if(timer!==undefined)clearTimeout(timer);
+  Startup.timings[key]=Math.round(performance.now()-start);
+ }
 }
 // v0.16 staging: members share one LIFF; read-only members use existing safe APIs.
 async function openGeneralMemberView16_(){

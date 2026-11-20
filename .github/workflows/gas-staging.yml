@@ -82,6 +82,8 @@ jobs:
         run: node tests/check-stage-role-preview-visitor-delete-v1679.cjs
       - name: Verify staging self-role mutation owner and backup protection
         run: node tests/check-stage-self-role-v1680.cjs
+      - name: Verify 15s timeouts, uncertain mutations and error message standards
+        run: node tests/check-stage-timeouts-message-v1681.cjs
       - name: Verify member-only LINE attendance timestamping and financial locks
         run: node tests/check-stage-line-attendance-v1645.cjs
       - name: Verify admin user-name edit and finalized ledger role buttons

@@ -86,13 +86,16 @@ function exceptionType(e){
  * An occasional 404 at the one-time GET URL can be retried without executing
  * doPost again. Only fetch the expected Google ContentService host.
  */
-async function fetchGasOnce(url,body,metrics={}){
+async function fetchGasOnce(url,body,metrics={},deadline){
   let res;
   const postStart=performance.now();
   try{
-    res=await fetch(url,{method:'POST',redirect:'manual',
+    res=await fetch(url,{method:'POST',redirect:'manual',signal:deadline,
       headers:{'Content-Type':'text/plain; charset=utf-8'},body:JSON.stringify(body)});
-  }catch(_){throw backendError('GAS_CONNECT_FAILED','GASへのネットワーク接続に失敗しました');}
+  }catch(_){
+    if(deadline?.aborted)throw knownError('GAS_TIMEOUT','GASの通信が15秒以内に完了しませんでした',504);
+    throw backendError('GAS_CONNECT_FAILED','GASへの接続に失敗しました');
+  }
   metrics.postMs=Math.max(0,Math.round(performance.now()-postStart));
   if([301,302,303].includes(res.status)){
     const location=res.headers.get('Location');
@@ -105,8 +108,11 @@ async function fetchGasOnce(url,body,metrics={}){
     const contentStart=performance.now();
     for(let attempt=0;attempt<3;attempt++){
       if(attempt)await delay(attempt===1?350:900);
-      try{res=await fetch(target.toString(),{method:'GET',redirect:'manual'});}
-      catch(_){throw backendError('GAS_CONTENT_FETCH_FAILED','GASの応答取得に失敗しました');}
+      try{res=await fetch(target.toString(),{method:'GET',redirect:'manual',signal:deadline});}
+      catch(_){
+        if(deadline?.aborted)throw knownError('GAS_TIMEOUT','GASの通信が15秒以内に完了しませんでした',504);
+        throw backendError('GAS_CONTENT_FETCH_FAILED','GASの応答を取得できませんでした');
+      }
       if(res.status!==404)break;
     }
     metrics.contentMs=Math.max(0,Math.round(performance.now()-contentStart));
@@ -120,7 +126,10 @@ async function fetchGasOnce(url,body,metrics={}){
     throw backendError(code,'GASがHTTP '+res.status+'を返しました。Webアプリの公開設定・URLを確認してください');
   }
   let responseText;
-  try{responseText=await res.text();}catch(_){throw backendError('GAS_BODY_FAILED','GASからの応答を読み取れませんでした');}
+  try{responseText=await res.text();}catch(_){
+    if(deadline?.aborted)throw knownError('GAS_TIMEOUT','GASの通信が15秒以内に完了しませんでした',504);
+    throw backendError('GAS_BODY_FAILED','GASの応答を読み取れませんでした');
+  }
   let result;
   try{result=JSON.parse(responseText);}catch(_){
     throw backendError('GAS_NOT_JSON','GASがJSON以外の応答を返しました。URL・公開設定を確認してください');
@@ -128,13 +137,15 @@ async function fetchGasOnce(url,body,metrics={}){
   if(!result||typeof result.ok!=='boolean')throw backendError('GAS_BAD_RESPONSE','GASの応答形式が不正です');
   return result;
 }
-async function verifyLineToken(token,clientId){
+async function verifyLineToken(token,clientId,deadline){
   const params=new URLSearchParams({id_token:token,client_id:clientId});
   let resp;
   try{resp=await fetch('https://api.line.me/oauth2/v2.1/verify',{
-    method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:params.toString(),redirect:'manual'
+    method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:params.toString(),redirect:'manual',signal:deadline
   });}catch(_){
-    throw knownError('LINE_VERIFY_CONNECT_FAILED','LINE認証サーバーへの接続に失敗しました');
+    if(deadline?.aborted)throw knownError('LINE_VERIFY_TIMEOUT','LINE認証が15秒以内に完了しませんでした',504);
+    throw knownError('LINE_VERIFY_CONNECT_FAILED','LINE認証サーバーに接続できませんでした');
   }
   // Cloudflare Workers does not implement redirect:'error'. Use manual and
   // refuse any 3xx so the ID token is never forwarded to another host.
@@ -148,7 +159,8 @@ async function verifyLineToken(token,clientId){
   }
   let p;
   try{p=await resp.json();}catch(_){
-    throw knownError('LINE_VERIFY_NOT_JSON','LINE認証サーバーからJSON応答を取得できませんでした');
+    if(deadline?.aborted)throw knownError('LINE_VERIFY_TIMEOUT','LINE認証が15秒以内に完了しませんでした',504);
+    throw knownError('LINE_VERIFY_NOT_JSON','LINE認証の応答を読み取れませんでした');
   }
   if(!p||typeof p!=='object'||Array.isArray(p)){
     throw knownError('LINE_VERIFY_BAD_RESPONSE','LINE認証サーバーの応答形式が不正です');
@@ -199,6 +211,9 @@ export async function handleRequest(request,env){
     let payload;
     try{payload=JSON.parse(raw);}catch(_){return failure('要求のJSON形式が不正です（診断コード：BAD_REQUEST_JSON）',400,origin,'BAD_REQUEST_JSON');}
     if(!payload||Array.isArray(payload)||typeof payload!=='object')return failure('要求形式が不正です',400,origin);
+    // A single 15s budget covers token verification, GAS POST, redirect GET,
+    // response body and retry delays. A timed-out write is NEVER POSTed again.
+    const deadline=AbortSignal.timeout(15000);
     // Guest reads require a short-lived, server-issued bearer capability;
     // they never require a LINE login and never forward a member identity.
     if(isGuest){
@@ -206,12 +221,12 @@ export async function handleRequest(request,env){
         return failure('閲覧リンクが無効です',403,origin,'GUEST_LINK_INVALID');
       const result=await fetchGasOnce(env.GAS_WEB_APP_URL,{
         sharedSecret:env.GAS_SHARED_SECRET,op:'match.guest.get',guestToken:payload.token,payload:{}
-      });
+      },{},deadline);
       return json(result,result.ok?200:result.code==='UNAUTHORIZED'?403:result.code==='NOT_FOUND'?404:400,origin);
     }
     phase='line_verify';
     const lineStart=performance.now();
-    const lineUserId=await verifyLineToken(tokenMatch[1],env.LINE_LOGIN_CHANNEL_ID);
+    const lineUserId=await verifyLineToken(tokenMatch[1],env.LINE_LOGIN_CHANNEL_ID,deadline);
     const lineMs=Math.max(0,Math.round(performance.now()-lineStart));
     // v0.16.53: ALL connected-staging members are authorized test data.
     // Preserve fail-closed gates on the exact staging workbook and purpose.
@@ -295,7 +310,7 @@ export async function handleRequest(request,env){
     const gasMetrics={};
     const gasStart=performance.now();
     const result=await fetchGasOnce(env.GAS_WEB_APP_URL,
-      {sharedSecret:env.GAS_SHARED_SECRET,lineUserId,op,payload},gasMetrics);
+      {sharedSecret:env.GAS_SHARED_SECRET,lineUserId,op,payload},gasMetrics,deadline);
     // Never enable a destructive UI action until BOTH independent gates agree.
     // The boolean is safe for admin-only UI; do not publish secrets/IDs.
     if(op==='member.manage.list'&&result?.ok===true&&result?.data){
@@ -322,6 +337,9 @@ export async function handleRequest(request,env){
     console.warn('staging_gateway_failure',JSON.stringify({phase,code,errorType:exceptionType(err)}));
     if(status===401){
       return failure('LINE認証に失敗しました（診断コード：'+code+'）',401,origin,code);
+    }
+    if(status===504){
+      return failure('通信が15秒以内に完了しませんでした。最新の状態を確認してください。',504,origin,code);
     }
     if(status===502){
       // For classified known errors the message is a fixed string from this
