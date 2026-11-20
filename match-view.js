@@ -39,7 +39,14 @@ async function init(){
  try{
   if(!CFG.viewLiffId||CFG.viewLiffId.includes('REPLACE_')||
     !CFG.apiBaseUrl||CFG.apiBaseUrl.includes('REPLACE_'))throw Error('設定がありません');
-  await liff.init({liffId:CFG.viewLiffId});
+  let authTimer;
+  try{await Promise.race([
+   liff.init({liffId:CFG.viewLiffId}),
+   new Promise((_,reject)=>{authTimer=setTimeout(()=>{
+    const e=Error('LINE認証がタイムアウトしました（15秒）。開き直してください。');
+    e.code='REQUEST_TIMEOUT';reject(e);
+   },15000);})
+  ]);}finally{clearTimeout(authTimer);}
   if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return;}
   token=liff.getIDToken();if(!token)throw Error('LINE認証に失敗しました');
   const list=await request('/api/match/practices');
