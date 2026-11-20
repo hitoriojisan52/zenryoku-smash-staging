@@ -250,6 +250,7 @@ function screenReadStatus_(id){
 function readScreen_(id,label,loader,onComplete,force=false){
  const screen=$(id),prev=screenReadActive_.get(id);
  if(prev&&screen.open&&!force)return prev.promise; // intentional refresh supersedes stale read
+ if(prev&&force)prev.controller?.abort();
  const version=(screenReadEpoch_.get(id)||0)+1;
  screenReadEpoch_.set(id,version);
  if(!screen.dataset.readCloseBound){
@@ -340,9 +341,10 @@ async function boot(){
   if(VISITOR_MODE){
    document.body.classList.add('visitor-member');
    $('visitorMemberHome').hidden=false;
-   const list=await call('/api/visitor/practices');
-   VIS.practices=validateVisitorPractices_(list);
    await window.SMVisitor.loadMine();
+   const available=window.SMVisitor.registrationPractices?.();
+   VIS.practices=validateVisitorPractices_(Array.isArray(available)?
+    {practices:available}:await call('/api/visitor/practices'));
    toast('接続しました');
    return;
   }
@@ -401,9 +403,13 @@ function enterRegistrationOnly_(){
  notice.className='stage-system-message stage-system-message--info';
  notice.setAttribute('role','status');
  notice.textContent='利用申請が必要です。検証用の申請画面から登録してください。';
- $('list').replaceChildren(notice);
  for(const control of document.querySelectorAll('main button,main select,main input,main textarea'))
   control.disabled=true;
+ const openAgain=document.createElement('button');
+ openAgain.type='button';openAgain.className='btn-outline';
+ openAgain.textContent='📝 利用申請を開く';
+ openAgain.addEventListener('click',()=>window.SMStageRegistration?.open?.());
+ $('list').replaceChildren(notice,openAgain);
 }
 function showHomeReadError_(e){
  const list=$('list');if(!list)return;
@@ -1114,7 +1120,7 @@ async function refreshCashSnapshot_(isCurrent=()=>true){
  const practiceId=S.practiceId;
  cashSnapshot=null;renderCash();
  updateReadScreenStatus_('cashDialog','帳簿残高と金種記録を取得しています…',isCurrent);
- const response=await call('/api/cash/get',{practiceId});
+ const response=await call('/api/cash/get',{practiceId},{signal:isCurrent.signal});
  if(!isCurrent())return;
  if(practiceId!==S.practiceId)throw new Error('開催日が変更されました。もう一度現金確認を開いてください');
  updateReadScreenStatus_('cashDialog','帳簿残高と金種枚数を確認しています…',isCurrent);
@@ -1331,7 +1337,11 @@ function renderVisitorPracticeOptions_(){
  $('visitorStatus').textContent=preferred?'':'受付中の練習日程がありません';
 }
 function openVisitorForm_(){
- gateEdit();close('manageDialog');
+ // All approved LINE members may request visitors, including member role.
+ // Backend verifies the requester and protects approval/deletion separately.
+ if(!S.actor||!['member','duty','admin'].includes(S.actor.role))
+  throw new Error('利用登録を確認してください。');
+ close('manageDialog');
  VIS.practices=[];VIS.draft=null;VIS.unknownResult=false;
  $('visitorMinePractice').replaceChildren(new Option('',''));
  $('visitorMinePractice').value='';$('visitorMinePractice').disabled=true;
@@ -1343,8 +1353,11 @@ function openVisitorForm_(){
  $('visitorMineCards').textContent='申請状況を読み込んでいます…';
  return readScreen_('visitorDialog','開催日とビジター申請状況を読み込んでいます…',
   async isCurrent=>{
-   const [response]=await Promise.all([
-    call('/api/visitor/practices'),window.SMVisitor.loadMine(isCurrent)]);
+   await window.SMVisitor.loadMine(isCurrent);
+   if(!isCurrent())return;
+   const available=window.SMVisitor.registrationPractices?.();
+   const response=Array.isArray(available)?{practices:available}:
+    await call('/api/visitor/practices',{},{signal:isCurrent.signal});
    if(!isCurrent())return;
    VIS.practices=validateVisitorPractices_(response);
    renderVisitorPracticeOptions_();
