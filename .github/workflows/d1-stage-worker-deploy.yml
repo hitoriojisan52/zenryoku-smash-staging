@@ -119,6 +119,13 @@ jobs:
         shell: bash
         run: |
           npx --yes wrangler@4 secret put PILOT_READ_TOKEN --config d1-staging/readonly-pilot/.wrangler.stage.runtime.json < "$RUNNER_TEMP/d1-worker-one-time-token.txt"
+      - name: Allow global edge rollout of newly deployed ephemeral bearer
+        if: steps.stage-gate.outputs.ready == 'true'
+        shell: bash
+        run: |
+          # 'wrangler secret put' is itself a second Worker deployment;
+          # do not measure cold-rollout authorization errors as D1 latency.
+          sleep 45
       - name: Real Worker to D1 native binding read-only smoke and p50 p95
         if: steps.stage-gate.outputs.ready == 'true'
         shell: bash
