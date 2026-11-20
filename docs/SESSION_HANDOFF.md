@@ -805,3 +805,13 @@
 - PRのsquash統合後、検証用main `0dd0872749a9c38a6eb7ff33e77e579927b510d4`。同main [GitHub Pages Actions #44836610360](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44836610360) build / deploy / report-build-status **success**、`Workers Builds: zenryoku-smash-staging-api` **success**。このmainにはD1のWorkerバインディング/SQL Migration/既存Workerコード変更がないため、D1 Remoteの操作・本番切替は実行していない。
 - **未完了**：実Google Sheets全20業務タブのデータ/セル型の完全棚卸し、収支・出欠・試合/履歴のロスレスなD1複写/権限/バックアップ、2 WorkerのService Binding、旧アプリとD1の**同量・同条件**でのHTTP/LINE実機性能比較。新規候補SQLの`schedule.list`は「本日のJST」と役割確認・実日付型変換・全表一意性の整合などを満たした本番APIではなく、GASの正本を保持する。
 - **次回に着手する作業**：検証用Sheetの20業務タブ（最優先：練習日程・出欠回答・集金記録・全体収支管理表・操作履歴）のヘッダー、実データ件数、重複ID/日付、書式/日付型、監査と参照孤立を**読み取り専用**で確認し、個人情報をログ/PRに載せない統計報告とロスレス変換のBLOCK判定を実装。GatewayにService Bindingを追加する案は既存コード/権限への影響を先に提示し、ユーザー判断前に配備しない。本番移行も明示承認制。
+
+
+## 75. D1第5工程：接続検証用20タブの読み取り専用監査（2026/11/21）
+
+- ユーザーがプロジェクトで管理する「全力☆スマッシュ 接続検証用 v0.15（架空データ）」をGoogle Sheets connectorで**変更なしの直接閲覧**。メタデータは21タブ（ガイド1＋業務20）、locale=ja_JP、timeZone=Asia/Tokyo。全20業務タブについて**現存範囲の対象列（最大A:P）**を読み、氏名/LINE ID/財務額/大容量JSON/秘密値を出力せず、各タブの行数・キー欠損/重複と一部FKの件数だけを計算。[D1_STAGE_SHEET_PREFLIGHT.md](D1_STAGE_SHEET_PREFLIGHT.md)に実数と限定条件を記録。
+- **発見 BLOCK-1**：`チーム所属`5行のうち、同じ(teamId,memberId)が3行存在（有効1、無効2；重複グループ1、超過行2）。GAS `member_` は同じ会員の有効所属が1件でもあれば`duty`となる。一方D1候補`team_memberships`の複合PRIMARY KEYは同一キーを3行保持できない。無効2行を勝手に削除すると歴史的な元行が失われる可能性があるため、**スキーマ改修／ロスレス移行／手動統合をユーザー判断前に実施しない**。候補は履歴保持テーブル＋現役権限導出（推奨）か、権限のGAS残置。単純集約での移行は採用不可。
+- **発見 BLOCK-2**：練習日程の日付は数値4件・文字列1件、全体収支管理表の日付は数値7件・文字列2件、操作履歴日時は数値210件。小範囲のCellDataでは日付/日時書式の数値セルを確認。既存のJST日付・曜日・月次繰越・報告履歴を損なわない、Googleシリアルと文字列の可逆変換が未設計。日時の勝手な正規化は禁止。
+- 限定的な関係チェック：メンバー4行でLINE ID重複0、練習日程5行でraw値日付重複0、出欠39行で日程参照孤立0、集金16行で出欠/日程参照孤立0、試合セッション1行で日程参照孤立0、チーム所属5行は存在するメンバー/チームのみ。**全セル公式・重複日付の型正規化・全履歴復元の成功を主張しない**。
+- `tests/check-d1-phase5-membership.py`は**創作された架空の同一キー3行**を用い、GASの「有効な所属があれば当番」ルールを再現しつつD1の現行複合PKがそれらを保持できないことをオフライン検出。`d1-staging-check.yml`のPRゲートに追加。Google Sheets/GAS/Workers/Cloudflare D1へ業務データを書かない。
+- 次：本PRのCIと検証main統合/Pages/Workers Buildsを確認。**業務仕様に影響するD1スキーマ変更の承認は未取得**。履歴保持の取り扱いとJST日付変換の詳細を協議したうえで、ロスレス・監査可能なRead Shadowの検証を行い、本番移行前の正式判断を得る。
