@@ -51,6 +51,7 @@ on:
       - 'tests/check-stage-receipt-view-close-v1673.cjs'
       - 'tests/check-stage-participant-date-parity-v1674.cjs'
       - 'tests/check-stage-startup-performance-v1675.cjs'
+      - 'tests/check-stage-responsive-read-v1676.cjs'
       - 'tests/check-stage-member-kana-v1657.cjs'
       - 'tests/check-stage-member-kana-approval-v1657b.cjs'
       - 'tests/check-stage-ledger-confirm-order-v1651.cjs'
@@ -160,6 +161,8 @@ jobs:
         run: node tests/check-stage-participant-date-parity-v1674.cjs
       - name: Verify single-read GAS startup, client timeout, and protected payment mutation
         run: node tests/check-stage-startup-performance-v1675.cjs
+      - name: Verify responsive dialogs and inline saving without accounting race
+        run: node tests/check-stage-responsive-read-v1676.cjs
       - name: Verify LINE registration kana and unified roster sort
         run: node tests/check-stage-member-kana-v1657.cjs
       - name: Verify real GAS kana approval/edit and historical safety
