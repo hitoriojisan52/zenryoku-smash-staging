@@ -1585,7 +1585,12 @@ async function deleteParticipant_(){
 }
 
 function bind(){
- $('date').addEventListener('change',()=>{S.practiceId=$('date').value;guard(()=>reload(false),'開催日を読み込んでいます…');});
+ $('date').addEventListener('change',async()=>{
+  S.practiceId=$('date').value;
+  $('refresh').disabled=true; // a foreground date change also owns a read
+  try{await guard(()=>reload(false),'開催日を読み込んでいます…');}
+  finally{syncPaymentControls();}
+ });
  $('refresh').addEventListener('click',async()=>{
   if($('refresh').disabled)return;
   $('refresh').disabled=true;
