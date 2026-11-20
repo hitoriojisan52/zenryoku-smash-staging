@@ -29,7 +29,7 @@ for(const [section,id,kind] of [
  ['visitor registration availability','visitorStatus','warning'],
  ['member access status','memberAccessStatus','info'],
  ['cash inventory status','cashStatus','warning'],
- ['member management diagnostics','memberAccessWithdrawCheckResultV1627','info']
+ ['member management diagnostics','memberAccessWithdrawCheckResultV1627','success']
 ]){
  const i=live.indexOf('id="'+id+'"');
  ok(i>=0,section+' slot present');
@@ -51,8 +51,8 @@ for(const [section,id,kind,html] of [
 ok(live.includes('live.js?v=1676-responsive-reads')&&match.includes('match.js?v=1664')&&
  view.includes('match-view.js?v=1639b')&&guest.includes('guest.js?v=1639b')&&
  match.includes('access-ui.js?v=1657'),'all modified client scripts are cache-busted');
-ok(liveJs.includes("className='schedule-note stage-system-message stage-system-message--info'"),
- 'empty schedule/participants have same informational box');
+ok(liveJs.includes("className='schedule-note stage-system-message stage-system-message--neutral'"),
+ 'empty schedule/participants use neutral explanatory box rather than loading blue');
 ok(liveJs.includes("status.classList.remove('stage-system-message--info')")&&
  liveJs.includes("status.hidden=!status.textContent")&&
  liveJs.includes("status.classList.add('stage-system-message--warning')"),
