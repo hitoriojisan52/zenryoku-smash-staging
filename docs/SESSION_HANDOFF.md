@@ -824,3 +824,12 @@
 - 検証用main `3fe47c382bc3fe801c94ab9027c44729975a6d77`へPR #145をsquash統合。同SHAの[GitHub Pages Actions #44837505002](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44837505002) build/deploy/report成功、`Workers Builds: zenryoku-smash-staging-api` success。**既存GAS/Workerのソース・D1 binding/LIFF接続・Sheets正本・本番は変更なし**（ビルド成功は業務APIのD1移行が完了した意味ではない）。Cloudflare Remote D1業務テーブルの件数は今回再読取していないが、今回のPR/CIにリモートのD1書込処理はない。
 - **ユーザー判断が必要な残件**：BLOCK-1の同一(teamId,memberId)3行（有効1/無効2）を損なわず保持する**履歴用テーブル/行順等の保存方法**の採否。推奨はD1に原本を保存する履歴構造を別設計として用意し、現役当番判定を旧GASと同等に維持する案。現行の複合PKを黙って緩和・重複行を削除してはならない。BLOCK-2はGoogleシリアル日付・文字列混在とJST変換のロスレス設計未完了。
 - 次に進める安全な作業：履歴保持案の比較と架空fixtureによるJST日付正規化の事前試験、全操作履歴・試合版チャンクの監査計画。既存WorkerにService Bindingを追加する/会計読取をD1へ切り替える/本番反映は、業務整合性への影響を整理してユーザーが承認してから実施する。
+
+
+## 77. D1チーム所属重複の過去経緯を実コード・履歴から特定し、過剰な履歴扱いを訂正（2026/11/21）
+
+- ユーザーは「チーム所属シートの設計はChatGPT側。退会者が関係している可能性」を示し、過去実装の調査を依頼。改めて最新main `f88e06f5d947ad67fb7ba673313acba4c46d664c`、`README.md`、`SPEC_PRIORITY_POLICY.md`、[v0.16.53退会確定](stage-v1653-withdraw-rejoin.md)、[v0.16.57実機当番→一般](stage-v1656-management-ledger-ui.md)、[v0.16.80検証専用自己権限切替](stage-v1680-self-role-staging-message-semantics.md)、実GASコードを確認。
+- 検証用Sheets`チーム所属`／`メンバー`／`退会履歴`／`操作履歴`を**読み取り専用で再照合**。同一(teamId,memberId)3行（FALSE2、TRUE1）の対象IDは現役メンバーで退会履歴になく、退会IDを指すチーム所属行も0件。同じ対象への`stage.selfRole`操作履歴が**6件**あり、順に`duty→member→duty→member→duty→admin`。実GAS`accessStageSelfRoleV1680_`はmemberでTRUEをFALSE、dutyで既存TRUEがなければ新しいTRUE行を追加、adminではチーム所属に触れずisAdmin=true。**この6回だけでシートのFALSE/FALSE/TRUEが説明できる**。
+- **退会起因ではない**：v0.16.53の退会実装は対象memberIdのチーム所属を物理削除、再入会で別memberId+当番所属なし。旧`member.manage.role`でも当番→一般で行をFALSEにして残す実機テストがある。**3列の所属シート行は操作日時・操作者を持つ正規のイベント履歴ではなく、`操作履歴`が監査の正本**。
+- 先の[20タブ監査](D1_STAGE_SHEET_PREFLIGHT.md)の「3行の独立業務履歴保存を必須としユーザー判断を要求」という評価は、発生原因調査前の過剰な設計提案だったため[原因究明](D1_TEAM_MEMBERSHIP_ROOT_CAUSE.md)で訂正。D1の(teamId,memberId)複合PKは**現在の有効所属を1行で示す候補として継続可能**。案は「実原本行はバックアップで保護、同一キーのactive=OR(active)へ変換、操作履歴/退会旧IDを別契約として保持」。管理者優先→当番→一般の判定を維持し、検証専用`stage.selfRole`を本番へ移植しない。
+- 今回の変更は**説明・オフラインfixture試験のみ**。検証用Sheets／本番Sheet、GAS、旧Worker・新D1 Worker、Cloudflare D1 schema/実レコード、LIFF・Secrets・本番は変更なし。`tests/check-d1-phase5-membership.py`で6回の架空の権限変更と管理者優先・複合PKの制限・状態集約の同値性を検証。原本バックアップ・監査全件移行・ロール書込の冪等性と退会再入会の正式な実移行/切替は**未実施**。次はオフラインの合格→PR統合後、日付/監査とデータ正本移転を別途設計する。
