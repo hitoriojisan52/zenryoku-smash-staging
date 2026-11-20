@@ -1,7 +1,10 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>全力☆スマッシュ 対戦表</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="match.css?v=1639b"><link rel="stylesheet" href="access.css?v=1621a"><link rel="stylesheet" href="stage-ui.css?v=1665-v1687-neutral"></head><body class="stage-ui">
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>全力☆スマッシュ 対戦表</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="match.css?v=1639b"><link rel="stylesheet" href="access.css?v=1621a"><link rel="stylesheet" href="stage-ui.css?v=1665-v1687-neutral-v1693-unified-top"></head><body class="stage-ui">
 <main class="container match-container">
  <header class="app-header match-app-titlebar"><h1>🏸 全力☆スマッシュ 対戦表</h1><div id="accessQrHeader" hidden><button type="button" id="accessQrButton" class="btn-blue" aria-label="ビジター閲覧用QRを発行">📱 閲覧QR</button></div></header>
+ <div class="stage-message-region" aria-label="システムメッセージ">
  <div id="accessMessage" class="stage-system-message stage-system-message--neutral" role="status" aria-live="polite"></div>
+ <p id="matchInlineError" class="stage-system-message stage-system-message--error" role="alert" hidden></p>
+ </div>
  <section class="access-panel" id="accessRegistration" hidden>
    <h2>メンバー登録申請</h2><p>初回利用時は氏名とカナを入力して申請してください。管理者の承認後、アプリが利用できます。</p>
    <label for="accessRegName">氏名</label><input id="accessRegName" type="text" maxlength="30" placeholder="例：全力太郎" autocomplete="name" required>
@@ -18,7 +21,7 @@
  </section>
  <div class="date-selector"><label class="visually-hidden" for="matchPractice">開催日</label><select id="matchPractice"><option value=""></option></select><button id="refreshMatch" type="button" class="btn-blue">🔄 更新</button></div>
  <div id="matchHeader" class="match-header">対戦表を読み込んでいます…</div>
- <p id="matchInlineError" class="stage-system-message stage-system-message--error" role="alert" hidden></p>
+
  <div id="matchBody" class="match-body"></div>
  <div id="matchControls" class="match-controls" hidden>
    <button id="mainMatchAction" class="btn-green primary-action" type="button" disabled>読み込み中</button>

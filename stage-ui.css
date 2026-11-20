@@ -1117,3 +1117,101 @@ body.stage-ui > main.container #confirmLockReason{
  margin:2px 0 4px;
  font-size:12px;
 }
+
+
+/* v0.16.93 canonical screen status placement:
+ * Red/error, yellow/warning, blue/processing, green/success use the same
+ * near-top system-message region PER SCREEN. Passive neutral prose and
+ * field-level save text are not colored system banners. Modal errors retain
+ * the established dialog, but their inline counterpart uses this region.
+ */
+.stage-ui .stage-message-region{
+ display:grid;
+ grid-template-columns:minmax(0,1fr);
+ gap:0;
+}
+.stage-ui .stage-message-region > .stage-system-message{
+ margin:3px 0 5px;
+}
+body.stage-ui > main.container .adjustment-box,
+body.stage-ui > main.container .expense-box{
+ flex-wrap:nowrap;
+}
+body.stage-ui > main.container .adjustment-box > label,
+body.stage-ui > main.container .expense-box > label{
+ flex:none;
+}
+body.stage-ui > main.container .adjustment-box > .stage-field-save-status{
+ flex:1 1 auto;
+ min-width:0;
+ text-align:right;
+ white-space:normal;
+ overflow-wrap:anywhere;
+ margin:0 3px;
+ padding:0;
+ font-size:10.5px;
+ line-height:1.25;
+}
+body.stage-ui > main.container .adjustment-box > span{
+ flex:none;
+}
+body.stage-ui > main.container .expense-box > .expense-actions{
+ flex:1 1 auto;
+ min-width:0;
+ justify-content:flex-end;
+}
+body.stage-ui > main.container .expense-box > .expense-actions > .stage-field-save-status{
+ flex:1 1 auto;
+ min-width:0;
+ text-align:right;
+ white-space:normal;
+ overflow-wrap:anywhere;
+ margin:0;
+ padding:0;
+ font-size:10px;
+ line-height:1.25;
+}
+body.stage-ui > main.container .expense-box > .expense-actions > span{
+ flex:none;
+}
+
+
+/* Keep the save label physically paired with its own numeric field,
+ * including when the receipt buttons wrap on a narrow phone. */
+body.stage-ui > main.container .stage-money-save-pair{
+ display:inline-flex;
+ align-items:center;
+ justify-content:flex-end;
+ gap:4px;
+ flex:none;
+ white-space:normal;
+ min-width:0;
+}
+body.stage-ui > main.container .stage-money-save-pair > .stage-field-save-status{
+ display:inline-block;
+ flex:none;
+ max-width:145px;
+ min-width:0;
+ margin:0;
+ padding:0;
+ text-align:right;
+ font-size:11px;
+ line-height:1.25;
+ overflow-wrap:anywhere;
+}
+body.stage-ui > main.container .stage-money-save-pair > span{
+ white-space:nowrap;
+ flex:none;
+}
+body.stage-ui > main.container .expense-box > .expense-actions{
+ flex-wrap:wrap;
+}
+body.stage-ui > main.container .expense-box > .expense-actions > .stage-money-save-pair{
+ margin-left:auto;
+}
+@media(max-width:370px){
+ body.stage-ui > main.container .stage-money-save-pair > .stage-field-save-status{
+  max-width:78px;
+  font-size:10px;
+ }
+}

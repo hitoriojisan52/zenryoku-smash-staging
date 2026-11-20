@@ -16,7 +16,8 @@
   const el=$('memberAccessStatus');el.textContent=String(s||'');
   el.classList?.toggle?.('stage-inline-read-loading',loading);
   el.classList?.toggle?.('stage-system-message--error',error);
-  el.classList?.toggle?.('stage-system-message--info',!error);
+  el.classList?.toggle?.('stage-system-message--info',!error&&loading);
+  el.classList?.toggle?.('stage-system-message--neutral',!error&&!loading);
  };
  function item(tag,cls,label){
    const x=document.createElement(tag);if(cls)x.className=cls;
@@ -201,7 +202,15 @@
    const section=$('memberAccessWithdrawPreviewV1624');
    if(!section)return;
    section.hidden=window.SM_STAGE_WITHDRAW_PREVIEW!==true||actorRole!=='admin';
-   if(section.hidden)return;
+   const previewStatus=$('memberAccessWithdrawPreviewStatusV1624');
+   // Preview diagnostics moved to the common top notice region; never show
+   // them when this optional test-only subpanel is hidden.
+   if(previewStatus)previewStatus.hidden=section.hidden;
+   if(section.hidden){
+     const testResult=$('memberAccessWithdrawCheckResultV1627');
+     if(testResult)testResult.hidden=true;
+     return;
+   }
    const checkButton=$('memberAccessWithdrawCheckButtonV1627');
    checkButton.hidden=window.SM_STAGE_WITHDRAW_CHECK!==true;
    const result=$('memberAccessWithdrawCheckResultV1627');

@@ -27,9 +27,9 @@ for(const [section,id,kind] of [
  ['collection lock','collectionLockReason','warning'],
  ['participant edit lock','participantNotice','warning'],
  ['visitor registration availability','visitorStatus','warning'],
- ['member access status','memberAccessStatus','info'],
+ ['member access status','memberAccessStatus','neutral'],
  ['cash inventory status','cashStatus','warning'],
- ['member management diagnostics','memberAccessWithdrawCheckResultV1627','info']
+ ['member management diagnostics','memberAccessWithdrawCheckResultV1627','neutral']
 ]){
  const i=live.indexOf('id="'+id+'"');
  ok(i>=0,section+' slot present');

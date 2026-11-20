@@ -33,8 +33,16 @@ ok(/body\.stage-ui > main\.container \.home-footer-bar\{\s*padding-block:3px!imp
 ok(/body\.stage-ui > main\.container \.app-header h1\{\s*font-size:15px!important;/.test(current)&&
  current.includes('font-size:14px!important}'),
  'long club title has a slightly smaller heading in narrow phones');
-ok(!/^\s*(?:padding-inline|padding-left|padding-right|width|max-width|box-sizing):/m.test(current),
- 'horizontal spacing and box dimensions are not incidentally altered');
+// v0.16.93 expressly repositions the new amount-save note (not the input).
+// Its scoped pair width belongs to v1693's separate UI contract and must not
+// retroactively weaken the original v1663 control sizing assertions.
+const messageLayoutStart=css.indexOf('/* v0.16.93 canonical screen status placement',v63);
+ok(messageLayoutStart>v63,'v1693 message alignment is isolated after the old compact patch');
+const legacyVisualCSS=css.slice(v63,messageLayoutStart);
+ok(!/^\s*(?:padding-inline|padding-left|padding-right|width|max-width|box-sizing):/m.test(legacyVisualCSS),
+ 'old compact patch does not incidentally alter horizontal spacing or box dimensions');
+ok(!/\.adjustment-box input\{|\.expense-box input\{/.test(css.slice(messageLayoutStart)),
+ 'new save label positioning never changes the size of an existing numeric input');
 ok(/\.stage-ui #list \.participant-card \.participant-memo\{\s*font-weight:400!important;\s*color:#c62828;/.test(current),
  'home note is red, never forcibly bold');
 ok(html.includes('id="cashReset" type="button" class="btn-blue"')&&

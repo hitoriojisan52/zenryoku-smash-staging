@@ -42,9 +42,12 @@ assert.ok(html.includes('id="adjustmentStatus" class="stage-field-save-status"')
 assert.ok(html.includes('id="expenseStatus" class="stage-field-save-status"'));
 assert.ok(html.includes('id="confirmLockReason"'));
 const expenseMarkup=html.slice(html.indexOf('<div class="expense-box">'),html.indexOf('<div class="home-footer-bar">'));
-assert.match(expenseMarkup,/<\/div><small id="expenseStatus"/,'expense state follows the actions on its OWN row');
-assert.match(css,/body\.stage-ui > main\.container \.adjustment-box,[\s\S]*?flex-wrap:wrap/);
-assert.match(css,/body\.stage-ui > main\.container \.adjustment-box > \.stage-field-save-status,[\s\S]*?flex:0 0 100%/);
+assert.match(expenseMarkup,/class="stage-money-save-pair"><small id="expenseStatus"[\s\S]*?<span><input id="expense"/,
+ 'expense message is immediately LEFT of its numeric field as one indivisible pair');
+assert.match(html,/class="adjustment-box"[\s\S]*?class="stage-money-save-pair"><small id="adjustmentStatus"[\s\S]*?<span><input id="adjustment"/,
+ 'adjustment message is immediately LEFT of its numeric field as one indivisible pair');
+assert.match(css,/\.stage-money-save-pair\{/,'save text and amount remain together when receipt buttons wrap');
+assert.match(css,/\.expense-box > \.expense-actions\{[\s\S]*?flex-wrap:wrap;/,'receipt buttons can wrap on a narrow screen');
 assert.match(css,/\.stage-field-save-status--processing::before[\s\S]*?animation:stage-ui-spin/);
 assert.match(css,/\.stage-field-save-status--success\{color:#23723b\}/);
 assert.match(css,/prefers-reduced-motion:reduce[\s\S]*?\.stage-field-save-status--processing::before\{animation:none\}/);
@@ -99,4 +102,4 @@ assert.match(live,/setAmountStatus_\(status,'結果を確認できません。�
 assert.match(live,/S\.pending\.add\('amount'\)/,'saving remains protected against parallel writes');
 assert.match(live,/S\.paymentNeedsRefresh=true/,'uncertain save results require manual refresh');
 assert.match(live,/ledger\?\.canConfirm!==true/,'client finalization disabled if GAS denies');
-console.log('PASS v1692 amount status on own row and strict previous-ledger confirmation gate');
+console.log('PASS v1692 amount status at left of amount and strict legacy chronological confirmation gate');

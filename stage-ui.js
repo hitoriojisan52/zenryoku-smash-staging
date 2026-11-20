@@ -61,14 +61,18 @@
     note=document.createElement('p');
     note.className='stage-inline-error stage-system-message stage-system-message--error';
     note.setAttribute('role','alert');
-    surface.querySelector('h2')?.insertAdjacentElement('afterend',note);
+    const region=surface.querySelector('.stage-message-region');
+    if(region)region.insertAdjacentElement('afterbegin',note);
+    else surface.querySelector('h2')?.insertAdjacentElement('afterend',note);
    }
    note.hidden=false;note.textContent=message;return;
   }
+  // Home system notices occupy a single common upper banner region, even
+  // when an overview failure has cleared the participant list.
+  const home=$('stageInlineError');
+  if(home){home.textContent=message;home.hidden=false;return;}
   const existing=document.querySelector('#list .stage-system-message--error');
   if(existing){existing.textContent=message;return;}
-  const home=$('stageInlineError');
-  if(home){home.textContent=message;home.hidden=false;}
  }
  function clearInlineError(){
   const home=$('stageInlineError');if(home){home.hidden=true;home.textContent='';}

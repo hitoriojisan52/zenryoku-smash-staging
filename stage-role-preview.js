@@ -11,9 +11,9 @@
   close=$('stageRolePreviewClose'),status=$('stageRolePreviewActual');
  let api=null,currentRole='',canSwitch=false,canDemote=false,loading=false,saving=false,
   pendingTarget='',readEpoch=0;
- function message(text,type='info',spinning=false){
+ function message(text,type='neutral',spinning=false){
   status.textContent=text||'';
-  for(const key of ['info','warning','error'])
+  for(const key of ['info','neutral','warning','error'])
    status.classList.toggle('stage-system-message--'+key,key===type);
   status.classList.toggle('stage-inline-read-loading',spinning);
  }
@@ -38,7 +38,7 @@
    message('現在の権限：'+names[currentRole]+
     (canSwitch?'。切り換える権限を選択してください。':
      '。このLINEアカウントは検証用権限切換に登録されていません。'),
-    canSwitch?'info':'warning');
+    canSwitch?'neutral':'warning');
   }catch(e){
    if(epoch!==readEpoch||!dialog.open)return;
    message(w.SMStageUX.errorDetails(e).message,'error');
