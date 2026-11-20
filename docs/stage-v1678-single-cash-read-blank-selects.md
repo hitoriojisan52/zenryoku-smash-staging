@@ -26,3 +26,12 @@
 - 従来の会計確定順序、残高計算、ビジター確定済み過去日フィルター、LINE認証/権限・保存・退会・試合進行の回帰を維持。
 - 実機では (1) 現金確認の青枠が1つ、アニメーションあり、文言更新 (2) 読込完了で消える (3) エラーや帳簿行なしの警告を正しく表示 (4) 各プルダウンは取得前は空欄、取得後に既存選択値が表示 (5) 更新ボタンは読込中だけ非活性、閉じる可能 (6) 二重更新なし を確認。
 - CI成功とデプロイ成功はLINE実機の受入完了とは別。本番反映は必ずユーザーの事前承認による。
+
+## v0.16.78 — 検証版の統合・自動テスト・公開状況（2026/11/20）
+
+- [PR #90](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/90) mainへ統合（SHA `462f8a87001d6dcca057721e0b2319c8f81c623e`）。**UI・GAS安全性・仕様優先順位の3系統CI合格**。
+- 新規`tests/check-stage-foreground-read-v1678.cjs` **45/45件**、旧現金確認 **87/87件**、旧v15会計確定順序 **28/28件**、ビジターv0.16.77確定過去日 **29/29件** 自動検証合格。
+- [GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44670439100) build/deploy成功。
+- [検証用GAS既存Webアプリ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44670439783) 自動デプロイ成功（ログ `Redeployed *** @44`）。GASの実ソースはv0.16.77から変更せず、CIワークフロー改修のためデプロイが走った。新規Webアプリの作成は行っていない。
+- [Cloudflare Worker Builds](https://github.com/hitoriojisan52/zenryoku-smash-staging/commit/462f8a87001d6dcca057721e0b2319c8f81c623e/checks)成功。Worker本体の変更なし。[公開LIFF・Worker GET-onlyスモーク](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44670439677)成功。
+- **LINE実機受入は未完了**。スクリーンショットでの重複青枠・初期プルダウン・更新ボタンの実動作は、v0.16.78のLINE実機を開いて再確認する。自動試験・疎通・デプロイを実機成功と混同しない。本番は事前承認まで未変更。
