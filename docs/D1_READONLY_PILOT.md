@@ -35,3 +35,13 @@
 1. D1 RESTのp50/p95、SQLエンジンp50/p95を確認し、上記測定境界を守って引継ぎへ記録する。
 2. **Cloudflare Worker実接続**は、既存WorkerのLINE認証ロジックを再実装せず、そのまま使えるかを先に評価する。独立検証Workerの新規作成には現在のD1専用トークンだけでは不可。権限追加・利用者への設定依頼はこの段階で初めて判断する。
 3. 個人情報の転送・権限/会計の統合トランザクション・日次バックアップ/復元・試合履歴のハッシュ・本番切り替えはすべて別工程。既存確定仕様に影響する箇所はユーザー判断前に変更しない。
+
+
+## 実測とCI/デプロイの最終検証結果（2026/11/21）
+
+- [PR #131](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/131)：`schema-safety`、`spec-contract`ともに**success**を確認して検証main `b26ce8d496ad8eb3591f253162fc4de4b8f1dda1`へマージ。
+- PR CIの`Validate independent D1 Worker read-only pilot with mock binding`と`Validate direct D1 REST benchmark and response fail-closed guard`に加え、既存の会計確定順序・本人出欠・退会再入会・試合作成の回帰が**success**。
+- [Cloudflare D1 REST測定 Actions #44795116347](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44795116347) `benchmark` success。GitHub Actionsランナー→Cloudflare REST D1 Query の空4テーブル固定SELECT、ウォームアップ2＋実測12回：**HTTP p50 227.8ms／p95 250.7ms、最小209.4ms／最大250.7ms、SQL engine p50 0.1ms／p95 0.2ms**。ステージングAccount/DB UUID/名前を事前照合、空データ・無書込の応答を全回確認。シークレットや実業務行はログ出力なし。秒数を旧GASのAPI合計と単純比較しない。
+- [D1 migration Actions #44795116430](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44795116430) `migrate-stage` success。再適用 `No migrations to apply!`、Remote `business table count=20; all business rows=0; probe rows=0; PASS`。無断のデータ投入なし。
+- 同コミットの[GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44795115476) build/deploy/report-build-status成功、Cloudflare Workers Builds `zenryoku-smash-staging-api`もsuccess（既存Workerソースとbindingは**変更なし**）。
+- **実施済みなのはD1 REST空表クエリ測定と未デプロイWorkerのmockテスト**。新Worker公開、LIFF→D1認証/権限/会計処理、GAS/Sheets移行、ユーザー端末性能、バックアップ復旧は未実施。D1専用トークンをWorkers Editへ勝手に拡大しない。
