@@ -9,7 +9,7 @@ const html=root('live.html'),js=root('stage-role-preview.js'),live=root('live.js
 let passed=0;const ok=(v,label)=>{assert.ok(v,label);passed++};
 for(const s of [js,live,gas]){new Function(s);passed++;}
 class El{
- constructor(id){this.id=id;this.children=[];this.disabled=false;this.textContent='';this.listeners={};this.open=false;this.value='';}
+ constructor(id){this.id=id;this.children=[];this.disabled=/^stageRolePreview(?:Menu|Member)Open$/.test(id);this.textContent='';this.listeners={};this.open=false;this.value='';}
  addEventListener(event,fn){this.listeners[event]=fn}
  replaceChildren(...nodes){this.children=nodes}
  append(...nodes){this.children.push(...nodes)}
@@ -28,7 +28,9 @@ const win={};vm.runInNewContext(js,{window:win,document});
 ok(!!win.SMRolePreview&&Object.isFrozen(win.SMRolePreview),'role preview API is frozen');
 const realActor={role:'member',memberId:'M-TEST',name:'テスト'};
 const initial=JSON.stringify(realActor);
-ok(get('stageRolePreviewMenuOpen').disabled&&get('stageRolePreviewMemberOpen').disabled,
+ok(html.includes('id="stageRolePreviewMenuOpen" type="button" class="btn-outline" disabled')&&
+ html.includes('id="stageRolePreviewMemberOpen" class="btn-outline" type="button" disabled')&&
+ get('stageRolePreviewMenuOpen').disabled&&get('stageRolePreviewMemberOpen').disabled,
  'preview requires authenticated session before enabling entry');
 win.SMRolePreview.setup(realActor);
 ok(!get('stageRolePreviewMemberOpen').disabled&&
