@@ -80,7 +80,7 @@
  }
  $('stageRegistrationOpen').addEventListener('click',open);
  $('stageRegRefresh').addEventListener('click',status);
- $('stageRegClose').addEventListener('click',()=>{if(!busy)dlg.close();});
+ $('stageRegClose').addEventListener('click',()=>{if(!busy||!submitted)dlg.close();});
  form.addEventListener('submit',apply);
  dlg.addEventListener('close',()=>{openedEpoch++;});
  w.SMStageRegistration=Object.freeze({
