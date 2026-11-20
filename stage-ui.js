@@ -36,11 +36,15 @@
    try{return await action();}finally{setBusy(false);}
  }
  function errorDetails(e){
-   if(e?.status===409)return {title:'内容が変わりました',message:'ほかの人が先に変更しました。\n最新の内容を確認してください。'};
-   if(Number(e?.status)>=500||['NETWORK_ERROR','REQUEST_TIMEOUT','OPERATION_UNCONFIRMED'].includes(e?.code)||
-      /Failed to fetch|NetworkError|通信に失敗|Load failed/i.test(String(e?.message||'')))
-     return {title:'通信エラー',message:'通信できませんでした。\n最新の情報を確認してください。'};
-   return {title:'操作できませんでした',message:String(e?.message||'再度確認してください。')};
+  if(e?.code==='OPERATION_UNCONFIRMED'||e?.mutationUncertain)
+   return {title:'保存結果を確認してください',message:'15秒以内に応答がありません。保存済みの可能性があります。「更新」で確認してください。'};
+  if(['REQUEST_TIMEOUT','LINE_VERIFY_TIMEOUT','GAS_TIMEOUT'].includes(e?.code))
+   return {title:'通信タイムアウト',message:'15秒以内に応答がありません。「更新」で再確認してください。'};
+  if(e?.status===409)return {title:'内容が変わりました',message:'別の操作で更新されました。「更新」で確認してください。'};
+  if(Number(e?.status)>=500||e?.code==='NETWORK_ERROR'||
+    /Failed to fetch|NetworkError|通信に失敗|Load failed/i.test(String(e?.message||'')))
+   return {title:'通信エラー',message:'通信できませんでした。「更新」で確認してください。'};
+  return {title:'操作できませんでした',message:String(e?.message||'内容を確認してください。')};
  }
  async function showError(e) {
    // Errors never disappear automatically and cannot be hidden by touching the backdrop.
