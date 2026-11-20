@@ -54,6 +54,31 @@ function renderGasProfile_(timings){
 function dialog(id){const e=$(id);if(e&&!e.open)e.showModal();}
 function close(id){if($(id)?.open)$(id).close();}
 function gateEdit(){if(!S.actor||!['duty','admin'].includes(S.actor.role))throw new Error('当番チームの権限がありません');}
+// Opt-in diagnostics (?perf=1). Durations and fixed API paths only:
+ // never store LINE IDs, names, tokens, request bodies or response data.
+ function profileApiRequest_(path,elapsed,timing,outcome){
+  if(!PERF_MODE)return;
+  const phases={line:'LINE',gas:'GAS',gas_post:'GAS POST',gas_content:'GAS応答'};
+  const segments=String(timing||'').split(',').map(x=>x.trim());
+  const metrics=[];
+  for(const segment of segments){
+   const match=/^(line|gas|gas_post|gas_content);dur=(\d+(?:\.\d+)?)$/.exec(segment);
+   if(match)metrics.push(phases[match[1]]+' '+Math.round(Number(match[2]))+'ms');
+  }
+  S.apiPerfHistory=S.apiPerfHistory||[];
+  const gas=path==='/api/overview'&&S.lastOverviewProfile;
+  const gasText=gas?
+   '／GAS内訳 開始'+gas.spreadsheetOpenMs+'ms・会員'+gas.memberAuthMs+
+   'ms・ロック待ち'+gas.lockWaitMs+'ms・処理'+gas.overviewHandlerMs+
+   'ms・合計'+gas.gasTotalMs+'ms':'';
+  S.apiPerfHistory.push((outcome==='ok'?'✓':'!')+' '+path+' '+Math.round(elapsed)+'ms'+
+   (metrics.length?'（'+metrics.join(' / ')+'）':'')+gasText+
+   (outcome!=='ok'?' ['+outcome+']':''));
+  if(S.apiPerfHistory.length>16)S.apiPerfHistory.shift();
+  const panel=$('perfBreakdown'),out=$('stageApiPerfText');
+  if(panel&&out){panel.hidden=false;out.textContent=S.apiPerfHistory.slice().reverse().join('\n');}
+ }
+ 
 const REQUEST_TIMEOUT_MS=15000;
 const MUTATING_ENDPOINTS=new Set(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change','/api/schedule/change','/api/visitor/register','/api/visitor/request','/api/visitor/decide','/api/visitor/modify','/api/participant/change','/api/attendance/submit','/api/stage/self-role','/api/receipt/upload','/api/reimbursement/change','/api/cash/save','/api/member/apply','/api/member/manage/decide','/api/member/manage/role','/api/member/manage/edit','/api/member/manage/withdraw','/api/match/share','/api/match/share/revoke']);
 function requestTimeoutError_(isWrite){
@@ -65,6 +90,8 @@ async function call(path,payload={}){
  const url=CONFIG.apiBaseUrl.replace(/\/$/,'')+path,isWrite=MUTATING_ENDPOINTS.has(path);
  if(isWrite)S.updateEpoch++;
  const startedAt=performance.now();
+ if(PERF_MODE&&path==='/api/overview')S.lastOverviewProfile=null;
+ let diagnosticTiming='',diagnosticOutcome='ok';
  // Reads can abort. Writes must never abort/retry: GAS may commit.
  const controller=!isWrite&&typeof AbortController!=='undefined'?new AbortController():null;
  let timer,expired=false;
@@ -74,19 +101,30 @@ async function call(path,payload={}){
  const work=(async()=>{
   const response=await fetch(url,{method:'POST',
    headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},
-   body:JSON.stringify(payload),cache:'no-store',
+   body:JSON.stringify(PERF_MODE&&path==='/api/overview'?
+    {...payload,profileTimings:true}:payload),cache:'no-store',
    ...(controller?{signal:controller.signal}:{})});
   if(PERF_MODE){
+   diagnosticTiming=response.headers.get('Server-Timing')||'';
    S.lastPerf={path,totalMs:Math.round(performance.now()-startedAt),serverTiming:response.headers.get('Server-Timing')||''};
    console.info('[STAGE PERF]',S.lastPerf.path,S.lastPerf.totalMs+'ms',S.lastPerf.serverTiming);
   }
   let value;try{value=await response.json();}catch{throw new Error('サーバーの応答を確認できませんでした。');}
+  if(PERF_MODE&&path==='/api/overview')S.lastOverviewProfile=
+   value?.data?.profileTimings||null;
   if(!response.ok||!value.ok){const err=new Error(value.error||'処理に失敗しました。');err.status=response.status;err.code=String(value.code||'');throw err;}
   return value.data;
  })();
  try{return await Promise.race([work,timeout]);}
- catch(e){if(expired||e?.name==='AbortError')throw requestTimeoutError_(isWrite);throw e;}
- finally{clearTimeout(timer);}
+ catch(e){
+  diagnosticOutcome=expired||e?.name==='AbortError'?'timeout':'error';
+  if(expired||e?.name==='AbortError')throw requestTimeoutError_(isWrite);
+  throw e;
+ }
+ finally{
+  clearTimeout(timer);
+  if(PERF_MODE)profileApiRequest_(path,performance.now()-startedAt,diagnosticTiming,diagnosticOutcome);
+ }
 }
 // Collection checkboxes are independent. Only up to two requests leave this page
 // concurrently. Apps Script's lock remains the source of truth for the ledger.
@@ -228,7 +266,8 @@ function readScreen_(id,label,loader,onComplete,force=false){
    state.hidden=false;state.classList.remove('stage-inline-read-loading');
    state.classList.remove('stage-system-message--info');
    state.classList.add('stage-system-message--error');
-   state.textContent=error?.code==='REQUEST_TIMEOUT'?'通信がタイムアウトしました（15秒）。更新してください。':'読み込みに失敗しました。'+String(error?.message||'再度お試しください。');
+   state.textContent=window.SMStageUX?.errorDetails?.(error)?.message||'読み込みに失敗しました。再度お試しください。';
+   void window.SMStageUX?.showError?.(error);
   }).finally(()=>{
    if(current()&&refreshButton)refreshButton.disabled=false;
    if(screenReadActive_.get(id)?.version===version)
@@ -264,6 +303,10 @@ async function boot(){
   if(!VISITOR_MODE)window.SMRolePreview?.setup({role:S.actor.role,api:call});
   const sessionMs=Math.round(performance.now()-sessionStart);
   if($('manageAdminSection'))$('manageAdminSection').hidden=S.actor.role!=='admin';
+  if($('manageSchedules')){
+   $('manageSchedules').hidden=S.actor.role!=='admin';
+   $('manageSchedules').disabled=S.actor.role!=='admin';
+  }
   window.SMVisitor?.setup({api:call,actor:S.actor,
    onDecision:async()=>{if(S.actor?.role!=='member'&&S.overview)await reload(true);}});
   // The LINE attendance/visitor entry remains available at ?visitor=1.
@@ -310,16 +353,17 @@ async function boot(){
     (overviewMs/1000).toFixed(1)+'秒 / 合計 '+
     (totalMs/1000).toFixed(1)+'秒）');
   }
-  setInterval(()=>{if(!document.hidden&&!document.querySelector('dialog[open]')&&!S.paymentNeedsRefresh&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
+  setInterval(()=>{if(!document.hidden&&!document.querySelector('dialog[open]')&&!S.paymentNeedsRefresh&&!S.homeReadFailed&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
   if(!PERF_MODE)toast('接続しました');
  }catch(e){
   if(S.actor&&['duty','admin'].includes(S.actor.role)&&S.homeReadFailed){
    // The first overview request failed. Keep manual refresh available rather
    // than trapping the user in a disabled shell or a blocking error modal.
    $('refresh').disabled=false;
-   return;
+   throw e;
   }
-  showHomeReadError_(e);throw e;
+  if(S.homeReadFailed&&typeof showHomeReadError_==='function')showHomeReadError_(e);
+  throw e;
  }
 }
 function showHomeReadError_(e){
@@ -331,6 +375,7 @@ function showHomeReadError_(e){
  for(const id of ['reimbursementBtn','receiptBtn','manageBtn','confirm','adjustment','expense','cashCounter','date']){
   const control=$(id);if(control)control.disabled=true;
  }
+ if($('refresh')&&S.pending.size===0)$('refresh').disabled=false;
 }
 async function reload(refreshDates){
  if(S.pending.size)return;
@@ -388,11 +433,19 @@ async function reload(refreshDates){
    S.confirmedPracticeKey=confirmedKey;
    S.selectableDayKey=selectableDayKey;
    S.paymentNeedsRefresh=false;S.homeReadFailed=false;
+   window.SMStageUX?.clearInlineError?.();
    renderHome();syncPaymentControls();
  })();
  S.reloadPromise=task;
  try{return await task;}
- catch(e){S.homeReadFailed=true;if(typeof showHomeReadError_==='function')showHomeReadError_(e);syncPaymentControls();throw e;}
+ catch(e){
+  S.homeReadFailed=true;
+  if(typeof showHomeReadError_==='function')showHomeReadError_(e);
+  syncPaymentControls();
+  if($('refresh')&&S.pending.size===0)$('refresh').disabled=false;
+  if(window.SMStageUX?.isBusy?.()===false)void window.SMStageUX.showError(e);
+  throw e;
+ }
  finally{
    if(S.reloadPromise===task)S.reloadPromise=null;
    S.loading=false;

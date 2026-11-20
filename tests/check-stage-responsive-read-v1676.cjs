@@ -63,7 +63,7 @@ dlg.close();finishFirst();
  const error=await openScreen('cashDialog','収支データ取得中…',async()=>{
   throw Error('検証用通信エラー');
  },null,true);
- ok(error===undefined&&!statusNode.hidden&&statusNode.textContent.includes('検証用通信エラー')&&
+ ok(error===undefined&&!statusNode.hidden&&statusNode.textContent.includes('読み込みに失敗しました。')&&
   dlg.open&&controls.close.disabled===false,
   'read error stays inside dialog, and user can still close it');
  for(const [functionName,opening] of [

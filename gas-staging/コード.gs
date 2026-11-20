@@ -1959,13 +1959,18 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
    return accessRegistration16_(ss_(),body.lineUserId,body.op,body.payload||{});
  // v0.15.12: measure only this read-only startup request (no IDs or secrets logged).
  var smProfile=body.op==='match.bootstrap',smT0=smProfile?Date.now():0,
-     paymentProfile=body.op==='payment.set'&&body.payload&&body.payload.profileTimings===true?{startedAt:Date.now()}:null;
- var ss=ss_(),smT1=smProfile||paymentProfile?Date.now():0,
-     member=member_(ss,body.lineUserId),smT2=smProfile||paymentProfile?Date.now():0,
+     paymentProfile=body.op==='payment.set'&&body.payload&&body.payload.profileTimings===true?{startedAt:Date.now()}:null,
+     overviewProfile=body.op==='overview'&&body.payload&&body.payload.profileTimings===true?{startedAt:Date.now()}:null;
+ var ss=ss_(),smT1=smProfile||paymentProfile||overviewProfile?Date.now():0,
+     member=member_(ss,body.lineUserId),smT2=smProfile||paymentProfile||overviewProfile?Date.now():0,
      op=str_(body.op),payload=body.payload||{};
  if(paymentProfile){
   paymentProfile.spreadsheetOpenMs=smT1-paymentProfile.startedAt;
   paymentProfile.memberAuthMs=smT2-smT1;
+ }
+ if(overviewProfile){
+  overviewProfile.spreadsheetOpenMs=smT1-overviewProfile.startedAt;
+  overviewProfile.memberAuthMs=smT2-smT1;
  }
  if(op==='session')return {ok:true,data:{memberId:member.memberId,name:member.name,role:member.role}};
  if(op==='stage.selfRole')return accessStageSelfRoleV1680_(ss,member,body.lineUserId,payload);
@@ -2031,6 +2036,19 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
  if(op.indexOf('match.')===0)return matchApiDispatch_(ss,member,op,payload);
  requireDuty_(member);
  if(op==='receipt.get')return withLock_(function(){return receiptDownload_(ss,member,payload);});
+ // Optional timing only: preserve the same single lock, business calculations,
+ // balance baseline and any ledger initialization done by overview_.
+ if(op==='overview'&&overviewProfile)return withLock_(function(){
+  var start=Date.now(),result=overview_(ss,member,payload);
+  if(result&&result.ok&&result.data)result.data.profileTimings={
+   spreadsheetOpenMs:overviewProfile.spreadsheetOpenMs,
+   memberAuthMs:overviewProfile.memberAuthMs,
+   lockWaitMs:overviewProfile.lockWaitMs||0,
+   overviewHandlerMs:Date.now()-start,
+   gasTotalMs:Date.now()-overviewProfile.startedAt
+  };
+  return result;
+ },overviewProfile);
   if(['overview','ledger.list','cash.get','schedule.list','schedule.delete.preview','participant.list'].indexOf(op)>=0)return withLock_(function(){return op==='overview'?overview_(ss,member,payload):op==='ledger.list'?monthLedger_(ss,member,payload):op==='cash.get'?cashGet_(ss,member,payload):op==='schedule.list'?scheduleList_(ss,member,payload):op==='schedule.delete.preview'?scheduleDeletePreview_(ss,member,payload):participantList_(ss,member,payload);});
  if(['payment.set','category.set','adjustment.set','expense.set','ledger.change','cash.save','schedule.change','participant.change','receipt.upload'].indexOf(op)<0)fail_('BAD_REQUEST','API操作が不正です');
  var opId=checkOpId_(payload);

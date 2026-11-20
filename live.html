@@ -104,9 +104,11 @@ body.visitor-member #visitorMemberHome button{width:100%}
   <div class="date-selector"><select id="date" aria-label="開催日"><option value=""></option></select><button id="refresh" type="button">🔄 更新</button></div>
   <div class="info-summary"><span id="place">場所：--</span><span id="hours">時間区分：--</span></div>
   <div class="summary-info"><span id="count">参加者：0名</span><span id="completedCount">集金完了：0名</span></div>
+  <p id="stageInlineError" class="stage-system-message stage-system-message--error" role="alert" hidden></p>
   <p id="collectionLockReason" class="collection-lock-reason stage-system-message stage-system-message--warning" role="status" aria-live="polite" hidden></p>
   <details id="perfBreakdown" hidden style="margin:8px 0;padding:9px;border:1px solid #bbb;border-radius:6px;font-size:12px">
-    <summary>直近の集金操作：GAS内部の処理時間（診断）</summary>
+    <summary>通信とGASの処理時間（検証用）</summary>
+    <pre id="stageApiPerfText" style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.5"></pre>
     <pre id="perfBreakdownText" style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.6"></pre>
   </details>
   <div class="list" id="list" role="region" aria-label="集金対象の参加者一覧" tabindex="0"></div>
@@ -133,11 +135,11 @@ body.visitor-member #visitorMemberHome button{width:100%}
   <span class="manage-section-heading" role="heading" aria-level="3">当番担当メニュー</span>
   <button id="cashCounter" type="button" class="btn-outline">💰 現金確認</button>
   <button id="openLedger" type="button" class="btn-outline">📊 収支表</button>
-  <button id="manageSchedules" type="button" class="btn-outline">📅 練習日程</button>
   <button id="managePeople" type="button" class="btn-outline">👥 参加者一覧</button>
   <button id="visitorRegisterMenu" type="button" class="btn-outline">＋ ビジター申請</button>
   <button id="matchManage" type="button" class="btn-outline">🏸 対戦表</button>
   <span class="manage-section-heading" id="manageAdminSection" role="heading" aria-level="3" hidden>管理者メニュー</span>
+  <button id="manageSchedules" type="button" class="btn-outline" hidden disabled>📅 練習日程</button>
   <button id="visitorAdminMenu" type="button" class="btn-outline" hidden>👤 ビジター管理</button>
   <button id="manageAccess" type="button" class="btn-outline" hidden>🔐 メンバー権限管理</button>
   <span class="manage-section-heading" role="heading" aria-level="3">検証用メニュー</span>
@@ -394,5 +396,5 @@ body.visitor-member #visitorMemberHome button{width:100%}
  </p>
  <div class="modal-actions"><button id="stageErrorOkay" class="btn-outline" type="button">閉じる</button></div>
 </dialog>
-<script src="date-format.js?v=1664"></script><script src="model.js"></script><script src="access-v2-mode.js?v=1648"></script><script src="live-access.js?v=162e"></script><script src="stage-ui.js?v=1645"></script><script src="dialog-close.js?v=1673-receipt-close"></script><script src="live-access-v2.js?v=1676-responsive-reads-v1677-visitor"></script><script src="runtime-config.js?v=164a"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script src="cash-reconcile.js?v=1637b"></script><script src="visitor-approval.js?v=1676-responsive-reads-v1677-visitor-v1678-cash"></script><script src="stage-role-preview.js?v=1680-self-role"></script><script type="module" src="live.js?v=1676-responsive-reads-v1677-visitor-v1678-cash-v1680-member-gate-v1681-timeout-member-error"></script>
+<script src="date-format.js?v=1664"></script><script src="model.js"></script><script src="access-v2-mode.js?v=1648"></script><script src="live-access.js?v=162e"></script><script src="stage-ui.js?v=1682-dual-error"></script><script src="dialog-close.js?v=1673-receipt-close"></script><script src="live-access-v2.js?v=1676-responsive-reads-v1677-visitor"></script><script src="runtime-config.js?v=164a"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script src="cash-reconcile.js?v=1637b"></script><script src="visitor-approval.js?v=1676-responsive-reads-v1677-visitor-v1678-cash"></script><script src="stage-role-preview.js?v=1680-self-role"></script><script type="module" src="live.js?v=1676-responsive-reads-v1677-visitor-v1678-cash-v1680-member-gate-v1681-timeout-member-error-v1682-perf"></script>
 </body></html>

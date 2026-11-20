@@ -1,3 +1,6 @@
+
+**v0.16.82（検証環境・通信エラー統一/性能診断）**：「Failed to fetch」を日本語に統一。全画面の赤枠ポップアップと画面内赤枠を併用。集金ホームの15秒タイムアウト後は更新ボタンを再活性化し、失敗後の自動8秒再通信は停止（手動更新で復帰）。練習日程マスタを管理者メニューへ移動（GAS側の従来認可は不変更）。`?perf=1`でLINE/Worker/GASの安全な時間内訳を表示し、GASロック/残高計算は維持。詳細は[引継ぎ](docs/SESSION_HANDOFF.md)。本番未反映。
+
 # 全力☆スマッシュ｜検証用GitHub Pages
 
 **新しいチャットで開発を再開する場合は、必ず [開始用プロンプト](docs/NEW_CHAT_START_PROMPT.md) を使用し、[開発引継ぎ文書](docs/SESSION_HANDOFF.md) と [仕様優先順位の正式ルール](docs/SPEC_PRIORITY_POLICY.md) を確認する。**

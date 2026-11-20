@@ -79,7 +79,7 @@ const readScreen_=readControls.readScreen_,update=readControls.updateReadScreenS
  ok(error===undefined&&screens.visitorDialog.open&&
   !buttons.visitorMineRefresh.disabled&&
   !screens.visitorDialog.status.classList.contains('stage-inline-read-loading')&&
-  screens.visitorDialog.status.textContent.includes('テスト通信エラー'),
+  screens.visitorDialog.status.textContent.includes('読み込みに失敗しました。'),
   'failed read clears spinner, re-enables Update for retry, leaves Close active');
  screens.visitorDialog.close();
  const firstBlank=['visitorMinePractice','visitorPractice','attendancePractice','participantPractice'];

@@ -35,30 +35,60 @@
    setBusy(true,label);
    try{return await action();}finally{setBusy(false);}
  }
+ // All errors use concise Japanese messages. Never display native browser
+ // "Failed to fetch", upstream URLs, token values or stack traces.
  function errorDetails(e){
-   if(e?.status===409)return {title:'内容が変わりました',message:'最新の内容を確認してください。'};
-   if(e?.code==='OPERATION_UNCONFIRMED')return {title:'通信エラー',message:'通信がタイムアウトしました（15秒）。保存結果を更新で確認してください。'};
-    if(e?.code==='REQUEST_TIMEOUT')return {title:'通信エラー',message:'通信がタイムアウトしました（15秒）。再度お試しください。'};
-    if(Number(e?.status)>=500||['NETWORK_ERROR'].includes(e?.code)||
-      /Failed to fetch|NetworkError|通信に失敗|Load failed/i.test(String(e?.message||'')))
-     return {title:'通信エラー',message:'通信に失敗しました。再度お試しください。'};
-   return {title:'操作できませんでした',message:String(e?.message||'再度お試しください。')};
+  if(e?.status===409)return {title:'内容が変わりました',message:'最新の内容を確認してください。'};
+  if(e?.code==='OPERATION_UNCONFIRMED')
+   return {title:'通信エラー',message:'通信がタイムアウトしました（15秒）。保存結果を更新で確認してください。'};
+  if(e?.code==='REQUEST_TIMEOUT')
+   return {title:'通信エラー',message:'通信がタイムアウトしました（15秒）。更新して再試行してください。'};
+  const raw=String(e?.message||'');
+  if(Number(e?.status)>=500||['NETWORK_ERROR','LINE_VERIFY_CONNECT_FAILED'].includes(e?.code)||
+     /Failed to fetch|NetworkError|Load failed|fetch failed|通信に失敗|ネットワーク/i.test(raw))
+   return {title:'通信エラー',message:'通信に失敗しました。更新して再試行してください。'};
+  return {title:'操作できませんでした',message:raw||'再度お試しください。'};
  }
- async function showError(e) {
-   // Errors never disappear automatically and cannot be hidden by touching the backdrop.
-   if(showingError||processing)return;
-   const item=errorDetails(e);
-   $('stageErrorTitle').textContent=item.title;
-   $('stageErrorMessage').textContent=item.message;
-   // Expose a safe LIFF recovery link only for an actual LINE auth failure.
-   // Do not display, decode or log the ID token or the user's LINE subject.
-   const authHelp=$('stageLineAuthHelp');
-   if(authHelp)authHelp.hidden=!(
-     e?.code==='LINE_TOKEN_INVALID'||
-     /LINE_TOKEN_INVALID/.test(String(e?.message||'')));
-   showingError=true;errorDialog.showModal();
-   errorOkay.focus({preventScroll:true});
-   await new Promise(resolve=>errorDialog.addEventListener('close',resolve,{once:true}));
+ function inlineError(message){
+  const active=Array.from(document.querySelectorAll('dialog[open]'))
+   .filter(d=>d!==busyDialog&&d!==errorDialog);
+  const surface=active[active.length-1];
+  const readState=surface?.querySelector?.('.stage-inline-read-status.stage-system-message--error');
+  if(readState){readState.textContent=message;return;}
+  if(surface){
+   let note=surface.querySelector('.stage-inline-error');
+   if(!note){
+    note=document.createElement('p');
+    note.className='stage-inline-error stage-system-message stage-system-message--error';
+    note.setAttribute('role','alert');
+    surface.querySelector('h2')?.insertAdjacentElement('afterend',note);
+   }
+   note.hidden=false;note.textContent=message;return;
+  }
+  const existing=document.querySelector('#list .stage-system-message--error');
+  if(existing){existing.textContent=message;return;}
+  const home=$('stageInlineError');
+  if(home){home.textContent=message;home.hidden=false;}
  }
- w.SMStageUX=Object.freeze({run,showError,isBusy:()=>processing});
+ function clearInlineError(){
+  const home=$('stageInlineError');if(home){home.hidden=true;home.textContent='';}
+  for(const note of document.querySelectorAll('.stage-inline-error')){
+   note.hidden=true;note.textContent='';
+  }
+ }
+ async function showError(e){
+  if(showingError||processing)return;
+  const item=errorDetails(e);
+  inlineError(item.message);
+  $('stageErrorTitle').textContent=item.title;
+  $('stageErrorMessage').textContent=item.message;
+  const authHelp=$('stageLineAuthHelp');
+  if(authHelp)authHelp.hidden=!(
+   e?.code==='LINE_TOKEN_INVALID'||
+   /LINE_TOKEN_INVALID/.test(String(e?.message||'')));
+  showingError=true;errorDialog.showModal();
+  errorOkay.focus({preventScroll:true});
+  await new Promise(resolve=>errorDialog.addEventListener('close',resolve,{once:true}));
+ }
+ w.SMStageUX=Object.freeze({run,showError,errorDetails,clearInlineError,isBusy:()=>processing});
 })(window);
