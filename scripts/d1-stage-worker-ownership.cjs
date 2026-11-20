@@ -50,6 +50,8 @@ if(process.argv[2]==='self-test') {
   assert.throws(()=>check(200,'existing unrelated script'));
   assert.throws(()=>check(403,''));
   assert.notEqual(WORKER,'zenryoku-smash-staging-api');
+  assert.equal(WORKER,'zenryoku-smash-d1-pilot-stage');
+  assert.notEqual(WORKER,'zenryoku-smash-d1-pilot-stage-20261121');
   console.log('PASS: isolated Worker ownership and collision fail-closed');
 }else if(process.argv[2]==='verify'){
   run().catch(e=>{console.error('Worker ownership check failed: '+String(e?.message||'error').replace(/Bearer\s+\S+/g,'Bearer [redacted]'));process.exitCode=1;});
