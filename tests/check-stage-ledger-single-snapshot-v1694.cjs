@@ -148,7 +148,69 @@ assert.throws(()=>mutateLedger_({},actor,
   date:'2026-11-18',item:'テスト',payee:'検証',amount:100}),
  e=>e.smCode==='LOCKED','backdating a reimbursement behind confirmed rows must remain blocked');
 assert.equal(reads,1);assert.equal(writes,0);assert.deepEqual(stored,baseline);
-mutateOnce({action:'edit',rowId:'P-21',expectedVersion:3,date:'2026-11-21'}),
-// The preceding edit is deliberately invalid; practice rows remain immutable.
-// This call is not reachable; throw protection assertion above instead.
-console.log('PASS v1694 invariant ledger snapshot test');
+reads=0;writes=0;
+assert.throws(()=>mutateLedger_({},actor,
+ {action:'edit',rowId:'P-21',expectedVersion:3,date:'2026-11-21'}),
+ e=>e.smCode==='FORBIDDEN','the collection practice row cannot be edited here');
+assert.equal(reads,1);assert.equal(writes,0);
+mutateOnce({action:'add',kind:'other',rowId:'O-EXTRA123',date:'2026-11-21',
+ label:'新規収支',income:200,expense:0});
+assert.equal(stored.find(r=>r.rowId==='O-EXTRA123').balance,2800);
+mutateOnce({action:'edit',rowId:'O-EXTRA123',expectedVersion:1,
+ date:'2026-11-21',label:'費用修正',income:300,expense:50});
+const changed=stored.find(r=>r.rowId==='O-EXTRA123');
+assert.equal(changed.balance,2850);assert.equal(changed.version,2);
+mutateOnce({action:'delete',rowId:'O-EXTRA123',expectedVersion:2});
+assert.ok(!stored.some(r=>r.rowId==='O-EXTRA123'));
+assert.equal(stored.at(-1).balance,2600);
+
+// Every read of a normal sheet uses ONE last-row metadata request.
+// No cross-request cache, no omission of headers, empty-sheet unchanged.
+const sheetRows_=new Function('SM','fail_',
+ block('function sheetRows_(ss,name){','function sheet_(ss,name){')+
+ '\nreturn sheetRows_;')({headers:{testSheet:['A','B','C']}},fail_);
+let lastReads=0,rangeReads=0;
+const ss={getSheetByName:name=>{
+ assert.equal(name,'testSheet');return {
+  getLastRow(){lastReads++;return 3;},
+  getRange(r,c,h,w){rangeReads++;assert.deepEqual([r,c,h,w],[2,1,2,3]);return {
+   getValues:()=>[[1,2,3],[4,5,6]]
+  };}};
+}};
+assert.deepEqual(sheetRows_(ss,'testSheet'),[[1,2,3],[4,5,6]]);
+assert.equal(lastReads,1,'getLastRow is called once, not twice');
+assert.equal(rangeReads,1);
+lastReads=0;rangeReads=0;
+const emptySS={getSheetByName:()=>({
+ getLastRow(){lastReads++;return 1;},
+ getRange(){rangeReads++;throw Error('must not read empty range');}
+})};
+assert.deepEqual(sheetRows_(emptySS,'testSheet'),[]);
+assert.equal(lastReads,1);assert.equal(rangeReads,0);
+assert.throws(()=>sheetRows_({getSheetByName:()=>null},'testSheet'),
+ e=>e.smCode==='SETUP','missing master sheet still fails closed');
+
+// A live month ledger must preserve *all* deletion evidence including
+// historical rows; only the unused audit ID column A is removed (B:F).
+const deletedPracticeLedgerIds_=new Function('sheet_','str_',
+ block('function deletedPracticeLedgerIds_(ss,existing){','function monthLedger_(ss,member,payload){')+
+ '\nreturn deletedPracticeLedgerIds_;')(
+ (_ss,name)=>{assert.equal(name,'操作履歴');return auditSheet;},str_);
+const j=payload=>JSON.stringify({ok:true,data:payload});
+const auditRows=[
+ ['other','M-1','2026-11-20','P-FOO',j({action:'delete',rowId:'P-IGNORED'})],
+ ['ledger.change','M-1','2026-11-20','P-DELETED',j({action:'delete',rowId:'P-DELETED'})],
+ ['ledger.change','M-1','2026-11-20','P-EXISTS',j({action:'delete',rowId:'P-EXISTS'})],
+ ['ledger.change','M-1','2026-11-20','P-FOO',j({action:'confirm',rowId:'P-FOO'})],
+ ['ledger.change','M-1','2026-11-20','P-BAD','{malformed JSON'],
+ ['ledger.change','M-1','2026-11-20','P-DELETED',j({action:'delete',rowId:'P-DELETED'})]
+];
+let auditColumns=null;
+const auditSheet={
+ getLastRow:()=>auditRows.length+1,
+ getRange(r,c,h,w){auditColumns=[r,c,h,w];return {getValues:()=>auditRows};}
+};
+assert.deepEqual(deletedPracticeLedgerIds_({},[{rowId:'P-EXISTS'}]),['DELETED']);
+assert.deepEqual(auditColumns,[2,2,auditRows.length,5],
+ 'deleted row IDs are derived from audit B:F, not A:F');
+console.log('PASS v1694: 1 ledger read per safe financial write, exact legacy order, 1 last-row read, deletion audit projection');
