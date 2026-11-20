@@ -241,7 +241,8 @@ ok(html.includes('id="participantCategoryVisitor"'),
  'visitor category option can be restricted to existing visitors');
 ok(ui.includes("'時間区分：'+practice.hours+'h'"),'collection home fee category is 4h');
 ok(!ui.includes("'時間区分：'+practice.hours+'時間'"),'old home display removed');
-ok(ui.includes("btn.disabled=blocked"),'finalized or match-linked participants cannot be changed');
+ok(ui.includes("btn.disabled=blocked||(action==='delete'&&isVisitorParticipant_(p))"),
+ 'finance/match locks preserved and visitor deletion disabled in participant list');
 ok(ui.includes("'/api/participant/change'"),'authenticated participant mutation API used');
 ok(worker.includes("'/api/participant/list':'participant.list'")&&
  worker.includes("'/api/participant/change':'participant.change'"),'new Worker routes registered');
