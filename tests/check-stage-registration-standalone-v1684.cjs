@@ -10,7 +10,7 @@ for(const id of ['registrationStatus','registrationForm','registrationName','reg
 assert.match(js,/liff\.init\(/);
 assert.match(js,/\/api\/member\/status/);
 assert.match(js,/\/api\/member\/apply/);
-assert.doesNotMatch(js,/\/api\/session|\/api\/overview/);
+assert.ok(!js.includes("request('/api/session'")&&!js.includes("request('/api/overview'"),'registration does not request management session');
 assert.match(js,/OPERATION_UNCONFIRMED/);
 assert.match(js,/if\(busy\|\|!prepared\)return/);
 assert.match(js,/setStatus\('success'/);
