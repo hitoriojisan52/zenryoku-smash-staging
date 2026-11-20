@@ -29,3 +29,12 @@
 - `check-stage-role-preview-visitor-delete-v1679.cjs`はユーザー指示によるプレビュー廃止を反映し、v0.16.79のビジターの却下のみの削除境界と未承認申請の本人取消を引き続き検証。旧会計・現金確認・権限/退会・対戦表の回帰も実行。
 - **LINE実機は別途確認**： [検証用運用管理LIFF](https://liff.line.me/2012602642-XBSkXduO) を開く。(1) 左上部の権限切換（立替精算の左）が有効 (2) 管理者→当番担当で管理者メニューが使えない (3) 当番担当→メンバーで運用管理ボタンが全て非活性、権限切換だけ有効 (4) メンバー→管理者に戻る (5) ビジター申請の承認待ち削除維持／承認済み削除不可 (6) 警告の⚠️・色と赤枠エラー表示。
 - GAS・Workerの自動デプロイ合格と実機による変更成功は区別する。実機での権限変更はユーザーが実行。ユーザーの事前承認なしに本番環境へ反映しない。
+
+## v0.16.80 — 統合・CI・自動デプロイ検証（2026/11/20）
+
+- [PR #94](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/94) を検証用mainへ統合（SHA `87f7b42eb6fb4d0e0454c9e5eede73920f44a3c7`）。UI/GAS安全性/仕様優先順位の**3系統CI合格**。
+- 新規`check-stage-self-role-v1680.cjs` **28/28件**、更新後の本人ロール・ビジター削除境界 **18/18件**、ビジター審査 **75/75件**、旧会計確定順序 **28/28件** の模擬回帰成功。
+- [GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44679284922) build/deploy成功。[Cloudflare Workers Builds](https://github.com/hitoriojisan52/zenryoku-smash-staging/commit/87f7b42eb6fb4d0e0454c9e5eede73920f44a3c7/checks)成功。Worker本体のステージ権限切換APIルーティング・検証ゲート変更が公開された。
+- [検証GAS既存Webアプリ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44679286891)の更新成功。既存デプロイ **@46**（ログ `Redeployed *** @46`）。コード.gs・AccessAndGuestV160.gsのpush後source sha256照合成功。新規Webアプリ・本番GASは作成/更新していない。
+- [公開LIFF/Worker GET-onlyスモーク](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44679286916)成功。ただしLINE IDトークンを使った新`stage.selfRole` API status/changeや実役割変更は、この公開GET-only試験の対象外。
+- **LINE実機受入は未完了**。ユーザーの管理者→当番担当→メンバー→管理者の実操作、メンバー時の非活性、ビジター本人の承認待ち取下げ、黄枠⚠️/赤枠エラーを検証する。実機用リンク：[検証用運用管理LIFF](https://liff.line.me/2012602642-XBSkXduO)。本番変更なし。
