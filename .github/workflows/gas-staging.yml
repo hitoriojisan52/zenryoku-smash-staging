@@ -78,6 +78,8 @@ jobs:
         run: node tests/check-stage-visitor-filter-v1677.cjs
       - name: Verify read-status UI regression safety
         run: node tests/check-stage-foreground-read-v1678.cjs
+      - name: Verify visitor delete boundary and role preview isolation
+        run: node tests/check-stage-role-preview-visitor-delete-v1679.cjs
       - name: Verify member-only LINE attendance timestamping and financial locks
         run: node tests/check-stage-line-attendance-v1645.cjs
       - name: Verify admin user-name edit and finalized ledger role buttons
