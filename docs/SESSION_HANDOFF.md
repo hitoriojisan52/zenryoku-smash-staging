@@ -2,7 +2,7 @@
 
 このファイルは、新しいChatGPTチャットで必ず最初に確認する**継続開発用の入口**。
 単なる実装履歴ではなく、旧アプリの業務仕様を無断変更しないための確認事項。
-更新日：2026-11-20。**検証main最新：v0.16.79（GAS既存@45、CI/Pages/Worker成功）、開発中：v0.16.80**。ユーザー明示変更：権限「表示プレビュー」を実際の本人役割切換に置換（本番削除前提）。GAS+Workerでステージング限定、初回に管理者本人を固定、別の有効な管理者「架空利用者修正1657」を必須とし、メンバーからの自己復帰を可能にする。管理用LIFFのメンバーは権限切換以外を操作不可、別のLINE参加連絡入口は維持。ビジター申請者の承認待ち取消は維持確定、承認済みは管理者却下のみ。メッセージ枠は青=処理・黄=⚠️警告・赤=エラー。本番変更なし。
+更新日：2026-11-20。**最新検証用main：v0.16.80（PR #94、SHA 87f7b42eb6fb4d0e0454c9e5eede73920f44a3c7）**。3系統CI、GitHub Pages/Worker Builds、公開GET-onlyスモーク成功。検証GAS既存Webアプリは**@46**。検証用LIFFは https://liff.line.me/2012602642-XBSkXduO。一般メンバー管理LIFFは実権限切換を除く全ホーム操作非活性、参加連絡の別入口は維持。初回は管理者が登録され、別の架空管理者の実在確認が必要。ビジター本人の承認待ち申請取下げと、承認済みの管理者却下のみの削除を維持。黄色枠は⚠️、青は処理、赤はエラー。本番は未変更。**LINE実機の権限切換・復帰は未受入**。
 
 ## 1. 最優先原則
 
@@ -350,3 +350,14 @@
 - 承認待ちビジター申請の申請者本人「削除」（引き戻し）は維持確定。承認済みビジターの削除は参加者一覧不可・管理者のビジター審査「却下」に限定。
 - 警告はCSSで⚠️を共通表示（絵文字二重表示を防ぐ）、読み込み・処理青、警告黄、通信・操作エラー赤。現金確認・会計確定順序と残高計算は不変更。
 - [詳細仕様と実機LIFFリンク](stage-v1680-self-role-staging-message-semantics.md)。CI、main、Pages、GAS、Worker、LINE実機の結果を別々に確認。**本番移行時にUI+Worker+GASの役割切換を除去**。本番反映はユーザー事前承認。
+
+### v0.16.80 検証反映結果
+
+## v0.16.80 — 統合・CI・自動デプロイ検証（2026/11/20）
+
+- [PR #94](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/94) を検証用mainへ統合（SHA `87f7b42eb6fb4d0e0454c9e5eede73920f44a3c7`）。UI/GAS安全性/仕様優先順位の**3系統CI合格**。
+- 新規`check-stage-self-role-v1680.cjs` **28/28件**、更新後の本人ロール・ビジター削除境界 **18/18件**、ビジター審査 **75/75件**、旧会計確定順序 **28/28件** の模擬回帰成功。
+- [GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44679284922) build/deploy成功。[Cloudflare Workers Builds](https://github.com/hitoriojisan52/zenryoku-smash-staging/commit/87f7b42eb6fb4d0e0454c9e5eede73920f44a3c7/checks)成功。Worker本体のステージ権限切換APIルーティング・検証ゲート変更が公開された。
+- [検証GAS既存Webアプリ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44679286891)の更新成功。既存デプロイ **@46**（ログ `Redeployed *** @46`）。コード.gs・AccessAndGuestV160.gsのpush後source sha256照合成功。新規Webアプリ・本番GASは作成/更新していない。
+- [公開LIFF/Worker GET-onlyスモーク](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44679286916)成功。ただしLINE IDトークンを使った新`stage.selfRole` API status/changeや実役割変更は、この公開GET-only試験の対象外。
+- **LINE実機受入は未完了**。ユーザーの管理者→当番担当→メンバー→管理者の実操作、メンバー時の非活性、ビジター本人の承認待ち取下げ、黄枠⚠️/赤枠エラーを検証する。実機用リンク：[検証用運用管理LIFF](https://liff.line.me/2012602642-XBSkXduO)。本番変更なし。
