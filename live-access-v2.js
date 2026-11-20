@@ -243,9 +243,21 @@
    render(data);return data;
  }
  async function refresh(first){
-   return run(first?'読み込み中です…':'一覧を更新しています…',async()=>{
-     await load();status('');
-   },first?'':'更新しました。');
+   if(first){
+    // Opened dialog stays operable, including Close, during the first read.
+    $('memberAccessPending').textContent='登録申請を読み込んでいます…';
+    $('memberAccessMembers').textContent='利用者一覧を読み込んでいます…';
+    status('利用者・権限情報を読み込んでいます…');
+    try{await load();if(dialog.open)status('');}
+    catch(e){if(dialog.open){
+     status('読み込みに失敗しました。「更新」で再取得してください。');
+     await window.SMStageUX.showError(e);
+    }}
+    return;
+   }
+   return run('一覧を更新しています…',async()=>{
+    await load();status('');
+   },'更新しました。');
  }
  async function mutate(path,payload,title,verify){
    return run(title+'を保存しています…',async()=>{
