@@ -405,3 +405,12 @@
 - 検証用メニューに「📝 利用申請（検証用）」を追加し、既存 `member.status`/`member.apply` を利用。**未登録LINEテスターは管理画面の `/api/session` を通れない**ため、同一LIFFの `?register=1` 起動で会員認証前に本人の申請状況/申請フォームを開く。氏名カナ必須。管理者承認後の一般メンバー権限など既存フローを維持。本番移行時はLINEリッチメニューからこの申請導線へ誘導し、検証用メニューを削除。
 - 閉じた画面のreadがまだ進行中の間、ホームの8秒自動ポーリングが重ならないようにread件数と閉じてから15秒の再取得抑止を追加。**ホームで何も操作していない場合の8秒更新頻度は維持**。GASのLockServiceや会計確定・残高計算は変更しない。
 - **未完了**：PR #101のCI/検証デプロイとLINE実機受入。別LINEテスターの `https://liff.line.me/2012602642-XBSkXduO?register=1` は実機起動を確認してから配布。メニュー切替前後で `?perf=1` の成功/失敗履歴を比較し、15秒を超えたGAS POST/認証/ロックの再計測を行う。
+
+## 34. v0.16.84 本番想定利用申請・共通4色状態の再設定（2026/11/20）
+
+- ユーザー実機の2画面：利用申請ポップアップの読み込み青枠は静止🔄で、正常「利用登録済みです」も青枠。**先行UI規約違反として是正**した。
+- **v0.16.84（本番想定の独立利用申請と4色状態ルール）**：利用申請は`register.html`の独立ページへ移設。旧運用管理内ポップアップは削除し、検証用メニューに独立ページへのショートカットのみ残した。**青＝通信・保存中（アニメーションスピナー）、緑＝正常・成功、黄＝警告⚠️、赤＝エラー❌**。説明文は中立。新規LIFFは**ユーザーの作成指示待ち**でID未設定、実機本人認証・申請は未確認。GAS/Workerと会計処理は不変更。本番未反映。[v0.16.84利用申請・UI状態ルール](docs/stage-v1684-standalone-registration-status-semantics.md)。
+- 本番のLINEリッチメニューから呼び出す経路は、専用LIFF URL→`register.html`。検証で先に作成した`live.html?register=1`の内部申請フォームとダイアログは撤去し、運用管理は申請を内包しない。未登録のLINE本人が`/api/session`で拒否されないよう、独立ページは既存の`member.status`/`member.apply`を直接使用する。
+- **待機事項**：同じLINE Loginチャネルに登録申請専用LIFFを作り、Endpoint URLを`https://hitoriojisan52.github.io/zenryoku-smash-staging/register.html`、scopeに`openid`を設定。その後ユーザー提供の新LIFF IDを`runtime-config.js.registrationLiffId`に設定する。ユーザーが指示する前にはLIFFを作成しない。現状は未設定表示でUI確認のみ可能。
+- 保護事項：メンバー登録・氏名カナ・申請者の重複防止・管理者の承認・停止・退会・会計・残高・確定順序・監査・15秒タイムアウトおよび不確定保存の再送禁止を維持。
+- 試験：`tests/check-stage-standalone-registration-v1684.cjs`、既存`tests/check-stage-registration-perf-v1683.cjs`と`tests/check-stage-dialog-inventory-v1646.cjs`を更新。詳細は[v0.16.84利用申請・UI状態ルール](docs/stage-v1684-standalone-registration-status-semantics.md)。本番デプロイ・LINE実機受入はまだ行わない。
