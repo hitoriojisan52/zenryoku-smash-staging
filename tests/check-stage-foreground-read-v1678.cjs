@@ -93,7 +93,7 @@ const readScreen_=readControls.readScreen_,update=readControls.updateReadScreenS
   'home, match management and match viewing selectors begin blank');
  const boot=live.slice(live.indexOf('async function boot(){'),live.indexOf('async function reload('));
  ok(boot.includes("await reload(true);\n  $('refresh').disabled=false;")&&
-  !boot.includes("'manageBtn','refresh','adjustment'"),
+  !boot.includes("for(const id of ['reimbursementBtn','manageBtn','refresh','adjustment','expense','newLedgerRow'])$(id).disabled=false"),
   'home Update remains disabled throughout first full fetch');
  ok(live.includes("$('refresh').disabled=true; // a foreground date change")&&
   live.includes("if($('refresh').disabled)return;"),
