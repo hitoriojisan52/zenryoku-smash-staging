@@ -116,12 +116,18 @@ actual.visitorRequest_({},M,base3);
 actual.visitorDecision_({},A,{requestId:base3.requestId,action:'approve',expectedVersion:0,operationId:'OP-APPROVE-004'});
 rows['集金記録'].push([base3.practiceId,base3.participantId,true,1,'M-ADMIN',now_()]);
 ledgerIncome=1000;
-const direct=actual.participantChange_({},A,{practiceId:base3.practiceId,participantId:base3.participantId,action:'delete',expectedVersion:0,operationId:'OP-DELETE-ADMIN'});
-ok(direct.data.action==='delete'&&direct.data.visitorStatus==='rejected','admin attendance deletion delegates to visitor rejection');
+expect(()=>actual.participantChange_({},A,{practiceId:base3.practiceId,participantId:base3.participantId,
+ action:'delete',expectedVersion:0,operationId:'OP-DELETE-ADMIN'}),'FORBIDDEN');
+ok(rows['出欠回答'].length===1&&rows['集金記録'].length===1&&ledgerIncome===1000,
+ 'direct participant-list visitor deletion is denied without mutation');
+const rejectedByAdmin=actual.visitorDecision_({},A,{requestId:base3.requestId,
+ action:'reject',expectedVersion:1,operationId:'OP-REJECT-BY-ADMIN'});
+ok(rejectedByAdmin.data.status==='rejected','admin visitor management rejection is available');
 ok(rows['出欠回答'].length===0&&rows['集金記録'].length===0&&ledgerIncome===0,
- 'admin delete removes collected checked visitor and open ledger fee');
+ 'admin rejection deletes participant and adjusts payment and ledger');
 ok(actual.visitorRequests_({}).find(x=>x.requestId===base3.requestId).status==='rejected',
- 'applicant sees rejected status after admin deletes from participant list');
+ 'requester sees visitor rejected status after admin review');
+// Separate applicant pending-request withdrawal is intentionally unchanged.
 // v0.16.42: a normal member can edit THEIR OWN approved visitor via
 // participantChange_, including attendance and paid-cash ledger adjustments.
 // No email exists in the visitor application or participant sheet.
