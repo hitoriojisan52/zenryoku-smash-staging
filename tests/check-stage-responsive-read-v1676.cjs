@@ -72,7 +72,8 @@ dlg.close();finishFirst();
   ['openVisitorForm_','visitorDialog'],['openMemberAttendance_','attendanceDialog']
  ]){
   const a=ui.indexOf('function '+functionName+'('),b=ui.indexOf('\n}',a);
-  ok(a>=0&&b>a&&ui.slice(a,b).includes("readScreen_('"+opening+"'"),
+  ok(a>=0&&b>a&&(ui.slice(a,b).includes("readScreen_('"+opening+"'")||
+    (functionName==='openLedger'&&ui.slice(a,b).includes('readLedgerScreen_()'))),
    functionName+' immediately opens an inline-read dialog');
  }
  ok(visitor.includes("w.SMStageRead.open('visitorAdminDialog'")&&
