@@ -3,6 +3,7 @@
 **新しいチャットで開発を再開する場合は、必ず [開始用プロンプト](docs/NEW_CHAT_START_PROMPT.md) を使用し、[開発引継ぎ文書](docs/SESSION_HANDOFF.md) と [仕様優先順位の正式ルール](docs/SPEC_PRIORITY_POLICY.md) を確認する。**
 **GAS・Worker・PagesのGitHub経由デプロイとユーザーへの具体的な作業案内**は [DEPLOYMENT_AND_USER_ACTIONS.md](docs/DEPLOYMENT_AND_USER_ACTIONS.md) に従う（Worker v0.16.53の反映確認とGAS/Workerの設定完了報告を記録済み）。
 **退会・再入会の確定仕様と接続検証の進捗**：[v0.16.53引継ぎ](docs/stage-v1653-withdraw-rejoin.md)を参照。
+**v0.16.79（権限別の画面見本・ビジター削除制限）**：検証用の権限別メニュープレビューを管理者/当番担当/メンバー全員が開ける。実際の権限・認証・メンバー/チーム所属・GAS/Workerの認可は変更しない。参加者一覧のビジター削除は非活性、API直接削除も禁止、管理者のビジター管理からの「却下」は維持。未承認申請の本人取下げは別の既存機能として維持し、廃止する場合は別途ユーザー判断。[仕様と影響評価](docs/stage-v1679-role-preview-visitor-deletion.md)。本番未変更。
 **v0.16.78検証反映結果**：[PR #90](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/90)のUI/GAS/仕様3CI、GitHub Pages、検証GAS既存Webアプリ **@44**、Workers Builds、公開GET-only疎通がすべて成功。新UI45/45、旧金種87/87、旧会計確定順序28/28合格。[受入記録](docs/stage-v1678-single-cash-read-blank-selects.md)。LINE実機受入は未完了。本番不変更。
 **v0.16.78（読込表示・更新操作の統一）**：現金確認の読み込み青枠を1つに集約し、取得・照合の進捗を同じ青枠で更新。取得前の日程プルダウンを空欄に統一し、初回・手動の読込中は該当画面の更新ボタンを非活性化（閉じる有効）。自動ポーリングは従来どおり操作を止めない。会計・権限・GAS・Workerは不変更。[改修と実機確認項目](docs/stage-v1678-single-cash-read-blank-selects.md)。本番未変更。
 **v0.16.77検証環境への反映結果**：PR #88 3系統CI成功、GAS既存デプロイ **@43**、GitHub Pages、Workers Builds、公開LIFF/Worker GET-only疎通成功（[記録](docs/stage-v1677-visitor-current-dates-activity.md)）。ビジターの実機UI・確定解除後再表示・性能は未受入、本番変更なし。
