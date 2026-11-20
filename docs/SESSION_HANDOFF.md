@@ -767,3 +767,11 @@
 - mainの[Actions #44807828712](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44807828712)で既存検証Workerの所有マーカー照合、D1 ID/名前照合、dry run、実Worker deploy、一時Bearer生成・`PILOT_READ_TOKEN` secret更新まで**success**。最終HTTP試験は**failure**、ログは`stage=write-rejection expected=405 observed=401 code=PILOT_UNAUTHORIZED`。この時点で認証付きGET（練習日・月別収支件数0）と不正Bearer 401は通過したが、POST拒否の結果が期待と異なる。**HTTP試験/性能評価完了扱い禁止**。
 - 初回公開とSecret更新が別CloudflareデプロイとなりEdgeで一時的に旧Bearerを認証する可能性があるが、**原因は未確定**。次PRでPOST（実装されていない、必ず拒否する方法）と旧API経路GETの**401/PILOT_UNAUTHORIZED時のみ**短く再試行し、最終的な405/404契約を緩めず、回数超過はエラーとする。SQL更新/業務データ書込みや重複決済等は一切せず、秘密/レスポンス本文は出力しない。
 - 次：PR CI/旧会計・本人出欠・退会・試合回帰を実施後main統合→再リモート検証の全ステップを確認→成功で初めてWorker Native D1 HTTP p50/p95を報告。失敗時はステータス別の根本原因を再調査。検証用の新独立Workerだけ変更。本番Worker・GAS・LIFF・Sheets未変更。
+
+
+## 71. D1ネイティブWorkerの短時間Bearer不一致／厳格な性能測定前安定確認（2026/11/21）
+
+- [PR #140](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/140) はCI成功→main `be59c9a1ce423d3e63b13aef7f477ff14a63126d`に統合。従来の無認可401に対する安全な再試行をPOST拒否／旧API経路GETの検査だけに限定。
+- mainの[Actions #44808223493](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44808223493)：DB IDと名前照合、所有マーカー、dry-run、独立Workerデプロイ、一次Bearer Secretアップロード成功。実HTTPは**認証GET・POST拒否405・旧API404まで通過**したが、最後の12件性能測定中に`stage=benchmark-read expected=200 observed=401 code=PILOT_UNAUTHORIZED`でFAIL。**p50/p95未測定、Native D1の動作が安定したと確定しない**。Cloudflare secret putによる新バージョン公開直後のEdge反映差は推定原因であり、未確定。
+- 次の対策：`wrangler secret put`から測定まで45秒の静置時間を置き、その後6回連続の認証付きGET（途中401なら即失敗）を合格条件としてから12回のp50/p95を計測。測定中の401は除外せずFAILを維持（性能結果の改ざん防止）。既存の収支・参加・退会・試合仕様と本番環境は不変更。ユーザーの追加Secret/Token再登録不要。
+- 次：PR CI成功→検証用main統合→remoteのGET/POST/旧経路/6連続安定/p50/p95確認。失敗時はステータス別根本原因を報告し、認可や書込保護を勝手に緩和しない。
