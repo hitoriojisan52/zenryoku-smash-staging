@@ -14,7 +14,7 @@ ok(start>=0&&end>start,'actual boot implementation remains locatable');
 const body=js.slice(start,end);
 const makeBoot=new Function('$','CONFIG','window','liff','S','call','gateEdit','reload',
  'setInterval','toast','VISITOR_MODE','document','VIS','validateVisitorPractices_',
- 'PERF_MODE','performance',
+ 'PERF_MODE','performance','APP_REG_MODE',
  body+'\nreturn boot;');
 const initiallyDisabled=['confirm','reimbursementBtn','manageBtn','refresh',
  'adjustment','expense','newLedgerRow'];
@@ -59,7 +59,7 @@ async function scenario(role){
  env.window.liff=env.liff; // real boot checks both window.liff and the LIFF instance
  const boot=makeBoot($,env.config,env.window,env.liff,state,env.call,
   env.gateEdit,env.reload,()=>{calls.push('interval')},()=>{},
-  false,env.document,VIS,x=>x.practices,false,{now:()=>1000});
+  false,env.document,VIS,x=>x.practices,false,{now:()=>1000},false);
  const work=boot();
  for(const id of initiallyDisabled)ok($(id).disabled,
   'boot disables '+id+' until the session is verified: '+role);
