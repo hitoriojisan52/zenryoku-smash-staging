@@ -1,2 +1,5 @@
 .wrangler.staging.runtime.json
 .wrangler/
+
+# Generated Worker deployment config contains the D1 UUID; never commit it.
+readonly-pilot/.wrangler.stage.runtime.json
