@@ -165,7 +165,7 @@ body.visitor-member #visitorMemberHome button{width:100%}
 </dialog>
 <dialog id="stageRolePreviewDialog" aria-labelledby="stageRolePreviewTitle">
  <h2 id="stageRolePreviewTitle">🧪 自分の権限切換（検証専用）</h2>
- <p id="stageRolePreviewActual" class="stage-system-message stage-system-message--info" role="status" aria-live="polite"></p>
+ <p id="stageRolePreviewActual" class="stage-system-message stage-system-message--neutral" role="status" aria-live="polite"></p>
  <p class="stage-role-preview-note stage-system-message stage-system-message--warning">検証環境だけで実際の権限が変わります。メンバー権限になっても、この画面から管理者に戻せます。</p>
  <label class="dialog-label" for="stageRolePreviewSelect">変更後の権限</label>
  <select id="stageRolePreviewSelect" class="dialog-select" disabled>
@@ -185,16 +185,16 @@ body.visitor-member #visitorMemberHome button{width:100%}
 </dialog>
 <dialog id="memberAccessDialog" aria-labelledby="memberAccessTitle">
     <h2 id="memberAccessTitle">🔐 メンバー権限管理</h2>
-    <p id="memberAccessStatus" class="stage-system-message stage-system-message--info" role="status" aria-live="polite"></p>
+    <p id="memberAccessStatus" class="stage-system-message stage-system-message--neutral" role="status" aria-live="polite"></p>
     <div class="member-pending-heading"><h3>登録申請</h3><button id="memberAccessRefresh" type="button" class="btn-blue">🔄 更新</button></div><div id="memberAccessPending"></div>
     <h3>利用者一覧</h3><div id="memberAccessMembers"></div>
     <section id="memberAccessWithdrawPreviewV1624" class="stage-withdraw-preview-v1624" hidden aria-labelledby="memberAccessWithdrawPreviewTitleV1624">
       <h3 id="memberAccessWithdrawPreviewTitleV1624">退会確認画面のテスト</h3>
       <p class="stage-withdraw-preview-note-v1624">表示例で確認します。実際の退会・削除は行いません。</p>
-      <p id="memberAccessWithdrawPreviewStatusV1624" class="stage-withdraw-preview-note-v1624 stage-system-message stage-system-message--info" role="status" aria-live="polite"></p>
+      <p id="memberAccessWithdrawPreviewStatusV1624" class="stage-withdraw-preview-note-v1624 stage-system-message stage-system-message--neutral" role="status" aria-live="polite"></p>
       <button id="memberAccessWithdrawPreviewButtonV1624" type="button" class="btn-outline">二段階の確認を試す</button>
       <button id="memberAccessWithdrawCheckButtonV1627" type="button" class="btn-blue" hidden>サーバー側の退会条件を確認</button>
-      <p id="memberAccessWithdrawCheckResultV1627" class="stage-withdraw-check-result-v1627 stage-system-message stage-system-message--info" role="status" aria-live="polite" hidden></p>
+      <p id="memberAccessWithdrawCheckResultV1627" class="stage-withdraw-check-result-v1627 stage-system-message stage-system-message--neutral" role="status" aria-live="polite" hidden></p>
     </section>
     <div class="modal-actions"><button id="memberAccessClose" type="button" class="btn-outline">閉じる</button></div>
   </dialog>
@@ -411,7 +411,7 @@ body.visitor-member #visitorMemberHome button{width:100%}
 </dialog>
 <dialog id="stageErrorDialog" aria-labelledby="stageErrorTitle" aria-describedby="stageErrorMessage" role="alertdialog">
  <h2 id="stageErrorTitle">操作できませんでした</h2><p id="stageErrorMessage" class="stage-system-message stage-system-message--error" role="alert"></p>
- <p id="stageLineAuthHelp" class="stage-system-message stage-system-message--info" hidden>
+ <p id="stageLineAuthHelp" class="stage-system-message stage-system-message--neutral" hidden>
   LINE認証を確認できません。LINEアプリのトークから検証用LIFFを開き直してください。
   解消しない場合は、LIFFの所属チャネルとWorkerのLINE_LOGIN_CHANNEL_IDが一致しているかを確認してください。
   <a id="stageLineReopen" href="https://liff.line.me/2012602642-XBSkXduO">検証用LIFFを開く</a>
