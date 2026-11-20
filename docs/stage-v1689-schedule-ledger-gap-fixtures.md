@@ -32,3 +32,10 @@
 - [検証用運用管理LIFF](https://liff.line.me/2012602642-XBSkXduO)
 - [接続検証用スプレッドシート・出欠回答](https://docs.google.com/spreadsheets/d/1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac/edit#gid=600006)
 - LIFF別アカウントの利用申請・承認・再訪問／通信性能は未受入。本番LINEリッチメニューは未変更。11/21の収支欠落も**未修復**。この状況を「全データ整合性問題なし」として報告しない。
+
+
+## 5. 11/21当日の補完ロジック — 未実行の実データと分離した回帰
+
+- 追加の `tests/check-stage-legacy-ledger-backfill-v1689.cjs` は、現行の `collectionState_`／`ensureCollectionLedger_`／`balanceRecalc_` の **GAS実ソース** を切り出して、架空の11/19（確定）・11/21（P行欠落）・11/25/28（未確定）の模擬残高で実行する。Google SheetsやLINEへ通信しない。
+- 期待値：11/20は未来日なので行を作成しない。11/21になり直前日程の収支が確定済みの時のみ、`P-` 固定IDで `open` を1件作成し、`ledger.auto` で1回監査する。同じ日に再度開いても重複生成しない。後続の日程残高と既存確定残高は保存し、直前日程が未確定・P行なしなら補完しない。
+- これは **オフライン条件検証** であり、11/21の検証用実スプレッドシートの欠落行を補完したことも、実機で確認したことも意味しない。修復の実作業は現行の会計保護のもと別途判定する。
