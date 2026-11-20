@@ -185,16 +185,21 @@ body.visitor-member #visitorMemberHome button{width:100%}
 </dialog>
 <dialog id="memberAccessDialog" aria-labelledby="memberAccessTitle">
     <h2 id="memberAccessTitle">🔐 メンバー権限管理</h2>
+    <div class="stage-message-region" aria-label="システムメッセージ">
     <p id="memberAccessStatus" class="stage-system-message stage-system-message--neutral" role="status" aria-live="polite"></p>
+    <p id="memberAccessWithdrawPreviewStatusV1624" class="stage-withdraw-preview-note-v1624 stage-system-message stage-system-message--neutral" role="status" aria-live="polite"</p>
+    <p id="memberAccessWithdrawCheckResultV1627" class="stage-withdraw-check-result-v1627 stage-system-message stage-system-message--neutral" role="status" aria-live="polite" hidden></p>
+    </div>
+
     <div class="member-pending-heading"><h3>登録申請</h3><button id="memberAccessRefresh" type="button" class="btn-blue">🔄 更新</button></div><div id="memberAccessPending"></div>
     <h3>利用者一覧</h3><div id="memberAccessMembers"></div>
     <section id="memberAccessWithdrawPreviewV1624" class="stage-withdraw-preview-v1624" hidden aria-labelledby="memberAccessWithdrawPreviewTitleV1624">
       <h3 id="memberAccessWithdrawPreviewTitleV1624">退会確認画面のテスト</h3>
       <p class="stage-withdraw-preview-note-v1624">表示例で確認します。実際の退会・削除は行いません。</p>
-      <p id="memberAccessWithdrawPreviewStatusV1624" class="stage-withdraw-preview-note-v1624 stage-system-message stage-system-message--neutral" role="status" aria-live="polite"></p>
+
       <button id="memberAccessWithdrawPreviewButtonV1624" type="button" class="btn-outline">二段階の確認を試す</button>
       <button id="memberAccessWithdrawCheckButtonV1627" type="button" class="btn-blue" hidden>サーバー側の退会条件を確認</button>
-      <p id="memberAccessWithdrawCheckResultV1627" class="stage-withdraw-check-result-v1627 stage-system-message stage-system-message--neutral" role="status" aria-live="polite" hidden></p>
+
     </section>
     <div class="modal-actions"><button id="memberAccessClose" type="button" class="btn-outline">閉じる</button></div>
   </dialog>
