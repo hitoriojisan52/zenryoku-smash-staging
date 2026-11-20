@@ -45,6 +45,8 @@
     const previousFocus = document.activeElement;
     byId('matchConfirmTitle').textContent = title;
     byId('matchConfirmMessage').textContent = message;
+    byId('matchConfirmMessage').classList.toggle('stage-system-message',isError);
+    byId('matchConfirmMessage').classList.toggle('stage-system-message--error',isError);
     okBtn().textContent = confirmLabel;
     okBtn().classList.toggle('match-modal-danger', Boolean(danger && !isError));
     cancelBtn().hidden = isError;
@@ -78,13 +80,18 @@
       };
     }
     if (code === 'OPERATION_UNKNOWN' || code === 'OPERATION_UNCONFIRMED' || code === 'APPLIED_REFRESH_FAILED') {
-      return { title: '【操作結果の確認が必要です】', message: original };
+      return { title: '【保存結果を確認してください】',
+        message: '保存済みの可能性があります。「更新」で結果を確認してください。' };
+    }
+    if (code === 'REQUEST_TIMEOUT' || code === 'GAS_TIMEOUT' || code === 'LINE_VERIFY_TIMEOUT') {
+      return { title: '【通信タイムアウト】',
+        message: '15秒以内に応答がありません。「更新」で確認してください。' };
     }
     if (code === 'VERSION_CONFLICT' || (error && error.status === 409)) {
-      return { title: '【他の担当者による更新】', message: '他の担当者が先に更新したため、今回の操作は実行されませんでした。\n最新の内容を確認してから、もう一度操作してください。' };
+      return { title: '【他の担当者による更新】', message: '別の担当者が更新しました。「更新」で確認してください。' };
     }
     if (/Failed to fetch|NetworkError|fetch failed|通信に失敗|Load failed/i.test(original)) {
-      return { title: '【通信エラー】', message: 'サーバーとの通信に失敗しました。操作が保存されたか確認できません。\n「更新」で最新の状態を確認し、必要なら再操作してください。' };
+      return { title: '【通信エラー】', message: '通信できませんでした。保存結果を「更新」で確認してください。' };
     }
     return { title: '【操作できませんでした】', message: original };
   }
