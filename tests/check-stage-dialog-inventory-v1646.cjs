@@ -14,6 +14,7 @@ const dialogMap={
  reimbursementDialog:['cancelReimbursement'],
  manageDialog:['cashCounter','openLedger','manageSchedules','managePeople','manageAttendance',
   'visitorRegisterMenu','visitorAdminMenu','matchManage','manageAccess','closeManage'],
+ stageRolePreviewDialog:['stageRolePreviewClose'],
  memberAccessDialog:['memberAccessRefresh','memberAccessClose',
   'memberAccessWithdrawPreviewButtonV1624','memberAccessWithdrawCheckButtonV1627'],
  cashDialog:['cashReset','cashSave','cashClose'],
@@ -42,8 +43,8 @@ const dialogMap={
  stageErrorDialog:['stageErrorOkay']
 };
 const blocks=[...html.matchAll(/<dialog\s[^>]*\bid="([^"]+)"[^>]*>([\s\S]*?)<\/dialog>/g)];
-ok(blocks.length===29,'expected 29 operational modal surfaces (no modal removed)');
-ok(Object.keys(dialogMap).length===29,'inventory intentionally covers every dialog');
+ok(blocks.length===30,'expected 30 modal surfaces including role preview');
+ok(Object.keys(dialogMap).length===30,'inventory intentionally covers every dialog');
 for(const [,id,body] of blocks){
  ok(Object.hasOwn(dialogMap,id),'new or removed dialog must be reviewed: '+id);
  const controls=[...body.matchAll(/<button\b[^>]*\bid="([^"]+)"/g)].map(x=>x[1]);

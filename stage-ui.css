@@ -1034,3 +1034,11 @@ body.stage-ui > main.container .app-header h1{
  margin:2px 0 0;
 }
 .stage-ui .stage-field-save-status:empty{display:none}
+
+/* v0.16.79: read-only role menu preview; never an actionable admin panel. */
+.stage-ui #stageRolePreviewDialog{max-width:440px;width:calc(100% - 18px);max-height:calc(100dvh - 28px);overflow:auto}
+.stage-ui .stage-role-preview-note{font-size:12px;line-height:1.5;color:#52606d;margin:8px 0}
+.stage-ui .stage-role-preview-list{display:flex;flex-direction:column;gap:8px;margin:9px 0}
+.stage-ui .stage-role-preview-group{display:grid;gap:6px}
+.stage-ui .stage-role-preview-group h3{font-size:14px;margin:6px 0 1px}
+.stage-ui .stage-role-preview-group button:disabled{opacity:1;color:#34475a;cursor:default;background:#f2f4f6;border:1px solid #bcc8d0;min-height:38px}

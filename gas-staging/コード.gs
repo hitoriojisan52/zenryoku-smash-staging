@@ -1287,31 +1287,10 @@ function participantChange_(ss,member,payload,visitorDecisionInternal){
  var id=str_(payload.practiceId),person=str_(payload.participantId),
      action=str_(payload.action);
  if(action!=='edit'&&action!=='delete')fail_('BAD_REQUEST','参加者操作が不正です');
- // An approved visitor's application must never stay 'approved' after their
- // roster row is deleted. Route deletion through the admin rejection action.
- if(action==='delete'&&!visitorDecisionInternal&&/^PV-/.test(person)){
-   var linked=visitorRequests_(ss).filter(function(r){
-     return r.practiceId===id&&r.participantId===person&&r.status==='approved';
-   });
-   if(linked.length>1)fail_('SETUP','承認済みビジターの申請履歴が重複しています');
-   if(linked.length===1){
-     // Preserve the old participant-list Delete UI for admins. The deletion
-     // is an actual visitor rejection so the applicant's status stays true.
-     if(member.role!=='admin')
-       fail_('FORBIDDEN','承認済みビジターの削除・却下は管理者のみ実行できます');
-     var linkedPerson=sheetRows_(ss,'出欠回答').filter(function(r){
-       return str_(r[0])===id&&str_(r[1])===person;
-     });
-     if(linkedPerson.length!==1)fail_('STORAGE_INCOMPLETE','削除する参加者が見つかりません');
-     expectVersion_(Number(linkedPerson[0][7])||0,payload.expectedVersion);
-     var decision=visitorDecision_(ss,member,{requestId:linked[0].requestId,
-       expectedVersion:linked[0].version,action:'reject',operationId:payload.operationId});
-     return {ok:true,data:{practiceId:id,participantId:person,
-       action:'delete',version:Number(payload.expectedVersion)+1,
-       archived:true,visitorRequestId:decision.data.requestId,
-       visitorStatus:'rejected'}};
-   }
- }
+ // Direct visitor deletes are forbidden. Admin must use visitor.decide reject.
+ // visitorDecision_ invokes this routine with visitorDecisionInternal=true.
+ if(action==='delete'&&!visitorDecisionInternal&&/^PV-/.test(person))
+  fail_('FORBIDDEN','ビジターの削除はビジター管理の「却下」から操作してください');
  var p=practice_(ss,id);
  if(participantMatchLocked_(ss,id))
   fail_('LOCKED','対戦表作成済みのため参加情報を変更できません');
@@ -1319,6 +1298,8 @@ function participantChange_(ss,member,payload,visitorDecisionInternal){
  all.forEach(function(r,i){if(str_(r[0])===id&&str_(r[1])===person)positions.push(i);});
  if(positions.length!==1)fail_(positions.length?'SETUP':'NOT_FOUND','参加者IDを確認できません');
  var ix=positions[0],old=all[ix],version=Number(old[7])||0;
+ if(action==='delete'&&!visitorDecisionInternal&&str_(old[4])==='visitor')
+  fail_('FORBIDDEN','ビジターの削除はビジター管理の「却下」から操作してください');
  expectVersion_(version,payload.expectedVersion);
  if(participantArchivePending_(ss,person))
   fail_('CONFLICT','参加者の変更処理履歴があります。管理者に確認してください');
