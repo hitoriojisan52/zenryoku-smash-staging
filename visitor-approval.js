@@ -24,7 +24,7 @@
   catch(e){await w.SMStageUX.showError(e);return null;}
  };
  const empty=label=>{
-  const el=node('p','stage-system-message stage-system-message--info',label);
+  const el=node('p','stage-system-message stage-system-message--neutral',label);
   el.setAttribute('role','status');el.setAttribute('aria-live','polite');
   return el;
  };
