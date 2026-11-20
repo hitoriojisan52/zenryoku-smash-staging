@@ -127,8 +127,8 @@ const reload=new Function('S','$','call','window','Option','renderHome','syncPay
   gas.includes('function stageReceiptAuthorizeV1666_()')&&
   gas.includes('stageReceiptFolder_();'),
   'one-time staging Drive authorization path and persistent receipt warning are wired');
- ok(html.includes('live.js?v=1675-startup-perf')&&
-  html.includes('visitor-approval.js?v=1664-h1666'),
+ ok(html.includes('live.js?v=1676-responsive')&&
+  html.includes('visitor-approval.js?v=1676-responsive'),
   'LIFF WebView fetches fresh code after history additions');
  console.log('PASS '+count+'/'+count+' history isolation and receipt partial-save recovery');
 })().catch(e=>{console.error(e);process.exitCode=1});
