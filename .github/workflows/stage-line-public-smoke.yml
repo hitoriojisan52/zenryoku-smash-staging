@@ -6,6 +6,9 @@ on:
     paths:
       - 'live.html'
       - 'live.js'
+      - 'registration.html'
+      - 'registration.js'
+      - 'stage-ui.css'
       - 'runtime-config.js'
       - 'cloudflare-worker/worker.js'
       - 'scripts/check-stage-line-public.mjs'
