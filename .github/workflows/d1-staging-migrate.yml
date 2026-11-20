@@ -1,0 +1,69 @@
+name: D1 staging schema migrations (isolated)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'd1-staging/migrations/**'
+      - 'scripts/d1-staging-*'
+      - '.github/workflows/d1-staging-migrate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: d1-staging-schema
+  cancel-in-progress: false
+jobs:
+  local-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python3 scripts/d1-staging-check.py
+      - run: node scripts/d1-staging-config.cjs self-test
+  migrate-stage:
+    needs: local-safety
+    if: github.repository == 'hitoriojisan52/zenryoku-smash-staging' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: d1-staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.D1_STAGE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.D1_STAGE_ACCOUNT_ID }}
+      D1_STAGE_ACCOUNT_ID: ${{ vars.D1_STAGE_ACCOUNT_ID }}
+      D1_STAGE_DATABASE_ID: ${{ vars.D1_STAGE_DATABASE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Safely check one-time staging setup
+        id: setup
+        shell: bash
+        run: |
+          if [[ -z "$CLOUDFLARE_API_TOKEN" || -z "$D1_STAGE_ACCOUNT_ID" || -z "$D1_STAGE_DATABASE_ID" ]]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Staging D1 not provisioned: remote migration skipped; no existing services were changed." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          node scripts/d1-staging-config.cjs prepare
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+      - name: Verify remote D1 target UUID and exact staging name
+        if: steps.setup.outputs.ready == 'true'
+        shell: bash
+        run: |
+          npx --yes wrangler@4 d1 list --json > "$RUNNER_TEMP/d1-stage-list.json"
+          node scripts/d1-staging-config.cjs verify-remote "$RUNNER_TEMP/d1-stage-list.json"
+      - name: Apply versioned SQL ONLY to the named staging D1
+        if: steps.setup.outputs.ready == 'true'
+        shell: bash
+        run: |
+          npx --yes wrangler@4 d1 migrations apply zenryoku-smash-staging-d1 --remote --config d1-staging/.wrangler.staging.runtime.json
+      - name: Read-only smoke of staging bootstrap table
+        if: steps.setup.outputs.ready == 'true'
+        shell: bash
+        run: |
+          npx --yes wrangler@4 d1 execute zenryoku-smash-staging-d1 --remote --config d1-staging/.wrangler.staging.runtime.json --command "SELECT COUNT(*) AS probe_count FROM stage_d1_bootstrap;"
+          echo "Staging D1 migration and read-only smoke completed; no API/Worker/Sheets data changed." >> "$GITHUB_STEP_SUMMARY"
