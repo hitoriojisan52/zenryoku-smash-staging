@@ -1019,6 +1019,16 @@ body.stage-ui > main.container .app-header h1{
  font-size:12px;line-height:1.35;overflow-wrap:anywhere;
 }
 .stage-ui .stage-inline-read-status[hidden]{display:none!important}
+/* Animated activity cue in the existing blue banner, not an input-blocking modal. */
+.stage-ui .stage-system-message.stage-inline-read-loading::before{
+ content:"";display:inline-block;width:12px;height:12px;
+ margin-right:7px;vertical-align:-2px;box-sizing:border-box;
+ border:2px solid #bdd7ea;border-top-color:#1976d2;border-radius:50%;
+ animation:stage-ui-spin .8s linear infinite;
+}
+@media(prefers-reduced-motion:reduce){
+ .stage-ui .stage-system-message.stage-inline-read-loading::before{animation:none}
+}
 .stage-ui .stage-field-save-status{
  display:block;min-height:0;font-size:11px;line-height:1.3;color:#40566a;
  margin:2px 0 0;
