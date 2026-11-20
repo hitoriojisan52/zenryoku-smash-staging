@@ -1067,8 +1067,10 @@ body.stage-ui > main.container .app-header h1{
  * Static guidance is ordinary prose, never a processing system message. */
 .stage-ui .stage-system-message--success{background:#e9f7ec;border-color:#b9dec3;color:#205c32}
 .stage-ui .stage-system-message--success:not(:empty)::before{content:"✓";display:inline-block;margin-right:7px;font-weight:800}
-.stage-ui .stage-system-message--info:not(.stage-inline-read-loading):not(:empty)::before{content:"";display:inline-block;width:12px;height:12px;box-sizing:border-box;border:2px solid #bdd7ea;border-top-color:#1976d2;border-radius:50%;margin-right:7px;vertical-align:-2px;animation:stage-ui-spin .8s linear infinite}
+/* Only actual in-flight reads get the spinner. Legacy --info includes static notes; do not animate them. */
+.stage-ui .stage-system-message--processing{background:#eef5fb;border-color:#bfdaee;color:#2d506d}
+.stage-ui .stage-system-message--processing:not(:empty)::before{content:"";display:inline-block;width:12px;height:12px;box-sizing:border-box;border:2px solid #bdd7ea;border-top-color:#1976d2;border-radius:50%;margin-right:7px;vertical-align:-2px;animation:stage-ui-spin .8s linear infinite}
 .stage-ui .stage-system-message--warning:not(:empty)::before{content:"⚠️";display:inline-block;margin-right:5px;vertical-align:baseline}
 .stage-ui .stage-system-message--success:not(:empty)::before{content:"✓";display:inline-block;margin-right:7px;vertical-align:baseline}
 .stage-ui .registration-description{font-size:14px;line-height:1.6;color:#405466;margin:7px 0 12px}
-@media(prefers-reduced-motion:reduce){.stage-ui .stage-system-message--info:not(.stage-inline-read-loading)::before{animation:none}}
+@media(prefers-reduced-motion:reduce){.stage-ui .stage-system-message--processing::before{animation:none}}
