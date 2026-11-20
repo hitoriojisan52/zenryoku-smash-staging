@@ -45,3 +45,10 @@
 - [D1 migration Actions #44795116430](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44795116430) `migrate-stage` success。再適用 `No migrations to apply!`、Remote `business table count=20; all business rows=0; probe rows=0; PASS`。無断のデータ投入なし。
 - 同コミットの[GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44795115476) build/deploy/report-build-status成功、Cloudflare Workers Builds `zenryoku-smash-staging-api`もsuccess（既存Workerソースとbindingは**変更なし**）。
 - **実施済みなのはD1 REST空表クエリ測定と未デプロイWorkerのmockテスト**。新Worker公開、LIFF→D1認証/権限/会計処理、GAS/Sheets移行、ユーザー端末性能、バックアップ復旧は未実施。D1専用トークンをWorkers Editへ勝手に拡大しない。
+
+
+## 第4工程の安全な独立Worker実接続準備（2026/11/21）
+
+- [独立WorkerのGitHub Actions自動デプロイ方針](D1_WORKER_DEPLOY_PLAN.md)参照。`scripts/d1-stage-worker-config.cjs`が独立名`zenryoku-smash-d1-pilot-stage-20261121`と検証D1のbindingのみを生成。`scripts/d1-stage-worker-ownership.cjs`で衝突する既存Workerは上書きせず失敗扱い。未公開状態で他機能と連携しない。
+- `scripts/d1-stage-worker-probe.cjs`がシークレット作成後の実GET認証/POST拒否/業務APIの404/空件数/p50-p95を検査。業務データ移行・現行LINE/Worker/GASの認可変更ではない。
+- 現在のD1トークンではWorker deployができないため、GitHub Environment`d1-staging`に別の最小権限Secrets`D1_WORKER_STAGE_API_TOKEN`、variable`D1_WORKER_STAGE_DEPLOY_ENABLED=true`の初回登録が**必要**。本番・旧Workerは変更しない。発行手順はD1_WORKER_DEPLOY_PLANに記載。
