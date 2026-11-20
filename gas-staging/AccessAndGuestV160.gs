@@ -280,6 +280,77 @@ function accessManagement16_(ss,member,op,payload){
     return result;
   });
 }
+/* v0.16.80 staging-only self-role exercise. One authenticated admin can
+ * enroll themselves ONCE while another synthetic administrator is active;
+ * only this same stable memberId may subsequently restore from member/duty.
+ * The regular admin-only member.manage.role API remains unchanged.
+ */
+var SMA_STAGE_ROLE_OWNER_V1680='STAGE_SELF_ROLE_OWNER_MEMBER_V1680';
+var SMA_STAGE_ROLE_BACKUP_V1680='M-TEST-MEMBER-V1656-001';
+function accessStageSelfRoleV1680_(ss,member,lineUserId,payload){
+ accessStageBindingV1636_(ss);
+ if(conf_('WITHDRAW_ENABLED')!=='true'||
+  conf_('STAGING_WITHDRAW_PURPOSE')!==SMA_STAGE_WITHDRAW_PURPOSE_V1636)
+  fail_('STAGING_ONLY','検証環境以外では権限切換できません');
+ var action=str_(payload.action);
+ if(action!=='status'&&action!=='change')fail_('BAD_REQUEST','権限切換操作が不正です');
+ var props=PropertiesService.getScriptProperties();
+ function permission(actor,owner,people){
+  var backup=people.filter(function(x){return str_(x[0])===SMA_STAGE_ROLE_BACKUP_V1680&&bool_(x[3])&&bool_(x[4]);}).length===1;
+  var adminCount=people.filter(function(x){return bool_(x[3])&&bool_(x[4]);}).length;
+  return {owner:!!owner&&owner===actor.memberId,
+   enroll:!owner&&actor.role==='admin'&&actor.memberId!==SMA_STAGE_ROLE_BACKUP_V1680&&backup&&adminCount>1,
+   backup:backup,adminCount:adminCount};
+ }
+ var owner=str_(props.getProperty(SMA_STAGE_ROLE_OWNER_V1680));
+ var state=permission(member,owner,sheetRows_(ss,'メンバー'));
+ if(action==='status')return {ok:true,data:{role:member.role,
+  canSwitch:state.owner||state.enroll,canRestore:state.owner,
+  canDemote:state.backup&&state.adminCount>1}};
+ var opId=checkOpId_(payload),next=str_(payload.role),expected=str_(payload.expectedRole);
+ if(['admin','duty','member'].indexOf(next)<0||
+    ['admin','duty','member'].indexOf(expected)<0)
+  fail_('BAD_REQUEST','権限を確認してください');
+ return withLock_(function(){
+  var actor=member_(ss,lineUserId);
+  if(actor.memberId!==member.memberId)fail_('CONFLICT','本人の登録情報が変わりました');
+  var people=sheetRows_(ss,'メンバー'),registered=str_(props.getProperty(SMA_STAGE_ROLE_OWNER_V1680));
+  var guard=permission(actor,registered,people);
+  if(!guard.owner&&!guard.enroll)fail_('FORBIDDEN','権限切換の対象アカウントではありません');
+  var replay=auditExisting_(ss,opId,'stage.selfRole',actor);
+  if(replay)return replay;
+  if(actor.role!==expected)fail_('VERSION_CONFLICT','権限が変わりました。再読み込みしてください');
+  if(next===actor.role)fail_('BAD_REQUEST','既に選択した権限です');
+  if(next!=='admin'&&(!guard.backup||actor.role==='admin'&&guard.adminCount<=1))
+   fail_('FORBIDDEN','別の管理者がいないため権限を下げられません');
+  var idx=people.findIndex(function(x){return str_(x[0])===actor.memberId&&
+    str_(x[2])===lineUserId&&bool_(x[3]);});
+  if(idx<0)fail_('UNAUTHORIZED','本人の登録情報を確認できません');
+  var memberSheet=sheet_(ss,'メンバー'),teamSheet=sheet_(ss,'チーム所属'),
+   memberships=sheetRows_(ss,'チーム所属');
+  if(next==='duty'&&!sheetRows_(ss,'当番チーム').some(function(x){
+   return str_(x[0])===SMA16.teamId&&bool_(x[2]);}))
+   fail_('SETUP','検証用当番チームが利用できません');
+  // Lock first enrollee before any role change. Do not bind to arbitrary
+  // request-supplied names, memberId or LINE IDs.
+  if(!registered)props.setProperty(SMA_STAGE_ROLE_OWNER_V1680,actor.memberId);
+  if(next==='member'){
+   memberships.forEach(function(x,i){if(str_(x[1])===actor.memberId&&bool_(x[2]))
+    teamSheet.getRange(i+2,3).setValue(false);});
+  }else if(next==='duty'){
+   var hasTeam=memberships.some(function(x){return str_(x[1])===actor.memberId&&
+    str_(x[0])===SMA16.teamId&&bool_(x[2]);});
+   if(!hasTeam)teamSheet.appendRow([SMA16.teamId,actor.memberId,true]);
+  }
+  memberSheet.getRange(idx+2,5).setValue(next==='admin');
+  if(member_(ss,lineUserId).role!==next)
+   fail_('STORAGE_INCOMPLETE','権限の保存状態を確認できません。「更新」で確認してください');
+  var result={ok:true,data:{role:next,previousRole:actor.role,memberId:actor.memberId}};
+  audit_(ss,opId,'stage.selfRole',actor,actor.memberId,result);
+  return result;
+ });
+}
+
 function accessShareIssue16_(ss,member,payload){
   var practiceId=str_(payload.practiceId);
   practice_(ss,practiceId); // Only enabled, registered practices can be shared.
