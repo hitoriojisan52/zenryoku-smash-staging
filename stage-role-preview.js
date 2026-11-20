@@ -41,7 +41,8 @@
     canSwitch?'info':'warning');
   }catch(e){
    if(epoch!==readEpoch||!dialog.open)return;
-   message('権限情報を読み込めませんでした：'+String(e?.message||e),'error');
+   message(w.SMStageUX.errorDetails(e).message,'error');
+   void w.SMStageUX.showError(e);
   }finally{
    if(epoch===readEpoch){loading=false;controls();}
   }
@@ -83,8 +84,8 @@
    w.location.reload();
   }catch(e){
    // A timed-out mutation could have committed. Do not retry automatically.
-   message('変更結果を確認できません：'+String(e?.message||e)+
-    '。この画面を閉じて開き直し、現在の権限を確認してください。','error');
+   message(w.SMStageUX.errorDetails(e).message,'error');
+   void w.SMStageUX.showError(e);
    canSwitch=false;loading=false;saving=false;controls();
   }
  }
