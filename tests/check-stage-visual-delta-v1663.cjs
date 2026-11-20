@@ -65,8 +65,8 @@ for(const p of ['live.html','match.html','match-view.html','guest.html']){
  ok(read(p).includes('stage-ui.css?v='+(p==='live.html'?'1673-receipt-close':'1665')),
   p+' busts the old cached 38px CSS for real LINE webview reload');
 }
-ok(html.includes('live-access-v2.js?v=1663')&&
- html.includes('visitor-approval.js?v=1664')&&
- html.includes('live.js?v=1675-startup-perf'),
+ok(html.includes('live-access-v2.js?v=1676-responsive-reads')&&
+ html.includes('visitor-approval.js?v=1676-responsive-reads')&&
+ html.includes('live.js?v=1676-responsive-reads'),
  'all new UI text and home layout assets are cache-busted');
 console.log('PASS '+n+'/'+n+' real visual height fixes, memo weight and business screen labels');
