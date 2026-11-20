@@ -1117,3 +1117,60 @@ body.stage-ui > main.container #confirmLockReason{
  margin:2px 0 4px;
  font-size:12px;
 }
+
+
+/* v0.16.93 canonical screen status placement:
+ * Red/error, yellow/warning, blue/processing, green/success use the same
+ * near-top system-message region PER SCREEN. Passive neutral prose and
+ * field-level save text are not colored system banners. Modal errors retain
+ * the established dialog, but their inline counterpart uses this region.
+ */
+.stage-ui .stage-message-region{
+ display:grid;
+ grid-template-columns:minmax(0,1fr);
+ gap:0;
+}
+.stage-ui .stage-message-region > .stage-system-message{
+ margin:3px 0 5px;
+}
+body.stage-ui > main.container .adjustment-box,
+body.stage-ui > main.container .expense-box{
+ flex-wrap:nowrap;
+}
+body.stage-ui > main.container .adjustment-box > label,
+body.stage-ui > main.container .expense-box > label{
+ flex:none;
+}
+body.stage-ui > main.container .adjustment-box > .stage-field-save-status{
+ flex:1 1 auto;
+ min-width:0;
+ text-align:right;
+ white-space:normal;
+ overflow-wrap:anywhere;
+ margin:0 3px;
+ padding:0;
+ font-size:10.5px;
+ line-height:1.25;
+}
+body.stage-ui > main.container .adjustment-box > span{
+ flex:none;
+}
+body.stage-ui > main.container .expense-box > .expense-actions{
+ flex:1 1 auto;
+ min-width:0;
+ justify-content:flex-end;
+}
+body.stage-ui > main.container .expense-box > .expense-actions > .stage-field-save-status{
+ flex:1 1 auto;
+ min-width:0;
+ text-align:right;
+ white-space:normal;
+ overflow-wrap:anywhere;
+ margin:0;
+ padding:0;
+ font-size:10px;
+ line-height:1.25;
+}
+body.stage-ui > main.container .expense-box > .expense-actions > span{
+ flex:none;
+}
