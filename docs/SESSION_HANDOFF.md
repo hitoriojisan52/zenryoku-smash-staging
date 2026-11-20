@@ -663,3 +663,13 @@
 - `tests/check-d1-business-schema.py`：SQLiteオフラインに実SQLを適用し、構造/孤立集金/LINE ID重複/履歴ID保持/再入会/排他版番号/CAS/ロールバック/時系列を架空値で検査。既存GAS回帰はD1 CIでも維持。自動マイグレーション用のアカウント・DB名前/UUID照合と`main`専用Environmentを維持。
 - **未完了**：当PRのCI/マージ、Cloudflare上の`0002`適用、実データ全件の複合キー/数式/日時・整合照合、Workerバインド、APIパリティ、バックアップと移行、p50/p95性能実測・実機受入。CIとRemote反映は個別に記録する。業務データは無断で書込/補正しない、本番承認制を維持。
 - 次：PR検証→空スキーマのRemote実行と0件確認→合格記録→匿名の架空fixtureで独立したD1読取API/性能比較を**別PR**で検討する。実機/権限/秘密情報/データ正本の二重化に関する影響があればユーザーへ事前報告する。
+
+
+## 60. D1第2工程 PR #128/#129 CI・remote migration・20テーブル0件検証（2026/11/21）
+
+- [PR #128](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/128) はD1専用`schema-safety`（20テーブル、旧会計/LINE本人出欠/退会・再入会/試合作成の回帰を含む）・`spec-contract`が成功してからmain`80d6caddbf2171232a33933ba30f396dd9317f12`に統合。Cloudflareの検証D1に`0002_business_skeleton.sql`を**remote適用成功**。実行記録：[D1 Actions #44790938084](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44790938084)。既存PagesとWorkers Buildsも成功し、既存Workerコード・GAS@51・Sheets正本・LIFF・本番は変更なし。
+- [PR #129](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/129) で`scripts/d1-staging-remote-smoke.cjs`とD1専用CI/Actionsを追加。オフライン自己試験成功の後、[D1 Actions #44791526275](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44791526275)でCloudflareのAccount/UUID/DB名照合成功、再適用は`No migrations to apply`、実DBに対するread-only SELECTで**業務20テーブル・業務データ0行・基盤テーブル0行**を確認。
+- CloudflareへSQL/スキーマをGitHub経由で自動更新できること、初回設定以降ユーザーのトークン再登録やSQL手入力は不要であることを**この工程で実証**。本人実機のAPI認証、実際の会計/試合データの移行、D1パフォーマンスとバックアップはまだ未実証。
+- [D1_SCHEMA_DESIGN.md](D1_SCHEMA_DESIGN.md)に21タブ（うち業務20）との対応、実GASの会計確定順序・複合キー・退会後履歴保持の契約を記録。数式検査は核心10タブのA1:P20まで、全セル/本番を分析済みとは書かない。
+- **今後の判断とリスク**：現役会員の物理削除と履歴の恒久保存、確定済み残高再計算/同日順序、操作IDの原子的重複チェック、試合版と監査、権限/本人認証、秘匿データの取り扱い、バックアップ/復旧、無断二重書込を再実装するまで、D1を業務正本にしない。Workerバインディングや実利用者データ転送は事前の影響レビューなしに行わない。**本番事前承認**。
+- **次の工程**：架空fixtureによる読取専用D1 API/性能比較を別PRで設計。既存Workerへのバインディング追加を伴う場合は旧API/認可/CORSへの影響を先に評価し、危険がある箇所はユーザー判断を得る。現行GAS/Sheets稼働を維持。
