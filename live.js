@@ -455,10 +455,16 @@ async function boot(){
 }
 function showHomeReadError_(e){
  const list=$('list');if(!list)return;
- const error=document.createElement('p');error.className='stage-system-message stage-system-message--error';
- error.setAttribute('role','alert');
- error.textContent=e?.code==='REQUEST_TIMEOUT'?'通信がタイムアウトしました（15秒）。更新してください。':'集金データを読み込めませんでした。更新してください。';
- list.replaceChildren(error);
+ // All red/yellow/blue/green system banners share the top-of-screen
+ // region. Do not put a second error box among participant cards.
+ const error=$('stageInlineError');
+ if(error){
+  error.textContent=e?.code==='REQUEST_TIMEOUT'?
+   '通信がタイムアウトしました（15秒）。更新してください。':
+   '集金データを読み込めませんでした。更新してください。';
+  error.hidden=false;
+ }
+ list.replaceChildren();
  for(const id of ['reimbursementBtn','receiptBtn','manageBtn','confirm','adjustment','expense','cashCounter','date']){
   const control=$(id);if(control)control.disabled=true;
  }
