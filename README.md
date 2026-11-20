@@ -1,3 +1,5 @@
+**v0.16.83（検証用LINE利用申請・画面切替性能改善）**：未登録テスターがLINE本人として利用申請できる「検証用メニュー→利用申請」と `?apply=1` の専用入口を追加。練習日程マスタは既存どおり管理者メニュー内であることを確認。閉じた閲覧画面のHTTP中止、閉じた直後の受動更新10秒休止、overviewの会員マスタ重複読取の省略、ビジター申請の日程/申請状況1往復化を実装。通信の細分化計測を追加。確定/残高/認証/監査は不変更。[技術仕様・実機受入](docs/stage-v1683-registration-navigation-performance.md)。本番未変更。
+
 
 **v0.16.82検証反映結果**：PR #98（main `73f20e4f153c3a7747653d2a3628a981fb9fc0df`）の3系統CI成功。GitHub Pages/Cloudflare Workers Builds/公開LINE GET-only成功、GAS既存Webアプリ **@47** 更新・pushソース照合成功。実機15秒通信の再発/復旧・画面内＋ポップアップ・診断時間内訳は未受入。[検証用LIFF](https://liff.line.me/2012602642-XBSkXduO) / [計測](https://liff.line.me/2012602642-XBSkXduO?perf=1)。本番未変更。
 
