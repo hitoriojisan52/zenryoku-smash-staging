@@ -54,6 +54,26 @@ function renderGasProfile_(timings){
 function dialog(id){const e=$(id);if(e&&!e.open)e.showModal();}
 function close(id){if($(id)?.open)$(id).close();}
 function gateEdit(){if(!S.actor||!['duty','admin'].includes(S.actor.role))throw new Error('当番チームの権限がありません');}
+// Opt-in diagnostics (?perf=1). Durations and fixed API paths only:
+ // never store LINE IDs, names, tokens, request bodies or response data.
+ function profileApiRequest_(path,elapsed,timing,outcome){
+  if(!PERF_MODE)return;
+  const phases={line:'LINE',gas:'GAS',gas_post:'GAS POST',gas_content:'GAS応答'};
+  const segments=String(timing||'').split(',').map(x=>x.trim());
+  const metrics=[];
+  for(const segment of segments){
+   const match=/^(line|gas|gas_post|gas_content);dur=(\d+(?:\.\d+)?)$/.exec(segment);
+   if(match)metrics.push(phases[match[1]]+' '+Math.round(Number(match[2]))+'ms');
+  }
+  S.apiPerfHistory=S.apiPerfHistory||[];
+  S.apiPerfHistory.push((outcome==='ok'?'✓':'!')+' '+path+' '+Math.round(elapsed)+'ms'+
+   (metrics.length?'（'+metrics.join(' / ')+'）':'')+
+   (outcome!=='ok'?' ['+outcome+']':''));
+  if(S.apiPerfHistory.length>16)S.apiPerfHistory.shift();
+  const panel=$('perfBreakdown'),out=$('stageApiPerfText');
+  if(panel&&out){panel.hidden=false;out.textContent=S.apiPerfHistory.slice().reverse().join('\n');}
+ }
+ 
 const REQUEST_TIMEOUT_MS=15000;
 const MUTATING_ENDPOINTS=new Set(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change','/api/schedule/change','/api/visitor/register','/api/visitor/request','/api/visitor/decide','/api/visitor/modify','/api/participant/change','/api/attendance/submit','/api/stage/self-role','/api/receipt/upload','/api/reimbursement/change','/api/cash/save','/api/member/apply','/api/member/manage/decide','/api/member/manage/role','/api/member/manage/edit','/api/member/manage/withdraw','/api/match/share','/api/match/share/revoke']);
 function requestTimeoutError_(isWrite){
@@ -65,6 +85,7 @@ async function call(path,payload={}){
  const url=CONFIG.apiBaseUrl.replace(/\/$/,'')+path,isWrite=MUTATING_ENDPOINTS.has(path);
  if(isWrite)S.updateEpoch++;
  const startedAt=performance.now();
+ let diagnosticTiming='',diagnosticOutcome='ok';
  // Reads can abort. Writes must never abort/retry: GAS may commit.
  const controller=!isWrite&&typeof AbortController!=='undefined'?new AbortController():null;
  let timer,expired=false;
@@ -77,6 +98,7 @@ async function call(path,payload={}){
    body:JSON.stringify(payload),cache:'no-store',
    ...(controller?{signal:controller.signal}:{})});
   if(PERF_MODE){
+   diagnosticTiming=response.headers.get('Server-Timing')||'';
    S.lastPerf={path,totalMs:Math.round(performance.now()-startedAt),serverTiming:response.headers.get('Server-Timing')||''};
    console.info('[STAGE PERF]',S.lastPerf.path,S.lastPerf.totalMs+'ms',S.lastPerf.serverTiming);
   }
@@ -85,8 +107,15 @@ async function call(path,payload={}){
   return value.data;
  })();
  try{return await Promise.race([work,timeout]);}
- catch(e){if(expired||e?.name==='AbortError')throw requestTimeoutError_(isWrite);throw e;}
- finally{clearTimeout(timer);}
+ catch(e){
+  diagnosticOutcome=expired||e?.name==='AbortError'?'timeout':'error';
+  if(expired||e?.name==='AbortError')throw requestTimeoutError_(isWrite);
+  throw e;
+ }
+ finally{
+  clearTimeout(timer);
+  profileApiRequest_(path,performance.now()-startedAt,diagnosticTiming,diagnosticOutcome);
+ }
 }
 // Collection checkboxes are independent. Only up to two requests leave this page
 // concurrently. Apps Script's lock remains the source of truth for the ledger.
@@ -315,7 +344,7 @@ async function boot(){
     (overviewMs/1000).toFixed(1)+'秒 / 合計 '+
     (totalMs/1000).toFixed(1)+'秒）');
   }
-  setInterval(()=>{if(!document.hidden&&!document.querySelector('dialog[open]')&&!S.paymentNeedsRefresh&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
+  setInterval(()=>{if(!document.hidden&&!document.querySelector('dialog[open]')&&!S.paymentNeedsRefresh&&!S.homeReadFailed&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
   if(!PERF_MODE)toast('接続しました');
  }catch(e){
   if(S.actor&&['duty','admin'].includes(S.actor.role)&&S.homeReadFailed){
