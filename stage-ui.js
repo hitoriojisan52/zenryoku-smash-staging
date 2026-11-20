@@ -65,10 +65,12 @@
    }
    note.hidden=false;note.textContent=message;return;
   }
+  // Home system notices occupy a single common upper banner region, even
+  // when an overview failure has cleared the participant list.
+  const home=$('stageInlineError');
+  if(home){home.textContent=message;home.hidden=false;return;}
   const existing=document.querySelector('#list .stage-system-message--error');
   if(existing){existing.textContent=message;return;}
-  const home=$('stageInlineError');
-  if(home){home.textContent=message;home.hidden=false;}
  }
  function clearInlineError(){
   const home=$('stageInlineError');if(home){home.hidden=true;home.textContent='';}
