@@ -313,6 +313,12 @@ async function boot(){
   setInterval(()=>{if(!document.hidden&&!document.querySelector('dialog[open]')&&!S.paymentNeedsRefresh&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
   if(!PERF_MODE)toast('接続しました');
  }catch(e){
+  if(S.actor&&['duty','admin'].includes(S.actor.role)&&S.homeReadFailed){
+   // The first overview request failed. Keep manual refresh available rather
+   // than trapping the user in a disabled shell or a blocking error modal.
+   $('refresh').disabled=false;
+   return;
+  }
   showHomeReadError_(e);throw e;
  }
 }
