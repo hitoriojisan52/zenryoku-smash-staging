@@ -1,0 +1,49 @@
+name: D1 staging read-only REST benchmark (isolated)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'd1-staging/readonly-pilot/**'
+      - 'scripts/d1-staging-http-bench.cjs'
+      - 'tests/check-d1-readonly-pilot.mjs'
+      - '.github/workflows/d1-staging-http-bench.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: d1-staging-readonly-benchmark
+  cancel-in-progress: false
+jobs:
+  benchmark:
+    if: github.repository == 'hitoriojisan52/zenryoku-smash-staging' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    environment: d1-staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.D1_STAGE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.D1_STAGE_ACCOUNT_ID }}
+      D1_STAGE_ACCOUNT_ID: ${{ vars.D1_STAGE_ACCOUNT_ID }}
+      D1_STAGE_DATABASE_ID: ${{ vars.D1_STAGE_DATABASE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Offline prototype authorization and SQL-safety checks
+        run: |
+          node tests/check-d1-readonly-pilot.mjs
+          node scripts/d1-staging-http-bench.cjs self-test
+          python3 tests/check-d1-business-schema.py
+      - name: Ensure credentials and staging-only UUID
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$D1_STAGE_DATABASE_ID"
+          node scripts/d1-staging-config.cjs prepare
+      - name: Confirm Cloudflare account, D1 UUID and exact staging database name
+        shell: bash
+        run: |
+          npx --yes wrangler@4 d1 list --json > "$RUNNER_TEMP/d1-stage-databases.json"
+          node scripts/d1-staging-config.cjs verify-remote "$RUNNER_TEMP/d1-stage-databases.json"
+      - name: Measure 12 read-only D1 REST queries, no business rows
+        run: node scripts/d1-staging-http-bench.cjs
