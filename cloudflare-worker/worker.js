@@ -86,13 +86,16 @@ function exceptionType(e){
  * An occasional 404 at the one-time GET URL can be retried without executing
  * doPost again. Only fetch the expected Google ContentService host.
  */
-async function fetchGasOnce(url,body,metrics={}){
+async function fetchGasOnce(url,body,metrics={},deadline){
   let res;
   const postStart=performance.now();
   try{
-    res=await fetch(url,{method:'POST',redirect:'manual',
+    res=await fetch(url,{method:'POST',redirect:'manual',signal:deadline,
       headers:{'Content-Type':'text/plain; charset=utf-8'},body:JSON.stringify(body)});
-  }catch(_){throw backendError('GAS_CONNECT_FAILED','GASへのネットワーク接続に失敗しました');}
+  }catch(_){
+    if(deadline?.aborted)throw knownError('GAS_TIMEOUT','GASの通信が15秒以内に完了しませんでした',504);
+    throw backendError('GAS_CONNECT_FAILED','GASへの接続に失敗しました');
+  }
   metrics.postMs=Math.max(0,Math.round(performance.now()-postStart));
   if([301,302,303].includes(res.status)){
     const location=res.headers.get('Location');
@@ -105,8 +108,11 @@ async function fetchGasOnce(url,body,metrics={}){
     const contentStart=performance.now();
     for(let attempt=0;attempt<3;attempt++){
       if(attempt)await delay(attempt===1?350:900);
-      try{res=await fetch(target.toString(),{method:'GET',redirect:'manual'});}
-      catch(_){throw backendError('GAS_CONTENT_FETCH_FAILED','GASの応答取得に失敗しました');}
+      try{res=await fetch(target.toString(),{method:'GET',redirect:'manual',signal:deadline});}
+      catch(_){
+        if(deadline?.aborted)throw knownError('GAS_TIMEOUT','GASの通信が15秒以内に完了しませんでした',504);
+        throw backendError('GAS_CONTENT_FETCH_FAILED','GASの応答を取得できませんでした');
+      }
       if(res.status!==404)break;
     }
     metrics.contentMs=Math.max(0,Math.round(performance.now()-contentStart));
@@ -120,7 +126,10 @@ async function fetchGasOnce(url,body,metrics={}){
     throw backendError(code,'GASがHTTP '+res.status+'を返しました。Webアプリの公開設定・URLを確認してください');
   }
   let responseText;
-  try{responseText=await res.text();}catch(_){throw backendError('GAS_BODY_FAILED','GASからの応答を読み取れませんでした');}
+  try{responseText=await res.text();}catch(_){
+    if(deadline?.aborted)throw knownError('GAS_TIMEOUT','GASの通信が15秒以内に完了しませんでした',504);
+    throw backendError('GAS_BODY_FAILED','GASの応答を読み取れませんでした');
+  }
   let result;
   try{result=JSON.parse(responseText);}catch(_){
     throw backendError('GAS_NOT_JSON','GASがJSON以外の応答を返しました。URL・公開設定を確認してください');
@@ -128,13 +137,15 @@ async function fetchGasOnce(url,body,metrics={}){
   if(!result||typeof result.ok!=='boolean')throw backendError('GAS_BAD_RESPONSE','GASの応答形式が不正です');
   return result;
 }
-async function verifyLineToken(token,clientId){
+async function verifyLineToken(token,clientId,deadline){
   const params=new URLSearchParams({id_token:token,client_id:clientId});
   let resp;
   try{resp=await fetch('https://api.line.me/oauth2/v2.1/verify',{
-    method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:params.toString(),redirect:'manual'
+    method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:params.toString(),redirect:'manual',signal:deadline
   });}catch(_){
-    throw knownError('LINE_VERIFY_CONNECT_FAILED','LINE認証サーバーへの接続に失敗しました');
+    if(deadline?.aborted)throw knownError('LINE_VERIFY_TIMEOUT','LINE認証が15秒以内に完了しませんでした',504);
+    throw knownError('LINE_VERIFY_CONNECT_FAILED','LINE認証サーバーに接続できませんでした');
   }
   // Cloudflare Workers does not implement redirect:'error'. Use manual and
   // refuse any 3xx so the ID token is never forwarded to another host.
@@ -148,7 +159,8 @@ async function verifyLineToken(token,clientId){
   }
   let p;
   try{p=await resp.json();}catch(_){
-    throw knownError('LINE_VERIFY_NOT_JSON','LINE認証サーバーからJSON応答を取得できませんでした');
+    if(deadline?.aborted)throw knownError('LINE_VERIFY_TIMEOUT','LINE認証が15秒以内に完了しませんでした',504);
+    throw knownError('LINE_VERIFY_NOT_JSON','LINE認証の応答を読み取れませんでした');
   }
   if(!p||typeof p!=='object'||Array.isArray(p)){
     throw knownError('LINE_VERIFY_BAD_RESPONSE','LINE認証サーバーの応答形式が不正です');
