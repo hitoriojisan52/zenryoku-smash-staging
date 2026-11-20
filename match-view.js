@@ -34,7 +34,7 @@ function render(view){
  const s=view.session,body=$('matchBody');body.replaceChildren();viewMessage_('');
  if(!s){
   $('matchHeader').textContent='対戦表未作成';
-  const notice=el('p','stage-system-message stage-system-message--info','この開催日の対戦表はまだ作成されていません。');
+  const notice=el('p','stage-system-message stage-system-message--neutral','この開催日の対戦表はまだ作成されていません。');
   notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');
   body.append(notice);return;
  }
