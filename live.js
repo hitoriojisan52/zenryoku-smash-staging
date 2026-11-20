@@ -6,12 +6,17 @@
 'use strict';
 const M=window.SmashModel,$=id=>document.getElementById(id),yen=n=>Number(n).toLocaleString('ja-JP')+'円';
 const CONFIG=window.SMASH_CONFIG||{};
-const S={token:'',actor:null,overview:null,practiceId:'',homeReadFailed:false,loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,confirmedPracticeKey:'',selectableDayKey:'',receiptPartialWarning:''};
+const S={token:'',actor:null,overview:null,practiceId:'',registrationOnly:false,homeReadFailed:false,loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,confirmedPracticeKey:'',selectableDayKey:'',receiptPartialWarning:''};
 const VISITOR_MODE=(()=>{
  const q=new URLSearchParams(location.search||'');
  let state=q.get('liff.state')||'';
  if(state.includes('?'))state=state.slice(state.indexOf('?')+1);
  return q.get('visitor')==='1'||new URLSearchParams(state).get('visitor')==='1';
+})();
+const APP_REG_MODE=(()=>{
+ const q=new URLSearchParams(location.search||'');
+ let state=q.get('liff.state')||'';if(state.includes('?'))state=state.slice(state.indexOf('?')+1);
+ return q.get('apply')==='1'||new URLSearchParams(state).get('apply')==='1';
 })();
 const PERF_MODE=(()=>{
  const q=new URLSearchParams(location.search||'');let state=q.get('liff.state')||'';
@@ -296,9 +301,16 @@ async function boot(){
   const authMs=Math.round(performance.now()-authStart);
   if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return;}
   S.token=liff.getIDToken();if(!S.token)throw new Error('LINE IDトークンを取得できません');
+  window.SMStageRegistration?.setup({api:call});
+  if(APP_REG_MODE){enterRegistrationOnly_();return;}
   $('stageBusyLabel').textContent='利用者の権限を確認しています…';
   const sessionStart=performance.now();
-  S.actor=await call('/api/session');
+  try{S.actor=await call('/api/session');}
+  catch(e){
+   // An authenticated, unregistered LINE user may apply; other failures stay errors.
+   if(e?.status===401&&e?.code==='UNAUTHORIZED'){enterRegistrationOnly_();return;}
+   throw e;
+  }
   // Staging self-role changes are tied to authenticated LINE identity.
   if(!VISITOR_MODE)window.SMRolePreview?.setup({role:S.actor.role,api:call});
   const sessionMs=Math.round(performance.now()-sessionStart);
@@ -365,6 +377,17 @@ async function boot(){
   if(S.homeReadFailed&&typeof showHomeReadError_==='function')showHomeReadError_(e);
   throw e;
  }
+}
+function enterRegistrationOnly_(){
+ S.registrationOnly=true;
+ document.body.classList.add('stage-member-locked','stage-registration-only');
+ const notice=document.createElement('p');
+ notice.className='stage-system-message stage-system-message--info';
+ notice.setAttribute('role','status');
+ notice.textContent='利用申請が必要です。検証用の申請画面から登録してください。';
+ $('list').replaceChildren(notice);
+ for(const control of document.querySelectorAll('main button,main select,main input,main textarea'))
+  control.disabled=true;
 }
 function showHomeReadError_(e){
  const list=$('list');if(!list)return;
@@ -1783,7 +1806,10 @@ function shiftMonth(amount){
 }
 bind();
 window.SMStageUX.run('読み込み中です…',boot)
- .then(()=>window.SMLiveAccess?.openFromCheckLink?.())
+ .then(()=>{
+  if(S.registrationOnly)window.SMStageRegistration?.open?.();
+  else window.SMLiveAccess?.openFromCheckLink?.();
+ })
  .catch(e=>window.SMStageUX.showError(e));
 
 // Match screen launch: current selected practice, same LINE login context.
