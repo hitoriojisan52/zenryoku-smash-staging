@@ -6,7 +6,7 @@
 'use strict';
 const M=window.SmashModel,$=id=>document.getElementById(id),yen=n=>Number(n).toLocaleString('ja-JP')+'円';
 const CONFIG=window.SMASH_CONFIG||{};
-const S={token:'',actor:null,overview:null,practiceId:'',loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,overviewLoadFailed:false,confirmedPracticeKey:'',selectableDayKey:'',receiptPartialWarning:''};
+const S={token:'',actor:null,overview:null,practiceId:'',loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,overviewLoadFailed:false,mutationUncertain:false,confirmedPracticeKey:'',selectableDayKey:'',receiptPartialWarning:''};
 const VISITOR_MODE=(()=>{
  const q=new URLSearchParams(location.search||'');
  let state=q.get('liff.state')||'';
@@ -71,6 +71,10 @@ async function call(path,payload={}){
   '/api/match/practices','/api/match/get','/api/match/bootstrap',
   '/api/match/operation','/api/match/line','/api/roster/line']
   .includes(path)||(path==='/api/stage/self-role'&&payload.action==='status');
+ if(!boundedRead&&S.mutationUncertain){
+  const err=new Error('保存結果を「更新」で確認してください。');
+  err.code='OPERATION_UNCONFIRMED';err.mutationUncertain=true;throw err;
+ }
  const controller=boundedRead&&typeof AbortController!=='undefined'?new AbortController():null;
  const timeoutMs=15000;
  let timer=null;
@@ -98,7 +102,9 @@ async function call(path,payload={}){
     '通信が15秒以内に完了しませんでした。「更新」で再確認してください。':
     '通信が15秒以内に完了しませんでした。保存結果を「更新」で確認してください。');
    error.code=boundedRead?'REQUEST_TIMEOUT':'OPERATION_UNCONFIRMED';
-   if(!boundedRead)error.mutationUncertain=true;
+   if(!boundedRead){
+    error.mutationUncertain=true;S.mutationUncertain=true;
+   }
    reject(error);
   },timeoutMs);
  });
@@ -119,6 +125,7 @@ async function call(path,payload={}){
   // back. Preserve the operationId and show "verify before retry".
   if(!boundedRead&&response.status>=500){
    err.mutationUncertain=true;err.code='OPERATION_UNCONFIRMED';
+   S.mutationUncertain=true;
   }
   throw err;
  }
@@ -129,7 +136,7 @@ async function call(path,payload={}){
 const MAX_PAYMENT_IN_FLIGHT=2;
 function syncPaymentControls(){
  const pending=S.pending.size>0,ledger=S.overview?.ledger,access=S.overview?.collectionAccess,
-  unavailable=S.overviewLoadFailed===true;
+  unavailable=S.overviewLoadFailed===true||S.mutationUncertain===true;
  const locked=unavailable||!ledger||ledger.status==='confirmed'||access?.canCollect===false;
  const savingAmount=S.pending.has('amount');
  for(const id of ['date','refresh','reimbursementBtn','manageBtn']){
@@ -293,7 +300,7 @@ function homeReadFailure_(error){
   const control=$(id);if(control)control.disabled=true;
  }
  syncPaymentControls();
- if(S.actor&&['duty','admin'].includes(S.actor.role))$('refresh').disabled=false;
+ $('refresh').disabled=!(S.actor&&['duty','admin'].includes(S.actor.role));
 }
 async function boot(){
  for(const id of ['confirm','reimbursementBtn','receiptBtn','manageBtn','refresh','adjustment','expense','newLedgerRow'])$(id).disabled=true;
@@ -430,6 +437,9 @@ async function reload(refreshDates){
    S.selectableDayKey=selectableDayKey;
    S.paymentNeedsRefresh=false;
    S.overviewLoadFailed=false;
+   // Explicit successful foreground refresh reconciles an uncertain write.
+   // Silent 8-second polling MUST NOT release the write-safety latch.
+   if(refreshDates)S.mutationUncertain=false;
    const homeError=$('homeReadError');if(homeError){homeError.textContent='';homeError.hidden=true;}
    renderHome();syncPaymentControls();
  })();
@@ -443,7 +453,7 @@ async function reload(refreshDates){
 }
 function renderHome(){const v=S.overview;if(!v)return;const {practice,ledger,participants}=v;
  const receiptView=$('homeReceiptView');if(receiptView)receiptView.hidden=!ledger?.receiptFileId;
- const receiptUpload=$('receiptBtn');if(receiptUpload)receiptUpload.disabled=!ledger||ledger.status==='confirmed';
+ const receiptUpload=$('receiptBtn');if(receiptUpload)receiptUpload.disabled=S.overviewLoadFailed||S.mutationUncertain||!ledger||ledger.status==='confirmed';
  if(!practice){
   $('place').textContent='開催日なし';$('hours').textContent='時間区分：—';
   $('count').textContent='参加者：0名';$('completedCount').textContent='集金完了：0名';
