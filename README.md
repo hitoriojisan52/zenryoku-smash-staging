@@ -3,6 +3,7 @@
 **新しいチャットで開発を再開する場合は、必ず [開始用プロンプト](docs/NEW_CHAT_START_PROMPT.md) を使用し、[開発引継ぎ文書](docs/SESSION_HANDOFF.md) と [仕様優先順位の正式ルール](docs/SPEC_PRIORITY_POLICY.md) を確認する。**
 **GAS・Worker・PagesのGitHub経由デプロイとユーザーへの具体的な作業案内**は [DEPLOYMENT_AND_USER_ACTIONS.md](docs/DEPLOYMENT_AND_USER_ACTIONS.md) に従う（Worker v0.16.53の反映確認とGAS/Workerの設定完了報告を記録済み）。
 **退会・再入会の確定仕様と接続検証の進捗**：[v0.16.53引継ぎ](docs/stage-v1653-withdraw-rejoin.md)を参照。
+**v0.16.81（通信15秒・共通メッセージ）改修中**：全API通信・LIFF認証・Worker→LINE/GAS・対戦表/QR閲覧の処理を15秒に統一。読取だけAbort、書込は結果不明・自動再送禁止・前景「更新」成功まで再操作禁止。集金ホームの読込失敗は赤枠❌、立替精算/領収書登録/運用管理は非活性。黄=⚠️警告、青=処理、赤=❌エラー。メンバー説明から検証用権限切換の案内を削除し、LINEリッチメニューのビジター申請・本人取消は維持。[仕様と文言](docs/stage-v1681-15s-timeouts-message-standard.md)。本番不変更。
 **v0.16.80検証反映結果**：PR #94の3系統CI成功、Pages/Workers Builds/公開GET-only成功、GAS既存Webアプリ **@46**。自己権限切換28/28、ビジター審査75/75、旧会計確定順序28/28合格。実機の管理者→当番担当→メンバー→管理者復帰は未受入（[検証用運用管理LIFF](https://liff.line.me/2012602642-XBSkXduO)）。本番不変更。[詳細](docs/stage-v1680-self-role-staging-message-semantics.md)。
 **v0.16.80（検証専用の実際の自己権限切換）**：v0.16.79表示プレビューを廃止。ホーム立替精算左の「🧪 権限切換」から、管理者・当番担当・メンバーを本人のみ実際に切替可能（検証用の固定Workbookと別の架空管理者を必須とし、最初に登録した管理者本人だけ復帰可能）。管理用LIFFの一般メンバーは他の全ボタン非活性、別のLINE参加連絡入口は保持。ビジター承認待ちの申請者引き戻しと承認済みの管理者却下のみの削除を確定。青：処理、黄：⚠️警告、赤：エラーを統一。[仕様・安全・実機受入](docs/stage-v1680-self-role-staging-message-semantics.md)。本番禁止。
 **v0.16.79検証反映**：PR #92の3系統CI成功、GAS既存デプロイ **@45**、Pages/Worker Builds/公開GET-only成功。新テスト31/31、ビジター審査75/75、旧会計確定順序28/28合格。LINE実機の画面受入は未完了。[検証記録](docs/stage-v1679-role-preview-visitor-deletion.md)。本番未変更。
