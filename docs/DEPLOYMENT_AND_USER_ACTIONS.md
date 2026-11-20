@@ -132,3 +132,11 @@ ChatGPTに実施可能な範囲は自分で完了し、**ユーザー操作が�
 - 検証用GitHub main SHA `707de66fdb2d110e530dc2fbdf366d53469d5e77`。UI/GAS/仕様CI成功、GitHub Pages成功、GAS既存デプロイ更新（clasp v32）成功、Cloudflare Workers Builds成功。詳細は[仕様・検証記録](stage-v1657-registration-kana.md)。
 - Worker公開`/health`のv0.16.57応答とLINE実機は未確認。期待する公開応答`version:0.16.57-stage-kana`、`codeRevision:stage-v1657-kana-registration-20261119`。GitHub成功だけで実疎通成功とは断定しない。
 - 検証用Sheetsに追加した`メンバー!F1`と`登録申請!I1`のnameKanaヘッダーは確認済み。ユーザーに再入力を依頼しない。本番は承認制のまま。
+
+
+## D1移行の検証用自動化（2026/11/21以降・追加）
+
+- 詳細：[`D1_MIGRATION_PLAN.md`](D1_MIGRATION_PLAN.md)。**既存GAS/Workerの自動デプロイ方式と設定は維持**。
+- D1は独立の`.github/workflows/d1-staging-check.yml`（オフライン）と`d1-staging-migrate.yml`（既存Workerを操作しないRemote D1-only）で管理。新規DBが未作成、`d1-staging` GitHub EnvironmentのToken/ID未設定ならCloudflareへ書込まない。
+- ユーザーの初期操作：Cloudflareに`zenryoku-smash-staging-d1`を1個作成し、D1 Editの専用API Tokenを発行。GitHub Environments`d1-staging`へSecret `D1_STAGE_API_TOKEN`とVariables`D1_STAGE_ACCOUNT_ID`・`D1_STAGE_DATABASE_ID`を一度設定する（値と具体手順は上記資料を参照）。通常の機能改修でSQL/コードの手動コピーは依頼しない。
+- 初回設定後にGitHubから実際のD1 migrate/SELECTを確認するまで「D1デプロイ済み」と報告しない。本番のD1/Worker/Sheetsは触らず、後続の移行判断は別の影響レビューを必須にする。
