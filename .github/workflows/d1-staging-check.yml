@@ -22,3 +22,11 @@ jobs:
         run: python3 scripts/d1-staging-check.py
       - name: Validate D1 target-account and database guard
         run: node scripts/d1-staging-config.cjs self-test
+      - name: Protect legacy ledger confirmation ordering and balances
+        run: node tests/check-stage-ledger-confirm-order-v1651.cjs
+      - name: Protect LINE attendance and authenticated changes
+        run: node tests/check-stage-line-attendance-v1645.cjs
+      - name: Protect member withdrawal and rejoin history
+        run: node tests/check-stage-withdraw-rejoin-v1653.cjs
+      - name: Protect match creation and history
+        run: node tests/check-stage-match-create-v1639a.cjs
