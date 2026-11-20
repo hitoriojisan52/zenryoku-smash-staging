@@ -59,6 +59,7 @@ on:
       - 'tests/check-stage-self-role-v1680.cjs'
       - 'tests/check-stage-error-perf-v1682.cjs'
       - 'tests/check-stage-read-profile-ui-v1691.cjs'
+      - 'tests/check-stage-money-status-confirm-gate-v1692.cjs'
       - 'tests/check-stage-registration-perf-v1683.cjs'
       - 'registration.html'
       - 'registration.js'
@@ -189,6 +190,8 @@ jobs:
         run: node tests/check-stage-error-perf-v1682.cjs
       - name: Verify per-request read timing diagnostics and no normal-mode payload changes
         run: node tests/check-stage-read-profile-ui-v1691.cjs
+      - name: Verify saving status under money inputs and strict 11/21 finalization lock
+        run: node tests/check-stage-money-status-confirm-gate-v1692.cjs
       - name: Verify standalone registration and semantic message palette
         run: node tests/check-stage-registration-standalone-v1684.cjs
       - name: Simulate approved and new registration LIFF read/write lifecycle
