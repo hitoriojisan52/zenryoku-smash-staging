@@ -38,6 +38,35 @@ async function fetchResult(url,token,path,method='GET') {
   const json=await response.json();
   return {response,json,duration};
 }
+function safeCode(payload) {
+  const code=payload?.code;
+  return ['PILOT_DISABLED','PILOT_UNAUTHORIZED','PILOT_READ_FAILED',
+    'READ_ONLY','NOT_FOUND','INVALID_PRACTICE_ID','INVALID_MONTH'].includes(code)
+    ? code : 'UNKNOWN';
+}
+function expectHttp(stage,response,json,expected){
+  if(response.status!==expected) throw new Error(
+    'stage='+stage+' expected='+expected+' observed='+response.status+' code='+safeCode(json)
+  );
+}
+const sleep = ms => new Promise(resolve => setTimeout(resolve,ms));
+async function awaitReadable(url, token, path, keys){
+  // Newly deployed Wrangler secret is a second deployment. Edge propagation
+  // can briefly leave the previous (disabled) version visible. Retry only GET.
+  for(let i=0;i<7;i++){
+    const value=await fetchResult(url,token,path);
+    if(value.response.status===200){
+      assertEmpty(value.json,keys);
+      return value;
+    }
+    const status=value.response.status, code=safeCode(value.json);
+    if(i===6 || ![401,404,503].includes(status)){
+      throw new Error('stage=readiness expected=200 observed='+status+' code='+code);
+    }
+    await sleep(1500);
+  }
+  throw new Error('stage=readiness exhausted');
+}
 function assertEmpty(data,keys){
   assert.equal(data?.ok,true);
   assert.equal(data?.mode,'staging-counts-only');
@@ -51,25 +80,22 @@ async function run(urlFile,tokenFile){
   // No user or business IDs, only a non-existent, synthetic test key.
   const practice='/pilot/overview-counts?practiceId=P-SYNTH-000001';
   const ledger='/pilot/ledger-counts?month=2026-11';
-  let p=await fetchResult(url,token,practice);
-  assert.equal(p.response.status,200);
-  assertEmpty(p.json,['practiceCount','attendeeCount','paymentCount']);
-  p=await fetchResult(url,token,ledger);
-  assert.equal(p.response.status,200);
-  assertEmpty(p.json,['ledgerCount']);
+  // Wait only on idempotent reads for the secret deployment to propagate.
+  let p=await awaitReadable(url,token,practice,['practiceCount','attendeeCount','paymentCount']);
+  p=await awaitReadable(url,token,ledger,['ledgerCount']);
   const invalid=await fetchResult(url,token+'invalid',practice);
-  assert.equal(invalid.response.status,401);
+  expectHttp('invalid-bearer',invalid.response,invalid.json,401);
   assert.equal(invalid.json?.ok,false);
   const method=await fetchResult(url,token,practice,'POST');
-  assert.equal(method.response.status,405);
+  expectHttp('write-rejection',method.response,method.json,405);
   assert.equal(method.json?.ok,false);
   const unknown=await fetchResult(url,token,'/api/overview');
-  assert.equal(unknown.response.status,404);
+  expectHttp('legacy-route-rejection',unknown.response,unknown.json,404);
   // No request is retried; these GET requests read empty aggregates only.
   const durations=[];
   for(let i=0;i<WARMUP+SAMPLES;i++){
     const value=await fetchResult(url,token,practice);
-    assert.equal(value.response.status,200);
+    expectHttp('benchmark-read',value.response,value.json,200);
     assertEmpty(value.json,['practiceCount','attendeeCount','paymentCount']);
     if(i>=WARMUP)durations.push(value.duration);
   }
@@ -94,6 +120,13 @@ async function run(urlFile,tokenFile){
 }
 if(process.argv[2]==='self-test'){
   assert.equal(WORKER,'zenryoku-smash-d1-pilot-stage');
+  const expect=()=>{
+    try { expectHttp('unit-test',{status:401},{code:'PILOT_UNAUTHORIZED'},200); }
+    catch(e){ return e.message; }
+    return null;
+  };
+  assert.equal(expect(),'stage=unit-test expected=200 observed=401 code=PILOT_UNAUTHORIZED');
+  assert.equal(safeCode({code:'ARBITRARY_PRIVATE_ERROR'}),'UNKNOWN');
   assert.equal(percentile([4,2,3,1],.5),2);
   assert.equal(percentile([4,2,3,1],.95),4);
   assert.throws(()=>assertEmpty({ok:true,mode:'staging-counts-only',data:{practiceCount:1}},['practiceCount']));
@@ -103,7 +136,9 @@ if(process.argv[2]==='self-test'){
   assert.ok(process.argv[3]&&process.argv[4],'URL file and random bearer file required');
   run(process.argv[3],process.argv[4]).catch(e=>{
     // Do not include URLs, tokens, query data, or response bodies in CI logs.
-    console.error('Independent D1 pilot Worker smoke FAILED: '+(e?.name==='AssertionError'?'contract mismatch':'request failed'));
+    const message=String(e?.message||'');
+    const safe=/^stage=[a-z-]+ expected=[0-9]+ observed=[0-9]+ code=[A-Z_]+$/.test(message);
+    console.error('Independent D1 pilot Worker smoke FAILED: '+(safe?message:'contract mismatch or network error'));
     process.exitCode=1;
   });
 }else{
