@@ -456,7 +456,15 @@ function accessStageWithdrawHistoryV1636_(ss,memberRow){
   if(!memberRow||conf_('SPREADSHEET_ID')!==SMA_STAGE_WITHDRAW_ID_V1636||
      ss.getId()!==SMA_STAGE_WITHDRAW_ID_V1636)return false;
   var history=accessSheet16_(ss,'退会履歴',SMA_STAGE_WITHDRAW_HEADER_V1636);
-  return accessRows16_(history,6).some(function(r){return str_(r[0])===str_(memberRow[0]);});
+  // Status/apply only need the history memberId. Keep header verification and
+  // stage-only gates unchanged; avoid reading five irrelevant columns on
+  // every registered member status check (1 column instead of 6).
+  var last=history.getLastRow();
+  if(last<2)return false;
+  var memberId=str_(memberRow[0]);
+  return history.getRange(2,1,last-1,1).getValues().some(function(r){
+    return str_(r[0])===memberId;
+  });
 }
 function accessStageWithdrawalV1636_(ss,member,payload){
   accessAdmin16_(member); // server-authenticated member only

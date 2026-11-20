@@ -479,3 +479,14 @@
 - **利用申請LIFF模擬E2E**：[PR #109](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/109) mainマージSHA `a7daf633d14f1737ba1f4440c77e4eadb91ebbdd`。仮想LIFFで登録済み・未申請・申請送信1回・承認待ち・却下・通信失敗・ログイン未完了・未設定IDの安全動作を回帰テスト。全UI回帰CI・仕様CI成功、[Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44733812472)とWorkers Builds成功。今回のPRはテスト/ドキュメントのみで公開GET-onlyスモークの新たな実行はなし（PR #108の実配信確認が最新）。GAS不変更。
 - **次の実機受入**：管理者が検証用LINEで [利用申請専用LIFF](https://liff.line.me/2012602642-lKuGSb43) を開き、緑の「利用登録済みです。」を確認。別LINEテスター（未登録）ではフォーム→氏名/カナ→確認→送信、黄色の承認待ち、再訪問時二重申請なしを確認。管理者は [運用管理LIFF](https://liff.line.me/2012602642-XBSkXduO) → 運用管理メニュー → 管理者メニュー → メンバー権限管理で申請承認し、再訪問後緑の登録済み表示を確認。LINE SDK側のチャネル/Endpoint/scopeの実値は直接読み取れないため、実機で失敗した場合はLINE Developers側を照合する。
 - **残る課題・リスク**：LINE本人トークンを使うWorker→GAS POSTの実書込受入、他テスターの権限・承認、実機15秒タイムアウト/通信時間分析、旧申請モーダル互換経路と未マージPR #102の競合整理、動的メッセージの残監査、実在LINE退会/再入会E2E。本番環境と既存Secret・GASは未変更。各項目は未受入として保持する。
+
+
+## 42. v0.16.88 — 利用申請データ読取照合／退会履歴参照軽量化／実機性能診断（2026/11/20）
+
+- ユーザーによる **実機受入①「利用登録済みです。」表示成功**（登録済みLINEアカウント）。未登録の別LINEテスターの手順②はユーザー側で継続中。実際の申請送信／管理者承認を受入済みとはしない。
+- [検証用Google Sheets](https://docs.google.com/spreadsheets/d/1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac/edit) をGoogle Drive連携から読み取り専用で確認。メンバー2件（有効2件）、登録申請2件（承認済1・承認待ち1）、退会履歴1件。メンバーID/LINE ID/申請IDの重複および承認済み申請の紐付け不一致・未承認の不正な紐付けは**検出0件**。個人情報は出力・GitHub記録せず、シートの書込みなし。承認待ち1件と新しい別LINEテスターの同一性は未確認。
+- **既存仕様を保持する軽量化**：`gas-staging/AccessAndGuestV160.gs` の `accessStageWithdrawHistoryV1636_` を、毎回6列全部読み込んでいた処理から退会memberIdを照合するA列のみの取得へ限定。ヘッダー整合性チェック、検証用Workbook ID、退会処理中の申請禁止、メンバー照合・ロック内再照合を維持。取得セル量は履歴N行で6N→N、実機所要時間の改善は未計測。
+- 利用申請の `registration.js` に `?perf=1` 選択時だけ、通信全体msとWorker Server-TimingのLINE/GAS/GAS POST/応答GET（数値のみ）を表示。LINE ID・名前・トークン・POST本文を表示/ログ化しない。通常画面の外観や申請送信を変更しない。
+- 旧受入で `/api/overview` 約5.4秒、GAS内部約2.19秒、ロック待ち約0.11秒。15秒再発の原因をロックと断定せず、LINE/GAS中継と端末実測で分解する。管理用 `?perf=1` は継続。
+- 詳細仕様と保護事項、検証結果：[v0.16.88整合性・性能記録](stage-v1688-registration-integrity-performance.md)。
+- **次**：全GAS/UI回帰CI→検証main→既存GAS自動デプロイ@番号とPages/Workers Builds/公開GET-only確認を別に記録。別テスター実機②の申請待ち/承認/再訪問を受入後に実データ再読込し照合。会計残高/確定順序/操作履歴/本番は不変更。

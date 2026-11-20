@@ -5,6 +5,26 @@ const config=window.SMASH_CONFIG||{};
 const status=$('registrationStatus'),form=$('registrationForm'),refresh=$('registrationRefresh');
 const submit=$('registrationSubmit'),confirmDialog=$('registrationConfirm');
 let token='',busy=false,prepared=null,requestId=0;
+// Diagnostics only; no LINE ID, ID token, applicant name or request body.
+const perfQuery=String(location.search||'');
+let decodedPerfQuery='';try{decodedPerfQuery=decodeURIComponent(perfQuery);}catch(_){}
+const PERF_MODE=/(?:[?&])perf=1(?:[&#]|$)/.test(perfQuery+' '+decodedPerfQuery);
+const perfHistory=[];
+function profileRequest_(path,start,header,outcome){
+ if(!PERF_MODE)return;
+ const phaseNames={line:'LINE認証',gas:'GAS',gas_post:'GAS POST',gas_content:'GAS応答'};
+ const phases=String(header||'').split(',').map(s=>s.trim()).map(value=>{
+  const m=/^(line|gas|gas_post|gas_content);dur=(\d+(?:\.\d+)?)$/.exec(value);
+  return m?phaseNames[m[1]]+' '+Math.round(Number(m[2]))+'ms':'';
+ }).filter(Boolean);
+ const safePath=path==='/api/member/status'?'状況確認':'利用申請';
+ perfHistory.push((outcome==='ok'?'✓':'!')+' '+safePath+' '+Math.round(performance.now()-start)+'ms'+
+  (phases.length?'（'+phases.join(' / ')+'）':'')+(outcome==='ok'?'':' ['+outcome+']'));
+ if(perfHistory.length>8)perfHistory.shift();
+ const panel=$('registrationPerf'),out=$('registrationPerfText');
+ if(panel&&out){panel.hidden=false;out.textContent=perfHistory.slice().reverse().join('\n');}
+}
+
 function setStatus(kind,message){
  status.className='stage-system-message stage-system-message--'+kind;
  status.textContent=message;
@@ -28,7 +48,8 @@ async function request(path,payload,write=false){
  const base=String(config.apiBaseUrl||'').replace(/\/$/,'');
  if(!/^https:\/\//.test(base))throw new Error('API接続設定がありません。');
  const controller=!write&&typeof AbortController!=='undefined'?new AbortController():null;
- let timer,expired=false;
+ let timer,expired=false,serverTiming='',outcome='ok';
+ const startedAt=PERF_MODE?performance.now():0;
  const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{
   expired=true;controller?.abort();const e=new Error('通信がタイムアウトしました。');
   e.code=write?'OPERATION_UNCONFIRMED':'REQUEST_TIMEOUT';reject(e);
@@ -36,13 +57,18 @@ async function request(path,payload,write=false){
  const work=(async()=>{
   const res=await fetch(base+path,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
    body:JSON.stringify(payload||{}),cache:'no-store',...(controller?{signal:controller.signal}:{})});
+  if(PERF_MODE)serverTiming=res.headers?.get?.('Server-Timing')||'';
   let value;try{value=await res.json();}catch{throw new Error('サーバーの応答を確認できませんでした。');}
   if(!res.ok||!value.ok){const e=new Error(value.error||'処理に失敗しました。');e.status=res.status;e.code=value.code;throw e;}
   return value.data;
  })();
  try{return await Promise.race([work,timeout]);}
- catch(e){if(expired||e?.name==='AbortError'){const x=new Error('通信がタイムアウトしました。');x.code=write?'OPERATION_UNCONFIRMED':'REQUEST_TIMEOUT';throw x;}throw e;}
- finally{clearTimeout(timer);}
+ catch(e){
+  outcome=expired||e?.name==='AbortError'?'timeout':'error';
+  if(expired||e?.name==='AbortError'){const x=new Error('通信がタイムアウトしました。');x.code=write?'OPERATION_UNCONFIRMED':'REQUEST_TIMEOUT';throw x;}
+  throw e;
+ }
+ finally{clearTimeout(timer);if(PERF_MODE)profileRequest_(path,startedAt,serverTiming,outcome);}
 }
 async function check(){
  if(busy)return;controls(true);const id=++requestId;form.hidden=true;setStatus('processing','利用申請状況を確認しています…');
