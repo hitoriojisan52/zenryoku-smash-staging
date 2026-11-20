@@ -1227,7 +1227,7 @@ function scheduleFormPayload_(){
 function renderScheduleMaster_(){
  const list=$('scheduleList');list.replaceChildren();
  if(!SC.rows.length){
-  const e=document.createElement('p');e.className='schedule-note stage-system-message stage-system-message--info';
+  const e=document.createElement('p');e.className='schedule-note stage-system-message stage-system-message--neutral';
   e.setAttribute('role','status');e.setAttribute('aria-live','polite');
   e.textContent='本日以降の開催予定はありません。';list.append(e);return;
  }
@@ -1556,7 +1556,7 @@ function renderParticipantManager_(){
   PM.uncertain?'保存結果が不明です。更新してから操作してください':'';
  notice.hidden=!notice.textContent;
  if(!PM.people.length){
-  const empty=document.createElement('p');empty.className='schedule-note stage-system-message stage-system-message--info';
+  const empty=document.createElement('p');empty.className='schedule-note stage-system-message stage-system-message--neutral';
   empty.setAttribute('role','status');empty.setAttribute('aria-live','polite');
   empty.textContent='この開催日の回答データはありません。';
   list.append(empty);return;

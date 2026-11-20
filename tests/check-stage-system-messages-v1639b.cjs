@@ -16,7 +16,7 @@ const shared=['.stage-ui .stage-system-message{','.stage-ui .stage-system-messag
  '.stage-ui .stage-system-message:empty','.stage-ui .stage-system-message--warning',
  '.stage-ui .stage-system-message--info','.stage-ui .stage-system-message--error',
  'overflow-wrap:anywhere','text-align:left','white-space:pre-line',
- 'font-size:13px','line-height:1.55'];
+ 'font-size:13px','line-height:1.55','.stage-ui .stage-system-message--neutral'];
 for(const t of shared)ok(css.includes(t),'shared stage message CSS: '+t);
 for(const [p,html] of [['live',live],['match',match],['match-view',view],['guest',guest]]){
  ok(html.includes('stage-ui.css?v='+(p==='live'?'1676-responsive-reads':'1665')),p+' loads same versioned shared styles');
@@ -38,7 +38,7 @@ for(const [section,id,kind] of [
  ok(el.includes('role="status"')&&el.includes('aria-live="polite"'),section+' accessible live updates');
 }
 for(const [section,id,kind,html] of [
- ['member registration and QR','accessMessage','info',match],
+ ['member registration and QR','accessMessage','neutral',match],
  ['spectator match errors','matchViewNotice','error',view],
  ['guest QR errors','guestNotice','error',guest]
 ]){
@@ -51,8 +51,8 @@ for(const [section,id,kind,html] of [
 ok(live.includes('live.js?v=1676-responsive-reads')&&match.includes('match.js?v=1664')&&
  view.includes('match-view.js?v=1639b')&&guest.includes('guest.js?v=1639b')&&
  match.includes('access-ui.js?v=1657'),'all modified client scripts are cache-busted');
-ok(liveJs.includes("className='schedule-note stage-system-message stage-system-message--info'"),
- 'empty schedule/participants have same informational box');
+ok(liveJs.includes("className='schedule-note stage-system-message stage-system-message--neutral'"),
+ 'empty schedule/participants use neutral box');
 ok(liveJs.includes("status.classList.remove('stage-system-message--info')")&&
  liveJs.includes("status.hidden=!status.textContent")&&
  liveJs.includes("status.classList.add('stage-system-message--warning')"),
@@ -64,7 +64,7 @@ ok(liveJs.includes("reason.hidden=!reason.textContent"),
  'collection warning only shown when collection is blocked');
 ok(liveJs.includes("この開催日の回答データはありません。"),
  'old-v7 empty roster wording retained');
-ok(matchJs.includes("const kind=editable&&count<4?'stage-system-message--warning':'stage-system-message--info'"),
+ok(matchJs.includes("const kind=editable&&count<4?'stage-system-message--warning':'stage-system-message--neutral'"),
  '0–3 eligible players use warning severity like collection-lock reason');
 ok(matchJs.includes("message.setAttribute('role','status')")&&
  matchJs.includes("message.setAttribute('aria-live','polite')"),
@@ -76,9 +76,9 @@ ok(viewJs.includes("function viewMessage_(")&&
  'read-only spectator view has consistent empty-state banner');
 ok(guestJs.includes("id")===false || guest.includes('id="guestNotice"'),
  'guest message target wired to existing public page');
-ok(guestJs.includes("guestNotice").toString()==='true'&&guestJs.includes("stage-system-message--info"),
+ok(guestJs.includes("guestNotice").toString()==='true'&&guestJs.includes("stage-system-message--neutral"),
  'guest view includes error and empty match banner');
-ok(accessJs.includes("say=(s,kind='info')")&&
+ok(accessJs.includes("say=(s,kind='neutral')")&&
  accessJs.includes("'stage-system-message--'+type"),
  'member registration / QR share statuses switch severity consistently');
 ok(css.includes('#cashStatus.stage-system-message')&&css.includes('white-space:pre-line!important'),

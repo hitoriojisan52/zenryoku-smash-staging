@@ -38,7 +38,7 @@ async function load(){if(inFlight)return;inFlight=true;const refresh=$('guestRef
  $('guestStatus').textContent=data.state==='not_created'?'対戦表はまだ作成されていません':data.state==='finished'?'進行終了':data.state==='ready'?'試合開始前':'第'+data.currentRound+'試合を進行中';
  const box=$('guestRounds');box.replaceChildren();
  if(data.state==='not_created'){
-  const notice=el('p','stage-system-message stage-system-message--info',
+  const notice=el('p','stage-system-message stage-system-message--neutral',
     'この開催日の対戦表はまだ作成されていません。');
   notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');
   box.append(notice);
