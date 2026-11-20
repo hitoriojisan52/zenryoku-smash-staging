@@ -1,0 +1,126 @@
+name: D1 isolated Worker native binding - staging only
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'd1-staging/readonly-pilot/**'
+      - 'scripts/d1-stage-worker-*.cjs'
+      - '.github/workflows/d1-stage-worker-deploy.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'd1-staging/readonly-pilot/**'
+      - 'scripts/d1-stage-worker-*.cjs'
+      - '.github/workflows/d1-stage-worker-deploy.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: zenryoku-d1-isolated-stage-worker
+  cancel-in-progress: false
+jobs:
+  offline-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify isolated read-only Worker and strict target config
+        run: |
+          node tests/check-d1-readonly-pilot.mjs
+          node scripts/d1-stage-worker-config.cjs self-test
+          node scripts/d1-stage-worker-ownership.cjs self-test
+          node scripts/d1-stage-worker-probe.cjs self-test
+      - name: Protect original gateway and D1 schema
+        run: |
+          python3 scripts/d1-staging-check.py
+          python3 tests/check-d1-business-schema.py
+          node tests/check-stage-ledger-confirm-order-v1651.cjs
+          node tests/check-stage-line-attendance-v1645.cjs
+          node tests/check-stage-withdraw-rejoin-v1653.cjs
+          node tests/check-stage-match-create-v1639a.cjs
+  deploy-native-worker:
+    needs: offline-safety
+    if: github.repository == 'hitoriojisan52/zenryoku-smash-staging' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: d1-staging
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.D1_STAGE_ACCOUNT_ID }}
+      D1_STAGE_ACCOUNT_ID: ${{ vars.D1_STAGE_ACCOUNT_ID }}
+      D1_STAGE_DATABASE_ID: ${{ vars.D1_STAGE_DATABASE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check explicit staging-only enable flag after Environment is loaded
+        id: stage-gate
+        env:
+          DEPLOY_FLAG: ${{ vars.D1_WORKER_STAGE_DEPLOY_ENABLED }}
+        shell: bash
+        run: |
+          if [[ "$DEPLOY_FLAG" != "true" ]]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Isolated Worker deployment disabled (opt-in not configured); existing Worker and D1 not modified." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+      - name: Require separately scoped staging deploy token
+        if: steps.stage-gate.outputs.ready == 'true'
+        shell: bash
+        env:
+          WORKER_STAGE_TOKEN: ${{ secrets.D1_WORKER_STAGE_API_TOKEN }}
+        run: |
+          test -n "$WORKER_STAGE_TOKEN" || { echo "Missing isolated Worker deployment secret"; exit 1; }
+          test -n "$D1_STAGE_DATABASE_ID" || { echo "Missing existing D1 UUID"; exit 1; }
+          node scripts/d1-stage-worker-config.cjs prepare
+      - name: Verify exact D1 database account, UUID and name with D1-only credential
+        if: steps.stage-gate.outputs.ready == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.D1_STAGE_API_TOKEN }}
+        shell: bash
+        run: |
+          npx --yes wrangler@4 d1 list --json > "$RUNNER_TEMP/d1-worker-db-list.json"
+          node scripts/d1-staging-config.cjs verify-remote "$RUNNER_TEMP/d1-worker-db-list.json"
+      - name: Ensure isolated Worker name is unclaimed or belongs to this repository
+        if: steps.stage-gate.outputs.ready == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.D1_WORKER_STAGE_API_TOKEN }}
+        run: node scripts/d1-stage-worker-ownership.cjs verify
+      - name: Prepare Worker bundle without uploading
+        if: steps.stage-gate.outputs.ready == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.D1_WORKER_STAGE_API_TOKEN }}
+        shell: bash
+        run: |
+          npx --yes wrangler@4 deploy --config d1-staging/readonly-pilot/.wrangler.stage.runtime.json --dry-run --outdir "$RUNNER_TEMP/d1-pilot-build"
+      - name: Deploy only the isolated pilot Worker
+        if: steps.stage-gate.outputs.ready == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.D1_WORKER_STAGE_API_TOKEN }}
+        shell: bash
+        run: |
+          set -o pipefail
+          npx --yes wrangler@4 deploy --config d1-staging/readonly-pilot/.wrangler.stage.runtime.json 2>&1 | tee "$RUNNER_TEMP/d1-worker-deploy.log"
+          node scripts/d1-stage-worker-config.cjs extract-url "$RUNNER_TEMP/d1-worker-deploy.log" "$RUNNER_TEMP/d1-worker-url.txt"
+      - name: Generate an ephemeral private bearer, never store in GitHub
+        if: steps.stage-gate.outputs.ready == 'true'
+        shell: bash
+        run: |
+          node -e "require('node:fs').writeFileSync(process.env.RUNNER_TEMP+'/d1-worker-one-time-token.txt',require('node:crypto').randomBytes(32).toString('base64url')+'\n',{mode:0o600})"
+          echo "::add-mask::$(cat "$RUNNER_TEMP/d1-worker-one-time-token.txt")"
+      - name: Bind the ephemeral bearer secret to the isolated Worker
+        if: steps.stage-gate.outputs.ready == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.D1_WORKER_STAGE_API_TOKEN }}
+        shell: bash
+        run: |
+          npx --yes wrangler@4 secret put PILOT_READ_TOKEN --config d1-staging/readonly-pilot/.wrangler.stage.runtime.json < "$RUNNER_TEMP/d1-worker-one-time-token.txt"
+      - name: Real Worker to D1 native binding read-only smoke and p50 p95
+        if: steps.stage-gate.outputs.ready == 'true'
+        shell: bash
+        run: |
+          node scripts/d1-stage-worker-probe.cjs probe "$RUNNER_TEMP/d1-worker-url.txt" "$RUNNER_TEMP/d1-worker-one-time-token.txt"

@@ -7,7 +7,9 @@
  * Must not be deployed publicly or treated as a replacement for the existing
  * LINE+GAS authorization flow.
  */
+const PILOT_OWNER_MARKER='ZENRYOKU_D1_PILOT_STAGE_REPO_20261121';
 const noStoreHeaders = {
+  'X-D1-Pilot-Identity':PILOT_OWNER_MARKER,
   'Content-Type': 'application/json; charset=utf-8',
   'Cache-Control': 'private, no-store',
   'X-Content-Type-Options': 'nosniff',

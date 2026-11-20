@@ -33,6 +33,7 @@ assert.equal(x.res.status,200);
 assert.deepEqual(x.json.data,{practiceCount:1,attendeeCount:8,paymentCount:7});
 assert.equal(x.json.mode,'staging-counts-only');
 assert.equal(x.res.headers.get('access-control-allow-origin'),null);
+assert.equal(x.res.headers.get('x-d1-pilot-identity'),'ZENRYOKU_D1_PILOT_STAGE_REPO_20261121');
 assert.match(x.res.headers.get('cache-control'),/no-store/);
 assert.deepEqual(executed.map(x=>x.params),[['P-TEST0001'],['P-TEST0001'],['P-TEST0001']]);
 executed=[];
