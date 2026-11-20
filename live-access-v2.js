@@ -67,7 +67,7 @@
    if(isUncertain(e))return {title:'通信エラー',message:'通信できませんでした。\n「更新」でやり直してください。'};
    return {title:'操作できませんでした',message:String(e?.message||'もう一度お試しください。')};
  }
- function showError(e){const info=errorDetails(e);return ask({title:info.title,message:info.message,label:'閉じる'},true);}
+ function showError(e){return window.SMStageUX.showError(e);}
  function toast(s){
    if(!toastEl)return;toastEl.textContent=String(s||'');
    toastEl.classList.add('show');clearTimeout(toastTimer);
@@ -266,7 +266,10 @@
      if(!first)toast('更新しました。');
      return true;
    }catch(e){
-     if(current())status('読み込みに失敗しました：'+String(e?.message||e),false,true);
+     if(current()){
+     status(window.SMStageUX.errorDetails(e).message,false,true);
+     void window.SMStageUX.showError(e);
+    }
      return false;
    }finally{
      if(current())$('memberAccessRefresh').disabled=false;
