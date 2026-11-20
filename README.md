@@ -1,3 +1,5 @@
+**v0.16.86（利用申請専用LIFF設定）**：ユーザー発行ID `2012602642-lKuGSb43` を検証用 `registrationLiffId` に登録。検証入口は `https://liff.line.me/2012602642-lKuGSb43`。運用管理LIFF/認可・GAS/Workerコード・会計・本番は不変更。LINE実機受入は別途。[引継ぎ](docs/SESSION_HANDOFF.md)。
+
 **v0.16.85（検証用：共通メッセージCSS競合解消／独立利用申請のLIFF誤転用防止）**：青い処理中はCSSスピナー、緑は✓、黄は⚠️、赤は❌。旧CSSの高詳細度ルールが正常／処理中を警告表示に上書きする問題を修正。独立利用申請は専用 `registrationLiffId` 未設定なら管理用LIFFを流用せずエラーにする。GAS/Worker・旧業務処理・本番は変更なし。専用LIFFの実機試験と全画面の青枠案内文監査は継続。[引継ぎ](docs/SESSION_HANDOFF.md)。
 
 
