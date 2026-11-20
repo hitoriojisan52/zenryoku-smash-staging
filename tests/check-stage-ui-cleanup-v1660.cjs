@@ -56,7 +56,7 @@ for(const page of ['live.html','match.html','match-view.html','guest.html'])
 // Participant management must NEVER show LINE identities; timestamps must
 // be backed by existing immutable histories, not guessed date values.
 const pBegin=ui.indexOf('function renderParticipantManager_(){');
-const pEnd=ui.indexOf('async function loadParticipants_(){',pBegin);
+const pEnd=ui.indexOf('async function loadParticipants_(',pBegin);
 ok(pBegin>0&&pEnd>pBegin,'real participant list renderer found');
 const participantUI=ui.slice(pBegin,pEnd);
 ok(!participantUI.includes('LINE ID：')&&!participantUI.includes('p.lineUserId')&&
