@@ -26,15 +26,15 @@ async function mutation(path,payload){
    let verification;
    try{verification=await request('/api/match/operation',{
      practiceId:payload.practiceId,operationId:payload.operationId});}
-   catch(_){const err=Error('通信が途切れ、操作結果を確認できません。通信回復後に「更新」で最新の状態を確認してください。');
+   catch(_){const err=Error('操作結果を確認できません。「更新」で確認してください。');
      err.code='OPERATION_UNKNOWN';throw err;}
    if(verification.applied){
      try{const latest=await request('/api/match/get',{practiceId:payload.practiceId});
        latest.recoveredOperation=true;return latest;}
-     catch(_){const err=Error('操作は保存済みと確認できましたが、最新情報を取得できません。画面の「更新」を押してください。');
+     catch(_){const err=Error('保存済みですが、再取得に失敗しました。「更新」で確認してください。');
        err.code='APPLIED_REFRESH_FAILED';throw err;}
    }
-   const err=Error('操作が反映されたことを確認できませんでした。最新の内容を確認してから再操作してください。');
+   const err=Error('保存結果が不明です。「更新」で確認してください。');
    err.code='OPERATION_UNCONFIRMED';throw err;
  }
 }
