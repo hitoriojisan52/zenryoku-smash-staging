@@ -90,6 +90,7 @@ async function call(path,payload={}){
  const url=CONFIG.apiBaseUrl.replace(/\/$/,'')+path,isWrite=MUTATING_ENDPOINTS.has(path);
  if(isWrite)S.updateEpoch++;
  const startedAt=performance.now();
+ if(PERF_MODE&&path==='/api/overview')S.lastOverviewProfile=null;
  let diagnosticTiming='',diagnosticOutcome='ok';
  // Reads can abort. Writes must never abort/retry: GAS may commit.
  const controller=!isWrite&&typeof AbortController!=='undefined'?new AbortController():null;
