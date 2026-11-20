@@ -683,3 +683,13 @@
 - `scripts/d1-staging-http-bench.cjs`と`.github/workflows/d1-staging-http-bench.yml`は、既存の検証D1へ固定SQL SELECT COUNTだけをCloudflare公式REST API経由で行い、main統合時に自動で**warmup2/計測12回**のHTTP p50/p95とD1 SQL内部時間を記録する。事前Account/UUID/DB名照合、全4集計件数0、DB無書込を必須。実データ複製やGAS/LIFFの書込/本番変更なし。
 - **この節はコードとCI準備の記録。** PRマージ/CI・REST本計測・Pages/Workers Buildsの結果は**実際にログで確認後**、別途記載する。REST APIのGitHubランナー～Cloudflare D1空テーブル計測はLINE実機/既存GASとの同条件比較ではなく、**高速化/本番移行を断言しない**。
 - 次：CI→検証main統合→D1 REST測定p50/p95/SQL内部・0件結果確認→設計資料に実測記録。続くWorker実接続・公開に必要な権限と安全性/利用者判断を整理してから、新しい検証Workerの作成を検討する。バックアップ、会計/権限等価性、実データ移転は依然未完了。本番事前承認を維持。
+
+
+## 62. D1第3工程 PR #131 / HTTP p50・p95実測・リモート安全確認（2026/11/21）
+
+- [PR #131](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/131) はD1 schema-safety/独立Worker pilot mock/read-only RESTベンチ自前テストと既存会計/出欠/退会/試合回帰、仕様契約の両CI成功後に検証main `b26ce8d496ad8eb3591f253162fc4de4b8f1dda1`へ統合。
+- [測定 Actions #44795116347](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44795116347)：検証D1アカウント・DB UUID/名前厳密照合成功。固定`SELECT COUNT(*)`（practices/attendances/payments/ledger_rows、4業務テーブルは全部0件）をCloudflare REST API経由で、ウォームアップ2＋実測12回。GitHubランナーからのHTTP p50 **227.8ms**／p95 **250.7ms**、min209.4/max250.7ms。DB SQL内部時間p50 **0.1ms**／p95 **0.2ms**。`benchmark` job成功、Secret/氏名/LINE ID/金額/明細なし。**LINE/Worker/GASの認証・実業務データ・ブラウザ処理を含まないため旧アプリの数秒とは同条件比較不可**。
+- [D1 migration Actions #44795116430](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44795116430)：`local-safety`と`migrate-stage`成功、No migrations to apply、実D1の業務**20テーブル・全件0行**、`stage_d1_bootstrap`0件のremote照合成功。
+- [GitHub Pages Actions #44795115476](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44795115476) build/deploy成功、同mainでCloudflare Workers Builds成功。既存Worker/LIFF/GAS@51/Sheetsのソース・デプロイ先・各種IDと本番は変更なし。
+- `d1-staging/readonly-pilot/worker.mjs`は**未デプロイ**。独立の32字以上の秘密トークンと明示ON・GET件数だけで動く試作であり、現行のLINE本人認証・GASの権限/会計ロジックを再現していない。**現在のD1専用APIトークンではWorkerの新規デプロイは不可**。無断で既存WorkerへD1 bindingを追加したり、権限を拡大したりしない。
+- 次工程：本物のWorker bindingと本人認証・認可が必要な場合、安全な独立Workerのデプロイ権限・名前・Cloudflareビルド/公開可否・CORS/アクセス制限を設計レビューし、必要な初回ユーザー設定をリンク/値とともに提示する。別PRで非PIIのfixtureを使い **Worker native binding/API往復**の計測、最終的にLINE実機のp50/p95と旧GASの同条件で比較。実データ移行、トランザクション/バックアップ/復旧/本番移行は別工程・ユーザー事前承認制。
