@@ -23,6 +23,8 @@ jobs:
         run: python3 scripts/d1-staging-check.py
       - name: Validate business schema and v15 historical safety contracts
         run: python3 tests/check-d1-business-schema.py
+      - name: Validate read-only remote schema contract and no-business-data guard
+        run: node scripts/d1-staging-remote-smoke.cjs self-test
       - name: Validate D1 target-account and database guard
         run: node scripts/d1-staging-config.cjs self-test
       - name: Protect legacy ledger confirmation ordering and balances
