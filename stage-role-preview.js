@@ -1,58 +1,109 @@
-/* v0.16.79 staging: role MENU preview ONLY; no backend role change. */
+/* v0.16.80 — one-time staging-only self-role switch, not a role preview.
+ * The verified LINE user is the ONLY identity; GAS binds the first eligible
+ * administrator and requires a second synthetic admin before demotion.
+ */
 (function(w){
  'use strict';
  const $=id=>document.getElementById(id);
- const roles=Object.freeze({member:'メンバー',duty:'当番担当',admin:'管理者'});
- let actualRole='',initialized=false;
- const groups=Object.freeze({
-  member:[['一般メンバー',['memberAttendanceStart','visitorMemberStart']]],
-  duty:[['当番担当メニュー',['cashCounter','openLedger','managePeople','visitorRegisterMenu','matchManage']],
-    ['検証用メニュー',['manageAttendance']]],
-  admin:[['当番担当メニュー',['cashCounter','openLedger','manageSchedules','managePeople','visitorRegisterMenu','matchManage']],
-    ['管理者メニュー',['visitorAdminMenu','manageAccess']],
-    ['検証用メニュー',['manageAttendance']]]
- });
- function render(){
-  const role=$('stageRolePreviewSelect').value;
-  if(!Object.prototype.hasOwnProperty.call(groups,role))return;
-  const list=$('stageRolePreviewList');list.replaceChildren();
-  for(const [title,ids] of groups[role]){
-   const section=document.createElement('section');section.className='stage-role-preview-group';
-   const heading=document.createElement('h3');heading.textContent=title;section.append(heading);
-   for(const id of ids){
-    const original=$(id);if(!original)continue;
-    const button=document.createElement('button');button.type='button';
-    button.className='btn-outline';button.disabled=true;
-    button.textContent=original.textContent.trim();
-    section.append(button);
-   }
-   list.append(section);
+ const names=Object.freeze({member:'メンバー',duty:'当番担当',admin:'管理者'});
+ const dialog=$('stageRolePreviewDialog'),confirm=$('stageRolePreviewConfirmDialog');
+ const select=$('stageRolePreviewSelect'),save=$('stageRolePreviewSave'),
+  close=$('stageRolePreviewClose'),status=$('stageRolePreviewActual');
+ let api=null,currentRole='',canSwitch=false,canDemote=false,loading=false,
+  pendingTarget='',readEpoch=0;
+ function message(text,type='info',spinning=false){
+  status.textContent=text||'';
+  for(const key of ['info','warning','error'])
+   status.classList.toggle('stage-system-message--'+key,key===type);
+  status.classList.toggle('stage-inline-read-loading',spinning);
+ }
+ function controls(){
+  const target=select.value;
+  select.disabled=loading||!canSwitch;
+  save.disabled=loading||!canSwitch||!names[target]||target===currentRole||
+   (currentRole==='admin'&&target!=='admin'&&!canDemote);
+  close.disabled=loading;
+ }
+ async function refresh(epoch){
+  loading=true;canSwitch=false;
+  message('現在の権限と検証条件を読み込んでいます…','info',true);
+  controls();
+  try{
+   const data=await api('/api/stage/self-role',{action:'status'});
+   if(epoch!==readEpoch||!dialog.open)return;
+   if(!data||!names[data.role]||typeof data.canSwitch!=='boolean')
+    throw Error('権限情報の形式を確認できません');
+   currentRole=data.role;canSwitch=data.canSwitch;canDemote=data.canDemote===true;
+   select.value=currentRole;
+   message('現在の権限：'+names[currentRole]+
+    (canSwitch?'。切り換える権限を選択してください。':
+     '。このLINEアカウントは検証用権限切換に登録されていません。'),
+    canSwitch?'info':'warning');
+  }catch(e){
+   if(epoch!==readEpoch||!dialog.open)return;
+   message('権限情報を読み込めませんでした：'+String(e?.message||e),'error');
+  }finally{
+   if(epoch===readEpoch){loading=false;controls();}
   }
-  $('stageRolePreviewActual').textContent=
-   '実際の権限：'+(roles[actualRole]||'不明')+
-   ' ／ 表示プレビュー：'+roles[role];
  }
  function open(){
-  if(!actualRole)return;
-  $('stageRolePreviewSelect').value=actualRole;
-  render();
-  const dlg=$('stageRolePreviewDialog');if(!dlg.open)dlg.showModal();
+  if(!api||loading)return;
+  if(!dialog.open)dialog.showModal();
+  refresh(++readEpoch);
  }
- function init(){
-  if(initialized)return;initialized=true;
-  $('stageRolePreviewMenuOpen').addEventListener('click',open);
-  $('stageRolePreviewMemberOpen').addEventListener('click',open);
-  $('stageRolePreviewSelect').addEventListener('change',render);
-  $('stageRolePreviewClose').addEventListener('click',()=>$('stageRolePreviewDialog').close());
+ function ask(){
+  if(loading||save.disabled||!canSwitch)return;
+  const target=select.value;if(!names[target]||target===currentRole)return;
+  pendingTarget=target;
+  $('stageRolePreviewConfirmText').textContent='ご自身の権限を「'+names[currentRole]+
+   '」から「'+names[target]+'」に変更しますか？ 保存後、運用管理ツールを再読み込みします。';
+  $('stageRolePreviewConfirmSave').className=target==='member'?'btn-danger':'btn-green';
+  if(!confirm.open)confirm.showModal();
  }
- init();
+ async function change(){
+  if(!pendingTarget||loading)return;
+  const target=pendingTarget;pendingTarget='';
+  confirm.close();
+  if(!canSwitch||!names[target]||target===currentRole)return;
+  const expected=currentRole;
+  loading=true;controls();
+  try{
+   await w.SMStageUX.run('ご自身の権限を変更しています…',async()=>{
+    // Never resubmit this write automatically after a network interruption.
+    const result=await api('/api/stage/self-role',{
+     action:'change',role:target,expectedRole:expected,operationId:crypto.randomUUID()
+    });
+    if(result?.role!==target||result?.previousRole!==expected)
+     throw Error('権限変更の結果を確認できません。再度画面を開いて現在の権限を確認してください');
+    const verified=await api('/api/session');
+    if(verified?.role!==target)
+     throw Error('変更後の権限を確認できません。再度画面を開いて確認してください');
+   });
+   // Fresh session is essential: stale admin UI must never survive demotion.
+   w.location.reload();
+  }catch(e){
+   // A timed-out mutation could have committed. Do not retry automatically.
+   message('変更結果を確認できません：'+String(e?.message||e)+
+    '。この画面を閉じて開き直し、現在の権限を確認してください。','error');
+   canSwitch=false;loading=false;controls();
+  }
+ }
+ $('stageRolePreviewOpen').addEventListener('click',open);
+ select.addEventListener('change',controls);
+ save.addEventListener('click',ask);
+ close.addEventListener('click',()=>{if(!loading)dialog.close();});
+ dialog.addEventListener('cancel',e=>{if(loading)e.preventDefault();});
+ dialog.addEventListener('close',()=>{readEpoch++;pendingTarget='';});
+ $('stageRolePreviewConfirmCancel').addEventListener('click',()=>{
+  pendingTarget='';confirm.close();
+ });
+ $('stageRolePreviewConfirmSave').addEventListener('click',change);
+ confirm.addEventListener('cancel',()=>{pendingTarget='';});
  w.SMRolePreview=Object.freeze({
-  setup(actor){
-   const role=actor?.role;
-   if(!Object.prototype.hasOwnProperty.call(roles,role))return;
-   actualRole=role;
-   $('stageRolePreviewMenuOpen').disabled=false;
-   $('stageRolePreviewMemberOpen').disabled=false;
+  setup(options){
+   if(typeof options?.api!=='function'||!names[options?.role])return;
+   api=options.api;
+   $('stageRolePreviewOpen').disabled=false;
   }
  });
 })(window);
