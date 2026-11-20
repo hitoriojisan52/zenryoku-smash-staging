@@ -591,3 +591,14 @@
 - **テスト**：`tests/check-stage-message-region-v1693.cjs` をUI CIへ追加。既存 `check-stage-money-status-confirm-gate-v1692.cjs` の**レイアウト条件だけ**を新指示「下段→左隣」に更新し、会計確定順序等の回帰ロジックは維持。既存共通通知試験は状態の意味を再照合（常時青の非処理情報を中立へ）。GAS/Workerソース・既存収支・ユーザー/テスト参加者情報・本番に変更なし。
 - **性能の観測（ユーザー新画像）**：`/api/overview`最大9,308ms（その中のGAS処理内訳合計3,361ms、POST8,994ms）、`/api/ledger/change`最大5,690ms、`/api/adjustment`最大6,014ms。GAS POSTとGAS内部処理を二重計上しない。今回のUI変更による短縮は未主張、通信の長い箇所は別件として調査継続。
 - **未完了**：新PRのCI・マージ/Pages/Workers・公開疎通を確認し、改修後のLINE実機で金額欄左隣・共通上部枠・遅い操作での入力欄の崩れがないか確認。ユーザーによる会計の確定・解除操作は依頼なく実行しない。検証GASは@50のまま、本番無変更。
+
+
+## 53. v0.16.93 通知統一の回帰CI・検証環境公開確認（2026/11/21）
+
+- [PR #121](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/121) は `spec-contract` / `payment-and-ui-safety` の **2系統CI成功後**にmain `73771b78a3227b75b41e3f728522b0c3e995c7c0` へマージ。UIコード以外のGAS/Workerソース、本番設定、検証用スプレッドシートへの変更なし。
+- [GitHub Pages デプロイ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44773723159) **build/deploy/report-build-status全成功**、同コミットの **Workers Builds: zenryoku-smash-staging-api success**（Workerのコードは不変更）、[公開GET-only読取スモーク](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44773724034) **success**。既存検証用GASは **@50のまま**、デプロイ・設定/Secrets変更は実施なし。
+- **修正対象の実施内容**：当日補正・当日支出の保存状態を数値入力欄の左隣へ移動し、狭い画面でも状態＋数値を不可分のペアに保持。上部の共通システム通知領域に赤・黄・青・緑の通知を揃え、収支確定不可の黄枠をフッター下から移動。ホーム通信エラーを参加者一覧の中から上部へ、ビジター/本人出欠/参加者一覧/メンバー管理/対戦表作成・閲覧/QRゲストのメッセージも各画面上部へ移動。静的な非処理情報は中立灰色。
+- **新規回帰**：`tests/check-stage-message-region-v1693.cjs` と旧UI表示テストの「入力欄の左隣」の配置条件・旧幅不変の試験が成功。11/19→11/21の旧時系列の確定/解除順序のGAS回帰試験もUI CIで成功。検証用UIのモック試験合格とLINE端末上での見た目受入は明確に区別。
+- **誤認の訂正**：ユーザーは「確定→確定解除にならない件」は勘違いのため対象外と明示。今回、収支確定/解除のGAS・UIロジック、確定ボタン活性条件・既存残高計算・操作履歴には**変更なし**。
+- **性能観測と残件**：添付の実機計測 `/api/overview` 最長9,308ms（GAS内訳合計3,361ms）、`/api/ledger/change` 最長5,690ms、`/api/adjustment` 最長6,014ms。今回のメッセージUI改修による秒数削減は未検証・未主張。次の優先事項は実機表示の確認と、通信/GAS内部の切分けに基づく安全な読取・書込性能の調査。ユーザーの承認なく本番を反映しない。
+- **次の実機確認**：[検証用LINE管理LIFF（性能診断）](https://liff.line.me/2012602642-XBSkXduO?perf=1) → 11/21の当日補正を既存の数値のまま「保存」操作せず、必要な変更時に限り実際の入力を変更して左隣ステータスを確認。上部の収支制約警告の位置、各画面の同一領域の状態色を確認。財務の確定・解除はユーザーからの新指示がある場合のみ進める。
