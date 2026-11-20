@@ -652,3 +652,14 @@
 - Wrangler v4.165.0ログで`0001_bootstrap_probe.sql`適用の✅を確認。remote SELECT `SELECT COUNT(*) AS probe_count FROM stage_d1_bootstrap;` は`probe_count: 0`、`success: true`。実行リージョンはAPAC（NRT）とログに表示。空のインフラ試験テーブルのみで、会員・出欠・集金・収支・試合データはD1未移行。
 - この工程で**既存Workerのbinding/コード、GAS@51、GitHub PagesのアプリURL、Sheetsの正本、領収書、LINE ID・権限・本番環境は変更していない**。Remote migrationの成否と既存アプリの実機挙動は異なる。Worker→D1/API接続、業務スキーマ、移行データ照合、性能改善、D1長期バックアップ/復旧は**未完了**。
 - 次：1) [D1移行計画](D1_MIGRATION_PLAN.md)に基づき既存GAS/Sheetsのデータ構造とAPI・履歴・会計保護条件を棚卸し、2) 機能ごとのD1テーブル/トランザクション・冪等・監査・排他方式を提案、3) 純粋な読み取り専用パイロットを別PRで構築、4) 両方式の性能比較、5) 本番への切り替えは個別承認。本番無断反映禁止。
+
+
+## 59. D1第2工程：現行の接続検証用Workbook/仕様棚卸しと空スキーマ提案（2026/11/21）
+
+- 調査開始時の最新検証main SHA `f4041bff78de0221fff1167baa76121301264f62`を確認。`README.md`、`SESSION_HANDOFF.md`、`SPEC_PRIORITY_POLICY.md`、`D1_MIGRATION_PLAN.md`、GAS `コード.gs`と`AccessAndGuestV160.gs`、Workerの現行API一覧、v15収支確定順序テスト・退会/試合仕様を照合。
+- Google Driveの実検証用シート「全力☆スマッシュ 接続検証用 v0.15（架空データ）」を**読み取り専用**で確認。全21タブの名称/ヘッダー（案内1、業務20）を`docs/D1_SCHEMA_DESIGN.md`に記録。核心10タブのA1:P20にある数式セルは0件、ただし**全シート・全行・本番の数式不在を意味しない**。
+- 提案`d1-staging/migrations/0002_business_skeleton.sql`：業務20タブと対応する**空のテーブル**、PK/FK/ユニーク/検索インデックスのみ。実会員・LINE ID・収支・出欠・ビジター・試合/監査の**一切の行を移さない**。既存Worker/GAS/LIFF/Sheetsのコードや接続先・本番も変更しない。
+- 保護：旧GASの収支計算ソートは`日付→opening/practice/reimbursement/other→rowId`。現役会員IDを退会で削除しても過去の操作/退会/試合履歴IDを失わない。集金は`(practiceId,participantId)`、試合版は`(revisionId,chunkIndex)`の複合キーで保護。現行のサーバー権限・先行未確定ロック・未来日・確定解除・操作ID冪等・結果不明の非再送は**別のAPI実装で再現する必要**がある（SQLだけでは保証しない）。
+- `tests/check-d1-business-schema.py`：SQLiteオフラインに実SQLを適用し、構造/孤立集金/LINE ID重複/履歴ID保持/再入会/排他版番号/CAS/ロールバック/時系列を架空値で検査。既存GAS回帰はD1 CIでも維持。自動マイグレーション用のアカウント・DB名前/UUID照合と`main`専用Environmentを維持。
+- **未完了**：当PRのCI/マージ、Cloudflare上の`0002`適用、実データ全件の複合キー/数式/日時・整合照合、Workerバインド、APIパリティ、バックアップと移行、p50/p95性能実測・実機受入。CIとRemote反映は個別に記録する。業務データは無断で書込/補正しない、本番承認制を維持。
+- 次：PR検証→空スキーマのRemote実行と0件確認→合格記録→匿名の架空fixtureで独立したD1読取API/性能比較を**別PR**で検討する。実機/権限/秘密情報/データ正本の二重化に関する影響があればユーザーへ事前報告する。
