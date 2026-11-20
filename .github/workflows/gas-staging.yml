@@ -74,6 +74,8 @@ jobs:
         run: node tests/check-stage-match-create-v1639a.cjs
       - name: Verify visitor approval, paid rejection and locked-ledger integrity
         run: node tests/check-stage-visitor-approval-v1640.cjs
+      - name: Verify visitor choices against confirmed ledger dates
+        run: node tests/check-stage-visitor-filter-v1677.cjs
       - name: Verify member-only LINE attendance timestamping and financial locks
         run: node tests/check-stage-line-attendance-v1645.cjs
       - name: Verify admin user-name edit and finalized ledger role buttons

@@ -51,8 +51,8 @@ const reload=new Function('S','$','call','window','Option','renderHome','syncPay
   'unlocked practice returns to collection picker without history button');
  ok(!html.includes('id="homeHistoryToggle"')&&
   !html.includes('id="participantHistoryToggle"')&&
-  !html.includes('id="visitorMineHistoryToggle"')&&html.includes('id="visitorAdminHistoryToggle"'),
-  'collection, participant and applicant History removed while admin history remains');
+  !html.includes('id="visitorMineHistoryToggle"')&&!html.includes('id="visitorAdminHistoryToggle"'),
+  'collection, participant and both visitor screens have no History toggle');
  ok(!ui.includes('PM.showHistoryDates')&&ui.includes('const selectable=(answer?.practices||[])')&&
   ui.includes('PM.practices=selectable;PM.practiceId=target;'),
   'participant picker now includes all open historical days without a History toggle');
@@ -75,18 +75,18 @@ const reload=new Function('S','$','call','window','Option','renderHome','syncPay
  const optionsFor=new Function('$','w','node','practiceOption',optCode+'return optionsFor;')(
   $,{SMDate:D},node,p=>D.practiceLabel(p));
  const requestRows=[{requestId:'VR-PAST',practiceId:'P-PAST',date:past,place:'前回会場'}];
- optionsFor(requestRows,'visitorMinePractice',dates,false);
+ optionsFor(requestRows,'visitorMinePractice',dates,new Set(['P-PAST']));
  ok(nodes.visitorMinePractice.children.length===1&&nodes.visitorMinePractice.value==='P-FUTURE',
-  'visitor lists default to upcoming-only');
- optionsFor(requestRows,'visitorMinePractice',dates,true);
+  'confirmed past visitor date is not listed');
+ optionsFor(requestRows,'visitorMinePractice',dates,new Set());
  ok(nodes.visitorMinePractice.children.length===2&&
-  nodes.visitorMinePractice.children[1].textContent.startsWith('履歴：')&&
+  !nodes.visitorMinePractice.children.some(x=>x.textContent.startsWith('履歴：'))&&
   nodes.visitorMinePractice.value==='P-FUTURE',
-  'visitor historical records visible only when explicitly requested');
+  'unlocked past visitor date appears without a History toggle');
  nodes.visitorMinePractice.value='P-PAST';
- const historyRows=optionsFor(requestRows,'visitorMinePractice',dates,true);
+ const historyRows=optionsFor(requestRows,'visitorMinePractice',dates,new Set());
  ok(historyRows.length===1&&historyRows[0].requestId==='VR-PAST',
-  'historical visitor request is available for inspection');
+  'unconfirmed past visitor request is available for inspection');
 
  const cardSrc=visitor.slice(visitor.indexOf('function card('),visitor.indexOf('function render('));
  const card=new Function('node','w','STATUS','shortDate','formatRequestedAt_','openConfirm','openEdit','openDelete',

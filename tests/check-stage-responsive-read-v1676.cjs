@@ -78,9 +78,9 @@ dlg.close();finishFirst();
  }
  ok(visitor.includes("w.SMStageRead.open('visitorAdminDialog'")&&
   !visitor.includes("'visitorMineHistoryToggle'")&&
-  html.includes('id="visitorAdminHistoryToggle"')&&
+  !html.includes('id="visitorAdminHistoryToggle"')&&
   !html.includes('id="visitorMineHistoryToggle"'),
-  'visitor admin loads inline and only applicant History button was removed');
+  'visitor admin loads inline and both visitor History buttons are absent');
  ok(access.includes("if(!dialog.open)dialog.showModal();")&&
   access.includes('readVersion++')&&
   !access.includes("return run(first?'読み込み中です…'"),

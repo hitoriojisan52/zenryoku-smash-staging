@@ -47,7 +47,7 @@ const schedules=[
  {practiceId:'PR-SECOND',date:'2026-11-28',place:'別体育館',startTime:'09:00',endTime:'13:00'},
  {practiceId:'PR-EMPTY',date:'2026-12-05',place:'無回答会場',startTime:'09:00',endTime:'13:00'}
 ];
-w.SMVisitor.setup({api:async path=>({requests:rows,practices:schedules}),actor:{role:'admin'}});
+w.SMVisitor.setup({api:async path=>({requests:rows,practices:schedules,confirmedPracticeIds:[]}),actor:{role:'admin'}});
 const find=(e,cls)=>{
  if(String(e.className).split(' ').includes(cls))return e;
  for(const child of e.children){const match=find(child,cls);if(match)return match;}
@@ -184,7 +184,7 @@ const deepText=e=>[e.textContent,...e.children.map(deepText)].filter(Boolean).jo
   ok(!html.includes('id="'+oldId+'"'),'obsolete standalone element removed: '+oldId);
   ok(!ui.includes("$('"+oldId+"')"),'no stale listener or DOM reference: '+oldId);
  }
- ok(ui.includes("render('visitorMineCards',optionsFor(mineRows,'visitorMinePractice',mineDates,true),false)")&&
+ ok(ui.includes("render('visitorMineCards',optionsFor(mineRows,'visitorMinePractice',mineDates,mineConfirmed),false)")&&
   !ui.includes("render('visitorMineList'"),
   'request status refreshed only in integrated screen');
  ok(liveJs.includes("call('/api/visitor/practices'),window.SMVisitor.loadMine(isCurrent)"),

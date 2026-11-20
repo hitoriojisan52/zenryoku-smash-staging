@@ -31,9 +31,9 @@ ok(!html.includes('id="participantHistoryToggle"')&&
  !ui.includes("'participantHistoryToggle'"),
  'collection and participant lists use simple dropdowns without History buttons');
 ok(!html.includes('id="visitorMineHistoryToggle"')&&
- html.includes('id="visitorAdminHistoryToggle"')&&
+ !html.includes('id="visitorAdminHistoryToggle"')&&
  !visitor.includes("'visitorMineHistoryToggle'"),
- 'separate visitor administration history is not accidentally removed');
+ 'both visitor date selectors now use confirmation status instead of History buttons');
 
 const reloadSrc=ui.slice(ui.indexOf('async function reload(refreshDates){'),
  ui.indexOf('function renderHome(){'));
