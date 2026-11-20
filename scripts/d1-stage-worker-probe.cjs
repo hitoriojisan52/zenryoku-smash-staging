@@ -93,6 +93,7 @@ async function run(urlFile,tokenFile){
   }
 }
 if(process.argv[2]==='self-test'){
+  assert.equal(WORKER,'zenryoku-smash-d1-pilot-stage');
   assert.equal(percentile([4,2,3,1],.5),2);
   assert.equal(percentile([4,2,3,1],.95),4);
   assert.throws(()=>assertEmpty({ok:true,mode:'staging-counts-only',data:{practiceCount:1}},['practiceCount']));
