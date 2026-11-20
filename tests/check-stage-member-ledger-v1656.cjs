@@ -140,7 +140,7 @@ const rows=[
 ];
 const ledger={carried:20,rows,maxMonth:'2026-12',closingBalance:5};
 const $=id=>nodes[id],S={actor:{role:'duty'},ledger:null};
-const lStart=ui.indexOf('async function loadLedger(){'),
+const lStart=ui.indexOf('async function loadLedger('),
  lEnd=ui.indexOf('function ledgerAction(',lStart);
 ok(lStart>=0&&lEnd>lStart,'actual ledger renderer isolated');
 const renderLedger=new Function('$','call','S','document','today','window','yen','ledgerAction',
