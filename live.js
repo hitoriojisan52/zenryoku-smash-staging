@@ -181,9 +181,9 @@ function screenReadStatus_(id){
  }
  return status;
 }
-function readScreen_(id,label,loader,onComplete){
+function readScreen_(id,label,loader,onComplete,force=false){
  const screen=$(id),prev=screenReadActive_.get(id);
- if(prev&&screen.open)return prev.promise; // no duplicate locked GAS reads
+ if(prev&&screen.open&&!force)return prev.promise; // intentional refresh supersedes stale read
  const version=(screenReadEpoch_.get(id)||0)+1;
  screenReadEpoch_.set(id,version);
  if(!screen.dataset.readCloseBound){
@@ -550,14 +550,14 @@ function ledgerLoadingRow_(month){
  $('prevMonth').disabled=true;$('nextMonth').disabled=true;
  $('newLedgerRow').disabled=true;
 }
-function readLedgerScreen_(){
+function readLedgerScreen_(force=false){
  const month=$('ledgerMonth').value;
  ledgerLoadingRow_(month);
  return readScreen_('ledgerDialog','先月繰り越しと収支明細を読み込んでいます…',
   isCurrent=>loadLedger(isCurrent),()=>{
    $('prevMonth').disabled=false;
    $('newLedgerRow').disabled=false;
-  });
+  },force);
 }
 function openLedger(){
  gateEdit();close('manageDialog');
@@ -1627,7 +1627,7 @@ function bind(){
  $('visitorForm').addEventListener('submit',confirmVisitorForm_);
  $('visitorConfirmCancel').addEventListener('click',()=>close('visitorConfirmDialog'));
  $('visitorConfirmSave').addEventListener('click',registerVisitor_);
- $('ledgerMonth').addEventListener('change',readLedgerScreen_);$('prevMonth').addEventListener('click',()=>shiftMonth(-1));$('nextMonth').addEventListener('click',()=>shiftMonth(1));
+ $('ledgerMonth').addEventListener('change',()=>readLedgerScreen_(true));$('prevMonth').addEventListener('click',()=>shiftMonth(-1));$('nextMonth').addEventListener('click',()=>shiftMonth(1));
  $('closeLedger').addEventListener('click',()=>close('ledgerDialog'));$('newLedgerRow').addEventListener('click',()=>openEditor());
  $('ledgerKind').addEventListener('change',updateEditorKind);
  $('ledgerEditDate').addEventListener('change',()=>syncPayoutWeekday_('ledgerEditDate','ledgerEditWeekday'));
@@ -1642,7 +1642,7 @@ function shiftMonth(amount){
  const [year,month]=$('ledgerMonth').value.split('-').map(Number);
  const dt=new Date(Date.UTC(year,month-1+amount,1)),next=dt.toISOString().slice(0,7);
  if(next>(S.ledger?.maxMonth||today().slice(0,7)))return;
- $('ledgerMonth').value=next;readLedgerScreen_();
+ $('ledgerMonth').value=next;readLedgerScreen_(true);
 }
 bind();
 window.SMStageUX.run('読み込み中です…',boot)
