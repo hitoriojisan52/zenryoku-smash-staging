@@ -106,7 +106,7 @@ nodes.ledgerEditIncome.value='250';
 ok(fn()&&nodes.ledgerEditExpense.message==='',
  'client positive amount clears validation error');
 ok(html.includes('id="ledgerEditDate" type="date" class="dialog-input" required')&&
- html.includes('id="ledgerEditLabel" type="text" maxlength="100" class="dialog-input" required')&&
+ html.includes('id="ledgerEditLabel" type="text" maxlength="100" class="dialog-input" placeholder="例：団体戦費用捻出" required')&&
  !html.includes('value="practice">練習日（削除行を再登録）')&&
  !html.includes('id="homeHistoryToggle"'),
  'date/label required; obsolete practice category and collection history removed');
