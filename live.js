@@ -1175,18 +1175,23 @@ function renderVisitorPracticeOptions_(){
  $('visitorSubmit').disabled=!preferred;
  $('visitorStatus').textContent=preferred?'':'受付中の練習日程がありません';
 }
-async function openVisitorForm_(){
- let loaded=false;
- await guard(async()=>{
-  $('visitorMinePractice').value='';$('visitorPractice').value='';
-  const [response]=await Promise.all([call('/api/visitor/practices'),window.SMVisitor.loadMine()]);
-  VIS.practices=validateVisitorPractices_(response);
-  VIS.draft=null;VIS.unknownResult=false;
-  $('visitorNewFormSection').open=false;
-  $('visitorName').value='';$('visitorKana').value='';$('visitorMemo').value='';
-  renderVisitorPracticeOptions_();loaded=true;
- },'開催日を読み込んでいます…');
- if(loaded){close('manageDialog');dialog('visitorDialog');}
+function openVisitorForm_(){
+ gateEdit();close('manageDialog');
+ VIS.practices=[];VIS.draft=null;VIS.unknownResult=false;
+ $('visitorMinePractice').value='';$('visitorPractice').value='';
+ $('visitorNewFormSection').open=false;
+ $('visitorName').value='';$('visitorKana').value='';$('visitorMemo').value='';
+ $('visitorSubmit').disabled=true;
+ $('visitorPractice').replaceChildren(new Option('開催日を読み込んでいます…',''));
+ $('visitorMineCards').textContent='申請状況を読み込んでいます…';
+ return readScreen_('visitorDialog','開催日とビジター申請状況を読み込んでいます…',
+  async isCurrent=>{
+   const [response]=await Promise.all([
+    call('/api/visitor/practices'),window.SMVisitor.loadMine(isCurrent)]);
+   if(!isCurrent())return;
+   VIS.practices=validateVisitorPractices_(response);
+   renderVisitorPracticeOptions_();
+  });
 }
 function visitorFormDraft_(){
  const practiceId=$('visitorPractice').value,practice=VIS.practices.find(p=>p.practiceId===practiceId);
@@ -1275,8 +1280,9 @@ function renderMemberAttendance_(){
  message.hidden=!message.textContent;
  $('attendanceSave').disabled=AT.uncertain||!response||response.locked;
 }
-async function loadMemberAttendance_(){
+async function loadMemberAttendance_(isCurrent=()=>true){
  const result=await call('/api/attendance/mine');
+ if(!isCurrent())return;
  if(!result||!Array.isArray(result.practices)||!Array.isArray(result.answers))
   throw new Error('参加連絡の取得結果を確認できません');
  const unique=new Set();
@@ -1289,10 +1295,13 @@ async function loadMemberAttendance_(){
  AT.practices=result.practices;AT.answers=result.answers;AT.uncertain=false;
  renderMemberAttendance_();
 }
-async function openMemberAttendance_(){
- let ready=false;
- await guard(async()=>{await loadMemberAttendance_();ready=true;},'参加連絡を読み込んでいます…');
- if(ready){close('manageDialog');dialog('attendanceDialog');}
+function openMemberAttendance_(){
+ close('manageDialog');
+ AT.practices=[];AT.answers=[];AT.uncertain=true;
+ $('attendancePractice').replaceChildren(new Option('開催日を読み込んでいます…',''));
+ $('attendanceSave').disabled=true;
+ return readScreen_('attendanceDialog','本人の参加連絡を読み込んでいます…',
+  isCurrent=>loadMemberAttendance_(isCurrent));
 }
 async function saveMemberAttendance_(event){
  event.preventDefault();
@@ -1598,7 +1607,8 @@ function bind(){
  $('attendancePractice').addEventListener('change',()=>{
   AT.selected=$('attendancePractice').value;renderMemberAttendance_();
  });
- $('attendanceReload').addEventListener('click',()=>guard(loadMemberAttendance_,'参加連絡を読み込んでいます…'));
+ $('attendanceReload').addEventListener('click',()=>readScreen_('attendanceDialog',
+ '本人の参加連絡を更新しています…',isCurrent=>loadMemberAttendance_(isCurrent)));
  $('attendanceForm').addEventListener('submit',saveMemberAttendance_);
  $('attendanceCancel').addEventListener('click',()=>close('attendanceDialog'));
  $('participantPractice').addEventListener('change',switchParticipantDate_);
