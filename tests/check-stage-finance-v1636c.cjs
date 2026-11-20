@@ -34,7 +34,7 @@ ok(!payment.includes('await call(\'/api/overview'), 'only payment API call');
 const category=span('async function saveCategory(','\nasync function saveAmount(');
 ok(!category.includes('reload('),'no second blocking fetch after category');
 ok(category.includes('saved.categoryVersion'),'category version update');
-const amount=span('async function saveAmount(','\nasync function openLedger(');
+const amount=span('async function saveAmount(','\nfunction ledgerLoadingRow_(');
 ok(!amount.includes('reload('),'no second blocking fetch after amount');
 ok(amount.includes('saved.ledgerVersion'),'ledger version update');
 new Function(ui);
