@@ -81,7 +81,7 @@ async function scenario(role){
  ok(denied.error?.message==='権限がありません','unknown role fails authorization');
  ok(denied.$('newLedgerRow').disabled,'unknown role cannot enable ledger Add');
  ok(html.includes('id="newLedgerRow" class="btn-green" type="button"')&&
-    html.includes('live.js?v=1675-startup-perf'),'original Add control and cache-busted script retained');
+    html.includes('live.js?v=1676-responsive'),'original Add control and cache-busted script retained');
  ok(js.includes("$('newLedgerRow').addEventListener('click',()=>openEditor())"),
     'ledger Add still invokes original editor function');
  const editorStart=js.indexOf('function openEditor('),editorEnd=js.indexOf('function updateEditorKind(',editorStart);
