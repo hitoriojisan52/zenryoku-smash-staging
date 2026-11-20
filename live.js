@@ -62,7 +62,7 @@ function requestTimeoutError_(isWrite){
 }
 async function call(path,payload={}){
  if(!S.token||!CONFIG.apiBaseUrl)throw new Error('LINE認証またはAPI設定がありません');
- const url=CONFIG.apiBaseUrl.replace(/\\/$/,'')+path,isWrite=MUTATING_ENDPOINTS.has(path);
+ const url=CONFIG.apiBaseUrl.replace(/\/$/,'')+path,isWrite=MUTATING_ENDPOINTS.has(path);
  if(isWrite)S.updateEpoch++;
  const startedAt=performance.now();
  // Reads can abort. Writes must never abort/retry: GAS may commit.
