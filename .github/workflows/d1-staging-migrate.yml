@@ -22,6 +22,7 @@ jobs:
         with:
           node-version: '22'
       - run: python3 scripts/d1-staging-check.py
+      - run: python3 tests/check-d1-business-schema.py
       - run: node scripts/d1-staging-config.cjs self-test
   migrate-stage:
     needs: local-safety

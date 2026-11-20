@@ -5,6 +5,7 @@ on:
     paths:
       - 'd1-staging/**'
       - 'scripts/d1-staging-*'
+      - 'tests/check-d1-business-schema.py'
       - '.github/workflows/d1-staging-*.yml'
       - 'docs/D1_MIGRATION_PLAN.md'
 permissions:
@@ -20,6 +21,8 @@ jobs:
           node-version: '22'
       - name: Validate isolated migration with SQLite and guard existing Worker
         run: python3 scripts/d1-staging-check.py
+      - name: Validate business schema and v15 historical safety contracts
+        run: python3 tests/check-d1-business-schema.py
       - name: Validate D1 target-account and database guard
         run: node scripts/d1-staging-config.cjs self-test
       - name: Protect legacy ledger confirmation ordering and balances
