@@ -18,7 +18,7 @@ assert.match(js,/setStatus\('warning'/);
 assert.match(js,/setStatus\('info'/);
 assert.match(js,/setStatus\('error'/);
 assert.match(css,/stage-system-message--success/);
-assert.match(css,/stage-system-message--info:not\(\.stage-inline-read-loading\)/);
+assert.ok(css.includes('.stage-system-message--processing'),'processing banner style exists');
 assert.match(css,/stage-system-message--warning:not\(:empty\)::before/);
 assert.match(css,/stage-system-message--error:not\(:empty\)::before/);
 assert.match(live,/location\.href='registration\.html'/);
