@@ -78,7 +78,7 @@ ok(writes.length===3&&writes.every(w=>w==='出欠回答'),
  'no finance row, payment row, match state, member ID or ledger written');
 // Auth, opId, Lock and audit are verified at the actual dispatch branch.
 const dispatch=gas.slice(gas.indexOf('function dispatch_('),gas.indexOf('function doPost(',gas.indexOf('function dispatch_(')));
-const pMember=dispatch.indexOf("member=member_(ss,body.lineUserId)");
+const pMember=dispatch.indexOf("member=member_(ss,body.lineUserId,overviewReadContext)");
 const pGuest=dispatch.indexOf("if(op==='visitor.register'||op==='visitor.request')");
 const pDuty=dispatch.indexOf('requireDuty_(member);');
 ok(pMember>=0&&pGuest>pMember&&pGuest<pDuty,
