@@ -265,8 +265,8 @@ function readScreen_(id,label,loader,onComplete,force=false){
    state.hidden=false;state.classList.remove('stage-inline-read-loading');
    state.classList.remove('stage-system-message--info');
    state.classList.add('stage-system-message--error');
-   state.textContent=window.SMStageUX.errorDetails(error).message;
-   void window.SMStageUX.showError(error);
+   state.textContent=window.SMStageUX?.errorDetails?.(error)?.message||'読み込みに失敗しました。再度お試しください。';
+   void window.SMStageUX?.showError?.(error);
   }).finally(()=>{
    if(current()&&refreshButton)refreshButton.disabled=false;
    if(screenReadActive_.get(id)?.version===version)
@@ -431,7 +431,7 @@ async function reload(refreshDates){
    S.confirmedPracticeKey=confirmedKey;
    S.selectableDayKey=selectableDayKey;
    S.paymentNeedsRefresh=false;S.homeReadFailed=false;
-   window.SMStageUX.clearInlineError();
+   window.SMStageUX?.clearInlineError?.();
    renderHome();syncPaymentControls();
  })();
  S.reloadPromise=task;
@@ -441,7 +441,7 @@ async function reload(refreshDates){
   if(typeof showHomeReadError_==='function')showHomeReadError_(e);
   syncPaymentControls();
   if($('refresh')&&S.pending.size===0)$('refresh').disabled=false;
-  if(!window.SMStageUX.isBusy())void window.SMStageUX.showError(e);
+  if(window.SMStageUX?.isBusy?.()===false)void window.SMStageUX.showError(e);
   throw e;
  }
  finally{
