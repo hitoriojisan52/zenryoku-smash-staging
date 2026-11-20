@@ -490,3 +490,13 @@
 - 旧受入で `/api/overview` 約5.4秒、GAS内部約2.19秒、ロック待ち約0.11秒。15秒再発の原因をロックと断定せず、LINE/GAS中継と端末実測で分解する。管理用 `?perf=1` は継続。
 - 詳細仕様と保護事項、検証結果：[v0.16.88整合性・性能記録](stage-v1688-registration-integrity-performance.md)。
 - **次**：全GAS/UI回帰CI→検証main→既存GAS自動デプロイ@番号とPages/Workers Builds/公開GET-only確認を別に記録。別テスター実機②の申請待ち/承認/再訪問を受入後に実データ再読込し照合。会計残高/確定順序/操作履歴/本番は不変更。
+
+
+## 43. v0.16.88 CI・検証反映完了／再度の登録データ照合（2026/11/20）
+
+- [PR #111](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/111)を **GAS safety-check・Connected staging UI regression checks・Specification priority checks の3系統すべて成功後**、検証mainへマージ。SHA `a29008f7f99615e83a36ea3178dfc646aa37c237`。途中のUI模擬テストで初期hidden属性を表していないテストダブルの不整合を検出、修正して再実行し、すべて成功。
+- [検証用GAS自動デプロイ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44740126192) **success**：既存デプロイを `Redeployed *** @48` として更新、GitHubのGASソース照合 `PASS`、ドリフト検査成功。GAS設定値、デプロイID、リポジトリの本番設定は変更せず。
+- [GitHub Pagesデプロイ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44740125010) build/deploy success、同SHAの **Cloudflare Workers Builds: zenryoku-smash-staging-api** success（Workerソース不変更）。[公開GET-onlyスモーク](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44740126200) success。LINE実機の新バージョン通信時間計測とは分ける。
+- 反映後の検証用Sheetの**読み取り専用再照合**：メンバー3件（有効3）、申請4件（承認済2・却下1・承認待ち1）、退会履歴1件。ID重複0件、承認済み申請のLINE/メンバーID/氏名/カナ不一致0件、承認待ちの審査情報不正0件。最初の確認から件数が変動したが、誰の操作かは本人情報なしに特定できない。テスターの申請が成功したと推測しない。GitHub文書に氏名・LINE ID・トークンを保存しない。
+- **実機受入**：利用申請専用LIFFで既存登録者に緑「利用登録済みです。」が表示されたことはユーザー確認済み。未登録テスターの申請・承認・再訪問の全操作、同一端末での実データ状態照合、15秒タイムアウトの再計測は**未受入**。
+- **性能の正確な結論**：退会履歴照合の取得列6→1（通信セル量約83%削減）はソース/モック/CI確認済み。端末所要時間の減少は未計測で、過去の `/api/overview` 約5.4秒のボトルネック解消とは言えない。次の計測は運用管理LIFF `https://liff.line.me/2012602642-XBSkXduO?perf=1` と専用申請LIFF `https://liff.line.me/2012602642-lKuGSb43?perf=1`。通信内訳の数値と失敗メッセージのみを使用。ユーザーにLINE ID/トークンを求めない。本番未変更。
