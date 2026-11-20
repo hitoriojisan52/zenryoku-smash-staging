@@ -13,7 +13,7 @@
  };
  let api=null,actor=null,selected=null,editTarget=null,deleteTarget=null;
  let refreshAfterDecision=null,mineRows=[],adminRows=[],mineDates=[],adminDates=[];
- let mineHistoryVisible=false,adminHistoryVisible=false;
+ let adminHistoryVisible=false;
  const node=(tag,cls,text)=>{
   const el=document.createElement(tag);if(cls)el.className=cls;
   if(text!==undefined)el.textContent=String(text);
@@ -116,14 +116,15 @@
   rows.forEach(r=>target.append(card(r,admin)));
  }
  function renderMine(){
-  render('visitorMineCards',optionsFor(mineRows,'visitorMinePractice',mineDates,mineHistoryVisible),false);
+  render('visitorMineCards',optionsFor(mineRows,'visitorMinePractice',mineDates,true),false);
  }
  function renderAdmin(){
   render('visitorAdminCards',optionsFor(adminRows,'visitorAdminPractice',adminDates,adminHistoryVisible),true);
  }
- async function loadMine(){
+ async function loadMine(isCurrent=()=>true){
   if(!api)return [];
   const result=await api('/api/visitor/mine');
+  if(!isCurrent())return [];
   if(!Array.isArray(result?.requests)||result.requests.some(r=>!r.requestId||
      !STATUS[r.status]||!r.practiceId||!Number.isSafeInteger(r.version)))
    throw Error('ビジター申請状況の取得結果が不正です。');
@@ -132,9 +133,10 @@
   mineDates=result.practices||[];
   mineRows=result.requests;renderMine();return mineRows;
  }
- async function loadAdmin(){
+ async function loadAdmin(isCurrent=()=>true){
   if(actor?.role!=='admin')throw Error('管理者のみ閲覧できます');
   const result=await api('/api/visitor/admin-list');
+  if(!isCurrent())return [];
   if(!Array.isArray(result?.requests)||result.requests.some(r=>!r.requestId||
      !STATUS[r.status]||!r.practiceId||!Number.isSafeInteger(r.version)))
    throw Error('ビジター管理情報の取得結果が不正です。');
@@ -223,12 +225,6 @@
   });
  }
  function bind(){
-  $('visitorMineHistoryToggle').addEventListener('click',()=>{
-   mineHistoryVisible=!mineHistoryVisible;
-   $('visitorMineHistoryToggle').textContent=mineHistoryVisible?'履歴を閉じる':'履歴';
-   $('visitorMineHistoryToggle').setAttribute('aria-pressed',String(mineHistoryVisible));
-   renderMine();
-  });
   $('visitorAdminHistoryToggle').addEventListener('click',()=>{
    adminHistoryVisible=!adminHistoryVisible;
    $('visitorAdminHistoryToggle').textContent=adminHistoryVisible?'履歴を閉じる':'履歴';
@@ -237,14 +233,22 @@
   });
   $('visitorMinePractice').addEventListener('change',renderMine);
   $('visitorAdminPractice').addEventListener('change',renderAdmin);
-  $('visitorMineRefresh').addEventListener('click',()=>busy('申請状況を更新しています…',loadMine));
-  $('visitorAdminMenu').addEventListener('click',()=>busy('ビジター申請を読み込んでいます…',async()=>{
+  $('visitorMineRefresh').addEventListener('click',()=>w.SMStageRead.open('visitorDialog',
+   '申請状況を更新しています…',current=>loadMine(current)));
+  $('visitorAdminMenu').addEventListener('click',()=>{
+   if(actor?.role!=='admin')return;
+   $('manageDialog').close();
    $('visitorAdminPractice').value='';adminHistoryVisible=false;
    $('visitorAdminHistoryToggle').textContent='履歴';
    $('visitorAdminHistoryToggle').setAttribute('aria-pressed','false');
-   await loadAdmin();$('manageDialog').close();$('visitorAdminDialog').showModal();
-  }));
-  $('visitorAdminRefresh').addEventListener('click',()=>busy('申請を更新しています…',loadAdmin));
+   $('visitorAdminCards').textContent='審査対象を読み込んでいます…';
+   $('visitorAdminPractice').disabled=true;
+   w.SMStageRead.open('visitorAdminDialog','ビジターの審査情報を読み込んでいます…',
+    current=>loadAdmin(current),()=>$('visitorAdminPractice').disabled=false);
+  });
+  $('visitorAdminRefresh').addEventListener('click',()=>
+   w.SMStageRead.open('visitorAdminDialog','ビジターの審査情報を更新しています…',
+    current=>loadAdmin(current)));
   $('visitorAdminClose').addEventListener('click',()=>$('visitorAdminDialog').close());
   $('visitorDecisionCancel').addEventListener('click',()=>{selected=null;$('visitorDecisionDialog').close()});
   $('visitorDecisionConfirm').addEventListener('click',decide);
