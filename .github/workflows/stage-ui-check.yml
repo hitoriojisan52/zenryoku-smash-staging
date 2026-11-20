@@ -60,6 +60,7 @@ on:
       - 'tests/check-stage-error-perf-v1682.cjs'
       - 'tests/check-stage-read-profile-ui-v1691.cjs'
       - 'tests/check-stage-money-status-confirm-gate-v1692.cjs'
+      - 'tests/check-stage-message-region-v1693.cjs'
       - 'tests/check-stage-registration-perf-v1683.cjs'
       - 'registration.html'
       - 'registration.js'
@@ -192,6 +193,8 @@ jobs:
         run: node tests/check-stage-read-profile-ui-v1691.cjs
       - name: Verify saving status under money inputs and strict 11/21 finalization lock
         run: node tests/check-stage-money-status-confirm-gate-v1692.cjs
+      - name: Verify top-screen system message region and amount field alignment
+        run: node tests/check-stage-message-region-v1693.cjs
       - name: Verify standalone registration and semantic message palette
         run: node tests/check-stage-registration-standalone-v1684.cjs
       - name: Simulate approved and new registration LIFF read/write lifecycle
