@@ -53,8 +53,10 @@ ok(live.includes('live.js?v=1676-responsive-reads')&&match.includes('match.js?v=
  match.includes('access-ui.js?v=1657'),'all modified client scripts are cache-busted');
 ok(liveJs.includes("className='schedule-note stage-system-message stage-system-message--info'"),
  'empty schedule/participants have same informational box');
-ok(liveJs.includes("status.classList.toggle('stage-system-message--info',!snap)"),
- 'cash loading state switches to informational style without losing warning style');
+ok(liveJs.includes("status.classList.remove('stage-system-message--info')")&&
+ liveJs.includes("status.hidden=!status.textContent")&&
+ liveJs.includes("status.classList.add('stage-system-message--warning')"),
+ 'cash duplicate loading banner is hidden while post-read warnings remain visible');
 ok(liveJs.includes("const notice=$('participantNotice')")&&
  liveJs.includes("notice.hidden=!notice.textContent"),
  'participant lock message is hidden when editing is allowed');

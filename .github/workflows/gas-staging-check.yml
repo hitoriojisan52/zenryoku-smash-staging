@@ -29,6 +29,7 @@ on:
       - 'tests/check-stage-startup-performance-v1675.cjs'
       - 'tests/check-stage-responsive-read-v1676.cjs'
       - 'tests/check-stage-visitor-filter-v1677.cjs'
+      - 'tests/check-stage-foreground-read-v1678.cjs'
       - 'tests/check-stage-withdraw-rejoin-v1653.cjs'
       - 'tests/check-stage-member-ledger-v1656.cjs'
       - 'tests/check-stage-member-kana-v1657.cjs'
@@ -77,6 +78,7 @@ jobs:
       - run: node tests/check-stage-startup-performance-v1675.cjs
       - run: node tests/check-stage-responsive-read-v1676.cjs
       - run: node tests/check-stage-visitor-filter-v1677.cjs
+      - run: node tests/check-stage-foreground-read-v1678.cjs
       - run: node tests/check-stage-withdraw-rejoin-v1653.cjs
       - run: node tests/check-stage-member-ledger-v1656.cjs
       - run: node tests/check-stage-member-kana-v1657.cjs

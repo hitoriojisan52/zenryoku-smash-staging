@@ -168,6 +168,19 @@ async function guard(action,label='処理中です…'){
 // Never hide/disable their Close buttons; stale results from closed screens
 // cannot overwrite a newly opened screen. Mutations still use guard().
 const screenReadEpoch_=new Map(),screenReadActive_=new Map();
+const screenReadRefreshIds_={
+ scheduleDialog:'scheduleReload',visitorDialog:'visitorMineRefresh',
+ visitorAdminDialog:'visitorAdminRefresh',attendanceDialog:'attendanceReload',
+ participantDialog:'participantReload'
+};
+// Update the existing blue loading message in-place, without another banner.
+function updateReadScreenStatus_(id,label,isCurrent=()=>true){
+ if(!isCurrent())return;
+ const screen=$(id);
+ if(!screen?.open)return;
+ const status=screenReadStatus_(id);
+ if(status.classList.contains('stage-inline-read-loading'))status.textContent=label;
+}
 function screenReadStatus_(id){
  const screen=$(id);
  let status=screen.querySelector('.stage-inline-read-status');
@@ -194,6 +207,8 @@ function readScreen_(id,label,loader,onComplete,force=false){
   });
  }
  if(!screen.open)screen.showModal();
+ const refreshId=screenReadRefreshIds_[id],refreshButton=refreshId?$(refreshId):null;
+ if(refreshButton)refreshButton.disabled=true;
  const state=screenReadStatus_(id);
  state.hidden=false;state.classList.remove('stage-system-message--warning');
  state.classList.add('stage-inline-read-loading');
@@ -212,6 +227,7 @@ function readScreen_(id,label,loader,onComplete,force=false){
    state.textContent='読み込みできませんでした：'+String(error?.message||error)+
     '。閉じるか「更新」から再試行してください。';
   }).finally(()=>{
+   if(current()&&refreshButton)refreshButton.disabled=false;
    if(screenReadActive_.get(id)?.version===version)
     screenReadActive_.delete(id);
   });
@@ -260,10 +276,11 @@ async function boot(){
   window.SMLiveAccess?.setup({api:call,actor:S.actor});
   // All management actions disabled at startup are restored only after
   // verified duty/admin login. Keep the ledger Add button in this same list.
-  for(const id of ['reimbursementBtn','manageBtn','refresh','adjustment','expense','newLedgerRow'])$(id).disabled=false;
+  for(const id of ['reimbursementBtn','manageBtn','adjustment','expense','newLedgerRow'])$(id).disabled=false;
   $('stageBusyLabel').textContent='集金データを取得しています…';
   const overviewStart=performance.now();
   await reload(true);
+  $('refresh').disabled=false;
   const overviewMs=Math.round(performance.now()-overviewStart);
   if(PERF_MODE){
    const totalMs=Math.round(performance.now()-startupStart);
@@ -938,12 +955,15 @@ function renderCash(){
     yen(actual-snap.bookBalance)+' (不足)'):'—';
  difference.className=!valid?'':actual===snap.bookBalance?'cash-same':
     actual>snap.bookBalance?'cash-surplus':'cash-shortage';
- status.classList.toggle('stage-system-message--info',!snap);
- status.classList.toggle('stage-system-message--warning',!!snap);
- status.textContent=!snap?'帳簿残金を読み込んでいます…':
-  !snap.found?'⚠️ 指定された日付の行が「全体収支管理表」に見つかりません。':
+ // Read progress is displayed ONLY in the single animated blue banner.
+ // Keep this row for actionable warnings after a successful data fetch.
+ status.classList.remove('stage-system-message--info');
+ status.classList.add('stage-system-message--warning');
+ status.textContent=!snap?'':!snap.found?
+  '⚠️ 指定された日付の行が「全体収支管理表」に見つかりません。':
   snap.updatedBy&&snap.savedBookBalance!==null&&snap.savedBookBalance!==snap.bookBalance?
   '前回確認後に帳簿残金が変わりました':'';
+ status.hidden=!status.textContent;
 }
 function validateCashSnapshot_(result,practiceId){
  if(!result||result.practiceId!==practiceId||result.auditDate!==S.overview?.practice?.date||
@@ -964,9 +984,11 @@ function validateCashSnapshot_(result,practiceId){
 async function refreshCashSnapshot_(isCurrent=()=>true){
  const practiceId=S.practiceId;
  cashSnapshot=null;renderCash();
+ updateReadScreenStatus_('cashDialog','帳簿残高と金種記録を取得しています…',isCurrent);
  const response=await call('/api/cash/get',{practiceId});
  if(!isCurrent())return;
  if(practiceId!==S.practiceId)throw new Error('開催日が変更されました。もう一度現金確認を開いてください');
+ updateReadScreenStatus_('cashDialog','帳簿残高と金種枚数を確認しています…',isCurrent);
  const validated=validateCashSnapshot_(response,practiceId);
  cashSnapshot=response;cashCountsState=validated.counts;renderCash();
 }
@@ -1182,13 +1204,13 @@ function renderVisitorPracticeOptions_(){
 function openVisitorForm_(){
  gateEdit();close('manageDialog');
  VIS.practices=[];VIS.draft=null;VIS.unknownResult=false;
- $('visitorMinePractice').replaceChildren(new Option('日程を読み込んでいます…',''));
+ $('visitorMinePractice').replaceChildren(new Option('',''));
  $('visitorMinePractice').value='';$('visitorMinePractice').disabled=true;
  $('visitorPractice').value='';
  $('visitorNewFormSection').open=false;
  $('visitorName').value='';$('visitorKana').value='';$('visitorMemo').value='';
  $('visitorSubmit').disabled=true;
- $('visitorPractice').replaceChildren(new Option('開催日を読み込んでいます…',''));
+ $('visitorPractice').replaceChildren(new Option('',''));
  $('visitorMineCards').textContent='申請状況を読み込んでいます…';
  return readScreen_('visitorDialog','開催日とビジター申請状況を読み込んでいます…',
   async isCurrent=>{
@@ -1304,7 +1326,7 @@ async function loadMemberAttendance_(isCurrent=()=>true){
 function openMemberAttendance_(){
  close('manageDialog');
  AT.practices=[];AT.answers=[];AT.uncertain=true;
- $('attendancePractice').replaceChildren(new Option('開催日を読み込んでいます…',''));
+ $('attendancePractice').replaceChildren(new Option('',''));
  $('attendanceSave').disabled=true;
  return readScreen_('attendanceDialog','本人の参加連絡を読み込んでいます…',
   isCurrent=>loadMemberAttendance_(isCurrent));
@@ -1468,6 +1490,7 @@ function openParticipantManager_(){
  gateEdit();close('manageDialog');
  PM.people=[];PM.practices=[];PM.financeLocked=true;PM.matchLocked=true;PM.uncertain=true;
  $('participantCards').textContent='参加者を読み込んでいます…';
+ $('participantPractice').replaceChildren(new Option('',''));
  $('participantPractice').disabled=true;
  return readScreen_('participantDialog','参加者一覧を読み込んでいます…',
   isCurrent=>loadParticipants_(isCurrent),
@@ -1562,13 +1585,25 @@ async function deleteParticipant_(){
 }
 
 function bind(){
- $('date').addEventListener('change',()=>{S.practiceId=$('date').value;guard(()=>reload(false),'開催日を読み込んでいます…');});
- $('refresh').addEventListener('click',()=>guard(async()=>{
-  // Ensure the full-screen spinner is painted even if a warm cached read
-  // or an overlapping automatic poll completes during the same frame.
-  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-  await reload(true);
- },'データを更新しています…'));
+ $('date').addEventListener('change',async()=>{
+  S.practiceId=$('date').value;
+  $('refresh').disabled=true; // a foreground date change also owns a read
+  try{await guard(()=>reload(false),'開催日を読み込んでいます…');}
+  finally{syncPaymentControls();}
+ });
+ $('refresh').addEventListener('click',async()=>{
+  if($('refresh').disabled)return;
+  $('refresh').disabled=true;
+  try{
+   await guard(async()=>{
+    // An explicit/manual refresh retains the existing full-screen safety lock.
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    await reload(true);
+   },'データを更新しています…');
+  }finally{
+   syncPaymentControls();
+  }
+ });
  $('categoryDialog').addEventListener('close',()=>{S.modalTarget=null;});$('cancelCategory').addEventListener('click',()=>close('categoryDialog'));$('saveCategory').addEventListener('click',saveCategory);
  $('adjustment').addEventListener('change',()=>saveAmount('adjustment'));$('expense').addEventListener('change',()=>saveAmount('expense'));
  $('receiptBtn').addEventListener('click',()=>{if(!S.overview?.ledger||S.overview.ledger.status==='confirmed')return toast('領収書を登録できる未確定の収支行がありません');$('homeReceipt').click();});

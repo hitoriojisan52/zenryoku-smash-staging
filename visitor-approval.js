@@ -245,7 +245,7 @@
   $('visitorAdminMenu').addEventListener('click',()=>{
    if(actor?.role!=='admin')return;
    $('manageDialog').close();
-   $('visitorAdminPractice').replaceChildren(node('option','','日程を読み込んでいます…'));
+   $('visitorAdminPractice').replaceChildren(node('option','',''));
    $('visitorAdminPractice').value='';
    $('visitorAdminCards').textContent='審査対象を読み込んでいます…';
    $('visitorAdminPractice').disabled=true;
