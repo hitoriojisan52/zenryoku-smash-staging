@@ -703,3 +703,13 @@
 - GitHub Environment`d1-staging`の既存`D1_STAGE_API_TOKEN`は**D1 Edit専用**でありWorkers Scripts Editを持たない。別の`D1_WORKER_STAGE_API_TOKEN`をEnvironment secretとして、`D1_WORKER_STAGE_DEPLOY_ENABLED=true`をEnvironment variableとして**ユーザーの初回設定/判断が必要**。既存のD1 ID・Secret・main限定を維持。Worker tokenの権限拡大リスクと個別Worker限定への将来ローテーション案を設計書に記録。
 - PR CIの成功、main統合、Remote Worker's実デプロイ・GET性能実測、Pages/Workers Builds結果は**まだ確認前**。次はPRのoffline-safetyで設定ファイル/衝突ガード/プライベートBearer/旧業務回帰の成功を確認し、検証mainへ統合する。ユーザーが初期設定を終えるまではremote deployをskipし、**公開成功と書かない**。
 - 今後：Token/Flagの完了連絡→次のmain変更で自動デプロイ→Cloudflare Workers.dev認証付き件数0のGET/実HTTP p50/p95確認→本人認証・権限・個人情報の安全な段階移行を別レビュー。旧収支確定順序/操作ID冪等・版数CAS/監査・試合版・バックアップは未移植。本番承認制を堅持。
+
+
+## 64. D1第4工程 PR #133 検証main統合・Remote Worker未実行ガード確認（2026/11/21）
+
+- [PR #133](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/133)を検証main `99d7f0d362cea1054270832072c3080955504bde`にsquash統合。GitHub PR側`schema-safety`、`spec-contract`、`offline-safety`成功。URL検証のテストが最初に見つけた`workers.dev.evil.example`誤認は完全ホスト名チェックへ修正済み。現行の会計確定順序・本人出欠・退会再入会・試合作成の旧回帰はすべて成功。
+- [独立D1 Worker Actions #44798639824](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44798639824) で`offline-safety`成功。`deploy-native-worker`ジョブ自体はsuccessだが、Environmentの`D1_WORKER_STAGE_DEPLOY_ENABLED`が未設定のため`Check explicit staging-only enable flag`以降の実Cloudflare操作は**すべてskipped**。**独立Workerをまだ作成・公開していない**。D1バインディングの実接続・GET/性能計測は未完了。
+- [D1 REST Actions #44798639958](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44798639958) はCloudflare D1 APIに対する空4テーブル`COUNT`のwarmup2 + 計測12回成功：HTTP p50 **139.7ms** / p95 **173.9ms**、内部SQL p50 **0.1ms** / p95 **0.2ms**。前回(227.8/250.7ms)との差はランナー等を含むREST試験の変動であり、LINEアプリやWorker native bindingの性能改善効果ではない。現行D1の業務データを変更・移行していない。
+- 同SHAの[GitHub Pages Actions #44798638771](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44798638771) build/deploy成功、既存のCloudflare Workers Buildsもsuccess。**既存Worker `zenryoku-smash-staging-api`のソース・binding・ルーティングは不変更**。GAS@51、LIFF、Sheets正本、本番を変更していない。
+- 必要なユーザー初期設定：Cloudflareの同じアカウントに最小権限`Account → Workers Scripts → Edit`の新規トークン`zenryoku-smash-d1-worker-staging`を作成し、[GitHub Environment d1-staging](https://github.com/hitoriojisan52/zenryoku-smash-staging/settings/environments)のSecret`D1_WORKER_STAGE_API_TOKEN`に登録。同Environment variable`D1_WORKER_STAGE_DEPLOY_ENABLED=true`を追加。既存のD1トークン・ID・main限定を変更しない。手順と広域権限リスクは[D1_WORKER_DEPLOY_PLAN.md](D1_WORKER_DEPLOY_PLAN.md)に記載。値はチャットに送らない。
+- 次はユーザーからの初期設定完了を受けて、ChatGPTが検証mainから新Workerの所有確認→新規デプロイ→Bearer Secret設定→実HTTP 0件/無認証拒否→Worker Native D1 GETのp50/p95をログ確認し、テスト結果と残存リスクを報告する。本番移行はユーザー事前承認制、会計/LINE本人認証/データ正本の移行は別工程。
