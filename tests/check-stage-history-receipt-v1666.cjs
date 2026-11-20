@@ -51,8 +51,8 @@ const reload=new Function('S','$','call','window','Option','renderHome','syncPay
   'unlocked practice returns to collection picker without history button');
  ok(!html.includes('id="homeHistoryToggle"')&&
   !html.includes('id="participantHistoryToggle"')&&
-  html.includes('id="visitorMineHistoryToggle"')&&html.includes('id="visitorAdminHistoryToggle"'),
-  'collection and participant History removed, visitor request histories unaffected');
+  !html.includes('id="visitorMineHistoryToggle"')&&html.includes('id="visitorAdminHistoryToggle"'),
+  'collection, participant and applicant History removed while admin history remains');
  ok(!ui.includes('PM.showHistoryDates')&&ui.includes('const selectable=(answer?.practices||[])')&&
   ui.includes('PM.practices=selectable;PM.practiceId=target;'),
   'participant picker now includes all open historical days without a History toggle');
