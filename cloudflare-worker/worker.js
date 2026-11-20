@@ -16,6 +16,7 @@ const VALID_PATHS = Object.freeze({
   '/api/member/manage/list':'member.manage.list',
   '/api/member/manage/decide':'member.manage.decide',
   '/api/member/manage/role':'member.manage.role',
+  '/api/stage/self-role':'stage.selfRole', // authenticated, strict staging identity gate
   '/api/member/manage/edit':'member.manage.edit', // v0.16.57: name and optional kana, administrator validated by GAS
   '/api/member/manage/withdraw':'member.manage.withdraw', // v0.16.53: admin-only, strictly staging-bound, opt-in
   '/api/member/manage/withdraw/check':'member.manage.withdraw.check', // v0.16.27: read-only and admin-checked by GAS
