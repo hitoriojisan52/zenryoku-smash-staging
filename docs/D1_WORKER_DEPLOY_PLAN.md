@@ -35,3 +35,12 @@
 - GitHub Environmentのフラグ未登録なら`deploy-native-worker`は**remote未実施**で終了したと確認する。単にActions successとなっただけではWorkerが公開済みとは扱わない。
 - 初期設定完了後に本人からの連絡とGitHub上の新規commitで、Workers Script GETの所有照合、D1 UUID/名前一致、dry-run、Worker deploy、シークレット注入、Workers.devへの認可・無認可テスト、全テーブル0件を確認する。
 - 残課題：現行LINE認証/権限の再利用、D1実データへの段階移行とデータパリティ、会計書込の排他・操作ID冪等・監査、復旧用の独立バックアップ、本番承認と本番反映。ユーザーの承認なしに本番へ影響する変更は行わない。
+
+
+## 2026/11/21 実装・オフライン検証結果（検証main）
+
+- [PR #133](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/133) に`d1-stage-worker-deploy.yml`、D1 binding設定ジェネレータ、既存Workerの名前衝突ガード、Bearer付きGET/無認証・POST拒否とHTTP p50/p95、所有マーカー、退避対象gitignoreを実装。
+- PRの初回CIではURLパーサが `workers.dev.evil.example` のような不正ホスト名の先頭だけを拾う問題を検出。完全なホスト名を検証するよう修正し、PR [Actions #44798531767](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44798531767)で`offline-safety`成功。既存D1 schema, 会計, 本人出欠, 退会再入会, 試合の安全回帰と仕様優先チェックも成功。
+- 検証main SHA `99d7f0d362cea1054270832072c3080955504bde`で[Actions #44798639824](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44798639824) `offline-safety`成功。`deploy-native-worker`ジョブは外形上successだが、明示有効化フラグ未設定のため**remote deployment、D1 binding接続、Secret投入、実HTTP GET、Worker経由p50/p95の全ステップはskipped**。単にワークフローの緑色チェックをWorker公開成功と誤認しない。
+- 同mainの既存[GitHub Pages #44798638771](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44798638771) build/deploy/report成功、`Workers Builds: zenryoku-smash-staging-api`成功（Workerソース/設定変更なし）。[D1 RESTベンチ #44798639958](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44798639958)成功：空4テーブルの12測定のGitHubランナー→D1 REST HTTP p50 **139.7ms** / p95 **173.9ms**、D1 SQL p50 **0.1ms** / p95 **0.2ms**。これは**独立Workerのネイティブbinding性能ではない**。
+- **未完了 / ユーザー初期設定待ち**：Workers Scripts Edit専用の別トークンとEnvironment `D1_WORKER_STAGE_API_TOKEN`、`D1_WORKER_STAGE_DEPLOY_ENABLED=true`が必要。既存のD1 API Token、Account/DB UUID、旧Worker、GAS/Sheets、LINE、本番は変更しない。設定が済んだ後、ChatGPTは新main更新/Actions実行を通して新Workerのデプロイ・HTTPスモーク・p50/p95を検証し、引継ぎを更新する。承認なく本番を反映しない。
