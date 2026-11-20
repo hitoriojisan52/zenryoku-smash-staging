@@ -547,6 +547,7 @@ function renderHome(){const v=S.overview;if(!v)return;const {practice,ledger,par
   $('adjustment').value=0;$('expense').value=0;
   $('confirm').disabled=true;$('adjustment').disabled=true;$('expense').disabled=true;
   $('cashCounter').disabled=true;$('list').replaceChildren();
+  if($('confirmLockReason')){$('confirmLockReason').textContent='';$('confirmLockReason').hidden=true;}
   $('collectionLockReason').textContent='本日以降の開催日がありません';
   $('collectionLockReason').hidden=false;updateFooter();return;
  }
@@ -564,6 +565,17 @@ function renderHome(){const v=S.overview;if(!v)return;const {practice,ledger,par
  }
  $('confirm').disabled=homeLocked||practice.date>today()||ledger?.canConfirm!==true;
  $('confirm').textContent=ledger?.status==='confirmed'?'確定済':'収支を確定';
+ // Confirmation is separate from collection: a prior unconfirmed ledger
+ // (including reimbursement and other income) blocks finalization even when
+ // both participants have already paid. Retain the server-side chronology.
+ const confirmReason=$('confirmLockReason');
+ if(confirmReason){
+  const priorPending=!homeLocked&&practice.date<=today()&&
+   ledger?.status==='open'&&ledger.canConfirm===false;
+  confirmReason.textContent=priorPending?
+   '先行する未確定の収支があります。全体収支管理表で古い日付から順に確定してください。':'';
+  confirmReason.hidden=!priorPending;
+ }
  $('adjustment').disabled=homeLocked;$('expense').disabled=homeLocked;
  const list=$('list'),pos=list.scrollTop;list.replaceChildren();
  for(const p of M.sortParticipants(participants)){
@@ -689,6 +701,11 @@ async function saveCategory(){
 // A field-level status, never a global spinner. The ledger version is still
 // protected: while one money change is in flight, payment checkboxes and
 // other finance actions are disabled (not auto-queued or retried).
+function setAmountStatus_(status,message,state){
+ if(!status)return;
+ status.className='stage-field-save-status'+(state?' stage-field-save-status--'+state:'');
+ status.textContent=message;
+}
 async function saveAmount(kind){
  const el=$(kind==='adjustment'?'adjustment':'expense');
  const status=$(kind==='adjustment'?'adjustmentStatus':'expenseStatus');
@@ -700,12 +717,12 @@ async function saveAmount(kind){
  const value=Number(el.value);
  if(!Number.isSafeInteger(value)||kind==='expense'&&value<0){
   el.value=old;
-  status.textContent='金額を確認してください';
+  setAmountStatus_(status,'金額を確認してください','warning');
   return;
  }
  if(value===old)return;
  const practiceId=S.practiceId,expectedVersion=ledger.version;
- S.pending.add('amount');status.textContent=(kind==='adjustment'?'当日補正':'当日支出')+'を保存中…';
+ S.pending.add('amount');setAmountStatus_(status,(kind==='adjustment'?'当日補正':'当日支出')+'を保存中…','processing');
  el.disabled=true;syncPaymentControls();updateFooter();
  let error=null;
  try{
@@ -720,7 +737,7 @@ async function saveAmount(kind){
   }
   Object.assign(ledger,{version:saved.ledgerVersion,income:saved.income,
    expense:saved.expense,adjustment:saved.adjustment,balance:saved.balance});
-  el.value=ledger[kind];status.textContent='保存しました';
+  el.value=ledger[kind];setAmountStatus_(status,'保存しました','success');
   updateFooter();toast((kind==='adjustment'?'当日補正':'当日支出')+'を更新しました');
  }catch(e){
   error=e;
@@ -728,7 +745,7 @@ async function saveAmount(kind){
   // new finance writes until a verified manual refresh; never auto-retry.
   S.paymentNeedsRefresh=true;
   el.value=old;updateFooter();
-  status.textContent='結果を確認できません。更新してください';
+  setAmountStatus_(status,'結果を確認できません。更新してください','error');
  }finally{
   S.pending.delete('amount');
   el.disabled=S.paymentNeedsRefresh||ledger.status==='confirmed';

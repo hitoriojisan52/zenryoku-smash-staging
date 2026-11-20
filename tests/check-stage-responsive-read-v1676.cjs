@@ -110,7 +110,7 @@ dlg.close();finishFirst();
  const pendingWrite=new Promise(resolve=>{completePayment=resolve;});
  let nextWrite=()=>pendingWrite;
  const save=new Function('S','$','window','call','uuid','syncPaymentControls',
-  'updateFooter','toast',ui.slice(a,b)+'\nreturn saveAmount;')(
+  'updateFooter','toast',ui.slice(ui.indexOf('function setAmountStatus_('),b)+'\nreturn saveAmount;')(
   S,id=>nodes[id],{SMStageUX:{showError:async()=>{errors++;}}},
   async()=>{sends++;return nextWrite();},
   ()=>'OP-TEST-123',()=>{},()=>{},()=>{spin++;});
