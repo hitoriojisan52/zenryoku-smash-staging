@@ -462,3 +462,11 @@
 - 新規 `tests/check-stage-neutral-messages-v1687.cjs` を既存UI CIへ追加。従来の `tests/check-stage-system-messages-v1639b.cjs` は新しい意味ルールに合わせて検証更新。既存のv15収支確定順序・残高/集金・権限GAS・退会・LINE IDトークンは不変更。
 - **残存注意**：一部の動的メンバー権限管理診断等には歴史的な `--info` が残るため、表示状態の実機検査と併せて後続監査。LIFF本人認証・利用申請E2E・実機15秒性能は別途未受入。本番不変更。
 - 反映は変更PRのCI→検証main→Pages/Worker Builds/公開GET-onlyを区別して記録する。
+
+
+## 40. v0.16.87 — 利用申請LIFFのローカルE2E相当回帰（2026/11/20）
+
+- LINE実機や本番データにアクセスせず、`registration.js` を仮想DOM・仮想LIFF・仮想Worker応答で実行する `tests/check-stage-registration-runtime-v1687.cjs` を追加。
+- 専用LIFF IDでのinit、登録済み本人の緑表示・フォーム非表示、未登録本人のフォーム→確認→1回のPOST、再送禁止、承認待ち／却下／利用停止の黄表示、ネットワークエラー時の赤表示と手動更新可能状態、未ログイン時の認証導線、ID未設定時に管理LIFFへのフォールバックが無いことを検証。
+- 既存のスプレッドシート、GAS、Worker、収支や本人認可、LINEリッチメニューの設定は不変更。**仮想テスト成功はLINE実機の本人認証／Worker POST／GAS実保存の成功を意味しない**ため、実機受入は継続する。
+- 新しいLIFF検証入口：`https://liff.line.me/2012602642-lKuGSb43`。管理者が検証用メンバーの申請と承認状況をLINEで確認した後、ChatGPTが接続検証Sheetの安全な読み取りで照合する。
