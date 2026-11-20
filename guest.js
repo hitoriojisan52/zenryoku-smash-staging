@@ -7,8 +7,26 @@ const el=(tag,cls,value)=>{const n=document.createElement(tag);if(cls)n.classNam
 let inFlight=false;
 async function load(){if(inFlight)return;inFlight=true;const refresh=$('guestRefresh');refresh.disabled=true;refresh.textContent='更新中…';try{
  if(!/^[0-9a-f]{64}$/.test(token))throw Error('閲覧リンクが無効です。担当者から新しいQRをご案内ください。');
- const resp=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token}),cache:'no-store',referrerPolicy:'no-referrer'});
- const result=await resp.json();if(!resp.ok||!result.ok)throw Error(result.error||'対戦表を取得できません');
+ // No LINE token on this public QR view. All requests are read-only and
+ // may safely be aborted at 15s; the button is re-enabled in finally.
+ const controller=new AbortController();let deadline;
+ const task=(async()=>{
+  const resp=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({token}),cache:'no-store',referrerPolicy:'no-referrer',
+   signal:controller.signal});
+  return {resp,result:await resp.json()};
+ })();
+ const timeout=new Promise((_,reject)=>{deadline=setTimeout(()=>{
+  controller.abort();
+  reject(Error('読み込みが15秒以内に完了しませんでした。「更新」で再確認してください。'));
+ },15000);});
+ let resp,result;
+ try{({resp,result}=await Promise.race([task,timeout]));}
+ catch(e){
+  if(controller.signal.aborted)throw Error('読み込みが15秒以内に完了しませんでした。「更新」で再確認してください。');
+  throw e;
+ }finally{clearTimeout(deadline);}
+ if(!resp.ok||!result.ok)throw Error(result.error||'対戦表を取得できませんでした。');
  const data=result.data;
  $('guestNotice').textContent='';$('guestNotice').hidden=true;
  $('guestPractice').textContent=window.SMDate.date(data.practice.date)+'　'+data.practice.place;
