@@ -414,7 +414,14 @@ function bool_(v){return v===true||v==='TRUE'||v==='true';}
 function fail_(code,message){var e=new Error(message);e.smCode=code;throw e;}
 function iso_(s){s=String(s);if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;var d=new Date(s+'T00:00:00Z');return !isNaN(d.getTime())&&d.toISOString().slice(0,10)===s;}
 function jpy_(v,allowNegative){if(typeof v==='boolean'||v===null||v===undefined||v==='')fail_('BAD_REQUEST','金額が不正です');var n=Number(v);if(!Number.isSafeInteger(n)||(!allowNegative&&n<0))fail_('BAD_REQUEST','金額は整数で入力してください');return n;}
-function sheetRows_(ss,name){var sh=ss.getSheetByName(name);if(!sh)fail_('SETUP','必要なシートがありません: '+name);var max=SM.headers[name].length;return sh.getLastRow()<2?[]:sh.getRange(2,1,sh.getLastRow()-1,max).getValues();}
+function sheetRows_(ss,name){
+ var sh=ss.getSheetByName(name);
+ if(!sh)fail_('SETUP','必要なシートがありません: '+name);
+ var max=SM.headers[name].length,last=sh.getLastRow();
+ // One metadata roundtrip per read. Use the exact same row boundary for
+ // the empty-sheet guard and requested range, without caching across calls.
+ return last<2?[]:sh.getRange(2,1,last-1,max).getValues();
+}
 function sheet_(ss,name){var sh=ss.getSheetByName(name);if(!sh)fail_('SETUP','必要なシートがありません: '+name);return sh;}
 function withLock_(fn,profile){var started=profile?Date.now():0,lock=LockService.getScriptLock();if(!lock.tryLock(15000))fail_('BUSY','他の操作を処理中です。再試行してください');if(profile)profile.lockWaitMs=Date.now()-started;try{return fn();}finally{lock.releaseLock();}}
 function member_(ss,lineUserId){var rows=sheetRows_(ss,'メンバー');var found=rows.filter(function(r){return str_(r[2])===lineUserId&&bool_(r[3]);});if(found.length!==1)fail_('UNAUTHORIZED','利用登録が確認できません');
@@ -589,10 +596,15 @@ function unlockable_(row){if(row.status==='confirmed')fail_('LOCKED','確定済�
 function dateAllowed_(date){if(!iso_(date)||date>today_())fail_('BAD_REQUEST','未来日または日付が不正です');}
 function expectVersion_(current,expected){if(!Number.isSafeInteger(Number(expected))||Number(expected)!==current)fail_('CONFLICT','他の端末で変更されています。再読込してください');}
 function changeMoney_(ss,member,payload,kind){
- var id=str_(payload.practiceId),p=practice_(ss,id),rows=entries_(ss);requireCollection_(ss,p,rows);var row=row_(rows,'P-'+id);unlockable_(row);expectVersion_(row.version,payload.expectedVersion);
+ var id=str_(payload.practiceId),p=practice_(ss,id),
+     original=entries_(ss),rows=original.map(function(r){return Object.assign({},r);});
+ // The immutable ledger baseline and its mutable copy are derived from the
+ // SAME fresh read while dispatch_ holds ScriptLock. Never cache financial
+ // rows between API calls; version/collection/confirmed-balance guards remain.
+ requireCollection_(ss,p,rows);var row=row_(rows,'P-'+id);unlockable_(row);expectVersion_(row.version,payload.expectedVersion);
  if(kind==='adjustment')row.adjustment=jpy_(payload.value,true);else row.expense=jpy_(payload.value,false);
  row.income=practiceIncome_(ss,id,row.adjustment);row.version++;
- var result=balanceRecalc_(rows,entries_(ss));writeLedger_(ss,result);
+ var result=balanceRecalc_(rows,original);writeLedger_(ss,result);
  return {ok:true,data:{practiceId:id,ledgerVersion:row.version,income:row.income,expense:row.expense,adjustment:row.adjustment,balance:row.balance}};
 }
 function setPayment_(ss,member,payload,profile){
@@ -637,7 +649,10 @@ function setCategory_(ss,member,payload){
  return {ok:true,data:{practiceId:id,participantId:person,category:cat,fee:fee_(cat,p.hours),categoryVersion:current+1,ledgerVersion:ledger.version,balance:ledger.balance}};
 }
 function mutateLedger_(ss,member,payload){
- var original=entries_(ss),rows=entries_(ss),action=str_(payload.action),id=str_(payload.rowId),r=null;
+ // The immutable baseline and mutable candidate share one authoritative
+ // Sheet snapshot inside ScriptLock; preserve the full 16-column read.
+ var original=entries_(ss),rows=original.map(function(r){return Object.assign({},r);}),
+     action=str_(payload.action),id=str_(payload.rowId),r=null;
  if(action!=='add'){r=row_(rows,id);expectVersion_(r.version,payload.expectedVersion);}
  if(action==='add'){
    var kind=str_(payload.kind);if(kind==='reimbursement'||kind==='other'){
@@ -1098,10 +1113,12 @@ function deletedPracticeLedgerIds_(ss,existing){
  var present={};existing.forEach(function(r){present[r.rowId]=true;});
  var audit=sheet_(ss,'操作履歴'),last=audit.getLastRow(),deleted={};
  if(last<2)return [];
- var rows=audit.getRange(2,1,last-1,6).getValues();
+ // Only operation type (B) and result JSON (F) are needed; exclude audit
+ // operation ID (A) without altering the append-only deletion evidence.
+ var rows=audit.getRange(2,2,last-1,5).getValues();
  rows.forEach(function(r){
-  if(str_(r[1])!=='ledger.change')return;
-  var result;try{result=JSON.parse(str_(r[5]));}catch(_){return;}
+  if(str_(r[0])!=='ledger.change')return;
+  var result;try{result=JSON.parse(str_(r[4]));}catch(_){return;}
   if(!result||result.ok!==true||!result.data||result.data.action!=='delete')return;
   var id=str_(result.data.rowId);
   if(/^P-[\w-]{1,100}$/.test(id)&&!present[id])deleted[id.slice(2)]=true;
