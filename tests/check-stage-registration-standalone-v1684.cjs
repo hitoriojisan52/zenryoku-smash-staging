@@ -4,6 +4,7 @@ const html=fs.readFileSync('registration.html','utf8');
 const js=fs.readFileSync('registration.js','utf8');
 const css=fs.readFileSync('stage-ui.css','utf8');
 const live=fs.readFileSync('live.js','utf8');
+new Function(js);
 const liveHtml=fs.readFileSync('live.html','utf8');
 for(const id of ['registrationStatus','registrationForm','registrationName','registrationKana','registrationSubmit','registrationRefresh','registrationClose','registrationConfirm','registrationError'])assert.ok(html.includes('id="'+id+'"'),id);
 assert.match(js,/liff\.init\(/);
