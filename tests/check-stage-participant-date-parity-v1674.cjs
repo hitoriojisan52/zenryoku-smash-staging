@@ -30,9 +30,9 @@ ok(!html.includes('id="participantHistoryToggle"')&&
  !ui.includes('PM.showHistoryDates')&&
  !ui.includes("'participantHistoryToggle'"),
  'collection and participant lists use simple dropdowns without History buttons');
-ok(html.includes('id="visitorMineHistoryToggle"')&&
+ok(!html.includes('id="visitorMineHistoryToggle"')&&
  html.includes('id="visitorAdminHistoryToggle"')&&
- visitor.includes("'visitorMineHistoryToggle'"),
+ !visitor.includes("'visitorMineHistoryToggle'"),
  'separate visitor administration history is not accidentally removed');
 
 const reloadSrc=ui.slice(ui.indexOf('async function reload(refreshDates){'),
