@@ -731,3 +731,13 @@
 - `scripts/d1-stage-worker-ownership.cjs`を修正：未作成(404)は拒否、200の未変更Hello World JavaScriptだけを初回引継ぎ可能、以後は固定マーカー照合。別ソース・別名/異常・403などは停止。既存Cloudflare Workerのソース/設定、GAS/Sheets/LINEの接続先やD1の業務データを触らない。
 - 結果はPRのオフラインCIで確認し、main反映と検証Workerの実デプロイを分けて記録する。ユーザーの初回UI作成/限定トークン登録まではWorker実公開・Native D1 HTTP検査は**未完了**。本番反映は事前承認制。
 - 公式資料：<https://developers.cloudflare.com/workers/authorization/workers/>、<https://developers.cloudflare.com/changelog/post/2026-09-15-granular-worker-permissions/>。次はユーザーに最初のHello World Workerの作成だけ案内し、画面で実名確認後にTokenのスコープを案内。
+
+
+## 67. D1初期Worker作成方式の是正 PR #136 — CI完了・実公開未実施（2026/11/21）
+
+- [PR #136](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/136)を検証main `a50fb3f3e14fe87cdcd83c642796cbe403361b90`へsquash統合。公式Cloudflare権限の最新版に従い、**新規作成Workers product Admin**、**存在する個別Workerの更新Individual Workers Editor**と区別。ユーザーにはアカウント全体Admin/Editトークンを要求せず、Dashboardで「Hello World」を初回1件作るだけのブートストラップを案内する。
+- `scripts/d1-stage-worker-ownership.cjs`は404時の自動新規作成を拒否し、固定名の**未変更Hello World初期コード**か既存所有マーカーを検証してから独立Workerへの更新を許可する。予期しない別Worker実装への上書きは拒否。PR初回CIで正規表現のSyntaxErrorを検出→修正。最終PRの`offline-safety`・`spec-contract`は成功、従来会計・出欠・退会・試合作成の回帰を維持。
+- 検証mainの[独立Worker Actions #44801871252](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44801871252)：offline-safety成功、**Environmentの有効化フラグが未登録なのでRemote Worker更新/D1 binding/Secret投入/GET性能実測はskipped**。ワークフローのDeployジョブsuccess表示をリモートWorkerデプロイ成功と混同しない。
+- 同mainの[GitHub Pages #44801870673](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44801870673) build/deploy/report成功。従来Workerのコード・D1 API token・GAS@51/LIFF・Sheets正本・データ・本番に変更なし。既存Cloudflare Workers Buildsは独立に最終チェックする。
+- **ユーザー初期設定待ち**：Cloudflareの検証用アカウントで`zenryoku-smash-d1-pilot-stage-20261121`というHello World WorkerをDashboard上で作成（初期コード変更なし）、Cloudflare API tokenを`Individual Workers → Editor`・当該Workerだけで発行しGitHub Environment`d1-staging`のSecret`D1_WORKER_STAGE_API_TOKEN`へ登録、Variable`D1_WORKER_STAGE_DEPLOY_ENABLED=true`を追加。既存のD1環境変数2件とSecret1件・main限定は維持。手順詳細：[D1_WORKER_DEPLOY_PLAN.md](D1_WORKER_DEPLOY_PLAN.md)。
+- 設定が終わったと報告を受けてからGitHub経由でremoteを実行し、所有検証・D1 UUID照合・配布・Bearer認可・0件GET・p50/p95を完了/未完了に区別して記録。実データ移行/本番切替には別の判断が必要。
