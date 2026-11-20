@@ -62,7 +62,7 @@ ok(ui.includes("memo.className='meta participant-memo'")&&
  ui.includes("note.textContent='📝 '+p.memo"),
  'payment note styling is normal weight even when other headings are bold');
 for(const p of ['live.html','match.html','match-view.html','guest.html']){
- ok(read(p).includes('stage-ui.css?v='+(p==='live.html'?'1673-receipt-close':'1665')),
+ ok(read(p).includes('stage-ui.css?v='+(p==='live.html'?'1676-responsive-reads':'1665')),
   p+' busts the old cached 38px CSS for real LINE webview reload');
 }
 ok(html.includes('live-access-v2.js?v=1676-responsive-reads')&&
