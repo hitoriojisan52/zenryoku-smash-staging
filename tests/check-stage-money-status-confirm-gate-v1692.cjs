@@ -71,7 +71,9 @@ assert.ok(renderStart>=0&&renderStop>renderStart);
 const nodes={}; const $=id=>nodes[id]||(nodes[id]={textContent:'',value:0,disabled:false,hidden:true});
 const S={overview:null,homeReadFailed:false,practiceId:'P-20261121'};
 const today=()=>day;
-const render=new Function('S','
+const render=new Function('S','$','today','updateFooter','document',
+ live.slice(renderStart,renderStop)+'\n}\nreturn renderHome;')(
+ S,$,today,()=>{},{activeElement:null});
 const practice={practiceId:'P-20261121',date:'2026-11-21',place:'架空体育館',hours:4};
 const ledger={status:'open',canConfirm:false,adjustment:1000,expense:0,receiptFileId:''};
 const access={canCollect:true,reason:''};
