@@ -41,7 +41,7 @@ const cssChecks=[
 ];
 for(const rule of cssChecks)ok(html.includes(rule),'old-v7 visual baseline: '+rule);
 ok(html.includes('live.js?v=1676-responsive-reads'),'new UI cache version');
-const begin=ui.indexOf('function renderParticipantManager_(){'),end=ui.indexOf('async function loadParticipants_(){',begin);
+const begin=ui.indexOf('function renderParticipantManager_(){'),end=ui.indexOf('async function loadParticipants_(',begin);
 ok(begin>=0&&end>begin,'render participant routine still present');
 const code=ui.slice(begin,end);
 ok(!/\.innerHTML\s*=/.test(code),'user controlled name and note cannot inject markup');
