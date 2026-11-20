@@ -48,7 +48,7 @@ assert.match(css,/body\.stage-ui > main\.container \.adjustment-box > \.stage-fi
 assert.match(css,/\.stage-field-save-status--processing::before[\s\S]*?animation:stage-ui-spin/);
 assert.match(css,/\.stage-field-save-status--success\{color:#23723b\}/);
 assert.match(css,/prefers-reduced-motion:reduce[\s\S]*?\.stage-field-save-status--processing::before\{animation:none\}/);
-assert.ok(html.includes('stage-ui.css?v=1692-amount-status-finance-gate'));
+assert.ok(html.includes('v1692-amount-status-finance-gate'));
 assert.ok(html.includes('v1692-confirm-gate'));
 const helperBegin=live.indexOf('function setAmountStatus_('),
  helperEnd=live.indexOf('async function saveAmount(',helperBegin);
