@@ -624,3 +624,13 @@
 - **確定した改善範囲**：金額保存と収支変更の収支表全16列読み込み **1操作2→1**、共通Sheet helperの最終行メタデータ呼出し **2→1**、削除済み練習日行の履歴参照 A:F→B:F。全て同一ロック内の最新値で旧残高計算/確定解除順序/バージョン/操作履歴の既存関数を使用し続ける。**秒数短縮は未実測・未受入**。
 - **次の計測**：[検証管理LIFF（`?perf=1`）](https://liff.line.me/2012602642-XBSkXduO?perf=1) で同じ日付の `/api/overview` と `/api/ledger` の読み取り、必要な既存の検証行だけを使った `/api/adjustment`／`/api/ledger/change` の保存を一度ずつ確認し、最新の「GAS POST／処理内訳」と所要時間を採取。保存操作が重複しないよう通信結果不明なら**無断再送しない**。本番反映は別途事前承認が必要。
 - 詳細：[v0.16.94 検証用読取/保存最適化と実機基準](stage-v1694-ledger-snapshot-performance.md)。
+
+
+## 56. D1移行・自動開発基盤（2026/11/21、検証用PR段階）
+
+- ユーザーの明示依頼：GAS/Sheetsの数秒待ちを改善するためD1移行を検討。必須条件は「初期設定以降、ChatGPTが設計・実装・CI・検証反映・引継ぎを実行し、ユーザーはLINE実機確認と本番承認だけ」。ただし外部サービスのOAuth・Secret失効など本人操作が不可避な例外は具体的なURL・設定手順を提示する。
+- GitHub mainの最新資料、`SPEC_PRIORITY_POLICY.md`、`DEPLOYMENT_AND_USER_ACTIONS.md`とv0.16.94財務回帰を確認して計画。現行Cloudflare WorkerはGitHub連携で検証mainから自動デプロイ中、現行GASは@51。**既存Workerのwrangler.toml/worker.js、GAS/LIFF/Sheetsの値、退会/財務/出欠/試合の既存処理は変更しない。**
+- 新規：[D1移行基盤の正式設計とユーザー初回設定](D1_MIGRATION_PLAN.md)。`d1-staging/migrations/0001_bootstrap_probe.sql`（個人情報・財務情報なしの空テーブル）、`scripts/d1-staging-config.cjs`（Cloudflareアカウント・D1 UUID・DB名前照合）、`scripts/d1-staging-check.py`（オフラインSQL/非破壊検査）、`.github/workflows/d1-staging-check.yml`（PR安全検証）、`.github/workflows/d1-staging-migrate.yml`（main対象変更のみ、初回設定前はリモートskip）を追加。
+- GitHub Environment `d1-staging` と専用Secret `D1_STAGE_API_TOKEN`、Variables `D1_STAGE_ACCOUNT_ID` / `D1_STAGE_DATABASE_ID`が必要。D1データベース名は`zenryoku-smash-staging-d1`。**トークンをチャットやソースへ掲載しない**。ユーザーが設定した後、ChatGPTがActionsの接続・migration apply・読取SELECTを検証する。
+- 未完了：当PRのCI/マージ、Cloudflare上のDB作成とEnvironment入力、Remote D1デプロイ、Workerバインディング、既存Sheetsデータ移行、D1読込APIと実機性能比較。**実際に完了したと確認するまで完了扱いしない**。本番への反映は事前承認制。
+- 次の作業：PR CI結果確認→検証main反映→ユーザーの初期設定→D1リモートSchema/SELECTの疎通→既存全Sheet/APIの型・整合性を棚卸し。現行v0.16.94のLINE実機性能再計測と別LINE申請受入は既存案件として残す。
