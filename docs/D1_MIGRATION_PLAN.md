@@ -67,3 +67,12 @@ D1の正式なマイグレーション履歴`d1_migrations`を利用する。同
 - [D1 Actions](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44781121812)はローカル試験success。Remote関連の検証/適用/読取は環境変数等の未設定により明示的にskipped。リモートDB実体・性能は**未確認**。
 - [GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44781120608)、Cloudflare Workers Buildsともにsuccess。既存Workerの公開GETは当該コミットでは未確認。Worker/GASのソースと本番は不変更。
 - ユーザーの初期設定完了までCloudflareへのD1作成・SQL実行・LIFF切換は実施しない。
+
+
+## 実環境での初期D1マイグレーション成功（2026/11/21）
+
+- 利用者がCloudflare上の検証用DB作成とGitHub Environmentの初回設定（mainのみ、D1 Edit権限のAPI tokenをEnvironment secret、Account/DB IDをVariables）を完了した。Secretの値はChatGPTが取得・表示しない。
+- ChatGPTはPR変更なしに、[既存 GitHub Actions #44781121812](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44781121812)の`migrate-stage`を再実行（新ジョブ`136469472361`）。`Safely check one-time staging setup`、`Verify remote D1 target UUID and exact staging name`、`Apply versioned SQL ONLY to the named staging D1`、`Read-only smoke`の全4ステップがsuccess。
+- Wrangler CLI v4.165.0の実ログで`0001_bootstrap_probe.sql`が✅ applied、`SELECT COUNT(*) AS probe_count FROM stage_d1_bootstrap`が`0`件 / `success: true`。未設定時の最初の`skipped`ログと区別する。該当DBの名前・UUIDが照合成功したこと以外に、構成・秘密値の開示はしない。
+- **第1工程の実DB/初期スキーマ接続検証は完了**。既存Workerへのバインド、利用者データ移行、LINE LIFFとD1の直接通信、API業務仕様の等価性検査、D1バックアップ自動化は未実施。GAS/Sheetsの正本は維持し、本番変更なし。
+- 後続はデータベーステーブル設計へ進む前に、最新mainのGAS/テストと現行ワークブックの全シートを読み取り専用で棚卸しし、ID参照、最新値の競合、残高・確定順序、履歴移行、PII移転・復旧を正式レビューする。適切な判断なしに既存データをコピーしない。

@@ -140,3 +140,10 @@ ChatGPTに実施可能な範囲は自分で完了し、**ユーザー操作が�
 - D1は独立の`.github/workflows/d1-staging-check.yml`（オフライン）と`d1-staging-migrate.yml`（既存Workerを操作しないRemote D1-only）で管理。新規DBが未作成、`d1-staging` GitHub EnvironmentのToken/ID未設定ならCloudflareへ書込まない。
 - ユーザーの初期操作：Cloudflareに`zenryoku-smash-staging-d1`を1個作成し、D1 Editの専用API Tokenを発行。GitHub Environments`d1-staging`へSecret `D1_STAGE_API_TOKEN`とVariables`D1_STAGE_ACCOUNT_ID`・`D1_STAGE_DATABASE_ID`を一度設定する（値と具体手順は上記資料を参照）。通常の機能改修でSQL/コードの手動コピーは依頼しない。
 - 初回設定後にGitHubから実際のD1 migrate/SELECTを確認するまで「D1デプロイ済み」と報告しない。本番のD1/Worker/Sheetsは触らず、後続の移行判断は別の影響レビューを必須にする。
+
+
+## 2026/11/21 D1検証用初期実行の結果
+
+- 登録されたEnvironment `d1-staging`に対して[GitHub Actions #44781121812](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44781121812)の`migrate-stage`をChatGPTが再実行。ジョブ`136469472361`でCloudflare Account/DB IDとDB名の照合、`0001_bootstrap_probe.sql`適用、read-only SELECT `probe_count=0`のすべてが成功。
+- 追加のAPI token発行やSecret再登録は不要。通常のD1 SQL/ソース改修はGitHubからPR/CI/migration applyを自動で行う。Cloudflare接続が失効した場合に限って設定を確認する。
+- この確認はD1基盤のみ。既存`zenryoku-smash-staging-api` Worker/GAS@51/LIFF/Sheetsと本番のコード・設定を変更していない。今後のデータ移行、アクセス権、長期バックアップは別工程・レビュー必須。
