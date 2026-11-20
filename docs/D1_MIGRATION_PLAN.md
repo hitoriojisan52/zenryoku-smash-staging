@@ -91,3 +91,11 @@ D1の正式なマイグレーション履歴`d1_migrations`を利用する。同
 - GitHub CIで旧GAS会計確定順序、本人出欠、退会・再入会、試合作成、SQL FK/UNIQUE/CAS/時系列の契約を確認。旧GAS/Worker/LIFF/Google Sheetsの業務コードと原本の書込なし。
 - **次工程**：既存GAS/Workerの認証・権限を維持した読み取り専用パイロット設計と、テストデータの匿名/架空fixtureだけによる同条件の性能比較。既存WorkerにD1バインドを追加するか、独立Workerを設けるかは、権限/トークンの重複・公開CORS/本番干渉を評価し、設計/仕様の承認後に実装する。
 - **保留**：業務データのD1移行・正本切替、現金/会計保存・試合進行などの書込API、バックアップ/復旧/監査長期保存と本番承認。本段階ではユーザーの追加初期設定は不要。
+
+
+## 第3工程（2026/11/21）：独立した読み取り専用APIプロトタイプ／REST性能検証
+
+- [D1_READONLY_PILOT.md](D1_READONLY_PILOT.md)に権限・認可・測定境界を整理。`d1-staging/readonly-pilot/worker.mjs`は**未デプロイ**の独立Worker試作。既存Worker、LIFF、GAS、Sheetsのコード/設定・本番は変更しない。出欠/会計の集計件数のみ、秘密トークンと明示オプトイン、SQLプレースホルダー、GET以外拒否、CORSなしの隔離設計。
+- `tests/check-d1-readonly-pilot.mjs`と`scripts/d1-staging-http-bench.cjs self-test`で架空mockの安全性をCI検証。自動`.github/workflows/d1-staging-http-bench.yml`はmain統合後に既存EnvironmentでD1 UUID/名前を再確認し、**個人情報を扱わない固定SELECT**で2回ウォームアップ＋12回のHTTP往復p50/p95とSQL内部時間を別々に記録する。
+- **D1専用トークンはWorkerのDeploy/Edit権限を持たないため、独立Workerの実デプロイはこの工程では行わない**。Worker実公開の前に利用者認証/Secret/CORSと権限の判断・追加の最小権限設定をレビューする。
+- 既存GASの数秒とD1 REST空テーブルのミリ秒を直接比較して高速化実証とは扱わない。
