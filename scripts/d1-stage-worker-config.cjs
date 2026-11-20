@@ -34,10 +34,10 @@ function makeConfig(id) {
 function parseDeployedUrl(raw) {
   // The ONLY acceptable remote endpoint has the exact new Worker prefix.
   // Hostnames/log lines must not control access to an arbitrary URL.
-  const safe=NAME.replace(/[.*+?^$()|[\]{}]/g,'\\$&');
+  const safe=NAME; // fixed alphanumeric/hyphen constant; no regex metacharacters
   const matches=[...raw.matchAll(new RegExp('https:\\/\\/'+safe+'\\.[a-z0-9.-]+\\.workers\\.dev\\/?','g'))];
   assert.ok(matches.length,'Expected isolated Worker URL not found in deploy output');
-  const urls=[...new Set(matches.map(m=>m[0].replace(/\\/$/,'')))];
+  const urls=[...new Set(matches.map(m=>new URL(m[0]).origin))];
   assert.equal(urls.length,1,'Multiple distinct Worker URLs in deploy output');
   const url=new URL(urls[0]);
   assert.equal(url.protocol,'https:');
