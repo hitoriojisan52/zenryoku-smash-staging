@@ -29,7 +29,14 @@
   if(e?.code==='OPERATION_UNCONFIRMED')return '通信がタイムアウトしました（15秒）。更新して申請状況を確認してください。';
   if(e?.code==='NETWORK_ERROR'||e?.status>=500||/Failed to fetch|NetworkError|Load failed|fetch failed/i.test(String(e?.message||'')))
    return '通信に失敗しました。更新して再度お試しください。';
-  return String(e?.message||'処理を完了できませんでした。').replace(/Failed to fetch/gi,'通信に失敗しました。');
+  const detail=String(e?.message||'');
+  if(e?.status===401)return 'LINE認証を確認できません。LINEから開き直してください。';
+  if(e?.status===409)return '登録状況が変わりました。更新してください。';
+  // Only known Japanese service errors are suitable for user-facing output.
+  // Native fetch/JSON/parser exceptions may include English or private URLs.
+  if(detail.length<=120&&/[ぁ-んァ-ヶ一-龯]/.test(detail)&&
+     !/https?:\/\//i.test(detail))return detail;
+  return '処理を完了できませんでした。更新して再度お試しください。';
  }
  function showError(e){
   const message=readableError(e);
