@@ -721,3 +721,13 @@
 - 追加のCloudflare権限調査で、API tokenの`Account > Workers Scripts > Edit`は同一アカウント内の他Workerの編集権限にも及び、**本番Workerが同居する場合は技術的に本番Worker編集も可能**であると確認。GitHub内の固定名ガードだけでは漏洩時の横断権限を限定できない。これまでは本番アカウントが別か確認できていない。
 - 2026年のCloudflare公式ドキュメントは`Individual Workers > Editor`による**Worker単位のAPIトークン**を案内している。ただし未作成のWorkerを初回作成する権限とは別で、個別権限運用には初回Worker作成・所有確認・引き継ぎ方式の再設計が必要。ユーザーの初期設定以降の手作業禁止ルールを維持する。
 - **次の判断**：ユーザーが検証と本番のCloudflareアカウント分離を確認。別アカウントなら検証用トークンによる自動新規作成を継続可能。同一アカウントなら原則、個別Workerトークンでの安全な初回ブートストラップを別PRで構築し、そのための一度限りの初期設定手順を提示する。ユーザーに無断でAccount全体Edit権限を要求・既存Workerを変更しない。詳細：[D1_WORKER_DEPLOY_PLAN.md](D1_WORKER_DEPLOY_PLAN.md)。
+
+
+## 66. D1 Worker新規作成のCloudflare最新権限・初回設定方針修正（2026/11/21）
+
+- ユーザーが「本番Workerはまだ作成していない」と報告。現行の検証Worker `zenryoku-smash-staging-api` は存在するため、**同一Cloudflareアカウントの既存Workerにも及ぶアカウント全体のEdit/Adminを安易に付与しない**。
+- Cloudflare 2026年公式のWorkersロール仕様を確認。**未作成Workerの新規作成はWorkers product Adminが必要**、**既存Workerのbinding付き更新はIndividual Workers Editorで可能**。これまでの`Account > Workers Scripts > Edit`だけで新規Workerを作る手順は不正確だったため撤回（ユーザーにトークン発行前に是正）。
+- 新方式：ユーザーが初回だけCloudflare Dashboardの`Hello World example`で正確な名前`zenryoku-smash-d1-pilot-stage-20261121`の空Workerを作成（ソース/SQLの手動編集不要）、そのWorkerのみを対象とした`Individual Workers > Editor`トークンを`d1-staging` Environment Secret `D1_WORKER_STAGE_API_TOKEN`に登録、Variable `D1_WORKER_STAGE_DEPLOY_ENABLED=true`を設定。
+- `scripts/d1-stage-worker-ownership.cjs`を修正：未作成(404)は拒否、200の未変更Hello World JavaScriptだけを初回引継ぎ可能、以後は固定マーカー照合。別ソース・別名/異常・403などは停止。既存Cloudflare Workerのソース/設定、GAS/Sheets/LINEの接続先やD1の業務データを触らない。
+- 結果はPRのオフラインCIで確認し、main反映と検証Workerの実デプロイを分けて記録する。ユーザーの初回UI作成/限定トークン登録まではWorker実公開・Native D1 HTTP検査は**未完了**。本番反映は事前承認制。
+- 公式資料：<https://developers.cloudflare.com/workers/authorization/workers/>、<https://developers.cloudflare.com/changelog/post/2026-09-15-granular-worker-permissions/>。次はユーザーに最初のHello World Workerの作成だけ案内し、画面で実名確認後にTokenのスコープを案内。
