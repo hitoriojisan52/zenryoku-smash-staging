@@ -6,7 +6,7 @@ const status=$('registrationStatus'),form=$('registrationForm'),refresh=$('regis
 const submit=$('registrationSubmit'),confirmDialog=$('registrationConfirm');
 let token='',busy=false,prepared=null,requestId=0;
 function setStatus(kind,message){
- status.className='stage-system-message stage-system-message--'+kind+(kind==='info'?' stage-inline-read-loading':'');
+ status.className='stage-system-message stage-system-message--'+kind;
  status.textContent=message;
 }
 function controls(on){busy=on;refresh.disabled=on;submit.disabled=on;$('registrationConfirmSubmit').disabled=on;}
@@ -45,7 +45,7 @@ async function request(path,payload,write=false){
  finally{clearTimeout(timer);}
 }
 async function check(){
- if(busy)return;controls(true);const id=++requestId;form.hidden=true;setStatus('info','利用申請状況を確認しています…');
+ if(busy)return;controls(true);const id=++requestId;form.hidden=true;setStatus('processing','利用申請状況を確認しています…');
  try{
   const data=await request('/api/member/status');
   if(id!==requestId)return;
@@ -68,7 +68,7 @@ function validate(){
 }
 async function apply(){
  if(busy||!prepared)return;
- confirmDialog.close();controls(true);form.hidden=true;setStatus('info','利用申請を送信しています…');
+ confirmDialog.close();controls(true);form.hidden=true;setStatus('processing','利用申請を送信しています…');
  try{
   const result=await request('/api/member/apply',prepared,true);
   setStatus('success',result?.status==='approved'?'利用登録済みです。':'利用申請を受け付けました。管理者の承認をお待ちください。');
@@ -77,10 +77,10 @@ async function apply(){
  finally{controls(false);}
 }
 async function init(){
- controls(true);setStatus('info','LINE認証を確認しています…');
+ controls(true);setStatus('processing','LINE認証を確認しています…');
  try{
   if(!window.liff)throw new Error('LINE SDKを読み込めませんでした。');
-  const liffId=config.registrationLiffId||config.liveLiffId;
+  const liffId=String(config.registrationLiffId||'').trim();
   if(!liffId||liffId.includes('REPLACE_'))throw new Error('利用申請用LIFFが未設定です。');
   let timer;
   try{await Promise.race([liff.init({liffId,withLoginOnExternalBrowser:true}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(new Error('LINE認証がタイムアウトしました。'),{code:'REQUEST_TIMEOUT'})),15000);})]);}
