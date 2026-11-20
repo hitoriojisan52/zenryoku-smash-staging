@@ -392,7 +392,7 @@ async function reload(refreshDates){
  })();
  S.reloadPromise=task;
  try{return await task;}
- catch(e){S.homeReadFailed=true;showHomeReadError_(e);syncPaymentControls();throw e;}
+ catch(e){S.homeReadFailed=true;if(typeof showHomeReadError_==='function')showHomeReadError_(e);syncPaymentControls();throw e;}
  finally{
    if(S.reloadPromise===task)S.reloadPromise=null;
    S.loading=false;
