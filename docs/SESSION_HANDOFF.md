@@ -786,3 +786,13 @@
 - 同main `f52d06342656ec79091152b4265106ddf5752604`のGitHub Pages build/deployと既存Workers Buildsもsuccess。**既存`zenryoku-smash-staging-api`のコード/Binding/URL、GAS@51、Sheets正本、LINE/LIFF、本番環境の反映は変更なし**。検証用D1への個人情報・会計・試合/操作履歴のデータ移行は未実施。
 - 従来の失敗ログ：[初回 #44804229743](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44804229743)の最後のcontract mismatch、[#44807828712](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44807828712)のPOST期待405に401、[#44808223493](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44808223493)の測定途中GET期待200に401。Secret配信直後の反映差が疑われるが、**根本原因は断定しない**。最終合格した安定化要件を後続のCIから削除しない。
 - 次の工程：既存Workerの本人認証・権限/GAS委譲を残したままD1読み取りへ段階的に切り替えるため、2つのWorkerの相互接続方式、認可、セッション/ログ、データ整合性とバックアップを設計。アプリの応答実測をp50/p95で比較。会計の操作ID冪等・版番号CAS・日付順の確定/解除・試合版/退会履歴などを旧仕様と照合。移行・本番反映は明示承認制を維持。
+
+
+## 73. D1第5工程：全47 API移行禁止ゲートと日程の架空データ読取等価性（2026/11/21）
+
+- 最新検証main `8ed1241fdc2c37e747597bc491b4fa77829c4df0`、`README.md`、`SPEC_PRIORITY_POLICY.md`、D1前工程各文書、既存`cloudflare-worker/worker.js`と`wrangler.toml`、GAS`gas-staging/コード.gs`を再確認。**既存アプリに影響する読み取りAPIの無条件D1切替は実施しない**。
+- 調査で`overview_`が`ensureCollectionLedger_`を呼び、必要時にP-行の自動生成・残高再計算・監査履歴保存を行う**副作用のある読込**と判明。`attendanceMine_`は初回/最終回答日時を操作履歴から取り、試合版/収支確定済みロックを考慮。`scheduleList_`は本日以降の非公開（enabled=false）行を管理用に含め、`scheduleRows_`は全体の日付/ID重複と版数不正を拒否。`monthLedger_`は前月繰越・月跨ぎ確定/解除可否を注記。これらが**既存確定仕様（優先順位1–2）**に該当。
+- [D1_PHASE5_READ_ROUTING.md](D1_PHASE5_READ_ROUTING.md)に48ではなく**実Workerの47 API経路**を対象とする移行前ゲート・リスク・次の設計判断を記載。`d1-staging/phase5/route-catalog.json`で全経路`cutoverApproved=false`・`GAS_ONLY`固定。`tests/check-d1-phase5-route-parity.cjs`がWorker本体のルート追加/削除・rename、LINE認証・GAS認可委譲、会計の読込副作用、出欠履歴・日程重複/前月繰越、既存WorkerのD1/Service binding非接続をオフライン検証。
+- `d1-staging/phase5/schedule-list-offline.sql`は固定SELECT・パラメータ化された架空データの**候補のみ**。`tests/check-d1-phase5-schedule.py`はインメモリSQLiteに0001/0002を適用して架空日程のみを生成し、日付境界・非公開行・並び・重複日程拒否・クエリ専用を確認。**実Sheet全セル型/日時・各種権限/監査がD1で完全再現できたという主張ではない**。
+- CloudflareのService BindingはGateway→内部Workerの接続候補だが、既存`wrangler.toml`へのBinding追加を伴い、LINE/当番/管理者権限とデータ正本の再設計が必要。本工程では既存Gateway/LIFF/GAS/Sheets、稼働中D1パイロット、Cloudflare Secret、実D1レコード、本番環境を変更しない。
+- 当節は**PR CI・main統合・GitHub Pages/Workers Buildsの結果確認前**の記録。実施結果は確認後に別記する。次はPRのCI（新規2ゲート＋既存会計/出欠/退会/試合回帰）を確認し、検証mainへ統合、全20業務タブの実データ型・二重化可否を読み取り専用で棚卸しする。業務データ複写/本番切替は承認前には行わない。
