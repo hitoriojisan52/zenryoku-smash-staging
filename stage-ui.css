@@ -1089,8 +1089,6 @@ body.stage-ui > main.container .expense-box{
 body.stage-ui > main.container .adjustment-box > .stage-field-save-status,
 body.stage-ui > main.container .expense-box > .stage-field-save-status{
  flex:0 0 100%;
- width:100%;
- box-sizing:border-box;
  text-align:left;
  white-space:normal;
  overflow-wrap:anywhere;
