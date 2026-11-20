@@ -59,6 +59,8 @@ if(command==='self-test'){
   assert.throws(()=>validateDb('not-uuid'));
   const cfg=makeConfig(uuid);
   assert.equal(cfg.name,NAME);
+  assert.equal(NAME,'zenryoku-smash-d1-pilot-stage');
+  assert.notEqual(NAME,'zenryoku-smash-d1-pilot-stage-20261121');
   assert.notEqual(cfg.name,'zenryoku-smash-staging-api');
   assert.equal(cfg.d1_databases[0].database_name,DATABASE);
   assert.equal(cfg.d1_databases[0].binding,BINDING);
