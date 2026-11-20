@@ -693,3 +693,13 @@
 - [GitHub Pages Actions #44795115476](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44795115476) build/deploy成功、同mainでCloudflare Workers Builds成功。既存Worker/LIFF/GAS@51/Sheetsのソース・デプロイ先・各種IDと本番は変更なし。
 - `d1-staging/readonly-pilot/worker.mjs`は**未デプロイ**。独立の32字以上の秘密トークンと明示ON・GET件数だけで動く試作であり、現行のLINE本人認証・GASの権限/会計ロジックを再現していない。**現在のD1専用APIトークンではWorkerの新規デプロイは不可**。無断で既存WorkerへD1 bindingを追加したり、権限を拡大したりしない。
 - 次工程：本物のWorker bindingと本人認証・認可が必要な場合、安全な独立Workerのデプロイ権限・名前・Cloudflareビルド/公開可否・CORS/アクセス制限を設計レビューし、必要な初回ユーザー設定をリンク/値とともに提示する。別PRで非PIIのfixtureを使い **Worker native binding/API往復**の計測、最終的にLINE実機のp50/p95と旧GASの同条件で比較。実データ移行、トランザクション/バックアップ/復旧/本番移行は別工程・ユーザー事前承認制。
+
+
+## 63. D1第4工程：独立Worker native binding 実接続の自動化準備（2026/11/21）
+
+- 作業開始時の検証用main `e015d1d8021edf4e3d201c2cbd01a693f2c0c8f6`、`README.md`、`SPEC_PRIORITY_POLICY.md`、`D1_READONLY_PILOT.md`、`D1_SCHEMA_DESIGN.md`、現行`cloudflare-worker/worker.js`と`wrangler.toml`を再確認。従来LINEトークンを毎回検証しGAS/Sheetsへ認可・会計を委譲する仕様は**変更しない**。
+- [D1_WORKER_DEPLOY_PLAN.md](D1_WORKER_DEPLOY_PLAN.md)を策定。**新規独立Worker名**`zenryoku-smash-d1-pilot-stage-20261121`、検証DB `zenryoku-smash-staging-d1` のnative binding`ZENRYOKU_STAGE_DB`だけを生成する`scripts/d1-stage-worker-config.cjs`、衝突する既存Workerの誤上書きを止める`scripts/d1-stage-worker-ownership.cjs`、ランダムBearer/GET0件・POST拒否・HTTP p50/p95を確認する`scripts/d1-stage-worker-probe.cjs`と専用`d1-stage-worker-deploy.yml`を追加。
+- 本番/旧Workerに触れない配慮：D1`0001/0002`・既存20空テーブルは変更なし、既存Workerのコード/binding/URL、GAS@51、LINE/Sheets/領収書、本番設定は変更なし。新Worker側の本人認証は**ない**ため実業務データを扱わず、ランダムBearer Secretがなく、明示ONでない場合は404。実公開後も旧LINE認証の代替にはできない。
+- GitHub Environment`d1-staging`の既存`D1_STAGE_API_TOKEN`は**D1 Edit専用**でありWorkers Scripts Editを持たない。別の`D1_WORKER_STAGE_API_TOKEN`をEnvironment secretとして、`D1_WORKER_STAGE_DEPLOY_ENABLED=true`をEnvironment variableとして**ユーザーの初回設定/判断が必要**。既存のD1 ID・Secret・main限定を維持。Worker tokenの権限拡大リスクと個別Worker限定への将来ローテーション案を設計書に記録。
+- PR CIの成功、main統合、Remote Worker's実デプロイ・GET性能実測、Pages/Workers Builds結果は**まだ確認前**。次はPRのoffline-safetyで設定ファイル/衝突ガード/プライベートBearer/旧業務回帰の成功を確認し、検証mainへ統合する。ユーザーが初期設定を終えるまではremote deployをskipし、**公開成功と書かない**。
+- 今後：Token/Flagの完了連絡→次のmain変更で自動デプロイ→Cloudflare Workers.dev認証付き件数0のGET/実HTTP p50/p95確認→本人認証・権限・個人情報の安全な段階移行を別レビュー。旧収支確定順序/操作ID冪等・版数CAS/監査・試合版・バックアップは未移植。本番承認制を堅持。
