@@ -72,10 +72,18 @@ function gateEdit(){if(!S.actor||!['duty','admin'].includes(S.actor.role))throw 
   }
   S.apiPerfHistory=S.apiPerfHistory||[];
   const gas=path==='/api/overview'&&S.lastOverviewProfile;
+  const phaseNames=[
+   ['scheduleReadMs','日程'],['ledgerReadMs','収支'],['ledgerEnsureMs','収支照合'],
+   ['paymentReadMs','集金'],['attendeeAndIdentityMs','参加者・氏名'],
+   ['rosterAndCalcMs','集計']
+  ];
+  const detail=gas&&gas.phases?phaseNames
+   .filter(([key])=>Number.isSafeInteger(gas.phases[key])&&gas.phases[key]>=0)
+   .map(([key,name])=>name+gas.phases[key]+'ms').join('・'):'';
   const gasText=gas?
    '／GAS内訳 開始'+gas.spreadsheetOpenMs+'ms・会員'+gas.memberAuthMs+
    'ms・ロック待ち'+gas.lockWaitMs+'ms・処理'+gas.overviewHandlerMs+
-   'ms・合計'+gas.gasTotalMs+'ms':'';
+   'ms・合計'+gas.gasTotalMs+'ms'+(detail?'／処理内訳 '+detail:''):'';
   S.apiPerfHistory.push((outcome==='ok'?'✓':'!')+' '+path+' '+Math.round(elapsed)+'ms'+
    (metrics.length?'（'+metrics.join(' / ')+'）':'')+gasText+
    (outcome!=='ok'?' ['+outcome+']':''));
