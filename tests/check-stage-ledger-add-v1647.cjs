@@ -23,7 +23,8 @@ const enabledForDuty=['reimbursementBtn','manageBtn','refresh','adjustment','exp
 async function scenario(role){
  const controls=new Map();
  const $=id=>{
-  if(!controls.has(id))controls.set(id,{disabled:false,hidden:false,textContent:''});
+  if(!controls.has(id))controls.set(id,{id,disabled:false,hidden:false,textContent:'',
+   replaceChildren(...children){this.children=children}});
   return controls.get(id);
  };
  const state={token:'',actor:null,overview:null},VIS={practices:[]};
@@ -35,11 +36,16 @@ async function scenario(role){
   window:{
    SMVisitor:{setup:()=>{calls.push('visitor.setup')},loadMine:async()=>{calls.push('visitor.mine')}},
    SMLiveAccess:{setup:()=>{calls.push('access.setup')}},
+   SMRolePreview:{setup:()=>{calls.push('role.setup');$('stageRolePreviewOpen').disabled=false}},
    SMStageUX:{isBusy:()=>false}
   },
   liff:{init:async()=>{calls.push('liff.init')},isLoggedIn:()=>true,
    getIDToken:()=> 'unshared-test-only-token'},
-  document:{body:{classList:{add:name=>calls.push('class '+name)}}},
+  document:{
+   body:{classList:{add:name=>calls.push('class '+name)}},
+   createElement:()=>({className:'',textContent:'',setAttribute(){}}),
+   querySelectorAll:()=>[...controls.values()]
+  },
   gateEdit:()=>{calls.push('gateEdit');if(!['admin','duty'].includes(role))
    throw new Error('権限がありません')},
   reload:async()=>{calls.push('reload')},
@@ -72,11 +78,13 @@ async function scenario(role){
    'role-verified '+role+' management button is enabled: '+id);
  }
  const member=await scenario('member');
- ok(!member.error,'member may use visitor/own attendance branch');
+ ok(!member.error,'member can open disabled management shell without finance reads');
  ok(!member.calls.includes('gateEdit')&&!member.calls.includes('reload'),
   'member never enters finance manager bootstrap');
- ok(member.$('newLedgerRow').disabled&&member.$('manageBtn').disabled,
-  'member may not enable the ledger Add or management entry');
+ ok(member.$('newLedgerRow').disabled&&member.$('manageBtn').disabled&&
+  member.$('refresh').disabled&&member.$('reimbursementBtn').disabled&&
+  !member.$('stageRolePreviewOpen').disabled,
+  'member management functions disabled except self-role recovery');
  const denied=await scenario('unknown');
  ok(denied.error?.message==='権限がありません','unknown role fails authorization');
  ok(denied.$('newLedgerRow').disabled,'unknown role cannot enable ledger Add');
