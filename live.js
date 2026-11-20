@@ -120,7 +120,7 @@ function syncPaymentControls(){
  if(list&&typeof list.querySelectorAll==='function'){
    for(const checkbox of list.querySelectorAll('.participant-card input[type="checkbox"]')){
      const id=checkbox.closest('.participant-card')?.dataset?.id;
-     checkbox.disabled=locked||S.paymentNeedsRefresh||S.pending.has(id);
+     checkbox.disabled=locked||S.paymentNeedsRefresh||S.pending.has('amount')||S.pending.has(id);
    }
  }
 }
@@ -449,11 +449,12 @@ async function saveCategory(){
  });
 }
 async function saveAmount(kind){
- await guard(async()=>{
+ if(S.pending.size){toast('集金の保存が完了してから補正額を更新してください');return;}
+ try{
    const v=S.overview,ledger=v?.ledger;if(!ledger)throw new Error('収支行がありません');gateEdit();
    const el=$(kind==='adjustment'?'adjustment':'expense'),value=Number(el.value),old=ledger[kind];
    if(!Number.isSafeInteger(value)||kind==='expense'&&value<0){el.value=old;throw new Error('金額を確認してください');}
-   S.pending.add('amount');el.disabled=true;updateFooter();
+   S.pending.add('amount');el.disabled=true;syncPaymentControls();updateFooter();
    try{
      const saved=await call(kind==='adjustment'?'/api/adjustment':'/api/expense',
        {operationId:uuid(),practiceId:S.practiceId,value,expectedVersion:ledger.version});
@@ -467,8 +468,13 @@ async function saveAmount(kind){
      el.value=ledger[kind];updateFooter();
      toast((kind==='adjustment'?'当日補正':'当日支出')+'を更新しました');
    }catch(e){if(!e.appliedButRefreshFailed){el.value=old;updateFooter();}throw e;
-   }finally{S.pending.delete('amount');el.disabled=false;}
- });
+   }finally{S.pending.delete('amount');syncPaymentControls();}
+ }catch(e){
+  if(e?.appliedButRefreshFailed||!Number.isInteger(e?.status)||e.status>=500){
+   S.paymentNeedsRefresh=true;syncPaymentControls();
+  }
+  await window.SMStageUX.showError(e);
+ }
 }
 async function openLedger(){
  gateEdit();close('manageDialog');$('ledgerMonth').value=today().slice(0,7);
