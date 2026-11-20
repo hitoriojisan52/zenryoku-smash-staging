@@ -38,7 +38,7 @@ ok(css.includes('.stage-ui button{min-height:44px;font-size:14px;font-weight:700
  css.includes('min-width:44px;min-height:44px;padding:5px 7px'),
  'older ledger CSS remains intact and the latest compact-height override takes precedence');
 for(const page of ['live.html','match.html','match-view.html','guest.html']){
- ok(file(page).includes('stage-ui.css?v='+(page==='live.html'?'1673-receipt-close':'1665')),page+' refreshes shared compact CSS');
+ ok(file(page).includes('stage-ui.css?v='+(page==='live.html'?'1676-responsive-reads':'1665')),page+' refreshes shared compact CSS');
 }
 ok(html.includes('live.js?v=1676-responsive-reads'),'ledger JS cache bust applied');
 ok(css.includes('tr.carry-row{')&&
