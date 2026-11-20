@@ -85,4 +85,18 @@ ok(!panel.hidden&&output.textContent.includes('ロック待ち450ms')&&
  'diagnostic panel identifies major network and spreadsheet phases');
 ok(!/Bearer|U[0-9a-f]{32}|sharedSecret|token=/.test(output.textContent),
  'performance display contains no bearer, LINE ID or secret');
+for(const [htmlFile,jsFile,modalId,textId] of [
+ ['match-view.html','match-view.js','matchViewErrorDialog','matchViewNotice'],
+ ['guest.html','guest.js','guestErrorDialog','guestNotice']
+]){
+ const h=src(htmlFile),j=src(jsFile);
+ new Function(j);n++;
+ ok(h.includes('id="'+modalId+'"')&&h.includes('id="'+textId+'"')&&
+  j.includes('.showModal()')&&j.includes('Failed to fetch'),
+  htmlFile+' reports failures as Japanese popup and red banner');
+}
+ok(src('match.html').includes('id="matchInlineError"')&&
+ src('match-confirm.js').includes("byId('matchInlineError')")&&
+ src('match.js').includes("inline.hidden=true"),
+ 'match operations show paired errors and clear inline state on later success');
 console.log('PASS '+n+'/'+n+' v0.16.82 paired error, retry, schedule placement and safe performance trace');
