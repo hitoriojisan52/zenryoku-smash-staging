@@ -9,6 +9,7 @@ on:
       - 'tests/check-d1-readonly-pilot.mjs'
       - 'tests/check-d1-phase5-route-parity.cjs'
       - 'tests/check-d1-phase5-schedule.py'
+      - 'tests/check-d1-phase5-membership.py'
       - 'cloudflare-worker/worker.js'
       - 'gas-staging/コード.gs'
       - '.github/workflows/d1-staging-*.yml'
@@ -38,6 +39,8 @@ jobs:
         run: node tests/check-d1-phase5-route-parity.cjs
       - name: Offline synthetic schedule list candidate parity with GAS semantics
         run: python3 tests/check-d1-phase5-schedule.py
+      - name: Block lossy team membership history import with fabricated duplicate keys
+        run: python3 tests/check-d1-phase5-membership.py
       - name: Validate D1 target-account and database guard
         run: node scripts/d1-staging-config.cjs self-test
       - name: Protect legacy ledger confirmation ordering and balances
