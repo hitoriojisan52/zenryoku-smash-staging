@@ -243,6 +243,7 @@ function readScreen_(id,label,loader,onComplete,force=false){
   screen.addEventListener('close',()=>{
    screenReadEpoch_.set(id,(screenReadEpoch_.get(id)||0)+1);
    screenReadActive_.delete(id);
+   homePollPauseUntil_=performance.now()+15000;
   });
  }
  if(!screen.open)screen.showModal();
