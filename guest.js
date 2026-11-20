@@ -39,4 +39,8 @@ async function load(){if(inFlight)return;inFlight=true;const refresh=$('guestRef
  }
  finally{inFlight=false;refresh.disabled=false;refresh.textContent='🔄 更新';}}
 $('guestRefresh').addEventListener('click',load);load();setInterval(()=>{if(!document.hidden)load();},15000);
-})();
+})()  let timer;
+  const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{const e=Error('通信がタイムアウトしました（15秒）。再度お試しください。');e.code='REQUEST_TIMEOUT';reject(e);},15000)});
+  const result=await Promise.race([(async()=>{
+  })(),timeout]).finally(()=>clearTimeout(timer));
+;
