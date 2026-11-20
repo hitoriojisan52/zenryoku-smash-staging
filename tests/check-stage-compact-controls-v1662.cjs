@@ -47,7 +47,7 @@ ok(!latest.includes('.participant-card-memo')&&
 ok(css.includes('button:disabled')&&css.includes('color:#777f87'),
  'existing disabled button treatment remains in stylesheet');
 for(const p of ['live.html','match.html','match-view.html','guest.html']){
- ok(read(p).includes('stage-ui.css?v='+(p==='live.html'?'1673-receipt-close':'1665')),p+' loads compact controls and memo styles');
+ ok(read(p).includes('stage-ui.css?v='+(p==='live.html'?'1676-responsive-reads':'1665')),p+' loads compact controls and memo styles');
 }
 ok(html.includes('live.js?v=1676-responsive-reads'),'collection and participant memo renderer is cache-busted');
 ok(html.includes('id="adjustment"')&&html.includes('id="expense"')&&
