@@ -92,7 +92,7 @@ const reload=new Function('S','$','call','window','Option','renderHome',
  S.practiceId='PAST-C';await reload(true);
  ok(calls===3&&S.practiceId==='TODAY-C',
   'stale confirmed date is recovered by the server in the same overview request');
- const start=ui.indexOf('async function call(path,payload={}){'),stop=ui.indexOf('// Collection checkboxes are independent',start);
+ const start=ui.indexOf('async function call(path,payload={},options={}){'),stop=ui.indexOf('// Collection checkboxes are independent',start);
  ok(start>=0&&stop>start,'real authenticated fetch wrapper found');
  const fakeState={token:'FAKE-TOKEN',updateEpoch:0};
  let abortTime=0,mutationSignal=null;
