@@ -550,3 +550,13 @@
 - **効果の確定限界**：取得したセル量が減ることはコード/回帰で確認予定。APIの待ち時間3～10秒が短縮されたか、15秒失敗が減ったかは**同条件の実機計測前は未判定**。GAS POSTはGAS内部処理を包含するため二重計上しない。10.5秒は2回中の最大であり常時の所要時間ではない。
 - **別件継続**：ユーザーは改修前の11/25・11/28各10人の一覧と対戦表作成を確認済み。11/21公開済み練習の未生成収支行は現在も別の未解決不整合として保持（手作業で直接補完せず）。本人申請の別テスターE2Eも未完了。検証PR/CI/GAS・Pages・Worker反映と実機受入を分けて報告する。**本番は事前承認なしで更新しない**。
 - 詳細：[v0.16.91性能実測・改修報告](stage-v1691-mobile-performance-logs.md)、[検証用運用管理LIFF](https://liff.line.me/2012602642-XBSkXduO?perf=1)。CI/反映結果は次節で追記。
+
+
+## 49. v0.16.91 CI合格・検証用GAS @50反映・Sheet保全確認（2026/11/20）
+
+- [PR #117](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/117)：GAS `safety-check`、UI `payment-and-ui-safety`、`spec-contract` **3系統すべて成功後**、検証main `a95f45a9bd6da3eb92edf34f129b03309a242823` へマージ。初期CIで現金/ビジター模擬シートが従来「全16列取得」を前提として失敗し、**アプリを緩めず**新しい読取範囲の値/書込禁止を確認するテストに修正して再実行、3系統の成功を確認。
+- [GAS既存デプロイ自動更新](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44757415076) **success**：`GitHub source verification PASS`、`Redeployed *** @50`、GASソース一致。既存GAS WebアプリのデプロイIDを更新し、新規デプロイは作成しない。GAS設定値/Secrets/本番環境は変更しない。
+- [GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44757414263) build/deploy/report-build-status **success**、同main SHAの **Workers Builds: zenryoku-smash-staging-api success** （Worker本体変更なし）、[公開GET-only疎通](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44757415084) **success**。LINEユーザーの実機POSTや操作を実施した意味ではない。
+- **検証データ保全の読取再照合**：接続検証用Google Sheets「練習日程」11/21は引き続き確定済みなのに `全体収支管理表` の `P-<practiceId>` 行がない（既知不整合 **未修復**）。`出欠回答!A21:F40` の11/25架空10人(参加8/欠席2)、11/28架空10人(参加8/欠席2)は継続して存在。対応する集金記録への追加や財務書込は今回実施していない。Google Drive連携による再照合は**読み取り専用**。
+- **確定した効果**：GASの読込投影列は、操作履歴6→4（巨大なF列JSON除外）、ビジター用確定状況16→4、現金確認16→9。マスター/収支/監査と書込時の厳密な読み取り・ロック・権限は保持。新テストは実GAS関数を模擬ワークブックで実行して確認。
+- **未受入**：本改修後のLINE実機通信時間改善、15秒タイムアウト発生率、本人申請テスター/管理者承認のE2E、11/21の欠落収支行修復。旧計測の参加者一覧10.504秒を「解消」と断定しない。次の実機確認は [検証用LIFF・性能診断](https://liff.line.me/2012602642-XBSkXduO?perf=1) で参加者一覧11/25・11/28、ビジター管理、現金確認、収支一覧を読込し、**GAS POSTとGAS内訳（開始・会員・ロック・処理・合計）を比較**。ユーザー氏名・LINE ID・アクセストークン・操作本文の収集は禁止。本番反映はユーザー事前承認制。
