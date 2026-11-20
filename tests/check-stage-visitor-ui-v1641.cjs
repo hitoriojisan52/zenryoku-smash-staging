@@ -216,7 +216,7 @@ const deepText=e=>[e.textContent,...e.children.map(deepText)].filter(Boolean).jo
   ok(read(page).includes(page==='live.html'?'stage-ui.css?v=1673-receipt-close':'stage-ui.css?v=1665'),'same shared button CSS cache applied: '+page);
  }
  ok(html.includes('date-format.js?v=1664')&&html.includes('visitor-approval.js?v=1664')&&
-  html.includes('live.js?v=1675-startup-perf')&&html.includes('live-access-v2.js?v=1663'),
+  html.includes('live.js?v=1676-responsive')&&html.includes('live-access-v2.js?v=1663'),
   'staging LIFF refreshes all modified JavaScript assets');
  ok(matchConfirm.includes('match-modal-is-error')&&matchCss.includes('.match-modal-is-error .match-modal-box{border-top:4px solid #c62828}'),
   'intentional confirmation versus error popup distinction remains unchanged');
