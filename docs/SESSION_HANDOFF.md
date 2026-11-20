@@ -528,3 +528,14 @@
 - **回帰**：`tests/check-stage-read-snapshot-v1690.cjs` に実GAS関数のオフライン試験を追加。`gas-staging-check.yml` に登録。既存の収支/本人出欠/参加者/対戦表/退会回帰も実行対象。
 - **残課題**：テスターによる独立利用申請の最後までの実機受入、11/21当日の収支行自動補完の実機検証、v1690の表示回帰・`?perf=1`実機性能計測。既存検証用 [運用管理LIFF](https://liff.line.me/2012602642-XBSkXduO) / [診断](https://liff.line.me/2012602642-XBSkXduO?perf=1)。本番環境不変更。
 - 詳細：[v0.16.90安全な読込削減](stage-v1690-read-snapshots-performance.md)。CI・マージ/デプロイ結果を確定後に追記して確認する。
+
+
+## 47. v0.16.90 検証用デプロイと回帰CIの確認（2026/11/20）
+
+- [PR #115](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/115) は **safety-check (GAS) / spec-contract のCI両方成功後**、検証用main `bc9cc31adefc588d25ab832c3f5b04292b0e3fad` にマージ。新規 `tests/check-stage-read-snapshot-v1690.cjs` のオフライン実行成功、旧本人出欠/参加者/集金/試合/退会/会計確定順序の回帰も成功。UI本体とWorkerコードは変更なしのため、独立のstage-uiワークフローは今回の差分では起動していない。
+- [検証GAS自動デプロイ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44751330587) **success**。GitHubソース一致の `GitHub source verification PASS`、既存Webアプリを `Redeployed *** @49` として更新。新規GASデプロイID発行・本番反映・設定値/Secrets改変は実施していない。
+- [GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44751329042) build/deploy/report-build-status **success**、同一SHAの **Cloudflare Workers Builds: zenryoku-smash-staging-api** **success**（Workerソース不変更）。
+- **公開GET-only疎通**：このSHAでは対象ファイルに変更がないため自動smokeは起動せず、新たな実行結果を成功扱いしない。前回の公開GET-only成功はPR #111のmain反映時。GAS @49でLINE本人アプリE2Eを実施したとはみなさない。
+- **性能の確定範囲**：未来N日の本人参加連絡に対する収支表データ取得は `N→1`、参加者一覧の練習日程マスタ読込は `2→1` に短縮（オフライン実GAS関数で読込回数検証済み）。LINE端末/GAS実通信における所要秒数の改善、15秒タイムアウト解消は**未測定・未受入**。
+- **実機受入の継続**：ユーザーは旧版で11/25・11/28の架空参加者各10名の表示および対戦表作成を確認済み。改修後の本人出欠/参加者一覧の結果・`?perf=1`所要時間の確認、別LINE利用申請の承認経路は未完了。11/21の未作成P収支行は別問題として**未補完**。実データを書き換えて帳尻合わせしない。
+- 次の改善は[運用管理LIFF計測モード](https://liff.line.me/2012602642-XBSkXduO?perf=1)の匿名通信時間（LINE、GAS POST、GAS応答、GASロック待ち）を用いて、外部通信とGAS内部を分離して優先順位を決定。財務残高・確定順序・操作履歴・本人検証の保護を維持。
