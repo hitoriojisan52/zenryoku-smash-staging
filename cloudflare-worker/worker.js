@@ -219,6 +219,21 @@ export async function handleRequest(request,env){
     const withdrawAtEdge=env.WITHDRAW_ENABLED==='true' &&
       env.WITHDRAW_STAGE_SPREADSHEET_ID==='1XcsXwrPdRfDSPs8ibD7bfOGBM7zMxeSINFc9YlFBwac' &&
       env.WORKER_PURPOSE==='staging-member-withdraw-v1653';
+    if(op==='stage.selfRole'){
+      // Existing independent staging purpose is required. A LINE member
+      // cannot select a different identity: GAS binds the first real admin.
+      if(!withdrawAtEdge||env.LINE_LOGIN_CHANNEL_ID!=='2012602642'||
+         env.FRONTEND_ORIGIN!=='https://hitoriojisan52.github.io')
+        return failure('権限切換は検証環境でのみ利用できます',403,origin,'STAGING_ONLY');
+      if(payload.action!=='status'&&payload.action!=='change')
+        return failure('権限切換操作が不正です',400,origin,'BAD_REQUEST');
+      if(payload.action==='change'&&(
+          !['admin','duty','member'].includes(payload.role)||
+          !['admin','duty','member'].includes(payload.expectedRole)||
+          typeof payload.operationId!=='string'||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.operationId)))
+        return failure('権限指定または操作IDが不正です',400,origin,'BAD_REQUEST');
+    }
     if(op==='receipt.upload'){
       if(typeof payload.rowId!=='string'||!/^([PR]-)[A-Za-z0-9_-]{1,100}$/.test(payload.rowId)||
          !Number.isSafeInteger(payload.expectedVersion)||payload.expectedVersion<1||
