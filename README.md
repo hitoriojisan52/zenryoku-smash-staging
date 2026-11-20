@@ -1,3 +1,5 @@
+**v0.16.85（検証用：共通メッセージCSS競合解消／独立利用申請のLIFF誤転用防止）**：青い処理中はCSSスピナー、緑は✓、黄は⚠️、赤は❌。旧CSSの高詳細度ルールが正常／処理中を警告表示に上書きする問題を修正。独立利用申請は専用 `registrationLiffId` 未設定なら管理用LIFFを流用せずエラーにする。GAS/Worker・旧業務処理・本番は変更なし。専用LIFFの実機試験と全画面の青枠案内文監査は継続。[引継ぎ](docs/SESSION_HANDOFF.md)。
+
 
 **v0.16.82検証反映結果**：PR #98（main `73f20e4f153c3a7747653d2a3628a981fb9fc0df`）の3系統CI成功。GitHub Pages/Cloudflare Workers Builds/公開LINE GET-only成功、GAS既存Webアプリ **@47** 更新・pushソース照合成功。実機15秒通信の再発/復旧・画面内＋ポップアップ・診断時間内訳は未受入。[検証用LIFF](https://liff.line.me/2012602642-XBSkXduO) / [計測](https://liff.line.me/2012602642-XBSkXduO?perf=1)。本番未変更。
 
