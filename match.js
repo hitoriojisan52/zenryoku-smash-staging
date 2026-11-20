@@ -168,6 +168,7 @@ async function init(){
  // The initial LINE login + schedule + match read is a foreground operation.
  // Passive polling remains non-blocking; save actions use runMatchProcessing_.
  S.busy=true;
+ $('refreshMatch').disabled=true;
  matchProcessingUi_(true,'読み込み中です…');
  try{
   if(!CFG.liffId||CFG.liffId.includes('REPLACE_')||!CFG.apiBaseUrl||CFG.apiBaseUrl.includes('REPLACE_'))throw Error('runtime-config.js を設定してください');
@@ -238,11 +239,17 @@ async function init(){
  finally{
   S.busy=false;
   matchProcessingUi_(false);
+  $('refreshMatch').disabled=false;
  }
 }
 
 $('matchPractice').addEventListener('change',()=>guard(async()=>{S.practiceId=$('matchPractice').value;await load();}));
-$('refreshMatch').addEventListener('click',()=>guard(load));
+$('refreshMatch').addEventListener('click',async()=>{
+ if(S.busy||$('refreshMatch').disabled)return;
+ $('refreshMatch').disabled=true;
+ try{await guard(load);}
+ finally{$('refreshMatch').disabled=false;}
+});
 $('mainMatchAction').addEventListener('click',()=>guard(async()=>{
  const kind=$('mainMatchAction').dataset.command;if(kind==='create'){
   const cfg=clone(draft());validateDraft(cfg);
