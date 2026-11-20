@@ -7,6 +7,10 @@ on:
       - 'scripts/d1-staging-*'
       - 'tests/check-d1-business-schema.py'
       - 'tests/check-d1-readonly-pilot.mjs'
+      - 'tests/check-d1-phase5-route-parity.cjs'
+      - 'tests/check-d1-phase5-schedule.py'
+      - 'cloudflare-worker/worker.js'
+      - 'gas-staging/コード.gs'
       - '.github/workflows/d1-staging-*.yml'
       - 'docs/D1_MIGRATION_PLAN.md'
 permissions:
@@ -30,6 +34,10 @@ jobs:
         run: node tests/check-d1-readonly-pilot.mjs
       - name: Validate direct D1 REST benchmark and response fail-closed guard
         run: node scripts/d1-staging-http-bench.cjs self-test
+      - name: Fail closed for all 47 existing API routes before D1 read migration
+        run: node tests/check-d1-phase5-route-parity.cjs
+      - name: Offline synthetic schedule list candidate parity with GAS semantics
+        run: python3 tests/check-d1-phase5-schedule.py
       - name: Validate D1 target-account and database guard
         run: node scripts/d1-staging-config.cjs self-test
       - name: Protect legacy ledger confirmation ordering and balances
