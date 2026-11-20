@@ -1968,6 +1968,7 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
   paymentProfile.memberAuthMs=smT2-smT1;
  }
  if(op==='session')return {ok:true,data:{memberId:member.memberId,name:member.name,role:member.role}};
+ if(op==='stage.selfRole')return accessStageSelfRoleV1680_(ss,member,body.lineUserId,payload);
  // These are allowed for ALL registered LINE members, never for visitors.
  if(op==='attendance.mine')return withLock_(function(){return attendanceMine_(ss,member);});
  if(op==='attendance.submit'){

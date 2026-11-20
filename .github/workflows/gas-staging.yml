@@ -80,6 +80,8 @@ jobs:
         run: node tests/check-stage-foreground-read-v1678.cjs
       - name: Verify visitor delete boundary and role preview isolation
         run: node tests/check-stage-role-preview-visitor-delete-v1679.cjs
+      - name: Verify staging self-role mutation owner and backup protection
+        run: node tests/check-stage-self-role-v1680.cjs
       - name: Verify member-only LINE attendance timestamping and financial locks
         run: node tests/check-stage-line-attendance-v1645.cjs
       - name: Verify admin user-name edit and finalized ledger role buttons

@@ -210,7 +210,10 @@ function readScreen_(id,label,loader,onComplete,force=false){
  const refreshId=screenReadRefreshIds_[id],refreshButton=refreshId?$(refreshId):null;
  if(refreshButton)refreshButton.disabled=true;
  const state=screenReadStatus_(id);
- state.hidden=false;state.classList.remove('stage-system-message--warning');
+ state.hidden=false;
+ state.classList.remove('stage-system-message--warning');
+ state.classList.remove('stage-system-message--error');
+ state.classList.add('stage-system-message--info');
  state.classList.add('stage-inline-read-loading');
  state.textContent=label;
  const current=()=>screen.open&&screenReadEpoch_.get(id)===version;
@@ -223,7 +226,8 @@ function readScreen_(id,label,loader,onComplete,force=false){
   }).catch(error=>{
    if(!current())return; // closed while reading; no modal/no stale UI write
    state.hidden=false;state.classList.remove('stage-inline-read-loading');
-   state.classList.add('stage-system-message--warning');
+   state.classList.remove('stage-system-message--info');
+   state.classList.add('stage-system-message--error');
    state.textContent='読み込みできませんでした：'+String(error?.message||error)+
     '。閉じるか「更新」から再試行してください。';
   }).finally(()=>{
@@ -257,21 +261,36 @@ async function boot(){
   $('stageBusyLabel').textContent='利用者の権限を確認しています…';
   const sessionStart=performance.now();
   S.actor=await call('/api/session');
-  // Staging-only menu preview: never alter S.actor or grant backend permissions.
-  window.SMRolePreview?.setup({role:S.actor.role});
+  // Staging self-role changes are tied to authenticated LINE identity.
+  if(!VISITOR_MODE)window.SMRolePreview?.setup({role:S.actor.role,api:call});
   const sessionMs=Math.round(performance.now()-sessionStart);
   if($('manageAdminSection'))$('manageAdminSection').hidden=S.actor.role!=='admin';
   window.SMVisitor?.setup({api:call,actor:S.actor,
    onDecision:async()=>{if(S.actor?.role!=='member'&&S.overview)await reload(true);}});
-  // This link is opened from the existing LINE attendance form. An ordinary
-  // member never loads finance or match-administration data.
-  if(S.actor.role==='member'||VISITOR_MODE){
+  // The LINE attendance/visitor entry remains available at ?visitor=1.
+  // The management home, in contrast, never grants member operations.
+  if(VISITOR_MODE){
    document.body.classList.add('visitor-member');
    $('visitorMemberHome').hidden=false;
    const list=await call('/api/visitor/practices');
    VIS.practices=validateVisitorPractices_(list);
    await window.SMVisitor.loadMine();
    toast('接続しました');
+   return;
+  }
+  if(S.actor.role==='member'){
+   // Management-only guard. Keep visible controls inert, except the
+   // verification-only self-role recovery button in the header.
+   document.body.classList.add('stage-member-locked');
+   const notice=document.createElement('p');
+   notice.className='stage-system-message stage-system-message--warning';
+   notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');
+   notice.textContent='メンバー権限では運用管理を操作できません。検証用の「権限切換」から管理者・当番担当へ戻せます。';
+   $('list').replaceChildren(notice);
+   for(const control of document.querySelectorAll('main button,main select,main input,main textarea')){
+    if(control.id!=='stageRolePreviewOpen')control.disabled=true;
+   }
+   window.SMLiveAccess?.setup({api:call,actor:S.actor});
    return;
   }
   gateEdit();
@@ -962,7 +981,7 @@ function renderCash(){
  status.classList.remove('stage-system-message--info');
  status.classList.add('stage-system-message--warning');
  status.textContent=!snap?'':!snap.found?
-  '⚠️ 指定された日付の行が「全体収支管理表」に見つかりません。':
+  '指定された日付の行が「全体収支管理表」に見つかりません。':
   snap.updatedBy&&snap.savedBookBalance!==null&&snap.savedBookBalance!==snap.bookBalance?
   '前回確認後に帳簿残金が変わりました':'';
  status.hidden=!status.textContent;

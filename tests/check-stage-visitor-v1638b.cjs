@@ -97,8 +97,11 @@ for(const tag of ['visitorDialog','visitorForm','visitorPractice','visitorName',
  'visitorMemberStart','visitorMemberHome','visitorConfirmDialog','visitorConfirmSave','visitorRegisterMenu']){
  ok(html.includes('id="'+tag+'"'),'visitor registration UI: '+tag);
 }
-ok(ui.includes("S.actor.role==='member'||VISITOR_MODE")&&ui.includes("document.body.classList.add('visitor-member')"),
- 'member can access visitor-only stage page without payment or management access');
+ok(ui.includes("if(VISITOR_MODE){")&&
+ ui.includes("document.body.classList.add('visitor-member')")&&
+ ui.includes("if(S.actor.role==='member'){")&&
+ ui.includes("if(control.id!=='stageRolePreviewOpen')control.disabled=true"),
+ 'LINE visitor mode stays usable while member management UI is otherwise locked');
 ok(ui.includes("await call('/api/visitor/request'")&&ui.includes("const requestId='VR-'+uuid(),participantId='PV-'+uuid()"),
  'client generates immutable IDs and requests approval via authenticated API');
 ok(ui.includes("VIS.unknownResult=true;$('visitorSubmit').disabled=true"),
