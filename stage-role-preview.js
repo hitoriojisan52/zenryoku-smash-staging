@@ -41,7 +41,7 @@
     canSwitch?'info':'warning');
   }catch(e){
    if(epoch!==readEpoch||!dialog.open)return;
-   message('権限情報を読み込めませんでした：'+String(e?.message||e),'error');
+   message('権限を読み込めませんでした。閉じて開き直してください。','error');
   }finally{
    if(epoch===readEpoch){loading=false;controls();}
   }
@@ -83,8 +83,7 @@
    w.location.reload();
   }catch(e){
    // A timed-out mutation could have committed. Do not retry automatically.
-   message('変更結果を確認できません：'+String(e?.message||e)+
-    '。この画面を閉じて開き直し、現在の権限を確認してください。','error');
+   message('保存結果を確認できません。画面を開き直して権限を確認してください。','error');
    canSwitch=false;loading=false;saving=false;controls();
   }
  }
