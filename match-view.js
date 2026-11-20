@@ -4,8 +4,29 @@ const $=id=>document.getElementById(id),CFG=window.SMASH_CONFIG||{};
 let token='',practiceId='';
 const el=(tag,cls,content)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(content!==undefined)n.textContent=content;return n;};
 async function request(path,payload={}){
- const res=await fetch(CFG.apiBaseUrl.replace(/\/$/,'')+path,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(payload),cache:'no-store'});
- const r=await res.json();if(!res.ok||!r.ok)throw Error(r.error||'取得できませんでした');return r.data;
+ // Read-only page: safe to abort after 15 seconds, including JSON decoding.
+ const controller=new AbortController();let timer;
+ const work=(async()=>{
+  const res=await fetch(CFG.apiBaseUrl.replace(/\/$/,'')+path,{
+   method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+   body:JSON.stringify(payload),cache:'no-store',signal:controller.signal
+  });
+  return {res,data:await res.json()};
+ })();
+ const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{
+  controller.abort();
+  const error=Error('読み込みが15秒以内に完了しませんでした。「更新」で再確認してください。');
+  error.code='REQUEST_TIMEOUT';reject(error);
+ },15000);});
+ let res,data;
+ try{({res,data}=await Promise.race([work,timeout]));}
+ catch(e){
+  if(controller.signal.aborted&&e?.code!=='REQUEST_TIMEOUT')
+   throw Error('読み込みが15秒以内に完了しませんでした。「更新」で再確認してください。');
+  throw e;
+ }finally{clearTimeout(timer);}
+ if(!res.ok||!data.ok)throw Error(data.error||'読み込みに失敗しました。');
+ return data.data;
 }
 function viewMessage_(text,kind='error'){
  const target=$('matchViewNotice');target.textContent=String(text||'');target.hidden=!text;
@@ -35,7 +56,15 @@ async function init(){
  try{
   if(!CFG.viewLiffId||CFG.viewLiffId.includes('REPLACE_')||
     !CFG.apiBaseUrl||CFG.apiBaseUrl.includes('REPLACE_'))throw Error('設定がありません');
-  await liff.init({liffId:CFG.viewLiffId});
+  let authTimer;
+   try{
+    await Promise.race([
+     liff.init({liffId:CFG.viewLiffId}),
+     new Promise((_,reject)=>{authTimer=setTimeout(
+      ()=>reject(Error('LINE認証が15秒以内に完了しませんでした。開き直してください。')),15000);
+     })
+    ]);
+   }finally{clearTimeout(authTimer);}
   if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return;}
   token=liff.getIDToken();if(!token)throw Error('LINE認証に失敗しました');
   const list=await request('/api/match/practices');
