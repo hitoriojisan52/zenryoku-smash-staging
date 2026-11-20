@@ -1977,6 +1977,20 @@ function receiptDownload_(ss,member,payload){
   base64:Utilities.base64Encode(bytes)}};
 }
 
+// Optional diagnostics for authenticated READ endpoints only. Attaches integer
+// durations to the response, never logs/stores member identities or body data.
+function stageReadProfileV1691_(profile,start,response){
+ if(profile&&response&&response.ok&&response.data){
+  response.data.profileTimings={
+   spreadsheetOpenMs:Math.max(0,profile.spreadsheetOpenMs||0),
+   memberAuthMs:Math.max(0,profile.memberAuthMs||0),
+   lockWaitMs:Math.max(0,profile.lockWaitMs||0),
+   readHandlerMs:Math.max(0,Date.now()-start),
+   gasTotalMs:Math.max(0,Date.now()-profile.startedAt)
+  };
+ }
+ return response;
+}
 function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||!conf_('BACKEND_SECRET'))fail_('UNAUTHORIZED','API接続を確認できません');
  // Guest sharing verifies a short-lived token; LINE login is not required.
  if(body.op==='match.guest.get')return accessGuestGet16_(ss_(),body.guestToken);
@@ -1987,9 +2001,12 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
  // v0.15.12: measure only this read-only startup request (no IDs or secrets logged).
  var smProfile=body.op==='match.bootstrap',smT0=smProfile?Date.now():0,
      paymentProfile=body.op==='payment.set'&&body.payload&&body.payload.profileTimings===true?{startedAt:Date.now()}:null,
-     overviewProfile=body.op==='overview'&&body.payload&&body.payload.profileTimings===true?{startedAt:Date.now()}:null;
- var ss=ss_(),smT1=smProfile||paymentProfile||overviewProfile?Date.now():0,
-     member=member_(ss,body.lineUserId),smT2=smProfile||paymentProfile||overviewProfile?Date.now():0,
+     overviewProfile=body.op==='overview'&&body.payload&&body.payload.profileTimings===true?{startedAt:Date.now()}:null,
+     readProfile=body.payload&&body.payload.profileTimings===true&&
+       ['participant.list','cash.get','visitor.admin.list','visitor.mine','visitor.practices',
+        'ledger.list','schedule.list'].indexOf(body.op)>=0?{startedAt:Date.now()}:null;
+ var ss=ss_(),smT1=smProfile||paymentProfile||overviewProfile||readProfile?Date.now():0,
+     member=member_(ss,body.lineUserId),smT2=smProfile||paymentProfile||overviewProfile||readProfile?Date.now():0,
      op=str_(body.op),payload=body.payload||{};
  if(paymentProfile){
   paymentProfile.spreadsheetOpenMs=smT1-paymentProfile.startedAt;
@@ -1998,6 +2015,10 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
  if(overviewProfile){
   overviewProfile.spreadsheetOpenMs=smT1-overviewProfile.startedAt;
   overviewProfile.memberAuthMs=smT2-smT1;
+ }
+ if(readProfile){
+  readProfile.spreadsheetOpenMs=smT1-readProfile.startedAt;
+  readProfile.memberAuthMs=smT2-smT1;
  }
  if(op==='session')return {ok:true,data:{memberId:member.memberId,name:member.name,role:member.role}};
  if(op==='stage.selfRole')return accessStageSelfRoleV1680_(ss,member,body.lineUserId,payload);
@@ -2019,7 +2040,10 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
  // Match reads and roster reads are allowed for registered LINE members.
  if(op==='roster.line')return {ok:true,data:{text:formatRosterForLine_(ss,str_(payload.practiceId))}};
  // Member-level proxy visitor registration is deliberately before requireDuty_.
- if(op==='visitor.practices')return withLock_(function(){return visitorAvailablePractices_(ss,member,payload);});
+ if(op==='visitor.practices')return withLock_(function(){
+  var mark=readProfile?Date.now():0;
+  return stageReadProfileV1691_(readProfile,mark,visitorAvailablePractices_(ss,member,payload));
+ },readProfile);
  if(op==='visitor.register'||op==='visitor.request'){
    var visitorOpId=checkOpId_(payload);
    return withLock_(function(){
@@ -2038,8 +2062,14 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
    return result;
   });
  }
- if(op==='visitor.mine')return withLock_(function(){return visitorMine_(ss,member);});
- if(op==='visitor.admin.list')return withLock_(function(){return visitorAdminList_(ss,member);});
+ if(op==='visitor.mine')return withLock_(function(){
+  var mark=readProfile?Date.now():0;
+  return stageReadProfileV1691_(readProfile,mark,visitorMine_(ss,member));
+ },readProfile);
+ if(op==='visitor.admin.list')return withLock_(function(){
+  var mark=readProfile?Date.now():0;
+  return stageReadProfileV1691_(readProfile,mark,visitorAdminList_(ss,member));
+ },readProfile);
  if(op==='visitor.decide'){
   var decisionOpId=checkOpId_(payload);
   return withLock_(function(){
@@ -2076,7 +2106,11 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
   };
   return result;
  },overviewProfile);
-  if(['overview','ledger.list','cash.get','schedule.list','schedule.delete.preview','participant.list'].indexOf(op)>=0)return withLock_(function(){return op==='overview'?overview_(ss,member,payload):op==='ledger.list'?monthLedger_(ss,member,payload):op==='cash.get'?cashGet_(ss,member,payload):op==='schedule.list'?scheduleList_(ss,member,payload):op==='schedule.delete.preview'?scheduleDeletePreview_(ss,member,payload):participantList_(ss,member,payload);});
+  if(['overview','ledger.list','cash.get','schedule.list','schedule.delete.preview','participant.list'].indexOf(op)>=0)return withLock_(function(){
+   var mark=readProfile?Date.now():0;
+   var result=op==='overview'?overview_(ss,member,payload):op==='ledger.list'?monthLedger_(ss,member,payload):op==='cash.get'?cashGet_(ss,member,payload):op==='schedule.list'?scheduleList_(ss,member,payload):op==='schedule.delete.preview'?scheduleDeletePreview_(ss,member,payload):participantList_(ss,member,payload);
+   return stageReadProfileV1691_(readProfile,mark,result);
+  },readProfile);
  if(['payment.set','category.set','adjustment.set','expense.set','ledger.change','cash.save','schedule.change','participant.change','receipt.upload'].indexOf(op)<0)fail_('BAD_REQUEST','API操作が不正です');
  var opId=checkOpId_(payload);
  return withLock_(function(){
