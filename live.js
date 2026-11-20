@@ -282,7 +282,8 @@ window.SMStageRead={open:readScreen_};
 // require /api/session before member.status/member.apply: that would block
 // the people the registration form is intended for.
 const REGISTRATION_MODE=(()=>{
- const q=new URLSearchParams(location.search||'');
+ const search=typeof location==='undefined'?'':location.search||'';
+ const q=new URLSearchParams(search);
  let state=q.get('liff.state')||'';
  if(state.includes('?'))state=state.slice(state.indexOf('?')+1);
  return q.get('register')==='1'||new URLSearchParams(state).get('register')==='1';
