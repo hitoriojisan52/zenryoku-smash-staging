@@ -77,4 +77,24 @@ for(const [id,after] of [
 for(const t of ['/api/ledger/change','ledger.canConfirm===false','ledger?.canConfirm!==true']){
  assert.ok(js.includes(t),'existing accounting checks stay in place: '+t);
 }
+const memberArea=home.slice(pos(home,'id="memberAccessDialog"'),pos(home,'class="member-pending-heading"'));
+for(const id of ['memberAccessStatus','memberAccessWithdrawPreviewStatusV1624',
+ 'memberAccessWithdrawCheckResultV1627']){
+ assert.ok(memberArea.includes('id="'+id+'"'),id+' is at member management top');
+}
+const access=src('live-access-v2.js');
+assert.match(access,/previewStatus\.hidden=section\.hidden/,
+ 'withdraw diagnostic is hidden when optional preview is hidden');
+assert.match(stage,/if\(region\)region\.insertAdjacentElement\('afterbegin',note\)/,
+ 'dialog errors are inserted in shared area before any local content');
+for(const id of ['stageRolePreviewActual','memberAccessStatus','stageLineAuthHelp']){
+ const at=pos(home,'id="'+id+'"');
+ assert.ok(home.slice(at,at+160).includes('stage-system-message--neutral'),
+  id+' is passive neutral, never blue processing');
+}
+assert.match(src('stage-role-preview.js'),/canSwitch\?'neutral':'warning'/,
+ 'normal role hint is neutral');
+assert.match(access,/stage-system-message--neutral',!error&&!loading/,
+ 'member management stable state is neutral');
+
 console.log('PASS v1693 common top-of-screen system notice region and left-of-input amount status, no ledger writes');
