@@ -48,6 +48,10 @@ async function smoke(){
  const config=await fetchText(configUrl);
  assert.match(config,/liveLiffId:\s*["']2012602642-XBSkXduO["']/,
   'GitHub Pages LIFF config does not match staging management channel');
+ assert.match(config,/registrationLiffId:\s*["']2012602642-lKuGSb43["']/,
+  'Public registration LIFF ID does not match the dedicated staging LIFF');
+ assert.ok(registrationHtml.includes('runtime-config.js?v=1686-registration-liff'),
+  'Independent registration must load versioned LIFF configuration');
  assert.ok(config.includes('https://zenryoku-smash-staging-api.hitori-ojisan-52.workers.dev'),
   'GitHub Pages config does not target the known staging Worker');
  console.log('PASS PUBLIC STAGING: Worker health, management LIFF, independent registration JS/CSS and runtime config published');
