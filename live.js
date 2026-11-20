@@ -228,7 +228,8 @@ function readScreen_(id,label,loader,onComplete,force=false){
    state.hidden=false;state.classList.remove('stage-inline-read-loading');
    state.classList.remove('stage-system-message--info');
    state.classList.add('stage-system-message--error');
-   state.textContent=error?.code==='REQUEST_TIMEOUT'?'通信がタイムアウトしました（15秒）。更新してください。':'読み込みに失敗しました。'+String(error?.message||'再度お試しください。');
+   state.textContent=window.SMStageUX.errorDetails(error).message;
+   void window.SMStageUX.showError(error);
   }).finally(()=>{
    if(current()&&refreshButton)refreshButton.disabled=false;
    if(screenReadActive_.get(id)?.version===version)
@@ -264,6 +265,10 @@ async function boot(){
   if(!VISITOR_MODE)window.SMRolePreview?.setup({role:S.actor.role,api:call});
   const sessionMs=Math.round(performance.now()-sessionStart);
   if($('manageAdminSection'))$('manageAdminSection').hidden=S.actor.role!=='admin';
+  if($('manageSchedules')){
+   $('manageSchedules').hidden=S.actor.role!=='admin';
+   $('manageSchedules').disabled=S.actor.role!=='admin';
+  }
   window.SMVisitor?.setup({api:call,actor:S.actor,
    onDecision:async()=>{if(S.actor?.role!=='member'&&S.overview)await reload(true);}});
   // The LINE attendance/visitor entry remains available at ?visitor=1.
@@ -317,7 +322,7 @@ async function boot(){
    // The first overview request failed. Keep manual refresh available rather
    // than trapping the user in a disabled shell or a blocking error modal.
    $('refresh').disabled=false;
-   return;
+   throw e;
   }
   showHomeReadError_(e);throw e;
  }
@@ -331,6 +336,7 @@ function showHomeReadError_(e){
  for(const id of ['reimbursementBtn','receiptBtn','manageBtn','confirm','adjustment','expense','cashCounter','date']){
   const control=$(id);if(control)control.disabled=true;
  }
+ if($('refresh')&&S.pending.size===0)$('refresh').disabled=false;
 }
 async function reload(refreshDates){
  if(S.pending.size)return;
@@ -388,11 +394,19 @@ async function reload(refreshDates){
    S.confirmedPracticeKey=confirmedKey;
    S.selectableDayKey=selectableDayKey;
    S.paymentNeedsRefresh=false;S.homeReadFailed=false;
+   window.SMStageUX.clearInlineError();
    renderHome();syncPaymentControls();
  })();
  S.reloadPromise=task;
  try{return await task;}
- catch(e){S.homeReadFailed=true;if(typeof showHomeReadError_==='function')showHomeReadError_(e);syncPaymentControls();throw e;}
+ catch(e){
+  S.homeReadFailed=true;
+  if(typeof showHomeReadError_==='function')showHomeReadError_(e);
+  syncPaymentControls();
+  if($('refresh')&&S.pending.size===0)$('refresh').disabled=false;
+  if(!window.SMStageUX.isBusy())void window.SMStageUX.showError(e);
+  throw e;
+ }
  finally{
    if(S.reloadPromise===task)S.reloadPromise=null;
    S.loading=false;
