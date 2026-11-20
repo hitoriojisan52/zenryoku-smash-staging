@@ -63,10 +63,10 @@ const pm={people:[
 ],matchLocked:false,financeLocked:false,uncertain:false};
 let edited=0,deleted=0;
 const render=new Function('PM','$','document','PM_CATEGORIES','window',
- 'openParticipantEditor_','confirmParticipantDelete_',code+'\nreturn renderParticipantManager_;')(
+ 'openParticipantEditor_','confirmParticipantDelete_','isVisitorParticipant_',code+'\nreturn renderParticipantManager_;')(
  pm,$,document,{member:'メンバー',visitor:'ビジター'},
  {SMDate:{dateTimeJst:s=>s.startsWith('2026-11-17')?'2026/11/17 12:30':'2026/11/18 13:20'}},
- ()=>{edited++},()=>{deleted++}
+ ()=>{edited++},()=>{deleted++},p=>p.category==='visitor'||/^PV-/.test(p.participantId||'')
 );
 render();
 ok(node.participantNotice.hidden,'empty permission note does not consume vertical space');
@@ -110,9 +110,14 @@ ok(!first.children.some(x=>x.textContent.includes('集金：')),
 const buttons=first.children[1].children[1].children;
 ok(buttons.map(x=>x.textContent).join(',')==='修正,削除',
  'bottom right actions follow v7 order');
-ok(buttons.every(x=>!x.disabled),'non-locked rows stay actionable');
+ok(buttons.every(x=>!x.disabled),'non-locked member row stays actionable');
+const visitorButtons=second.children[1].children[1].children;
+ok(visitorButtons.map(x=>x.textContent).join(',')==='修正,削除'&&
+ !visitorButtons[0].disabled&&visitorButtons[1].disabled,
+ 'visitor row retains edit but delete is disabled');
 buttons[0].listeners.click();buttons[1].listeners.click();
-ok(edited===1&&deleted===1,'existing edit/delete actions retain real handlers');
+ok(edited===1&&deleted===1&&!visitorButtons[1].listeners.click,
+ 'member edit/delete works and visitor delete has no click handler');
 pm.matchLocked=true;render();
 ok(node.participantCards.children.every(card=>card.children[1].children[1].children.every(btn=>btn.disabled)),
  'match session protection remains disabling editing/deletion');
