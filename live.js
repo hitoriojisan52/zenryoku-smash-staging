@@ -257,6 +257,7 @@ function readScreen_(id,label,loader,onComplete,force=false){
  state.classList.add('stage-inline-read-loading');
  state.textContent=label;
  const current=()=>screen.open&&screenReadEpoch_.get(id)===version;
+ screenReadsInFlight_++;
  const promise=Promise.resolve().then(()=>loader(current))
   .then(()=>{
    if(!current())return;
@@ -271,6 +272,7 @@ function readScreen_(id,label,loader,onComplete,force=false){
    state.textContent=window.SMStageUX?.errorDetails?.(error)?.message||'読み込みに失敗しました。再度お試しください。';
    void window.SMStageUX?.showError?.(error);
   }).finally(()=>{
+   screenReadsInFlight_=Math.max(0,screenReadsInFlight_-1);
    if(current()&&refreshButton)refreshButton.disabled=false;
    if(screenReadActive_.get(id)?.version===version)
     screenReadActive_.delete(id);
