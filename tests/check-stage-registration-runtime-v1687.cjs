@@ -7,11 +7,11 @@ const code=fs.readFileSync('registration.js','utf8');
 const expectedId='2012602642-lKuGSb43';
 const flush=()=>new Promise(r=>setTimeout(r,0));
 
-function harness({state='not_requested',id=expectedId,loggedIn=true,failApply=false}={}){
+function harness({state='not_requested',id=expectedId,loggedIn=true,failApply=false,perf=false}={}){
  const ids=['registrationStatus','registrationForm','registrationRefresh','registrationSubmit',
   'registrationConfirm','registrationConfirmSubmit','registrationError',
   'registrationErrorMessage','registrationErrorClose','registrationName',
-  'registrationKana','registrationCancel','registrationClose'];
+  'registrationKana','registrationCancel','registrationClose','registrationPerf','registrationPerfText'];
  const nodes=Object.fromEntries(ids.map(key=>[key,{
   key,textContent:'',value:'',hidden:key==='registrationForm',disabled:false,open:false,handlers:{},
   addEventListener(event,callback){this.handlers[event]=callback;},
@@ -34,10 +34,10 @@ function harness({state='not_requested',id=expectedId,loggedIn=true,failApply=fa
   assert.equal(opt.method,'POST');
   assert.equal(opt.headers.Authorization,'Bearer fake-test-token');
   if(url.endsWith('/api/member/status'))
-   return {ok:true,status:200,json:async()=>({ok:true,data:{status:state}})};
+   return {ok:true,status:200,headers:{get:()=> 'line;dur=75,gas;dur=310,gas_post;dur=280,gas_content;dur=30'},json:async()=>({ok:true,data:{status:state}})};
   if(url.endsWith('/api/member/apply')){
    if(failApply)throw new TypeError('Failed to fetch');
-   return {ok:true,status:200,json:async()=>({ok:true,data:{status:'pending'}})};
+   return {ok:true,status:200,headers:{get:()=> 'line;dur=75,gas;dur=310'},json:async()=>({ok:true,data:{status:'pending'}})};
   }
   throw Error('unexpected request: '+url);
  };
@@ -45,10 +45,11 @@ function harness({state='not_requested',id=expectedId,loggedIn=true,failApply=fa
   assert.ok(nodes[key],'unexpected HTML control '+key);
   return nodes[key];
  }};
- const location={href:'https://stage.example.invalid/registration.html'};
+ const location={href:'https://stage.example.invalid/registration.html'+(perf?'?perf=1':''),search:perf?'?perf=1':''};
+ let clock=1000;const performance={now:()=>{clock+=100;return clock;}};
  vm.runInNewContext(code,{
   window,liff,document,fetch,location,history:{length:1,back(){}},
-  setTimeout,clearTimeout,AbortController,console
+  setTimeout,clearTimeout,AbortController,console,performance
  },{timeout:1500});
  return {nodes,calls,inits,logins};
 }
@@ -59,6 +60,13 @@ function harness({state='not_requested',id=expectedId,loggedIn=true,failApply=fa
  assert.equal(approved.inits[0].liffId,expectedId);
  assert.equal(approved.nodes.registrationStatus.className,'stage-system-message stage-system-message--success');
  assert.equal(approved.nodes.registrationStatus.textContent,'利用登録済みです。');
+ const timed=harness({state:'approved',perf:true});await flush();
+ assert.equal(timed.nodes.registrationPerf.hidden,false,'performance report is shown only with perf=1');
+ assert.match(timed.nodes.registrationPerfText.textContent,/状況確認 100ms/);
+ assert.match(timed.nodes.registrationPerfText.textContent,/LINE認証 75ms/);
+ assert.match(timed.nodes.registrationPerfText.textContent,/GAS POST 280ms/);
+ assert.doesNotMatch(timed.nodes.registrationPerfText.textContent,/fake-test-token|架空/);
+ assert.equal(approved.nodes.registrationPerf.hidden,true,'diagnostics stay hidden in normal mode');
  assert.equal(approved.nodes.registrationForm.hidden,true);
  assert.deepEqual(approved.calls.map(c=>new URL(c.url).pathname),['/api/member/status']);
 
