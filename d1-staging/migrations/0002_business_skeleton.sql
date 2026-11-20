@@ -24,8 +24,8 @@ CREATE TABLE IF NOT EXISTS team_memberships (
   member_id TEXT NOT NULL,
   active INTEGER NOT NULL CHECK(active IN (0,1)),
   PRIMARY KEY (team_id, member_id),
-  FOREIGN KEY (team_id) REFERENCES duty_teams(team_id) ON DELETE RESTRICT,
-  FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE RESTRICT
+  FOREIGN KEY (team_id) REFERENCES duty_teams(team_id),
+  FOREIGN KEY (member_id) REFERENCES members(member_id)
 );
 
 CREATE TABLE IF NOT EXISTS practices (
@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS attendances (
   version INTEGER NOT NULL DEFAULT 0 CHECK(version >= 0),
   registered_by_member_id TEXT,
   PRIMARY KEY (practice_id, participant_id),
-  FOREIGN KEY (practice_id) REFERENCES practices(practice_id) ON DELETE RESTRICT
+  FOREIGN KEY (practice_id) REFERENCES practices(practice_id)
 );
 
 CREATE TABLE IF NOT EXISTS payments (
@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS payments (
   updated_at_raw TEXT,
   PRIMARY KEY (practice_id, participant_id),
   FOREIGN KEY (practice_id, participant_id)
-    REFERENCES attendances(practice_id, participant_id) ON DELETE RESTRICT
+    REFERENCES attendances(practice_id, participant_id)
 );
 
 -- Monetary values use integer JPY. Negative balance is valid.
@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS ledger_rows (
   payee TEXT NOT NULL DEFAULT '',
   receipt_file_id TEXT NOT NULL DEFAULT '',
   created_by_member_id TEXT,
-  FOREIGN KEY (practice_id) REFERENCES practices(practice_id) ON DELETE RESTRICT
+  FOREIGN KEY (practice_id) REFERENCES practices(practice_id)
 );
 
 CREATE TABLE IF NOT EXISTS operation_audit (
@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS match_sessions (
   session_version INTEGER NOT NULL CHECK(session_version >= 0),
   settings_version INTEGER NOT NULL CHECK(settings_version >= 0),
   updated_at_raw TEXT,
-  FOREIGN KEY (practice_id) REFERENCES practices(practice_id) ON DELETE RESTRICT
+  FOREIGN KEY (practice_id) REFERENCES practices(practice_id)
 );
 
 -- Sheet stateJSON is chunked by UTF-16 code units; retain chunk index/total and
@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS match_revision_chunks (
   chunk_index INTEGER NOT NULL CHECK(chunk_index >= 1),
   chunk_total INTEGER NOT NULL CHECK(chunk_total >= 1),
   PRIMARY KEY (revision_id, chunk_index),
-  FOREIGN KEY (practice_id) REFERENCES practices(practice_id) ON DELETE RESTRICT
+  FOREIGN KEY (practice_id) REFERENCES practices(practice_id)
 );
 
 CREATE TABLE IF NOT EXISTS match_operation_audit (
@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS match_operation_audit (
   session_version INTEGER NOT NULL,
   created_at_raw TEXT NOT NULL,
   details TEXT,
-  FOREIGN KEY (practice_id) REFERENCES practices(practice_id) ON DELETE RESTRICT
+  FOREIGN KEY (practice_id) REFERENCES practices(practice_id)
 );
 
 CREATE TABLE IF NOT EXISTS registration_requests (
@@ -153,7 +153,7 @@ CREATE TABLE IF NOT EXISTS guest_links (
   revoked_at_raw TEXT,
   issued_by_member_id TEXT,
   created_at_raw TEXT,
-  FOREIGN KEY (practice_id) REFERENCES practices(practice_id) ON DELETE RESTRICT
+  FOREIGN KEY (practice_id) REFERENCES practices(practice_id)
 );
 
 CREATE TABLE IF NOT EXISTS withdrawal_history (
@@ -176,7 +176,7 @@ CREATE TABLE IF NOT EXISTS cash_audits (
   updated_by_member_id TEXT,
   updated_at_raw TEXT,
   PRIMARY KEY (practice_id, audit_date),
-  FOREIGN KEY (practice_id) REFERENCES practices(practice_id) ON DELETE RESTRICT
+  FOREIGN KEY (practice_id) REFERENCES practices(practice_id)
 );
 
 CREATE TABLE IF NOT EXISTS practice_delete_archive_chunks (
@@ -228,7 +228,7 @@ CREATE TABLE IF NOT EXISTS visitor_requests (
   reviewed_at_raw TEXT,
   reviewed_by_member_id TEXT,
   last_operation_id TEXT,
-  FOREIGN KEY (practice_id) REFERENCES practices(practice_id) ON DELETE RESTRICT
+  FOREIGN KEY (practice_id) REFERENCES practices(practice_id)
 );
 
 CREATE TABLE IF NOT EXISTS visitor_decision_archive (
