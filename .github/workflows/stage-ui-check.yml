@@ -13,6 +13,7 @@ on:
       - 'tests/check-stage-match-delete-v1639.cjs'
       - 'tests/check-stage-match-create-v1639a.cjs'
       - 'tests/check-stage-system-messages-v1639b.cjs'
+      - 'tests/check-stage-neutral-messages-v1687.cjs'
       - 'tests/check-stage-visitor-approval-v1640.cjs'
       - 'tests/check-stage-visitor-ui-v1641.cjs'
       - 'visitor-approval.js'
@@ -111,6 +112,8 @@ jobs:
         run: node tests/check-stage-match-create-v1639a.cjs
       - name: Verify shared system messages across all staging screens
         run: node tests/check-stage-system-messages-v1639b.cjs
+      - name: Verify neutral-only guidance and preserve processing and warning semantics
+        run: node tests/check-stage-neutral-messages-v1687.cjs
       - name: Verify visitor approval and paid-rejection cross-module safety
         run: node tests/check-stage-visitor-approval-v1640.cjs
       - name: Verify visitor request dates, statuses and cross-screen button semantics
