@@ -107,7 +107,7 @@ ok(html.includes('cash-reconcile.js?v=1637b')&&html.includes('live.js?v=1676-res
 for(const label of ['現金確認','枚数をリセット','リセットする','いいえ','保存する']){
  ok(html.includes(label),'legacy button text preserved: '+label);
 }
-for(const snippet of ["await call('/api/cash/get',{practiceId})","await call('/api/cash/save'",
+for(const snippet of ["await call('/api/cash/get',{practiceId},{signal:isCurrent.signal})","await call('/api/cash/save'",
  "dialog('cashResetDialog')","dialog('cashSaveDialog')","CASH_LABELS[denom]+'を1枚増やす'"]){
  ok(ui.includes(snippet),'client behavior: '+snippet);
 }
