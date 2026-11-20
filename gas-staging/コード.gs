@@ -1197,7 +1197,11 @@ function participantList_(ss,member,payload){
  var id=str_(payload.practiceId)||(dates.length?dates[dates.length-1].practiceId:'');
  if(!id)return {ok:true,data:{practices:[],practiceId:'',participants:[],
    confirmedPracticeIds:[],matchLocked:false,financeLocked:false,financeStatus:''}};
- var p=practice_(ss,id),rows=participantRows_(ss,id),payments=paymentRows_(ss,id),
+ // The schedule list was read inside this SAME ScriptLock. Reuse that
+ // immutable per-request snapshot; retain practice_()'s duplicate-ID guard.
+ var matches=dates.filter(function(date){return date.practiceId===id;});
+ if(matches.length!==1)fail_('NOT_FOUND','練習日程が見つかりません');
+ var p=matches[0],rows=participantRows_(ss,id),payments=paymentRows_(ss,id),
      seenPayment={},paid={};
  // Resolve the participant's OWN stable account ID, not the visitor sponsor.
  // Keep the approved account's display name authoritative on read, without
@@ -1740,14 +1744,18 @@ function attendanceMine_(ss,member){
  var personal=sheetRows_(ss,'出欠回答').filter(function(r){
   return str_(r[1])===member.memberId&&dates.some(function(p){return p.practiceId===str_(r[0]);});
  });
- var reports=attendanceAuditDates_(ss),answers=[];
+ var reports=attendanceAuditDates_(ss),answers=[],ledgerSnapshot=null;
  dates.forEach(function(p){
   var matching=personal.filter(function(r){return str_(r[0])===p.practiceId;});
   if(matching.length>1)fail_('SETUP','参加連絡が重複しています');
   var old=matching[0]||null;
   if(old&&str_(old[4])==='visitor')
    fail_('SETUP','メンバーの参加区分を確認できません');
-  var ledger=entries_(ss).filter(function(e){return e.rowId==='P-'+p.practiceId;});
+  // All future dates are evaluated within ONE ScriptLock. Keep the first
+  // ledger read at its original validation point and reuse it afterwards.
+  // No cached state escapes this request; write paths keep fresh reads.
+  if(ledgerSnapshot===null)ledgerSnapshot=entries_(ss);
+  var ledger=ledgerSnapshot.filter(function(e){return e.rowId==='P-'+p.practiceId;});
   if(ledger.length>1)fail_('SETUP','収支行が重複しています');
   var stamps=reports[p.practiceId+'|'+member.memberId]||null;
   answers.push({practiceId:p.practiceId,registered:!!old,attending:old?bool_(old[5]):true,

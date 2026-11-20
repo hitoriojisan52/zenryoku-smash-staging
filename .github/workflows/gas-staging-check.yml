@@ -6,6 +6,7 @@ on:
       - 'gas-staging/**'
       - 'tests/check-stage-schedule-v1638.cjs'
       - 'tests/check-stage-legacy-ledger-backfill-v1689.cjs'
+      - 'tests/check-stage-read-snapshot-v1690.cjs'
       - 'tests/check-stage-visitor-v1638b.cjs'
       - 'tests/check-stage-cascade-v1638c.cjs'
       - 'tests/check-stage-participant-v1638d.cjs'
@@ -60,6 +61,7 @@ jobs:
       - run: node tests/check-stage-cash-reconcile-v1637.cjs
       - run: node tests/check-stage-schedule-v1638.cjs
       - run: node tests/check-stage-legacy-ledger-backfill-v1689.cjs
+      - run: node tests/check-stage-read-snapshot-v1690.cjs
       - run: node tests/check-stage-visitor-v1638b.cjs
       - run: node tests/check-stage-cascade-v1638c.cjs
       - run: node tests/check-stage-participant-v1638d.cjs
