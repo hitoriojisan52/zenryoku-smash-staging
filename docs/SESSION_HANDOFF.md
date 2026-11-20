@@ -386,3 +386,13 @@
 
 - 追加の表示統一：対戦表操作画面（既存の確認ポップアップ＋新しい赤枠）、メンバー向け対戦表閲覧、QRゲスト閲覧でも英文ネットワークエラーを日本語へ変換し、赤枠＋閉じられるダイアログを表示。QR画面では失敗後の定期自動読込を停止してポップアップ連発を防ぎ、手動更新で復旧。
 - 計測結果の受入依頼：検証用運用管理LIFF `https://liff.line.me/2012602642-XBSkXduO?perf=1` から権限管理者または当番担当で起動し、「通信とGASの処理時間（検証用）」を展開して、**URL、Token、ID、個人情報を含めずに**経路・msのみ共有してもらう。15秒の問題をLINE照会 / GAS POST / GAS応答 / GASロック待ちに切り分け、必要なGASバッチ最適化を次段で検討する。計測用のURLは本番に案内しない。
+
+
+### v0.16.82 統合・検証デプロイ記録（2026/11/20）
+
+- [PR #98](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/98) を検証mainへ統合（SHA `73f20e4f153c3a7747653d2a3628a981fb9fc0df`）。**payment-and-ui-safety / safety-check / spec-contract の3系統CI成功**。新回帰 `tests/check-stage-error-perf-v1682.cjs` 成功、既存会計確定順序やビジター・退会テストも成功。
+- [GitHub Pages公開](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44694444464)成功、Cloudflare Worker Builds成功、[公開LINE GET-only疎通](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44694445652)成功。アプリをLINEで起動した実機テストとは区別。
+- [検証GASの既存Webアプリ更新](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44694445722)成功。既存デプロイは**@47**、コード.gs/AccessAndGuestV160.gsのpush照合成功。新規Webアプリを作成していない。
+- **未完了：実機受入・性能実測**。検証LIFF https://liff.line.me/2012602642-XBSkXduO 、診断 `?perf=1` https://liff.line.me/2012602642-XBSkXduO?perf=1 。集金ホーム15秒失敗と「更新」復旧、参加者一覧等の赤枠＋ポップアップ、管理者メニュー内練習日程、メンバーのLINEビジター申請・申請取消、対戦表閲覧/QR閲覧のエラー動作を検証。診断データのms分解が確認できたら重いGAS処理/スプレッドシート参照の追加最適化を検討。
+- **仕様上の注意**：練習日程マスタの配置は管理者UIへ移したが、既存GASの当番担当API認可は変更していない。管理者専用APIへの変更は既存仕様に影響するため別途報告・判断が必要。
+- 本番環境への変更は行っていない。権限切換はあくまで検証用で本番移行時に削除。
