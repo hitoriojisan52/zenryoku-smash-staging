@@ -97,6 +97,8 @@
       // Hide any success toast from a preceding action: the failure must be unambiguous.
       byId('matchToast')?.classList.remove('visible');
       const details = errorDetails(error, labelForId);
+      const inline = byId('matchInlineError');
+      if (inline) {inline.textContent = details.message;inline.hidden = false;}
       return open({ ...details, confirmLabel: '確認した', isError: true });
     },
     errorDetails,
