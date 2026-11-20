@@ -206,6 +206,7 @@ async function guard(action,label='処理中です…'){
 // Never hide/disable their Close buttons; stale results from closed screens
 // cannot overwrite a newly opened screen. Mutations still use guard().
 const screenReadEpoch_=new Map(),screenReadActive_=new Map();
+let screenReadsInFlight_=0,homePollPauseUntil_=0;
 const screenReadRefreshIds_={
  scheduleDialog:'scheduleReload',visitorDialog:'visitorMineRefresh',
  visitorAdminDialog:'visitorAdminRefresh',attendanceDialog:'attendanceReload',
@@ -415,7 +416,7 @@ async function boot(){
     (overviewMs/1000).toFixed(1)+'秒 / 合計 '+
     (totalMs/1000).toFixed(1)+'秒）');
   }
-  setInterval(()=>{if(!document.hidden&&!document.querySelector('dialog[open]')&&!S.paymentNeedsRefresh&&!S.homeReadFailed&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
+  setInterval(()=>{if(!document.hidden&&!document.querySelector('dialog[open]')&&screenReadsInFlight_===0&&performance.now()>=homePollPauseUntil_&&!S.paymentNeedsRefresh&&!S.homeReadFailed&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
   if(!PERF_MODE)toast('接続しました');
  }catch(e){
   if(S.actor&&['duty','admin'].includes(S.actor.role)&&S.homeReadFailed){
