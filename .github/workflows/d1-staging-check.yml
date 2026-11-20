@@ -1,0 +1,24 @@
+name: D1 staging offline schema checks
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'd1-staging/**'
+      - 'scripts/d1-staging-*'
+      - '.github/workflows/d1-staging-*.yml'
+      - 'docs/D1_MIGRATION_PLAN.md'
+permissions:
+  contents: read
+jobs:
+  schema-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate isolated migration with SQLite and guard existing Worker
+        run: python3 scripts/d1-staging-check.py
+      - name: Validate D1 target-account and database guard
+        run: node scripts/d1-staging-config.cjs self-test
