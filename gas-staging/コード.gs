@@ -1472,7 +1472,8 @@ function visitorMine_(ss,member){
  var dates=practices_(ss),attendees=sheetRows_(ss,'出欠回答');
  return {ok:true,data:{requests:rows.map(function(r){return visitorPublic_(r,dates,false,attendees);})
   .sort(function(a,b){return b.requestedAt.localeCompare(a.requestedAt)||b.requestId.localeCompare(a.requestId);}),
-  practices:visitorPracticeOptions_(dates),confirmedPracticeIds:visitorConfirmedPracticeIds_(ss)}};
+  practices:visitorPracticeOptions_(dates),confirmedPracticeIds:visitorConfirmedPracticeIds_(ss),
+  registrationPractices:dates.filter(function(p){return p.date>=today_();})}};
 }
 function visitorAdminList_(ss,member){
  if(member.role!=='admin')fail_('FORBIDDEN','ビジターの承認・却下は管理者だけが操作できます');
