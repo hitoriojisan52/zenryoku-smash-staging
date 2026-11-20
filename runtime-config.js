@@ -6,6 +6,10 @@ window.SMASH_CONFIG = {
   viewLiffId: "REPLACE_WITH_VIEW_LIFF_ID",
   // LIFF for operation management screen (endpoint: live.html)
   liveLiffId: "2012602642-XBSkXduO",
+  // Assign only after the user creates a dedicated registration LIFF with
+  // endpoint https://hitoriojisan52.github.io/zenryoku-smash-staging/register.html
+  // Keep unset until instructed. Never reuse the management LIFF ID.
+  registrationLiffId: "",
   apiBaseUrl: "https://zenryoku-smash-staging-api.hitori-ojisan-52.workers.dev",
   // Public page for QR links; GAS SMA16.site MUST match this exactly on deployment.
   // Change only when production host + GAS + LIFF endpoint + CORS are ready.

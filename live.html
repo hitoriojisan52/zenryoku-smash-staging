@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>全力☆スマッシュ 運用管理（接続試験版）</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="live-access.css?v=162a"><link rel="stylesheet" href="live-access-v2.css?v=1656"><link rel="stylesheet" href="stage-ui.css?v=1676-responsive-reads-v1677-visitor-v1680-status-v1681-message-alert"><style>.collection-lock-reason{font-size:12px;background:#fff8df;color:#745217;border:1px solid #e6d19c;border-radius:5px;padding:7px 9px;margin:2px 0}.collection-lock-reason[hidden]{display:none!important}
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>全力☆スマッシュ 運用管理（接続試験版）</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="live-access.css?v=162a"><link rel="stylesheet" href="live-access-v2.css?v=1656"><link rel="stylesheet" href="stage-ui.css?v=1676-responsive-reads-v1677-visitor-v1680-status-v1681-message-alert-v1684-status-grammar"><style>.collection-lock-reason{font-size:12px;background:#fff8df;color:#745217;border:1px solid #e6d19c;border-radius:5px;padding:7px 9px;margin:2px 0}.collection-lock-reason[hidden]{display:none!important}
 .checkbox-container{display:flex;gap:5px;align-items:center;justify-content:flex-end;min-width:30px}
 .payment-checkbox-state{color:#674a00;font-size:10px;white-space:nowrap}
 .payment-checkbox-state[hidden]{display:none!important}
@@ -117,10 +117,10 @@ body.visitor-member #visitorMemberHome button{width:100%}
   <div class="home-footer-bar"><div class="home-footer-row"><div class="income-block"><span id="income">集金額：0円 / 0円</span><span id="adjustmentDisplay">当日補正：(+0円)</span></div><span id="expenseDisplay">支出：0円</span></div><div class="home-footer-action"><strong id="balance">残金：0円</strong><button id="confirm" class="btn-green" type="button">収支を確定</button></div></div>
  <div id="visitorMemberHome" hidden>
  <h2>📨 LINE参加連絡（検証）</h2>
- <p class="stage-system-message stage-system-message--info">ご自身の練習出欠を送信・修正できます。送信日時はサーバー側で記録します。</p>
+ <p class="stage-system-message stage-system-message--neutral">ご自身の練習出欠を送信・修正できます。送信日時はサーバー側で記録します。</p>
  <button id="memberAttendanceStart" class="btn-blue" type="button">参加連絡・予定修正</button>
  <h2>👤 ビジター登録・申請状況</h2>
- <p class="stage-system-message stage-system-message--info">ビジターの参加希望を受けたメンバーが申請します。管理者の承認後に参加者一覧へ反映されます。</p>
+ <p class="stage-system-message stage-system-message--neutral">ビジターの参加希望を受けたメンバーが申請します。管理者の承認後に参加者一覧へ反映されます。</p>
  <button id="visitorMemberStart" class="btn-green" type="button">＋ ビジター登録</button>
  
 </div>
@@ -144,22 +144,9 @@ body.visitor-member #visitorMemberHome button{width:100%}
   <button id="manageAccess" type="button" class="btn-outline" hidden>🔐 メンバー権限管理</button>
   <span class="manage-section-heading" role="heading" aria-level="3">検証用メニュー</span>
   <button id="manageAttendance" type="button" class="btn-outline">📨 自分の参加連絡</button>
-   <button id="stageRegistrationOpen" type="button" class="btn-outline">📝 利用申請（検証用）</button>
+   <button id="stageRegistrationOpen" type="button" class="btn-outline">📝 利用申請</button>
  
  </div><div class="modal-actions"><button id="closeManage" class="btn-outline" type="button">閉じる</button></div></dialog>
-<dialog id="stageRegistrationDialog" aria-labelledby="stageRegistrationTitle">
- <h2 id="stageRegistrationTitle">📝 利用申請（検証用）</h2>
- <p class="stage-system-message stage-system-message--info">LINE本人の利用申請状況を確認できます。未申請の方のみ申請できます。</p>
- <p id="stageRegistrationStatus" class="stage-system-message stage-system-message--info" role="status" aria-live="polite">確認中です…</p>
- <form id="stageRegistrationForm" hidden>
-  <label class="dialog-label" for="stageRegistrationName">氏名</label>
-  <input id="stageRegistrationName" class="dialog-input" maxlength="30" placeholder="例：全力太郎" required>
-  <label class="dialog-label" for="stageRegistrationKana">氏名カナ（全角カタカナ）</label>
-  <input id="stageRegistrationKana" class="dialog-input" maxlength="60" placeholder="例：ゼンリョクタロウ" required>
-  <button id="stageRegistrationSubmit" type="submit" class="btn-green">利用申請する</button>
- </form>
- <div class="modal-actions"><button id="stageRegistrationRefresh" type="button" class="btn-blue">🔄 更新</button><button id="stageRegistrationClose" type="button" class="btn-outline">✕ 閉じる</button></div>
-</dialog>
 <dialog id="stageRolePreviewDialog" aria-labelledby="stageRolePreviewTitle">
  <h2 id="stageRolePreviewTitle">🧪 自分の権限切換（検証専用）</h2>
  <p id="stageRolePreviewActual" class="stage-system-message stage-system-message--info" role="status" aria-live="polite"></p>
@@ -187,10 +174,10 @@ body.visitor-member #visitorMemberHome button{width:100%}
     <section id="memberAccessWithdrawPreviewV1624" class="stage-withdraw-preview-v1624" hidden aria-labelledby="memberAccessWithdrawPreviewTitleV1624">
       <h3 id="memberAccessWithdrawPreviewTitleV1624">退会確認画面のテスト</h3>
       <p class="stage-withdraw-preview-note-v1624">表示例で確認します。実際の退会・削除は行いません。</p>
-      <p id="memberAccessWithdrawPreviewStatusV1624" class="stage-withdraw-preview-note-v1624 stage-system-message stage-system-message--info" role="status" aria-live="polite"></p>
+      <p id="memberAccessWithdrawPreviewStatusV1624" class="stage-withdraw-preview-note-v1624 stage-system-message stage-system-message--neutral" role="status" aria-live="polite"></p>
       <button id="memberAccessWithdrawPreviewButtonV1624" type="button" class="btn-outline">二段階の確認を試す</button>
       <button id="memberAccessWithdrawCheckButtonV1627" type="button" class="btn-blue" hidden>サーバー側の退会条件を確認</button>
-      <p id="memberAccessWithdrawCheckResultV1627" class="stage-withdraw-check-result-v1627 stage-system-message stage-system-message--info" role="status" aria-live="polite" hidden></p>
+      <p id="memberAccessWithdrawCheckResultV1627" class="stage-withdraw-check-result-v1627 stage-system-message stage-system-message--success" role="status" aria-live="polite" hidden></p>
     </section>
     <div class="modal-actions"><button id="memberAccessClose" type="button" class="btn-outline">閉じる</button></div>
   </dialog>
@@ -266,7 +253,7 @@ body.visitor-member #visitorMemberHome button{width:100%}
   <select id="visitorMineEditAttendance" class="dialog-select"><option value="attend">参加</option><option value="absent">欠席</option></select>
   <label class="dialog-label">区分</label><div class="stage-role-readonly">ビジター（変更不可）</div>
   <label for="visitorMineEditMemo" class="dialog-label">備考（任意）</label><input id="visitorMineEditMemo" class="dialog-input" maxlength="200">
-  <p class="stage-system-message stage-system-message--info">出欠は参加者一覧と同様に変更できます。区分はビジター固定です。欠席に変更すると集金チェックも解除されます。収支確定後や対戦表作成後は修正できません。</p>
+  <p class="stage-system-message stage-system-message--neutral">出欠は参加者一覧と同様に変更できます。区分はビジター固定です。欠席に変更すると集金チェックも解除されます。収支確定後や対戦表作成後は修正できません。</p>
   <div class="modal-actions"><button id="visitorMineEditCancel" type="button" class="btn-outline">キャンセル</button><button id="visitorMineEditSave" type="submit" class="btn-green">保存する</button></div>
  </form>
 </dialog>
@@ -277,7 +264,7 @@ body.visitor-member #visitorMemberHome button{width:100%}
 </dialog>
 <dialog id="attendanceDialog" aria-labelledby="attendanceDialogTitle">
  <h2 id="attendanceDialogTitle">📨 LINE参加連絡・予定修正（検証）</h2>
- <p class="stage-system-message stage-system-message--info">利用登録した本人の出欠だけを変更できます。ビジターの登録は別の申請画面をご利用ください。</p>
+ <p class="stage-system-message stage-system-message--neutral">利用登録した本人の出欠だけを変更できます。ビジターの登録は別の申請画面をご利用ください。</p>
  <form id="attendanceForm">
   <label for="attendancePractice" class="dialog-label">練習日（開催場所）</label>
   <select id="attendancePractice" class="dialog-select" required></select>
@@ -403,12 +390,12 @@ body.visitor-member #visitorMemberHome button{width:100%}
 </dialog>
 <dialog id="stageErrorDialog" aria-labelledby="stageErrorTitle" aria-describedby="stageErrorMessage" role="alertdialog">
  <h2 id="stageErrorTitle">操作できませんでした</h2><p id="stageErrorMessage" class="stage-system-message stage-system-message--error" role="alert"></p>
- <p id="stageLineAuthHelp" class="stage-system-message stage-system-message--info" hidden>
+ <p id="stageLineAuthHelp" class="stage-system-message stage-system-message--neutral" hidden>
   LINE認証を確認できません。LINEアプリのトークから検証用LIFFを開き直してください。
   解消しない場合は、LIFFの所属チャネルとWorkerのLINE_LOGIN_CHANNEL_IDが一致しているかを確認してください。
   <a id="stageLineReopen" href="https://liff.line.me/2012602642-XBSkXduO">検証用LIFFを開く</a>
  </p>
  <div class="modal-actions"><button id="stageErrorOkay" class="btn-outline" type="button">閉じる</button></div>
 </dialog>
-<script src="date-format.js?v=1664"></script><script src="model.js"></script><script src="access-v2-mode.js?v=1648"></script><script src="live-access.js?v=162e"></script><script src="stage-ui.js?v=1682-dual-error"></script><script src="dialog-close.js?v=1673-receipt-close"></script><script src="live-access-v2.js?v=1676-responsive-reads-v1677-visitor"></script><script src="runtime-config.js?v=164a"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script src="cash-reconcile.js?v=1637b"></script><script src="visitor-approval.js?v=1676-responsive-reads-v1677-visitor-v1678-cash"></script><script src="stage-role-preview.js?v=1680-self-role"></script><script type="module" src="live.js?v=1676-responsive-reads-v1677-visitor-v1678-cash-v1680-member-gate-v1681-timeout-member-error-v1682-perf-v1683-registration"></script>
+<script src="date-format.js?v=1664"></script><script src="model.js"></script><script src="access-v2-mode.js?v=1648"></script><script src="live-access.js?v=162e"></script><script src="stage-ui.js?v=1682-dual-error"></script><script src="dialog-close.js?v=1673-receipt-close"></script><script src="live-access-v2.js?v=1676-responsive-reads-v1677-visitor"></script><script src="runtime-config.js?v=164a"></script><script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script src="cash-reconcile.js?v=1637b"></script><script src="visitor-approval.js?v=1676-responsive-reads-v1677-visitor-v1678-cash"></script><script src="stage-role-preview.js?v=1680-self-role"></script><script type="module" src="live.js?v=1676-responsive-reads-v1677-visitor-v1678-cash-v1680-member-gate-v1681-timeout-member-error-v1682-perf-v1684-standalone"></script>
 </body></html>

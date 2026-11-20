@@ -1,4 +1,6 @@
 
+
+**v0.16.84（本番想定の独立利用申請と4色状態ルール）**：利用申請は`register.html`の独立ページへ移設。旧運用管理内ポップアップは削除し、検証用メニューに独立ページへのショートカットのみ残した。**青＝通信・保存中（アニメーションスピナー）、緑＝正常・成功、黄＝警告⚠️、赤＝エラー❌**。説明文は中立。新規LIFFは**ユーザーの作成指示待ち**でID未設定、実機本人認証・申請は未確認。GAS/Workerと会計処理は不変更。本番未反映。[v0.16.84利用申請・UI状態ルール](docs/stage-v1684-standalone-registration-status-semantics.md)。
 **v0.16.82検証反映結果**：PR #98（main `73f20e4f153c3a7747653d2a3628a981fb9fc0df`）の3系統CI成功。GitHub Pages/Cloudflare Workers Builds/公開LINE GET-only成功、GAS既存Webアプリ **@47** 更新・pushソース照合成功。実機15秒通信の再発/復旧・画面内＋ポップアップ・診断時間内訳は未受入。[検証用LIFF](https://liff.line.me/2012602642-XBSkXduO) / [計測](https://liff.line.me/2012602642-XBSkXduO?perf=1)。本番未変更。
 
 

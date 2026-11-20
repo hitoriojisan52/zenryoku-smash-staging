@@ -38,7 +38,7 @@
    message('現在の権限：'+names[currentRole]+
     (canSwitch?'。切り換える権限を選択してください。':
      '。このLINEアカウントは検証用権限切換に登録されていません。'),
-    canSwitch?'info':'warning');
+    canSwitch?'success':'warning');
   }catch(e){
    if(epoch!==readEpoch||!dialog.open)return;
    message(w.SMStageUX.errorDetails(e).message,'error');

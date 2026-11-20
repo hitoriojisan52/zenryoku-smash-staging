@@ -58,6 +58,12 @@ on:
       - 'tests/check-stage-self-role-v1680.cjs'
       - 'tests/check-stage-error-perf-v1682.cjs'
       - 'tests/check-stage-registration-perf-v1683.cjs'
+      - 'tests/check-stage-standalone-registration-v1684.cjs'
+      - 'tests/check-stage-registration-runtime-v1684.cjs'
+      - 'register.html'
+      - 'register.js'
+      - 'register.css'
+      - 'runtime-config.js'
       - 'tests/check-stage-member-kana-v1657.cjs'
       - 'tests/check-stage-member-kana-approval-v1657b.cjs'
       - 'tests/check-stage-ledger-confirm-order-v1651.cjs'
@@ -181,6 +187,10 @@ jobs:
         run: node tests/check-stage-error-perf-v1682.cjs
       - name: Verify tester registration and closed-menu polling isolation
         run: node tests/check-stage-registration-perf-v1683.cjs
+      - name: Verify independent registration LIFF and shared status colors
+        run: node tests/check-stage-standalone-registration-v1684.cjs
+      - name: Verify independent registration runtime status, apply and failure recovery
+        run: node tests/check-stage-registration-runtime-v1684.cjs
       - name: Verify LINE registration kana and unified roster sort
         run: node tests/check-stage-member-kana-v1657.cjs
       - name: Verify real GAS kana approval/edit and historical safety

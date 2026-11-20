@@ -281,69 +281,6 @@ function readScreen_(id,label,loader,onComplete,force=false){
  return promise;
 }
 window.SMStageRead={open:readScreen_};
-// This route is also available to a not-yet-approved LINE tester. Do not
-// require /api/session before member.status/member.apply: that would block
-// the people the registration form is intended for.
-const REGISTRATION_MODE=(()=>{
- const search=typeof location==='undefined'?'':location.search||'';
- const q=new URLSearchParams(search);
- let state=q.get('liff.state')||'';
- if(state.includes('?'))state=state.slice(state.indexOf('?')+1);
- return q.get('register')==='1'||new URLSearchParams(state).get('register')==='1';
-})();
-let registrationPending=false;
-async function refreshRegistration_(){
- if(registrationPending)return;
- registrationPending=true;
- const status=$('stageRegistrationStatus'),form=$('stageRegistrationForm'),refresh=$('stageRegistrationRefresh');
- refresh.disabled=true;form.hidden=true;status.textContent='🔄 利用申請状況を確認しています…';
- try{
-  const data=await call('/api/member/status');
-  const state=String(data?.status||'not_requested');
-  if(state==='not_requested'||state==='rejected'){
-   status.textContent=state==='rejected'?'⚠️ 前回の申請は却下されました。再申請できます。':'利用申請はまだありません。';
-   form.hidden=false;
-  }else{
-   status.textContent=({
-    pending:'⚠️ 利用申請は承認待ちです。',
-    approved:'利用登録済みです。',
-    inactive:'⚠️ 利用停止中です。管理者に確認してください。',
-    withdrawal_processing:'⚠️ 退会処理中です。'
-   })[state]||'⚠️ 申請状況を確認してください。';
-  }
- }catch(e){
-  status.textContent='❌ 申請状況を取得できませんでした。更新してください。';
-  await window.SMStageUX?.showError?.(e);
- }finally{registrationPending=false;refresh.disabled=false;}
-}
-async function openRegistration_(){
- if($('manageDialog')?.open)close('manageDialog');
- dialog('stageRegistrationDialog');
- await refreshRegistration_();
-}
-function setupRegistration_(){
- $('stageRegistrationOpen').addEventListener('click',openRegistration_);
- $('stageRegistrationRefresh').addEventListener('click',refreshRegistration_);
- $('stageRegistrationClose').addEventListener('click',()=>close('stageRegistrationDialog'));
- $('stageRegistrationForm').addEventListener('submit',async e=>{
-  e.preventDefault();if(registrationPending)return;
-  const displayName=$('stageRegistrationName').value.normalize('NFKC').replace(/[\\s\\u00a0\\u3000]+/g,'');
-  const nameKana=$('stageRegistrationKana').value.normalize('NFKC').replace(/[\\s\\u00a0\\u3000]+/g,'');
-  if(!displayName||displayName.length>30||!/^[ァ-ヶー・]{1,60}$/.test(nameKana)){
-   await window.SMStageUX.showError(new Error('氏名と全角カタカナの氏名カナを確認してください。'));return;
-  }
-  if(!confirm('利用申請を送信しますか？'))return;
-  registrationPending=true;$('stageRegistrationSubmit').disabled=true;
-  try{
-   const result=await call('/api/member/apply',{displayName,nameKana});
-   $('stageRegistrationStatus').textContent=result?.status==='approved'?'利用登録済みです。':'利用申請を受け付けました。管理者の承認をお待ちください。';
-   $('stageRegistrationForm').hidden=true;
-  }catch(error){
-   $('stageRegistrationStatus').textContent='❌ 申請結果を確認できませんでした。更新して状況を確認してください。';
-   await window.SMStageUX.showError(error);
-  }finally{registrationPending=false;$('stageRegistrationSubmit').disabled=false;}
- });
-}
 async function boot(){
  for(const id of ['confirm','reimbursementBtn','manageBtn','refresh','adjustment','expense','newLedgerRow'])$(id).disabled=true;
  try{
@@ -365,14 +302,7 @@ async function boot(){
   S.token=liff.getIDToken();if(!S.token)throw new Error('LINE IDトークンを取得できません');
   $('stageBusyLabel').textContent='利用者の権限を確認しています…';
   const sessionStart=performance.now();
-  if(typeof setupRegistration_==='function')setupRegistration_();
-  if(typeof REGISTRATION_MODE!=='undefined'&&REGISTRATION_MODE){
-   // The tester has no member record yet. Keep the management controls inert.
-   document.body.classList.add('stage-member-locked');
-   for(const el of document.querySelectorAll('main button,main select,main input'))el.disabled=true;
-   await openRegistration_();
-   return;
-  }
+
   S.actor=await call('/api/session');
   // Staging self-role changes are tied to authenticated LINE identity.
   if(!VISITOR_MODE)window.SMRolePreview?.setup({role:S.actor.role,api:call});
@@ -1223,7 +1153,7 @@ function scheduleFormPayload_(){
 function renderScheduleMaster_(){
  const list=$('scheduleList');list.replaceChildren();
  if(!SC.rows.length){
-  const e=document.createElement('p');e.className='schedule-note stage-system-message stage-system-message--info';
+  const e=document.createElement('p');e.className='schedule-note stage-system-message stage-system-message--neutral';
   e.setAttribute('role','status');e.setAttribute('aria-live','polite');
   e.textContent='本日以降の開催予定はありません。';list.append(e);return;
  }
@@ -1552,7 +1482,7 @@ function renderParticipantManager_(){
   PM.uncertain?'保存結果が不明です。更新してから操作してください':'';
  notice.hidden=!notice.textContent;
  if(!PM.people.length){
-  const empty=document.createElement('p');empty.className='schedule-note stage-system-message stage-system-message--info';
+  const empty=document.createElement('p');empty.className='schedule-note stage-system-message stage-system-message--neutral';
   empty.setAttribute('role','status');empty.setAttribute('aria-live','polite');
   empty.textContent='この開催日の回答データはありません。';
   list.append(empty);return;
@@ -1792,7 +1722,12 @@ function bind(){
  $('payoutDate').addEventListener('change',()=>syncPayoutWeekday_('payoutDate','payoutWeekday'));
  $('ledgerPayoutDate').addEventListener('change',()=>syncPayoutWeekday_('ledgerPayoutDate','ledgerPayoutWeekday'));
  $('cancelReimbursement').addEventListener('click',()=>close('reimbursementDialog'));$('reimbursementForm').addEventListener('submit',submitReimbursement);
- $('manageBtn').addEventListener('click',()=>dialog('manageDialog'));$('closeManage').addEventListener('click',()=>close('manageDialog'));$('openLedger').addEventListener('click',openLedger);
+ $('manageBtn').addEventListener('click',()=>dialog('manageDialog'));
+ $('stageRegistrationOpen').addEventListener('click',()=>{
+  // A dedicated LIFF endpoint owns the future production rich-menu flow.
+  // This test-menu shortcut must not open a management dialog.
+  window.location.assign('register.html');
+ });$('closeManage').addEventListener('click',()=>close('manageDialog'));$('openLedger').addEventListener('click',openLedger);
  prepareCashDenominations();
  $('cashCounter').addEventListener('click',openCash);
  $('cashReset').addEventListener('click',()=>dialog('cashResetDialog'));

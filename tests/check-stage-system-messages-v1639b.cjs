@@ -29,7 +29,7 @@ for(const [section,id,kind] of [
  ['visitor registration availability','visitorStatus','warning'],
  ['member access status','memberAccessStatus','info'],
  ['cash inventory status','cashStatus','warning'],
- ['member management diagnostics','memberAccessWithdrawCheckResultV1627','info']
+ ['member management diagnostics','memberAccessWithdrawCheckResultV1627','success']
 ]){
  const i=live.indexOf('id="'+id+'"');
  ok(i>=0,section+' slot present');
@@ -51,8 +51,8 @@ for(const [section,id,kind,html] of [
 ok(live.includes('live.js?v=1676-responsive-reads')&&match.includes('match.js?v=1664')&&
  view.includes('match-view.js?v=1639b')&&guest.includes('guest.js?v=1639b')&&
  match.includes('access-ui.js?v=1657'),'all modified client scripts are cache-busted');
-ok(liveJs.includes("className='schedule-note stage-system-message stage-system-message--info'"),
- 'empty schedule/participants have same informational box');
+ok(liveJs.includes("className='schedule-note stage-system-message stage-system-message--neutral'"),
+ 'empty schedule/participants use neutral explanatory box rather than loading blue');
 ok(liveJs.includes("status.classList.remove('stage-system-message--info')")&&
  liveJs.includes("status.hidden=!status.textContent")&&
  liveJs.includes("status.classList.add('stage-system-message--warning')"),
@@ -64,7 +64,7 @@ ok(liveJs.includes("reason.hidden=!reason.textContent"),
  'collection warning only shown when collection is blocked');
 ok(liveJs.includes("この開催日の回答データはありません。"),
  'old-v7 empty roster wording retained');
-ok(matchJs.includes("const kind=editable&&count<4?'stage-system-message--warning':'stage-system-message--info'"),
+ok(matchJs.includes("const kind=editable&&count<4?'stage-system-message--warning':'stage-system-message--neutral'"),
  '0–3 eligible players use warning severity like collection-lock reason');
 ok(matchJs.includes("message.setAttribute('role','status')")&&
  matchJs.includes("message.setAttribute('aria-live','polite')"),
@@ -76,11 +76,11 @@ ok(viewJs.includes("function viewMessage_(")&&
  'read-only spectator view has consistent empty-state banner');
 ok(guestJs.includes("id")===false || guest.includes('id="guestNotice"'),
  'guest message target wired to existing public page');
-ok(guestJs.includes("guestNotice").toString()==='true'&&guestJs.includes("stage-system-message--info"),
- 'guest view includes error and empty match banner');
-ok(accessJs.includes("say=(s,kind='info')")&&
+ok(guestJs.includes("guestNotice").toString()==='true'&&guestJs.includes("stage-system-message--neutral"),
+ 'guest view uses neutral empty state and red errors');
+ok(accessJs.includes("say=(s,kind='success')")&&
  accessJs.includes("'stage-system-message--'+type"),
- 'member registration / QR share statuses switch severity consistently');
+ 'member registration / QR share success statuses display green');
 ok(css.includes('#cashStatus.stage-system-message')&&css.includes('white-space:pre-line!important'),
  'cash warnings can wrap instead of truncating on mobile');
 ok(css.includes('@media(prefers-reduced-motion:reduce)'),

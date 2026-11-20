@@ -128,7 +128,7 @@ function render(){const inline=$('matchInlineError');if(inline){inline.textConte
      :''
    :'対戦表の作成をお待ちください。';
   if(text){
-   const kind=editable&&count<4?'stage-system-message--warning':'stage-system-message--info';
+   const kind=editable&&count<4?'stage-system-message--warning':'stage-system-message--neutral';
    const message=el('p','stage-system-message '+kind,text);
    message.setAttribute('role','status');message.setAttribute('aria-live','polite');
    body.append(message);

@@ -1,9 +1,9 @@
 /* v0.16 staging access controls; uses match.js authenticated request. */
 (function(){
 'use strict';
-const $=id=>document.getElementById(id),say=(s,kind='info')=>{
+const $=id=>document.getElementById(id),say=(s,kind='success')=>{
  const el=$('accessMessage');el.textContent=String(s||'');
- for(const type of ['info','warning','error'])
+ for(const type of ['info','success','warning','error'])
   el.classList.toggle('stage-system-message--'+type,type===kind);
 };
 let api=null,getPracticeId=()=>'',role='';
