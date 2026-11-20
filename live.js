@@ -6,7 +6,7 @@
 'use strict';
 const M=window.SmashModel,$=id=>document.getElementById(id),yen=n=>Number(n).toLocaleString('ja-JP')+'円';
 const CONFIG=window.SMASH_CONFIG||{};
-const S={token:'',actor:null,overview:null,practiceId:'',loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,confirmedPracticeKey:'',selectableDayKey:'',receiptPartialWarning:''};
+const S={token:'',actor:null,overview:null,practiceId:'',loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,overviewLoadFailed:false,confirmedPracticeKey:'',selectableDayKey:'',receiptPartialWarning:''};
 const VISITOR_MODE=(()=>{
  const q=new URLSearchParams(location.search||'');
  let state=q.get('liff.state')||'';
@@ -119,11 +119,13 @@ async function call(path,payload={}){
 // concurrently. Apps Script's lock remains the source of truth for the ledger.
 const MAX_PAYMENT_IN_FLIGHT=2;
 function syncPaymentControls(){
- const pending=S.pending.size>0,ledger=S.overview?.ledger,access=S.overview?.collectionAccess;
- const locked=!ledger||ledger.status==='confirmed'||access?.canCollect===false;
+ const pending=S.pending.size>0,ledger=S.overview?.ledger,access=S.overview?.collectionAccess,
+  unavailable=S.overviewLoadFailed===true;
+ const locked=unavailable||!ledger||ledger.status==='confirmed'||access?.canCollect===false;
  const savingAmount=S.pending.has('amount');
  for(const id of ['date','refresh','reimbursementBtn','manageBtn']){
-   const el=$(id);if(el)el.disabled=pending||(id==='date'&&!Array.from(el.options||[]).some(o=>!!o.value));
+   const el=$(id);if(el)el.disabled=pending||(id!=='refresh'&&unavailable)||
+    (id==='date'&&!Array.from(el.options||[]).some(o=>!!o.value));
  }
  if($('confirm'))$('confirm').disabled=pending||locked||
     S.overview?.practice?.date>today()||ledger?.canConfirm!==true;
@@ -255,8 +257,9 @@ function readScreen_(id,label,loader,onComplete,force=false){
    state.hidden=false;state.classList.remove('stage-inline-read-loading');
    state.classList.remove('stage-system-message--info');
    state.classList.add('stage-system-message--error');
-   state.textContent='読み込みできませんでした：'+String(error?.message||error)+
-    '。閉じるか「更新」から再試行してください。';
+   state.textContent=error?.code==='REQUEST_TIMEOUT'?
+    '読み込みが15秒以内に完了しませんでした。「更新」で再確認してください。':
+    '読み込みに失敗しました。「更新」で再確認してください。';
   }).finally(()=>{
    if(current()&&refreshButton)refreshButton.disabled=false;
    if(screenReadActive_.get(id)?.version===version)
@@ -266,8 +269,24 @@ function readScreen_(id,label,loader,onComplete,force=false){
  return promise;
 }
 window.SMStageRead={open:readScreen_};
+// A failed overview never leaves home finance/management actions enabled.
+// Keep Update available after a foreground failure for verified staff only.
+function homeReadFailure_(error){
+ S.overviewLoadFailed=true;
+ const box=$('homeReadError');
+ if(box){
+  box.textContent=error?.code==='REQUEST_TIMEOUT'?
+   '読み込みが15秒以内に完了しませんでした。「更新」で再確認してください。':
+   '読み込みに失敗しました。「更新」で再確認してください。';
+  box.hidden=false;
+ }
+ for(const id of ['reimbursementBtn','receiptBtn','manageBtn']){
+  const control=$(id);if(control)control.disabled=true;
+ }
+ if(S.actor&&['duty','admin'].includes(S.actor.role))$('refresh').disabled=false;
+}
 async function boot(){
- for(const id of ['confirm','reimbursementBtn','manageBtn','refresh','adjustment','expense','newLedgerRow'])$(id).disabled=true;
+ for(const id of ['confirm','reimbursementBtn','receiptBtn','manageBtn','refresh','adjustment','expense','newLedgerRow'])$(id).disabled=true;
  try{
   if(!CONFIG.liveLiffId||CONFIG.liveLiffId.includes('REPLACE_')||!CONFIG.apiBaseUrl||CONFIG.apiBaseUrl.includes('REPLACE_'))throw new Error('runtime-config.js の設定が必要です');
   if(!window.liff)throw new Error('LINE SDKを読み込めませんでした');
@@ -312,7 +331,7 @@ async function boot(){
    const notice=document.createElement('p');
    notice.className='stage-system-message stage-system-message--warning';
    notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');
-   notice.textContent='メンバー権限では運用管理を操作できません。検証用の「権限切換」から管理者・当番担当へ戻せます。';
+   notice.textContent='メンバー権限では運用管理機能を利用できません。';
    $('list').replaceChildren(notice);
    for(const control of document.querySelectorAll('main button,main select,main input,main textarea')){
     if(control.id!=='stageRolePreviewOpen')control.disabled=true;
@@ -341,7 +360,7 @@ async function boot(){
   setInterval(()=>{if(!document.hidden&&!document.querySelector('dialog[open]')&&!S.paymentNeedsRefresh&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
   if(!PERF_MODE)toast('接続しました');
  }catch(e){
-  $('list').textContent=e.message;throw e;
+  homeReadFailure_(e);throw e;
  }
 }
 async function reload(refreshDates){
@@ -400,10 +419,13 @@ async function reload(refreshDates){
    S.confirmedPracticeKey=confirmedKey;
    S.selectableDayKey=selectableDayKey;
    S.paymentNeedsRefresh=false;
+   S.overviewLoadFailed=false;
+   const homeError=$('homeReadError');if(homeError){homeError.textContent='';homeError.hidden=true;}
    renderHome();syncPaymentControls();
  })();
  S.reloadPromise=task;
  try{return await task;}
+ catch(error){homeReadFailure_(error);throw error;}
  finally{
    if(S.reloadPromise===task)S.reloadPromise=null;
    S.loading=false;
