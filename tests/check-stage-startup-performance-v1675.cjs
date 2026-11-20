@@ -126,7 +126,7 @@ const reload=new Function('S','$','call','window','Option','renderHome',
  ok(ui.includes("!document.querySelector('dialog[open]')")&&
   ui.includes('},8000);'),
   'background polling still uses 8 seconds but yields while management modal is open');
- ok(html.includes('live.js?v=1675-startup-perf'),
+ ok(html.includes('live.js?v=1676-responsive'),
   'LINE WebView fetches revised startup module, not stale cached version');
  console.log('PASS '+n+'/'+n+' single-read startup, schedule snapshot, bounded client reads and finance safety');
 })().catch(e=>{console.error(e);process.exitCode=1});
