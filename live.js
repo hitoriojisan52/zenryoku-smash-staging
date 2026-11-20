@@ -55,7 +55,7 @@ function dialog(id){const e=$(id);if(e&&!e.open)e.showModal();}
 function close(id){if($(id)?.open)$(id).close();}
 function gateEdit(){if(!S.actor||!['duty','admin'].includes(S.actor.role))throw new Error('当番チームの権限がありません');}
 const REQUEST_TIMEOUT_MS=15000;
-const MUTATING_ENDPOINTS=new Set(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change','/api/schedule/change','/api/visitor/register','/api/visitor/request','/api/visitor/decide','/api/visitor/modify','/api/participant/change','/api/attendance/submit','/api/stage/self-role','/api/receipt/upload','/api/reimbursement/change','/api/cash/save','/api/member/apply','/api/member/manage/decide','/api/member/manage/role','/api/member/manage/edit','/api/member/manage/withdraw']);
+const MUTATING_ENDPOINTS=new Set(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change','/api/schedule/change','/api/visitor/register','/api/visitor/request','/api/visitor/decide','/api/visitor/modify','/api/participant/change','/api/attendance/submit','/api/stage/self-role','/api/receipt/upload','/api/reimbursement/change','/api/cash/save','/api/member/apply','/api/member/manage/decide','/api/member/manage/role','/api/member/manage/edit','/api/member/manage/withdraw','/api/match/share','/api/match/share/revoke']);
 function requestTimeoutError_(isWrite){
  const e=new Error(isWrite?'通信がタイムアウトしました（15秒）。保存結果を更新で確認してください。':'通信がタイムアウトしました（15秒）。再度お試しください。');
  e.code=isWrite?'OPERATION_UNCONFIRMED':'REQUEST_TIMEOUT';return e;
