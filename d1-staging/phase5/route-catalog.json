@@ -1,0 +1,290 @@
+{
+  "schemaVersion": 1,
+  "source": "cloudflare-worker/worker.js",
+  "baseline": "GAS/Sheets authoritative; D1 business data is not synchronized",
+  "defaultRoute": "GAS_ONLY",
+  "routes": [
+    {
+      "path": "/api/session",
+      "op": "session",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/attendance/mine",
+      "op": "attendance.mine",
+      "review": "blocked-authenticated-read",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/attendance/submit",
+      "op": "attendance.submit",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/member/status",
+      "op": "member.status",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/member/apply",
+      "op": "member.apply",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/member/manage/list",
+      "op": "member.manage.list",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/member/manage/decide",
+      "op": "member.manage.decide",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/member/manage/role",
+      "op": "member.manage.role",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/stage/self-role",
+      "op": "stage.selfRole",
+      "review": "blocked-mixed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/member/manage/edit",
+      "op": "member.manage.edit",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/member/manage/withdraw",
+      "op": "member.manage.withdraw",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/member/manage/withdraw/check",
+      "op": "member.manage.withdraw.check",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/match/share",
+      "op": "match.share.issue",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/match/share/revoke",
+      "op": "match.share.revoke",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/match/guest",
+      "op": "match.guest.get",
+      "review": "blocked-guest-capability",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/overview",
+      "op": "overview",
+      "review": "blocked-side-effecting-read",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/payment",
+      "op": "payment.set",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/category",
+      "op": "category.set",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/adjustment",
+      "op": "adjustment.set",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/expense",
+      "op": "expense.set",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/ledger",
+      "op": "ledger.list",
+      "review": "blocked-authenticated-read",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/ledger/change",
+      "op": "ledger.change",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/receipt/upload",
+      "op": "receipt.upload",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/receipt/get",
+      "op": "receipt.get",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/cash/get",
+      "op": "cash.get",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/cash/save",
+      "op": "cash.save",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/schedule/list",
+      "op": "schedule.list",
+      "review": "blocked-authenticated-read",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/schedule/change",
+      "op": "schedule.change",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/schedule/delete-preview",
+      "op": "schedule.delete.preview",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/visitor/practices",
+      "op": "visitor.practices",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/visitor/register",
+      "op": "visitor.register",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/visitor/request",
+      "op": "visitor.request",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/visitor/mine",
+      "op": "visitor.mine",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/visitor/modify",
+      "op": "visitor.modify",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/visitor/admin-list",
+      "op": "visitor.admin.list",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/visitor/decide",
+      "op": "visitor.decide",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/participant/list",
+      "op": "participant.list",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/participant/change",
+      "op": "participant.change",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/roster/line",
+      "op": "roster.line",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/match/bootstrap",
+      "op": "match.bootstrap",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/match/practices",
+      "op": "match.practices",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/match/get",
+      "op": "match.get",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/match/line",
+      "op": "match.line",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/match/create",
+      "op": "match.create",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/match/delete",
+      "op": "match.delete",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/match/change",
+      "op": "match.change",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    },
+    {
+      "path": "/api/match/operation",
+      "op": "match.operation",
+      "review": "blocked-unreviewed",
+      "cutoverApproved": false
+    }
+  ]
+}
