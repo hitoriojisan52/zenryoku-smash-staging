@@ -66,8 +66,13 @@ function gateEdit(){if(!S.actor||!['duty','admin'].includes(S.actor.role))throw 
    if(match)metrics.push(phases[match[1]]+' '+Math.round(Number(match[2]))+'ms');
   }
   S.apiPerfHistory=S.apiPerfHistory||[];
+  const gas=path==='/api/overview'&&S.lastOverviewProfile;
+  const gasText=gas?
+   '／GAS内訳 開始'+gas.spreadsheetOpenMs+'ms・会員'+gas.memberAuthMs+
+   'ms・ロック待ち'+gas.lockWaitMs+'ms・処理'+gas.overviewHandlerMs+
+   'ms・合計'+gas.gasTotalMs+'ms':'';
   S.apiPerfHistory.push((outcome==='ok'?'✓':'!')+' '+path+' '+Math.round(elapsed)+'ms'+
-   (metrics.length?'（'+metrics.join(' / ')+'）':'')+
+   (metrics.length?'（'+metrics.join(' / ')+'）':'')+gasText+
    (outcome!=='ok'?' ['+outcome+']':''));
   if(S.apiPerfHistory.length>16)S.apiPerfHistory.shift();
   const panel=$('perfBreakdown'),out=$('stageApiPerfText');
@@ -95,7 +100,8 @@ async function call(path,payload={}){
  const work=(async()=>{
   const response=await fetch(url,{method:'POST',
    headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},
-   body:JSON.stringify(payload),cache:'no-store',
+   body:JSON.stringify(PERF_MODE&&path==='/api/overview'?
+    {...payload,profileTimings:true}:payload),cache:'no-store',
    ...(controller?{signal:controller.signal}:{})});
   if(PERF_MODE){
    diagnosticTiming=response.headers.get('Server-Timing')||'';
@@ -103,6 +109,8 @@ async function call(path,payload={}){
    console.info('[STAGE PERF]',S.lastPerf.path,S.lastPerf.totalMs+'ms',S.lastPerf.serverTiming);
   }
   let value;try{value=await response.json();}catch{throw new Error('サーバーの応答を確認できませんでした。');}
+  if(PERF_MODE&&path==='/api/overview')S.lastOverviewProfile=
+   value?.data?.profileTimings||null;
   if(!response.ok||!value.ok){const err=new Error(value.error||'処理に失敗しました。');err.status=response.status;err.code=String(value.code||'');throw err;}
   return value.data;
  })();
