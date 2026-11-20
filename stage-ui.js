@@ -61,7 +61,9 @@
     note=document.createElement('p');
     note.className='stage-inline-error stage-system-message stage-system-message--error';
     note.setAttribute('role','alert');
-    surface.querySelector('h2')?.insertAdjacentElement('afterend',note);
+    const region=surface.querySelector('.stage-message-region');
+    if(region)region.insertAdjacentElement('afterbegin',note);
+    else surface.querySelector('h2')?.insertAdjacentElement('afterend',note);
    }
    note.hidden=false;note.textContent=message;return;
   }
