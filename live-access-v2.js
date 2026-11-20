@@ -10,7 +10,7 @@
  const dialog=$('memberAccessDialog'),confirmDialog=$('accessConfirmV2'),
   editDialog=$('memberAccessEditV1656'),editForm=$('memberAccessEditFormV1656');
  const cancel=$('accessConfirmCancelV2'),okay=$('accessConfirmOkayV2'),toastEl=$('toast');
- let api=null,actorRole='',actorMemberId='',busy=false,prompt=null,toastTimer=null,
+ let api=null,actorRole='',actorMemberId='',busy=false,prompt=null,toastTimer=null,readVersion=0,
   editingMember=null;
  const status=s=>{$('memberAccessStatus').textContent=String(s||'');};
  function item(tag,cls,label){
@@ -242,10 +242,30 @@
    if(!Array.isArray(data?.pending)||!Array.isArray(data?.members))throw Error('メンバー一覧を読み込めませんでした。');
    render(data);return data;
  }
+ // Initial/manual reads never disable Close or show a global spinner.
+ // Existing role, edit, withdraw writes still use the original guarded run().
  async function refresh(first){
-   return run(first?'読み込み中です…':'一覧を更新しています…',async()=>{
-     await load();status('');
-   },first?'':'更新しました。');
+   if(busy||prompt)return false;
+   const version=++readVersion;
+   const current=()=>version===readVersion&&dialog.open;
+   status(first?'利用申請とメンバー権限を読み込んでいます…':
+     '利用申請とメンバー権限を更新しています…');
+   $('memberAccessRefresh').disabled=true;
+   try{
+     ensureAdmin();
+     const data=await api('/api/member/manage/list');
+     if(!current())return false;
+     if(!Array.isArray(data?.pending)||!Array.isArray(data?.members))
+       throw Error('メンバー一覧を読み込めませんでした。');
+     render(data);status('');
+     if(!first)toast('更新しました。');
+     return true;
+   }catch(e){
+     if(current())status('読み込みに失敗しました：'+String(e?.message||e));
+     return false;
+   }finally{
+     if(current())$('memberAccessRefresh').disabled=false;
+   }
  }
  async function mutate(path,payload,title,verify){
    return run(title+'を保存しています…',async()=>{
@@ -337,12 +357,14 @@
      '役割変更',
      data=>data.members.some(x=>x.memberId===m.memberId&&x.role===role));
  }
- async function open(){
+ function open(){
    if(busy||prompt)return;
    ensureAdmin();
    const parent=$('manageDialog');if(parent?.open)parent.close();
    if(!dialog.open)dialog.showModal();
-   await refresh(true);
+   $('memberAccessPending').textContent='登録申請を読み込んでいます…';
+   $('memberAccessMembers').textContent='利用者情報を読み込んでいます…';
+   return refresh(true);
  }
  $('memberAccessTitle').textContent='🔐 メンバー権限管理';
  // v0.16.23: collapsed disclosure, shown only when history is supported.
@@ -360,6 +382,7 @@
  document.body.classList.add('access-v2-active');
  $('manageAccess').addEventListener('click',()=>open().catch(e=>showError(e)));
  $('memberAccessRefresh').addEventListener('click',()=>refresh(false));
+ dialog.addEventListener('close',()=>{readVersion++;});
  $('memberAccessClose').addEventListener('click',()=>{if(!busy&&!prompt&&dialog.open)dialog.close();});
  window.SMLiveAccess=Object.freeze({
    // Check-only LIFF link: open the admin panel after initial load releases its lock.
