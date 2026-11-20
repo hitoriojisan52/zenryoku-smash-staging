@@ -112,7 +112,16 @@ async function call(path,payload={}){
   }
   throw e;
  }finally{clearTimeout(timer);}
- if(!response.ok||!value.ok){const err=new Error(value.error||'処理を完了できませんでした。');err.status=response.status;err.code=String(value.code||'');throw err;}
+ if(!response.ok||!value.ok){
+  const err=new Error(value.error||'処理を完了できませんでした。');
+  err.status=response.status;err.code=String(value.code||'');
+  // Server-side 5xx/504 during a write cannot prove the update was rolled
+  // back. Preserve the operationId and show "verify before retry".
+  if(!boundedRead&&response.status>=500){
+   err.mutationUncertain=true;err.code='OPERATION_UNCONFIRMED';
+  }
+  throw err;
+ }
  return value.data;
 }
 // Collection checkboxes are independent. Only up to two requests leave this page
@@ -257,7 +266,7 @@ function readScreen_(id,label,loader,onComplete,force=false){
    state.hidden=false;state.classList.remove('stage-inline-read-loading');
    state.classList.remove('stage-system-message--info');
    state.classList.add('stage-system-message--error');
-   state.textContent=error?.code==='REQUEST_TIMEOUT'?
+   state.textContent=['REQUEST_TIMEOUT','GAS_TIMEOUT','LINE_VERIFY_TIMEOUT'].includes(error?.code)?
     '読み込みが15秒以内に完了しませんでした。「更新」で再確認してください。':
     '読み込みに失敗しました。「更新」で再確認してください。';
   }).finally(()=>{
@@ -275,7 +284,7 @@ function homeReadFailure_(error){
  S.overviewLoadFailed=true;
  const box=$('homeReadError');
  if(box){
-  box.textContent=error?.code==='REQUEST_TIMEOUT'?
+  box.textContent=['REQUEST_TIMEOUT','GAS_TIMEOUT','LINE_VERIFY_TIMEOUT'].includes(error?.code)?
    '読み込みが15秒以内に完了しませんでした。「更新」で再確認してください。':
    '読み込みに失敗しました。「更新」で再確認してください。';
   box.hidden=false;
@@ -283,6 +292,7 @@ function homeReadFailure_(error){
  for(const id of ['reimbursementBtn','receiptBtn','manageBtn']){
   const control=$(id);if(control)control.disabled=true;
  }
+ syncPaymentControls();
  if(S.actor&&['duty','admin'].includes(S.actor.role))$('refresh').disabled=false;
 }
 async function boot(){
