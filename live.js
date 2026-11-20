@@ -122,7 +122,7 @@ async function call(path,payload={}){
  }
  finally{
   clearTimeout(timer);
-  profileApiRequest_(path,performance.now()-startedAt,diagnosticTiming,diagnosticOutcome);
+  if(PERF_MODE)profileApiRequest_(path,performance.now()-startedAt,diagnosticTiming,diagnosticOutcome);
  }
 }
 // Collection checkboxes are independent. Only up to two requests leave this page
@@ -361,7 +361,8 @@ async function boot(){
    $('refresh').disabled=false;
    throw e;
   }
-  showHomeReadError_(e);throw e;
+  if(S.homeReadFailed&&typeof showHomeReadError_==='function')showHomeReadError_(e);
+  throw e;
  }
 }
 function showHomeReadError_(e){
