@@ -4,8 +4,12 @@ const $=id=>document.getElementById(id),CFG=window.SMASH_CONFIG||{};
 let token='',practiceId='';
 const el=(tag,cls,content)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(content!==undefined)n.textContent=content;return n;};
 async function request(path,payload={}){
+ let timer;
+ const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{const e=Error('通信がタイムアウトしました（15秒）。再度お試しください。');e.code='REQUEST_TIMEOUT';reject(e);},15000)});
+ return Promise.race([(async()=>{
  const res=await fetch(CFG.apiBaseUrl.replace(/\/$/,'')+path,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(payload),cache:'no-store'});
  const r=await res.json();if(!res.ok||!r.ok)throw Error(r.error||'取得できませんでした');return r.data;
+ })(),timeout]).finally(()=>clearTimeout(timer));
 }
 function viewMessage_(text,kind='error'){
  const target=$('matchViewNotice');target.textContent=String(text||'');target.hidden=!text;
