@@ -3,6 +3,7 @@
 **新しいチャットで開発を再開する場合は、必ず [開始用プロンプト](docs/NEW_CHAT_START_PROMPT.md) を使用し、[開発引継ぎ文書](docs/SESSION_HANDOFF.md) と [仕様優先順位の正式ルール](docs/SPEC_PRIORITY_POLICY.md) を確認する。**
 **GAS・Worker・PagesのGitHub経由デプロイとユーザーへの具体的な作業案内**は [DEPLOYMENT_AND_USER_ACTIONS.md](docs/DEPLOYMENT_AND_USER_ACTIONS.md) に従う（Worker v0.16.53の反映確認とGAS/Workerの設定完了報告を記録済み）。
 **退会・再入会の確定仕様と接続検証の進捗**：[v0.16.53引継ぎ](docs/stage-v1653-withdraw-rejoin.md)を参照。
+**v0.16.76（閲覧先行・画面内読込）**：現金確認、収支表、練習日程、参加者一覧、ビジター申請/審査、権限管理、本人参加連絡を先に表示し、各データ欄で読込中・エラーを表示。閉じるを有効にし、閉じた画面への古い応答反映を防止。当日補正/当日支出は入力欄だけ保存中、確定/権限/退会等はフルロック維持。その他の収支の日付曜日と『団体戦費用捻出』例、ビジター申請の履歴ボタン削除。**対戦表の反映実行は方式検討のみ**（設定の一括反映と実試合進行の扱いを分離）。[仕様/安全な設計案](docs/stage-v1676-responsive-performance-match-batch-design.md)。本番未変更。
 **v0.16.75（集金管理画面起動・性能の一次改善）**：初回の日程選択をGASで実施し、通常時の2回の認証済み集金読込を1回に削減。GASの日程マスタ重複読込を同一リクエストで共用。LINE初期化20秒、読み取り25秒で応答停止を明示エラーに変更、他の管理画面を開いた間は8秒自動更新を停止。`?perf=1`では起動時間をLINE/会員確認/集金読込に分解表示。会計書き込み・本番は不変更。[根拠と実機計測](docs/stage-v1675-startup-performance.md)。
 **v0.16.74の接続検証結果**：PR #81の全CI・検証用Pages・GAS@41・Workers Builds成功。続く[公開LINE疎通チェック](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44567090177)も成功（Worker /health/設定・LIFF配信一致、GETのみ）。一方、**本人LINE参加連絡/修正・Webhook・役割別実機E2Eは未受入**。実機検証後に本番判断。[検証記録](docs/stage-v1674-date-parity-and-line-verification.md)。
 **v0.16.74（集金管理・参加者一覧の日付統一／LINE後続検証）**：全未確定・解除済み日程と**確定済み当日の日程**を両方のプルダウンに表示。確定済みの過去・未来日程は除外。初期値は本日以降の直近、参加者一覧の「履歴」ボタンを削除。集金・参加者の確定済み操作ロックを維持。LINE実機/E2Eは別途未受入。[変更とLINE検証計画](docs/stage-v1674-date-parity-and-line-verification.md)。本番未変更。
