@@ -12,7 +12,10 @@
  const cancel=$('accessConfirmCancelV2'),okay=$('accessConfirmOkayV2'),toastEl=$('toast');
  let api=null,actorRole='',actorMemberId='',busy=false,prompt=null,toastTimer=null,readVersion=0,
   editingMember=null;
- const status=s=>{$('memberAccessStatus').textContent=String(s||'');};
+ const status=(s,loading=false)=>{
+  const el=$('memberAccessStatus');el.textContent=String(s||'');
+  el.classList?.toggle?.('stage-inline-read-loading',loading);
+ };
  function item(tag,cls,label){
    const x=document.createElement(tag);if(cls)x.className=cls;
    if(label!==undefined)x.textContent=String(label);
@@ -249,7 +252,7 @@
    const version=++readVersion;
    const current=()=>version===readVersion&&dialog.open;
    status(first?'利用申請とメンバー権限を読み込んでいます…':
-     '利用申請とメンバー権限を更新しています…');
+     '利用申請とメンバー権限を更新しています…',true);
    $('memberAccessRefresh').disabled=true;
    try{
      ensureAdmin();

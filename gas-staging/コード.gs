@@ -1474,12 +1474,16 @@ function visitorPracticeOptions_(dates){
  return dates.map(function(p){return {practiceId:p.practiceId,date:p.date,
    place:p.place,startTime:p.startTime,endTime:p.endTime};});
 }
+function visitorConfirmedPracticeIds_(ss){
+ return entries_(ss).filter(function(row){return row.kind==='practice'&&row.status==='confirmed';})
+  .map(function(row){return row.practiceId;});
+}
 function visitorMine_(ss,member){
  var rows=visitorRequests_(ss).filter(function(r){return r.requestedByMemberId===member.memberId&&r.status!=='withdrawn';});
  var dates=practices_(ss),attendees=sheetRows_(ss,'出欠回答');
  return {ok:true,data:{requests:rows.map(function(r){return visitorPublic_(r,dates,false,attendees);})
   .sort(function(a,b){return b.requestedAt.localeCompare(a.requestedAt)||b.requestId.localeCompare(a.requestId);}),
-  practices:visitorPracticeOptions_(dates)}};
+  practices:visitorPracticeOptions_(dates),confirmedPracticeIds:visitorConfirmedPracticeIds_(ss)}};
 }
 function visitorAdminList_(ss,member){
  if(member.role!=='admin')fail_('FORBIDDEN','ビジターの承認・却下は管理者だけが操作できます');
@@ -1489,7 +1493,8 @@ function visitorAdminList_(ss,member){
  members.forEach(function(r){nameById[str_(r[0])]=norm_(r[1]);});
  requests.forEach(function(r){r.requestedByName=nameById[r.requestedByMemberId]||'退会済みメンバー';});
  requests.sort(function(a,b){return b.requestedAt.localeCompare(a.requestedAt)||b.requestId.localeCompare(a.requestId);});
- return {ok:true,data:{requests:requests,practices:visitorPracticeOptions_(dates)}};
+ return {ok:true,data:{requests:requests,practices:visitorPracticeOptions_(dates),
+  confirmedPracticeIds:visitorConfirmedPracticeIds_(ss)}};
 }
 function visitorRequest_(ss,member,payload){
  var requestId=str_(payload.requestId),participantId=str_(payload.participantId),

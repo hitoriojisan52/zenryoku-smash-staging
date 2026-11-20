@@ -13,7 +13,7 @@
  };
  let api=null,actor=null,selected=null,editTarget=null,deleteTarget=null;
  let refreshAfterDecision=null,mineRows=[],adminRows=[],mineDates=[],adminDates=[];
- let adminHistoryVisible=false;
+ let mineConfirmed=new Set(),adminConfirmed=new Set();
  const node=(tag,cls,text)=>{
   const el=document.createElement(tag);if(cls)el.className=cls;
   if(text!==undefined)el.textContent=String(text);
@@ -30,16 +30,19 @@
  };
  const shortDate=r=>r.date?w.SMDate.date(r.date)+' '+(r.place||''):'開催日：登録がありません';
  const practiceOption=r=>w.SMDate.practiceLabel?r.date?w.SMDate.practiceLabel(r):shortDate(r):shortDate(r);
- function optionsFor(rows,id,practices,showHistory=false){
+ // Keep historic requests in Sheets. Hide finalized past P rows in BOTH dropdowns;
+ // a confirmed row that is unlocked reappears after the next refresh.
+ function optionsFor(rows,id,practices,confirmedIds){
   const select=$(id),previous=select.value,today=w.SMDate.todayJst();
+  const confirmed=new Set(confirmedIds||[]);
   const unique=new Map();
-  const dated=showHistory?(Array.isArray(practices)?practices:[]):w.SMDate.upcomingPractices(practices);
-  for(const p of dated){
-   if(!p.practiceId||(!showHistory&&p.date<today)||unique.has(p.practiceId))continue;
+  const selectable=p=>p?.practiceId&&p.date&&!(p.date<today&&confirmed.has(p.practiceId));
+  for(const p of (Array.isArray(practices)?practices:[])){
+   if(!selectable(p)||unique.has(p.practiceId))continue;
    unique.set(p.practiceId,{date:p.date,startTime:p.startTime||'',label:practiceOption(p)});
   }
   for(const r of rows){
-   if(!r.practiceId||!r.date||(r.date<today&&!showHistory)||unique.has(r.practiceId))continue;
+   if(!selectable(r)||unique.has(r.practiceId))continue;
    unique.set(r.practiceId,{date:r.date,startTime:r.startTime||'',label:practiceOption(r)});
   }
   const options=[...unique].sort((a,b)=>{
@@ -50,11 +53,15 @@
   });
   const future=options.find(([,item])=>item.date>=today);
   const choices=options.map(([value,item])=>{
-   const option=node('option','',(item.date<today?'履歴：':'')+item.label);option.value=value;return option;
+   const option=node('option','',item.label);option.value=value;return option;
   });
-  if(!future){const placeholder=node('option','','本日以降の開催日がありません');placeholder.value='';choices.unshift(placeholder);}
+  if(!future){
+   const placeholder=node('option','',options.length?'日程を選択してください':'選択可能な開催日がありません');
+   placeholder.value='';choices.unshift(placeholder);
+  }
   select.replaceChildren(...choices);
   select.value=unique.has(previous)?previous:(future?.[0]||'');
+  select.disabled=options.length===0;
   return rows.filter(r=>r.practiceId===select.value);
  }
  function card(data,admin){
@@ -116,10 +123,10 @@
   rows.forEach(r=>target.append(card(r,admin)));
  }
  function renderMine(){
-  render('visitorMineCards',optionsFor(mineRows,'visitorMinePractice',mineDates,true),false);
+  render('visitorMineCards',optionsFor(mineRows,'visitorMinePractice',mineDates,mineConfirmed),false);
  }
  function renderAdmin(){
-  render('visitorAdminCards',optionsFor(adminRows,'visitorAdminPractice',adminDates,adminHistoryVisible),true);
+  render('visitorAdminCards',optionsFor(adminRows,'visitorAdminPractice',adminDates,adminConfirmed),true);
  }
  async function loadMine(isCurrent=()=>true){
   if(!api)return [];
@@ -130,6 +137,9 @@
    throw Error('ビジター申請状況の取得結果が不正です。');
   if(result.practices!==undefined&&!Array.isArray(result.practices))
    throw Error('開催日一覧を確認できません');
+  if(!Array.isArray(result.confirmedPracticeIds)||result.confirmedPracticeIds.some(id=>typeof id!=='string'))
+   throw Error('確定済み日程の情報を確認できません。再読み込みしてください。');
+  mineConfirmed=new Set(result.confirmedPracticeIds);
   mineDates=result.practices||[];
   mineRows=result.requests;renderMine();return mineRows;
  }
@@ -142,6 +152,9 @@
    throw Error('ビジター管理情報の取得結果が不正です。');
   if(result.practices!==undefined&&!Array.isArray(result.practices))
    throw Error('開催日一覧を確認できません');
+  if(!Array.isArray(result.confirmedPracticeIds)||result.confirmedPracticeIds.some(id=>typeof id!=='string'))
+   throw Error('確定済み日程の情報を確認できません。再読み込みしてください。');
+  adminConfirmed=new Set(result.confirmedPracticeIds);
   adminDates=result.practices||[];
   adminRows=result.requests;renderAdmin();return adminRows;
  }
@@ -225,12 +238,6 @@
   });
  }
  function bind(){
-  $('visitorAdminHistoryToggle').addEventListener('click',()=>{
-   adminHistoryVisible=!adminHistoryVisible;
-   $('visitorAdminHistoryToggle').textContent=adminHistoryVisible?'履歴を閉じる':'履歴';
-   $('visitorAdminHistoryToggle').setAttribute('aria-pressed',String(adminHistoryVisible));
-   renderAdmin();
-  });
   $('visitorMinePractice').addEventListener('change',renderMine);
   $('visitorAdminPractice').addEventListener('change',renderAdmin);
   $('visitorMineRefresh').addEventListener('click',()=>w.SMStageRead.open('visitorDialog',
@@ -238,13 +245,12 @@
   $('visitorAdminMenu').addEventListener('click',()=>{
    if(actor?.role!=='admin')return;
    $('manageDialog').close();
-   $('visitorAdminPractice').value='';adminHistoryVisible=false;
-   $('visitorAdminHistoryToggle').textContent='履歴';
-   $('visitorAdminHistoryToggle').setAttribute('aria-pressed','false');
+   $('visitorAdminPractice').replaceChildren(node('option','','日程を読み込んでいます…'));
+   $('visitorAdminPractice').value='';
    $('visitorAdminCards').textContent='審査対象を読み込んでいます…';
    $('visitorAdminPractice').disabled=true;
    w.SMStageRead.open('visitorAdminDialog','ビジターの審査情報を読み込んでいます…',
-    current=>loadAdmin(current),()=>$('visitorAdminPractice').disabled=false);
+    current=>loadAdmin(current));
   });
   $('visitorAdminRefresh').addEventListener('click',()=>
    w.SMStageRead.open('visitorAdminDialog','ビジターの審査情報を更新しています…',

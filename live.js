@@ -196,16 +196,19 @@ function readScreen_(id,label,loader,onComplete,force=false){
  if(!screen.open)screen.showModal();
  const state=screenReadStatus_(id);
  state.hidden=false;state.classList.remove('stage-system-message--warning');
+ state.classList.add('stage-inline-read-loading');
  state.textContent=label;
  const current=()=>screen.open&&screenReadEpoch_.get(id)===version;
  const promise=Promise.resolve().then(()=>loader(current))
   .then(()=>{
    if(!current())return;
+   state.classList.remove('stage-inline-read-loading');
    state.textContent='';state.hidden=true;
    if(onComplete)onComplete();
   }).catch(error=>{
    if(!current())return; // closed while reading; no modal/no stale UI write
-   state.hidden=false;state.classList.add('stage-system-message--warning');
+   state.hidden=false;state.classList.remove('stage-inline-read-loading');
+   state.classList.add('stage-system-message--warning');
    state.textContent='読み込みできませんでした：'+String(error?.message||error)+
     '。閉じるか「更新」から再試行してください。';
   }).finally(()=>{
@@ -1179,7 +1182,9 @@ function renderVisitorPracticeOptions_(){
 function openVisitorForm_(){
  gateEdit();close('manageDialog');
  VIS.practices=[];VIS.draft=null;VIS.unknownResult=false;
- $('visitorMinePractice').value='';$('visitorPractice').value='';
+ $('visitorMinePractice').replaceChildren(new Option('日程を読み込んでいます…',''));
+ $('visitorMinePractice').value='';$('visitorMinePractice').disabled=true;
+ $('visitorPractice').value='';
  $('visitorNewFormSection').open=false;
  $('visitorName').value='';$('visitorKana').value='';$('visitorMemo').value='';
  $('visitorSubmit').disabled=true;
