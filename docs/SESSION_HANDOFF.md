@@ -2,7 +2,7 @@
 
 このファイルは、新しいChatGPTチャットで必ず最初に確認する**継続開発用の入口**。
 単なる実装履歴ではなく、旧アプリの業務仕様を無断変更しないための確認事項。
-更新日：2026-11-20。**開発対象：検証版v0.16.77（ビジター確定済み過去日除外・管理側履歴ボタン削除・青枠スピナー）**。前版v0.16.76はPR #86でmain統合し、CI/Pages/Workers Builds/公開GETスモーク成功。GASの直近更新は@42（v0.16.75）で、v0.16.76ではGAS不変更。今回のv0.16.77はGASビジター読み取りAPIを変更するため、main反映後に新しいデプロイ番号を必ず確認する。CI、実デプロイ、LINE実機受入は別工程。旧版の記述は歴史記録であり最新実装を意味しない。本番は未承認・未変更。
+更新日：2026-11-20。**最新検証用main：v0.16.77（PR #88統合、SHA eb56b169995d816b5029be5d037414b6f856272b）。** UI/GAS/仕様CI成功、GitHub Pages成功、GAS既存デプロイ **@43** 成功、Workers Builds成功、公開LIFF/Worker GET-only疎通成功。実機の新しいビジター日程表示・スピナーとLINE本人参加連絡E2Eは未受入。v0.16.76以前の版数・画面履歴記述は歴史資料であり、最新仕様に優先させない。収支確定順序・残高・本人確認・安全ロックは保護する。本番は未承認・未変更。
 
 ## 1. 最優先原則
 
@@ -291,3 +291,13 @@
 - 初回読み込み中は両プルダウンに「日程を読み込んでいます…」を表示し非活性。上部青枠にCSSスピナーを追加。閲覧先行・閉じる可・保存中ロックを維持。
 - 新回帰テスト：tests/check-stage-visitor-filter-v1677.cjs、既存UI/GAS/旧会計順序/ビジターの試験も継続。**PR、CI、Pages、GAS、Workers Builds、LINE実機の結果は独立確認して追記すること**。本番は事前承認制。
 - [仕様・実機受入手順](stage-v1677-visitor-current-dates-activity.md)。
+
+### v0.16.77 検証反映結果
+
+## v0.16.77 検証用main統合・自動デプロイ実績（2026/11/20）
+
+- [PR #88](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/88) を検証用mainコミット eb56b169995d816b5029be5d037414b6f856272b に統合。UI/GAS/仕様保護の3系統CI成功。ビジター新回帰29/29、旧会計確定順序28/28、ビジター審査73/73。
+- [検証GAS既存デプロイ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44667029195)成功。ログで **Redeployed *** @43** とソース照合成功を確認。新たなGAS Webアプリは作成していない。
+- [GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44667026929) build/deploy成功。[Cloudflare Workers Builds](https://github.com/hitoriojisan52/zenryoku-smash-staging/commit/eb56b169995d816b5029be5d037414b6f856272b/checks)成功（Worker本体は今回不変更）。
+- [公開LIFF/WorkerのGET-onlyスモーク](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44667029127)成功。認証済み本人アカウントのUI操作やGAS書込を行ったわけではない。
+- **未完了：LINE実機で申請・管理の日程候補、読込中文言、青枠回転アニメーション、確定解除→更新の再表示、権限ごとの振る舞い、実測速度を確認すること。** 収支確定解除などの実データ操作は今回未実施。本番未変更。

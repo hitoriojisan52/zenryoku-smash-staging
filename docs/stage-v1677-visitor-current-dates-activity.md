@@ -32,3 +32,11 @@
 ## 仕様資料の優先度
 
 以前のv0.16.66/v0.16.76資料の「管理側の履歴を保持」は**当時の履歴仕様**であり、今回のユーザー明示承認でビジターの日付候補だけ改訂する。集金・参加者の日付条件、収支確定順序、残高計算は変更しない。
+
+## v0.16.77 検証用main統合・自動デプロイ実績（2026/11/20）
+
+- [PR #88](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/88) を検証用mainコミット eb56b169995d816b5029be5d037414b6f856272b に統合。UI/GAS/仕様保護の3系統CI成功。ビジター新回帰29/29、旧会計確定順序28/28、ビジター審査73/73。
+- [検証GAS既存デプロイ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44667029195)成功。ログで **Redeployed *** @43** とソース照合成功を確認。新たなGAS Webアプリは作成していない。
+- [GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44667026929) build/deploy成功。[Cloudflare Workers Builds](https://github.com/hitoriojisan52/zenryoku-smash-staging/commit/eb56b169995d816b5029be5d037414b6f856272b/checks)成功（Worker本体は今回不変更）。
+- [公開LIFF/WorkerのGET-onlyスモーク](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44667029127)成功。認証済み本人アカウントのUI操作やGAS書込を行ったわけではない。
+- **未完了：LINE実機で申請・管理の日程候補、読込中文言、青枠回転アニメーション、確定解除→更新の再表示、権限ごとの振る舞い、実測速度を確認すること。** 収支確定解除などの実データ操作は今回未実施。本番未変更。
