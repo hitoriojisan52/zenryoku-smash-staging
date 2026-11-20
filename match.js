@@ -115,7 +115,7 @@ function draftEdit(fn){if(!isDuty())throw Error('対戦表の設定変更は当�
  const stack=S.draftUndo.get(S.practiceId)||[];stack.push(old);S.draftUndo.set(S.practiceId,stack);
  S.drafts.set(S.practiceId,next);render();notice('設定を変更しました');}
 function selectOptions(id,people,placeholder,finished){const sel=$(id);sel.replaceChildren(new Option(placeholder,''));people.forEach(p=>sel.add(new Option(p.number+' '+p.displayName,p.participationId)));sel.disabled=finished;}
-function render(){const v=S.view,s=v?.session,editable=isDuty();const body=$('matchBody');body.replaceChildren();$('matchControls').hidden=!editable;for(const b of $('matchControls').querySelectorAll('button, input, select')){if(!editable)b.disabled=true;}
+function render(){const inline=$('matchInlineError');if(inline){inline.textContent='';inline.hidden=true;}const v=S.view,s=v?.session,editable=isDuty();const body=$('matchBody');body.replaceChildren();$('matchControls').hidden=!editable;for(const b of $('matchControls').querySelectorAll('button, input, select')){if(!editable)b.disabled=true;}
  if(!v){$('matchHeader').textContent='読み込み中…';return;}
  if(!s){
   const count=(v.participants||[]).length;
