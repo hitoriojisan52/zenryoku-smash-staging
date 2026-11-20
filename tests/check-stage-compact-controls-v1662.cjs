@@ -49,7 +49,7 @@ ok(css.includes('button:disabled')&&css.includes('color:#777f87'),
 for(const p of ['live.html','match.html','match-view.html','guest.html']){
  ok(read(p).includes('stage-ui.css?v='+(p==='live.html'?'1673-receipt-close':'1665')),p+' loads compact controls and memo styles');
 }
-ok(html.includes('live.js?v=1675-startup-perf'),'collection and participant memo renderer is cache-busted');
+ok(html.includes('live.js?v=1676-responsive'),'collection and participant memo renderer is cache-busted');
 ok(html.includes('id="adjustment"')&&html.includes('id="expense"')&&
  html.includes('id="confirm"')&&html.includes('id="list"'),
  'money inputs, Confirm and the independently scrollable list retain their original IDs');
