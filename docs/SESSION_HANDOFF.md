@@ -424,3 +424,13 @@
 - 変更は共有CSS・独立利用申請ページ・静的回帰試験・引き継ぎのみ。GAS、Worker、認証認可、会計・収支・残高・出欠、旧 `?register=1` 互換経路は変更しない。
 - **残課題**：全画面の静的案内文に残る青い `--info` の用途棚卸し。既存 `live.html` に旧申請モーダルが残るが、v0.16.84確定引き継ぎでは専用LIFF開設まで互換経路を保持するため、無断で削除しない。未マージPR #102の `register.html` 方式は現行mainの `registration.html` と競合するため、そのまま統合しない。
 - **次作業**：PRの回帰CI→安全な検証main統合→Pages/公開GET-onlyの反映確認。LINE専用LIFFの作成・ID設定はユーザー指示後に行い、実機の初回申請・保留・承認・再申請・タイムアウト復旧を検証。15秒の実機性能測定を継続。本番未変更。
+
+## 36. v0.16.85 検証main統合・CI・自動反映の確認（2026/11/20）
+
+- [PR #104](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/104)を検証mainへ統合。マージSHA `40264cf6b30ad720f36280f07a339ebfea33c86e`。
+- PRの [Connected staging UI regression checks](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44727113732) と [Specification priority and new-chat handoff checks](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44727113536) はいずれも **success**。既存のUI・会計・権限制御に関する静的/模擬テストと新規LIFF保護テストを実行。
+- [GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44727234496) のbuild/deployは **success**。同じSHAの **Workers Builds: zenryoku-smash-staging-api** は **success**（Workerソースは不変更）。GASファイルは不変更で、GAS自動デプロイは今回起動対象外。
+- **公開GET-onlyスモークはこのSHAでは実行していない**：既存 workflow は `live.html/live.js/runtime-config.js/worker.js` などに限りpush起動し、今回の `registration.html/registration.js/stage-ui.css` はトリガー対象外。独立申請URLとWorker `/health` への直接GETは今回の実行環境から取得できなかったため、公開実応答の検証完了とは報告しない。次の改修では独立申請ページをGET-onlyの検証対象に含める。
+- **共通4色ルールの残存監査**：`live.html` の出欠/ビジター説明文、`live.js` の日程・参加者0件案内、`visitor-approval.js` の空表示、`match.js` / `match-view.js` / `guest.js` の未作成案内は、まだ青い `--info` を利用。これらは処理中でも正常処理完了でもなく、**案内として中立色に区別する必要がある**。別途UIスクリーンショット/既存CSS回帰を確認して段階修正する。通信中の `--info + stage-inline-read-loading` はスピナー付きの既存処理なので一括置換しない。
+- **未受入**：新規専用LIFF IDをユーザー指示まで追加しない。LINE実機の本人ログイン→未申請/承認待ち/承認済み/却下後再申請/15秒通信失敗の安全復旧、別LINEテスター、退会・再入会、権限切換。別PR #102（`register.html` 方式）は未統合・別実装として残り、main `registration.html` と相違があるので勝手に統合しない。本番未変更。
+- **最優先の次作業**：公開のGET-only疎通に独立申請ページを加えてから中立案内のUI監査／性能再計測を進める。LIFF作成・エンドポイント設定はユーザーからの別指示後に実施する。
