@@ -8,6 +8,7 @@ on:
       - 'tests/check-stage-legacy-ledger-backfill-v1689.cjs'
       - 'tests/check-stage-read-snapshot-v1690.cjs'
       - 'tests/check-stage-read-columns-profile-v1691.cjs'
+      - 'tests/check-stage-ledger-single-snapshot-v1694.cjs'
       - 'tests/check-stage-visitor-v1638b.cjs'
       - 'tests/check-stage-cascade-v1638c.cjs'
       - 'tests/check-stage-participant-v1638d.cjs'
@@ -64,6 +65,7 @@ jobs:
       - run: node tests/check-stage-legacy-ledger-backfill-v1689.cjs
       - run: node tests/check-stage-read-snapshot-v1690.cjs
       - run: node tests/check-stage-read-columns-profile-v1691.cjs
+      - run: node tests/check-stage-ledger-single-snapshot-v1694.cjs
       - run: node tests/check-stage-visitor-v1638b.cjs
       - run: node tests/check-stage-cascade-v1638c.cjs
       - run: node tests/check-stage-participant-v1638d.cjs
