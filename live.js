@@ -257,6 +257,8 @@ async function boot(){
   $('stageBusyLabel').textContent='利用者の権限を確認しています…';
   const sessionStart=performance.now();
   S.actor=await call('/api/session');
+  // Staging-only menu preview: never alter S.actor or grant backend permissions.
+  window.SMRolePreview?.setup({role:S.actor.role});
   const sessionMs=Math.round(performance.now()-sessionStart);
   if($('manageAdminSection'))$('manageAdminSection').hidden=S.actor.role!=='admin';
   window.SMVisitor?.setup({api:call,actor:S.actor,
@@ -1375,6 +1377,9 @@ function participantDates_(){
  const selected=PM.practices.find(p=>p.practiceId===previous)||upcoming[0];
  sel.value=selected?.practiceId||'';
 }
+function isVisitorParticipant_(p){
+ return p?.category==='visitor'||/^PV-/.test(String(p?.participantId||''));
+}
 function renderParticipantManager_(){
  const list=$('participantCards');list.replaceChildren();
  const blocked=PM.matchLocked||PM.financeLocked||PM.uncertain;
@@ -1433,8 +1438,11 @@ function renderParticipantManager_(){
     ['delete','削除','participant-btn-delete']
   ]){
    const btn=document.createElement('button');btn.type='button';btn.className=style;
-   btn.textContent=label;btn.disabled=blocked;
-   if(!blocked)btn.addEventListener('click',()=>action==='edit'?
+   btn.textContent=label;
+   btn.disabled=blocked||(action==='delete'&&isVisitorParticipant_(p));
+   if(action==='delete'&&isVisitorParticipant_(p))
+    btn.title='ビジターの削除は管理者のビジター管理から却下してください';
+   if(!btn.disabled)btn.addEventListener('click',()=>action==='edit'?
      openParticipantEditor_(p):confirmParticipantDelete_(p));
    actions.append(btn);
   }
@@ -1557,14 +1565,15 @@ async function saveParticipantEdit_(event){
  },'参加者情報を保存しています…');
 }
 function confirmParticipantDelete_(p){
- if(PM.uncertain||PM.financeLocked||PM.matchLocked)return;
+ if(PM.uncertain||PM.financeLocked||PM.matchLocked||isVisitorParticipant_(p))return;
  PM.deleting=p;
  $('participantDeleteText').textContent=p.name+'さんの回答行を本当に削除しますか？'+
   (p.collectionCompleted?'集金・帳簿残金も更新されます。':'');
  dialog('participantDeleteDialog');
 }
 async function deleteParticipant_(){
- const p=PM.deleting;close('participantDeleteDialog');if(!p||PM.uncertain)return;
+ const p=PM.deleting;close('participantDeleteDialog');
+ if(!p||PM.uncertain||isVisitorParticipant_(p))return;
  await guard(async()=>{
   gateEdit();
   let updated;
