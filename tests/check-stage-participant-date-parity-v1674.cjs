@@ -78,7 +78,7 @@ const participantSelect={items:[],value:'',
 const participantSrc=ui.slice(ui.indexOf('function participantDates_(){'),
  ui.indexOf('function renderParticipantManager_(){'));
 const loadSrc=ui.slice(ui.indexOf('async function loadParticipants_('),
- ui.indexOf('async function openParticipantManager_(){'));
+ ui.indexOf('function openParticipantManager_(){'));
 ok(participantSrc.startsWith('function participantDates_')&&loadSrc.includes("'/api/participant/list'"),
  'real participant date rendering and server read are used by regression');
 const participantFns=new Function('PM','$','window','Option','call','today',
