@@ -123,8 +123,8 @@ const reload=new Function('S','$','call','window','Option','renderHome','syncPay
  for(const p of ['live.html','match.html','guest.html','match-view.html']){
   ok(read(p).includes('stage-ui.css?v='+(p==='live.html'?'1673-receipt-close':'1665')),p+' has cache-busted compact style');
  }
- ok(html.includes('date-format.js?v=1664')&&html.includes('visitor-approval.js?v=1664')&&
-  html.includes('live.js?v=1675-startup-perf')&&matchHtml.includes('match.js?v=1664'),
+ ok(html.includes('date-format.js?v=1664')&&html.includes('visitor-approval.js?v=1676-responsive-reads')&&
+  html.includes('live.js?v=1676-responsive-reads')&&matchHtml.includes('match.js?v=1664'),
   'all changed date/navigation handlers have updated script URLs');
  console.log('PASS '+n+'/'+n+' upcoming date defaults, compact cash, grouped menus and match copy');
 })().catch(e=>{console.error(e);process.exitCode=1});
