@@ -17,10 +17,10 @@ function check(status,body) {
   // default template, not arbitrary existing scripts or operational Workers.
   const source=body.trim();
   assert.ok(source.length<12000,'Unexpected starter Worker size');
-  assert.match(source,/export\\s+default\\s*\\{/,'Not a plain JavaScript starter Worker');
-  assert.match(source,/new\\s+Response\\s*\\(/,'Expected Hello World starter response');
-  assert.match(source,/Hello\\s+(?:World|Worker)!?/i,'Expected Hello World starter text');
-  assert.doesNotMatch(source,/\\b(?:GAS_WEB_APP_URL|LINE_LOGIN|D1_STAGE|ZENRYOKU_STAGE_DB|operationId|Bearer|sharedSecret|fetch\\s*\\(\\s*['"]https?:)/i,
+  assert.match(source,/export\s+default\s*\{/,'Not a plain JavaScript starter Worker');
+  assert.match(source,/new\s+Response\s*\(/,'Expected Hello World starter response');
+  assert.match(source,/Hello\s+(?:World|Worker)!?/i,'Expected Hello World starter text');
+  assert.doesNotMatch(source,/\b(?:GAS_WEB_APP_URL|LINE_LOGIN|D1_STAGE|ZENRYOKU_STAGE_DB|operationId|Bearer|sharedSecret|fetch\s*\(\s*['"]https?:)/i,
     'Not an untouched starter Worker');
   return 'starter';
 }
