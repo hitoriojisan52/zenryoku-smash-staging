@@ -59,3 +59,11 @@ D1の正式なマイグレーション履歴`d1_migrations`を利用する。同
 3. 全シートの型・主キー・参照関係/数式・GAS API・履歴を棚卸しし、**読み取り専用の比較**から移行設計を起こす。
 4. 読取系APIを完全に分離してD1で試験実装し、データ正本の二重化・無断書込が起きないことを確認する。
 5. 本番移行は業務仕様の影響レビューとユーザー承認後に別PR・別デプロイとして扱う。
+
+
+## 初回PR統合後の検証記録（2026/11/21）
+
+- PR [#125](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/125)、main `1001f2035342f513c6078706a610533c708fb6e7`。PRのD1スキーマ安全/旧会計・出欠・退会・試合回帰と仕様契約CIはすべてsuccess。
+- [D1 Actions](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44781121812)はローカル試験success。Remote関連の検証/適用/読取は環境変数等の未設定により明示的にskipped。リモートDB実体・性能は**未確認**。
+- [GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44781120608)、Cloudflare Workers Buildsともにsuccess。既存Workerの公開GETは当該コミットでは未確認。Worker/GASのソースと本番は不変更。
+- ユーザーの初期設定完了までCloudflareへのD1作成・SQL実行・LIFF切換は実施しない。

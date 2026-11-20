@@ -1,4 +1,4 @@
-**D1移行基盤（第1工程・検証限定、2026/11/21）**：現行Worker/GAS/Sheets・本番を変更せず、独立したD1マイグレーション、GitHubオフライン安全検査、初期設定後のリモート検証用Actionsを追加するPRを準備。**Cloudflare D1実DB作成、リモート適用・LIFF切替は未実施**。[設計と初回設定手順](docs/D1_MIGRATION_PLAN.md)。
+**D1移行基盤（第1工程・検証限定、2026/11/21）**：[PR #125](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/125)を検証mainへマージ。D1 CI/会計・出欠・退会・対戦表回帰、PagesとWorkers Builds成功。D1 Remote Migrationは初回資格情報未設定により安全にskip（操作なし）。**Cloudflare D1実DB作成、リモート適用・LIFF切替は未実施**。[設計と初回設定手順](docs/D1_MIGRATION_PLAN.md)。
 
 **v0.16.88（登録データ整合性／安全な読込の軽量化・診断）**：検証用Sheetsを読み取り専用で照合し、メンバー・申請のID重複と申請紐付け不一致はいずれも0件。実機で登録済みアカウントの緑「利用登録済みです。」を確認済み。GASの退会履歴チェックを6列読込からmemberIdの1列のみへ限定（ヘッダー・環境・退会ガード維持）、独立利用申請LIFFに `?perf=1` の安全な通信時間内訳を追加。15秒再発の原因断定・効果の実機計測・別LINE申請受入は未完了。本番不変更。[確認記録](docs/stage-v1688-registration-integrity-performance.md)。
 
