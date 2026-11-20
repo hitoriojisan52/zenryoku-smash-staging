@@ -51,8 +51,8 @@ const reload=new Function('S','$','call','window','Option','renderHome','syncPay
   'unlocked practice returns to collection picker without history button');
  ok(!html.includes('id="homeHistoryToggle"')&&
   !html.includes('id="participantHistoryToggle"')&&
-  html.includes('id="visitorMineHistoryToggle"')&&html.includes('id="visitorAdminHistoryToggle"'),
-  'collection and participant History removed, visitor request histories unaffected');
+  !html.includes('id="visitorMineHistoryToggle"')&&html.includes('id="visitorAdminHistoryToggle"'),
+  'collection, participant and applicant History removed while admin history remains');
  ok(!ui.includes('PM.showHistoryDates')&&ui.includes('const selectable=(answer?.practices||[])')&&
   ui.includes('PM.practices=selectable;PM.practiceId=target;'),
   'participant picker now includes all open historical days without a History toggle');
@@ -127,8 +127,8 @@ const reload=new Function('S','$','call','window','Option','renderHome','syncPay
   gas.includes('function stageReceiptAuthorizeV1666_()')&&
   gas.includes('stageReceiptFolder_();'),
   'one-time staging Drive authorization path and persistent receipt warning are wired');
- ok(html.includes('live.js?v=1675-startup-perf')&&
-  html.includes('visitor-approval.js?v=1664-h1666'),
+ ok(html.includes('live.js?v=1676-responsive-reads')&&
+  html.includes('visitor-approval.js?v=1676-responsive-reads'),
   'LIFF WebView fetches fresh code after history additions');
  console.log('PASS '+count+'/'+count+' history isolation and receipt partial-save recovery');
 })().catch(e=>{console.error(e);process.exitCode=1});

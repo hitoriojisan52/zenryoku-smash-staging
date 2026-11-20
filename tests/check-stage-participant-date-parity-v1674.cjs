@@ -30,9 +30,9 @@ ok(!html.includes('id="participantHistoryToggle"')&&
  !ui.includes('PM.showHistoryDates')&&
  !ui.includes("'participantHistoryToggle'"),
  'collection and participant lists use simple dropdowns without History buttons');
-ok(html.includes('id="visitorMineHistoryToggle"')&&
+ok(!html.includes('id="visitorMineHistoryToggle"')&&
  html.includes('id="visitorAdminHistoryToggle"')&&
- visitor.includes("'visitorMineHistoryToggle'"),
+ !visitor.includes("'visitorMineHistoryToggle'"),
  'separate visitor administration history is not accidentally removed');
 
 const reloadSrc=ui.slice(ui.indexOf('async function reload(refreshDates){'),
@@ -77,8 +77,8 @@ const participantSelect={items:[],value:'',
  replaceChildren(...items){this.items=items;}};
 const participantSrc=ui.slice(ui.indexOf('function participantDates_(){'),
  ui.indexOf('function renderParticipantManager_(){'));
-const loadSrc=ui.slice(ui.indexOf('async function loadParticipants_(){'),
- ui.indexOf('async function openParticipantManager_(){'));
+const loadSrc=ui.slice(ui.indexOf('async function loadParticipants_('),
+ ui.indexOf('function openParticipantManager_(){'));
 ok(participantSrc.startsWith('function participantDates_')&&loadSrc.includes("'/api/participant/list'"),
  'real participant date rendering and server read are used by regression');
 const participantFns=new Function('PM','$','window','Option','call','today',
@@ -134,7 +134,7 @@ const participant=participantFns.loadParticipants_;
   'participant backend reuses its one existing ledger read for confirmation metadata');
  ok(gas.slice(first,after).includes("financeLocked:!!ledgers[0]&&ledgers[0].status==='confirmed'"),
   'confirmed-today read access does not lift finance modification lock');
- ok(html.includes('live.js?v=1675-startup-perf'),
+ ok(html.includes('live.js?v=1676-responsive-reads'),
   'LINE WebView receives refreshed date selector controller');
  console.log('PASS '+n+'/'+n+' collection/participant same-day and past-open calendar parity');
 })().catch(e=>{console.error(e);process.exitCode=1});

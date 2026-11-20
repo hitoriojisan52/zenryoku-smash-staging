@@ -20,7 +20,7 @@ ok(css.includes('.payout-date-field{')&&
  css.includes('padding-right:87px!important;'),
  'weekday renders within input perimeter without blocking native date picker');
 const wrapper=html.match(/<span class="payout-date-field">/g)||[];
-ok(wrapper.length===3&&
+ok(wrapper.length===4&&
  !html.includes('id="payoutDate" type="text"')&&
  !html.includes('id="ledgerPayoutDate" type="text"'),
  'native calendar/date-value controls remain unchanged');
@@ -132,7 +132,7 @@ const preparedFns=new Function('File','createImageBitmap','URL','Image','documen
   worker.includes("op==='receipt.upload'?2200000:32768")&&
   worker.includes("'/api/receipt/upload':'receipt.upload'"),
   'GAS magic-byte, 1.5MB, token proxy, and request-size protections remain unchanged');
- ok(html.includes('stage-ui.css?v=1673-receipt-close')&&html.includes('live.js?v=1675-startup-perf'),
+ ok(html.includes('stage-ui.css?v=1676-responsive-reads')&&html.includes('live.js?v=1676-responsive-reads'),
   'LIFF WebView always reloads the new inline weekday/photo JavaScript and CSS');
  console.log('PASS '+count+'/'+count+' native weekday, iPhone photo normalization, and receipt security regression');
 })().catch(e=>{console.error(e);process.exitCode=1});

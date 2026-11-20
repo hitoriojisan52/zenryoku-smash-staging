@@ -88,7 +88,7 @@ ok(data.scheduleWeekday.textContent==='（金）',
 data.scheduleDate.value='';fn.updateScheduleWeekday_();
 ok(data.scheduleWeekday.textContent==='',
  'clearing the schedule date removes the stale weekday');
-ok(html.includes('stage-ui.css?v=1673-receipt-close')&&
- html.includes('live.js?v=1675-startup-perf'),
+ok(html.includes('stage-ui.css?v=1676-responsive-reads')&&
+ html.includes('live.js?v=1676-responsive-reads'),
  'LINE WebView picks up fresh weekday JS/CSS without changing other screens');
 console.log('PASS '+n+'/'+n+' finance chronological error, Drive preflight, schedule weekday and picker padding');

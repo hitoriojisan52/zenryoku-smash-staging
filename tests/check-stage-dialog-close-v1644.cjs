@@ -118,7 +118,7 @@ ok(!all.find(d=>d.id==='stageBusyDialog').querySelector('button'),
  'busy lock has no controls');
 ok(!js.includes('position:absolute')&&!css.includes('.stage-close-row'),
  'old overlapping Close implementation remains removed');
-ok(html.includes('dialog-close.js?v=1673-receipt-close')&&html.includes('stage-ui.css?v=1673-receipt-close'),
+ok(html.includes('dialog-close.js?v=1673-receipt-close')&&html.includes('stage-ui.css?v=1676-responsive-reads'),
  'mobile web UI loads versioned scripts');
 ok(!match.includes('id="matchConfirmClose"')&&
  !confirm.includes("byId('matchConfirmClose')")&&

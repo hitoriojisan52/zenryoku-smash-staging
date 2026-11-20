@@ -33,7 +33,7 @@ ok(js.includes("memo.className='meta participant-memo'")&&
  js.includes("memo.textContent='📝 '+p.memo"),
  'real payment-list renderer keeps the memo text and supplies a unique red class');
 const start=js.indexOf('function renderParticipantManager_(){'),
- end=js.indexOf('async function loadParticipants_(){',start);
+ end=js.indexOf('async function loadParticipants_(',start);
 ok(start>0&&end>start,'real participant list renderer found');
 const roster=js.slice(start,end);
 ok(roster.includes("note.textContent='📝 '+p.memo")&&
@@ -47,9 +47,9 @@ ok(!latest.includes('.participant-card-memo')&&
 ok(css.includes('button:disabled')&&css.includes('color:#777f87'),
  'existing disabled button treatment remains in stylesheet');
 for(const p of ['live.html','match.html','match-view.html','guest.html']){
- ok(read(p).includes('stage-ui.css?v='+(p==='live.html'?'1673-receipt-close':'1665')),p+' loads compact controls and memo styles');
+ ok(read(p).includes('stage-ui.css?v='+(p==='live.html'?'1676-responsive-reads':'1665')),p+' loads compact controls and memo styles');
 }
-ok(html.includes('live.js?v=1675-startup-perf'),'collection and participant memo renderer is cache-busted');
+ok(html.includes('live.js?v=1676-responsive-reads'),'collection and participant memo renderer is cache-busted');
 ok(html.includes('id="adjustment"')&&html.includes('id="expense"')&&
  html.includes('id="confirm"')&&html.includes('id="list"'),
  'money inputs, Confirm and the independently scrollable list retain their original IDs');

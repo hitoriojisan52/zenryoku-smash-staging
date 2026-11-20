@@ -6,7 +6,7 @@ let checks=0;function ok(x,m){assert.ok(x,m);checks++}
 const start=ui.indexOf('const MAX_PAYMENT_IN_FLIGHT=2;'),stop=ui.indexOf('async function guard(',start);
 const pStart=ui.indexOf('async function setPayment('),pStop=ui.indexOf('\nfunction setupLongPress(',pStart);
 ok(start>0&&stop>start&&pStart>stop&&pStop>pStart,'exact queue and payment handler located');
-ok(html.includes('live.js?v=1675-startup-perf'),'cache bust matches new payment UI');
+ok(html.includes('live.js?v=1676-responsive-reads'),'cache bust matches new payment UI');
 ok(html.includes('.payment-checkbox-state'),'per-row progress status has style');
 ok(!ui.includes("cb.addEventListener('change',()=>guard(async()=>setPayment"),'payment never calls full-screen lock');
 ok(ui.includes("cb.addEventListener('change',()=>setPayment(p,cb,card).catch(showPaymentError_))"),'payment wired directly');

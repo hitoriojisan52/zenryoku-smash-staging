@@ -184,10 +184,10 @@ const deepText=e=>[e.textContent,...e.children.map(deepText)].filter(Boolean).jo
   ok(!html.includes('id="'+oldId+'"'),'obsolete standalone element removed: '+oldId);
   ok(!ui.includes("$('"+oldId+"')"),'no stale listener or DOM reference: '+oldId);
  }
- ok(ui.includes("render('visitorMineCards',optionsFor(mineRows,'visitorMinePractice',mineDates,mineHistoryVisible),false)")&&
+ ok(ui.includes("render('visitorMineCards',optionsFor(mineRows,'visitorMinePractice',mineDates,true),false)")&&
   !ui.includes("render('visitorMineList'"),
   'request status refreshed only in integrated screen');
- ok(liveJs.includes("const [response]=await Promise.all([call('/api/visitor/practices'),window.SMVisitor.loadMine()])"),
+ ok(liveJs.includes("call('/api/visitor/practices'),window.SMVisitor.loadMine(isCurrent)"),
   'visitor registration opening fetches own application statuses');
  const submit=liveJs.slice(liveJs.indexOf('async function registerVisitor_()'),liveJs.indexOf('// v0.16.38d:',liveJs.indexOf('async function registerVisitor_()')));
  ok(!submit.includes("close('visitorDialog')")&&
@@ -213,10 +213,10 @@ const deepText=e=>[e.textContent,...e.children.map(deepText)].filter(Boolean).jo
   ok(match&&match[0].includes('class="btn-outline"'),'close button is secondary grey: '+id);
  }
  for(const page of ['live.html','match.html','guest.html','match-view.html']){
-  ok(read(page).includes(page==='live.html'?'stage-ui.css?v=1673-receipt-close':'stage-ui.css?v=1665'),'same shared button CSS cache applied: '+page);
+  ok(read(page).includes(page==='live.html'?'stage-ui.css?v=1676-responsive-reads':'stage-ui.css?v=1665'),'same shared button CSS cache applied: '+page);
  }
- ok(html.includes('date-format.js?v=1664')&&html.includes('visitor-approval.js?v=1664')&&
-  html.includes('live.js?v=1675-startup-perf')&&html.includes('live-access-v2.js?v=1663'),
+ ok(html.includes('date-format.js?v=1664')&&html.includes('visitor-approval.js?v=1676-responsive-reads')&&
+  html.includes('live.js?v=1676-responsive-reads')&&html.includes('live-access-v2.js?v=1676-responsive-reads'),
   'staging LIFF refreshes all modified JavaScript assets');
  ok(matchConfirm.includes('match-modal-is-error')&&matchCss.includes('.match-modal-is-error .match-modal-box{border-top:4px solid #c62828}'),
   'intentional confirmation versus error popup distinction remains unchanged');

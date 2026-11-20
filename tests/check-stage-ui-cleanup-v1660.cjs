@@ -52,11 +52,11 @@ ok(css.includes('.stage-dialog-toolbar-actions > button:not(.stage-dialog-top-cl
  read('dialog-close.js').includes("actions.append(closeButton)"),
  'original context actions keep their listeners and move below Close only when needed');
 for(const page of ['live.html','match.html','match-view.html','guest.html'])
- ok(read(page).includes('stage-ui.css?v='+(page==='live.html'?'1673-receipt-close':'1665')),page+' uses refreshed shared CSS');
+ ok(read(page).includes('stage-ui.css?v='+(page==='live.html'?'1676-responsive-reads':'1665')),page+' uses refreshed shared CSS');
 // Participant management must NEVER show LINE identities; timestamps must
 // be backed by existing immutable histories, not guessed date values.
 const pBegin=ui.indexOf('function renderParticipantManager_(){');
-const pEnd=ui.indexOf('async function loadParticipants_(){',pBegin);
+const pEnd=ui.indexOf('async function loadParticipants_(',pBegin);
 ok(pBegin>0&&pEnd>pBegin,'real participant list renderer found');
 const participantUI=ui.slice(pBegin,pEnd);
 ok(!participantUI.includes('LINE ID：')&&!participantUI.includes('p.lineUserId')&&
