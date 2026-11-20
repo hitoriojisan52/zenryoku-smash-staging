@@ -33,6 +33,7 @@ on:
       - 'tests/check-stage-role-preview-visitor-delete-v1679.cjs'
       - 'tests/check-stage-self-role-v1680.cjs'
       - 'tests/check-stage-error-perf-v1682.cjs'
+      - 'tests/check-stage-registration-perf-v1683.cjs'
       - 'tests/check-stage-withdraw-rejoin-v1653.cjs'
       - 'tests/check-stage-member-ledger-v1656.cjs'
       - 'tests/check-stage-member-kana-v1657.cjs'
@@ -85,6 +86,7 @@ jobs:
       - run: node tests/check-stage-role-preview-visitor-delete-v1679.cjs
       - run: node tests/check-stage-self-role-v1680.cjs
       - run: node tests/check-stage-error-perf-v1682.cjs
+      - run: node tests/check-stage-registration-perf-v1683.cjs
       - run: node tests/check-stage-withdraw-rejoin-v1653.cjs
       - run: node tests/check-stage-member-ledger-v1656.cjs
       - run: node tests/check-stage-member-kana-v1657.cjs
