@@ -296,23 +296,25 @@ async function refreshRegistration_(){
  if(registrationPending)return;
  registrationPending=true;
  const status=$('stageRegistrationStatus'),form=$('stageRegistrationForm'),refresh=$('stageRegistrationRefresh');
- refresh.disabled=true;form.hidden=true;status.textContent='🔄 利用申請状況を確認しています…';
+ refresh.disabled=true;form.hidden=true;status.className='stage-system-message stage-system-message--info stage-inline-read-loading';status.textContent='利用申請状況を確認しています…';
  try{
   const data=await call('/api/member/status');
   const state=String(data?.status||'not_requested');
   if(state==='not_requested'||state==='rejected'){
-   status.textContent=state==='rejected'?'⚠️ 前回の申請は却下されました。再申請できます。':'利用申請はまだありません。';
+   status.className='stage-system-message stage-system-message--'+(state==='rejected'?'warning':'success');
+   status.textContent=state==='rejected'?'前回の申請は却下されました。再申請できます。':'利用申請はまだありません。';
    form.hidden=false;
   }else{
+   status.className='stage-system-message stage-system-message--'+(state==='approved'?'success':'warning');
    status.textContent=({
-    pending:'⚠️ 利用申請は承認待ちです。',
+    pending:'利用申請は承認待ちです。',
     approved:'利用登録済みです。',
-    inactive:'⚠️ 利用停止中です。管理者に確認してください。',
-    withdrawal_processing:'⚠️ 退会処理中です。'
-   })[state]||'⚠️ 申請状況を確認してください。';
+    inactive:'利用停止中です。管理者に確認してください。',
+    withdrawal_processing:'退会処理中です。'
+   })[state]||'申請状況を確認してください。';
   }
  }catch(e){
-  status.textContent='❌ 申請状況を取得できませんでした。更新してください。';
+  status.className='stage-system-message stage-system-message--error';status.textContent='申請状況を取得できませんでした。更新してください。';
   await window.SMStageUX?.showError?.(e);
  }finally{registrationPending=false;refresh.disabled=false;}
 }
@@ -322,7 +324,7 @@ async function openRegistration_(){
  await refreshRegistration_();
 }
 function setupRegistration_(){
- $('stageRegistrationOpen').addEventListener('click',openRegistration_);
+ $('stageRegistrationOpen').addEventListener('click',()=>{location.href='registration.html';});
  $('stageRegistrationRefresh').addEventListener('click',refreshRegistration_);
  $('stageRegistrationClose').addEventListener('click',()=>close('stageRegistrationDialog'));
  $('stageRegistrationForm').addEventListener('submit',async e=>{
@@ -336,10 +338,12 @@ function setupRegistration_(){
   registrationPending=true;$('stageRegistrationSubmit').disabled=true;
   try{
    const result=await call('/api/member/apply',{displayName,nameKana});
+   $('stageRegistrationStatus').className='stage-system-message stage-system-message--success';
    $('stageRegistrationStatus').textContent=result?.status==='approved'?'利用登録済みです。':'利用申請を受け付けました。管理者の承認をお待ちください。';
    $('stageRegistrationForm').hidden=true;
   }catch(error){
-   $('stageRegistrationStatus').textContent='❌ 申請結果を確認できませんでした。更新して状況を確認してください。';
+   $('stageRegistrationStatus').className='stage-system-message stage-system-message--error';
+   $('stageRegistrationStatus').textContent='申請結果を確認できませんでした。更新して状況を確認してください。';
    await window.SMStageUX.showError(error);
   }finally{registrationPending=false;$('stageRegistrationSubmit').disabled=false;}
  });
