@@ -211,8 +211,10 @@ function readScreen_(id,label,loader,onComplete,force=false){
  if(refreshButton)refreshButton.disabled=true;
  const state=screenReadStatus_(id);
  state.hidden=false;
- state.classList.remove('stage-system-message--warning','stage-system-message--error');
- state.classList.add('stage-system-message--info','stage-inline-read-loading');
+ state.classList.remove('stage-system-message--warning');
+ state.classList.remove('stage-system-message--error');
+ state.classList.add('stage-system-message--info');
+ state.classList.add('stage-inline-read-loading');
  state.textContent=label;
  const current=()=>screen.open&&screenReadEpoch_.get(id)===version;
  const promise=Promise.resolve().then(()=>loader(current))
