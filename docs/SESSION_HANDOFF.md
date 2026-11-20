@@ -470,3 +470,12 @@
 - 専用LIFF IDでのinit、登録済み本人の緑表示・フォーム非表示、未登録本人のフォーム→確認→1回のPOST、再送禁止、承認待ち／却下／利用停止の黄表示、ネットワークエラー時の赤表示と手動更新可能状態、未ログイン時の認証導線、ID未設定時に管理LIFFへのフォールバックが無いことを検証。
 - 既存のスプレッドシート、GAS、Worker、収支や本人認可、LINEリッチメニューの設定は不変更。**仮想テスト成功はLINE実機の本人認証／Worker POST／GAS実保存の成功を意味しない**ため、実機受入は継続する。
 - 新しいLIFF検証入口：`https://liff.line.me/2012602642-lKuGSb43`。管理者が検証用メンバーの申請と承認状況をLINEで確認した後、ChatGPTが接続検証Sheetの安全な読み取りで照合する。
+
+
+## 41. v0.16.86〜v0.16.87 統合・検証デプロイ結果（2026/11/20）
+
+- **専用利用申請LIFFの設定**：[PR #107](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/107) mainマージSHA `aced23c272c0762811af829942fa6b976cf29300`。UI回帰・仕様優先順位CI成功。[GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44732700506)、[公開GET-onlyスモーク](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44732701950)、同SHAのWorkers Buildsが成功。GASコード不変更。
+- **中立メッセージの適用**：[PR #108](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/108) mainマージSHA `731965ccb23cf886283a6313dacdd150a35aa3ec`。UI回帰・仕様優先順位CI成功。[GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44733346611)、[公開GET-onlyスモーク](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44733347384)、同SHAのWorkers Builds成功。青い処理中／緑の成功／黄の警告／赤の失敗／灰の案内は静的・模擬確認済み。ユーザーのLINE実機表示受入は別。
+- **利用申請LIFF模擬E2E**：[PR #109](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/109) mainマージSHA `a7daf633d14f1737ba1f4440c77e4eadb91ebbdd`。仮想LIFFで登録済み・未申請・申請送信1回・承認待ち・却下・通信失敗・ログイン未完了・未設定IDの安全動作を回帰テスト。全UI回帰CI・仕様CI成功、[Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44733812472)とWorkers Builds成功。今回のPRはテスト/ドキュメントのみで公開GET-onlyスモークの新たな実行はなし（PR #108の実配信確認が最新）。GAS不変更。
+- **次の実機受入**：管理者が検証用LINEで [利用申請専用LIFF](https://liff.line.me/2012602642-lKuGSb43) を開き、緑の「利用登録済みです。」を確認。別LINEテスター（未登録）ではフォーム→氏名/カナ→確認→送信、黄色の承認待ち、再訪問時二重申請なしを確認。管理者は [運用管理LIFF](https://liff.line.me/2012602642-XBSkXduO) → 運用管理メニュー → 管理者メニュー → メンバー権限管理で申請承認し、再訪問後緑の登録済み表示を確認。LINE SDK側のチャネル/Endpoint/scopeの実値は直接読み取れないため、実機で失敗した場合はLINE Developers側を照合する。
+- **残る課題・リスク**：LINE本人トークンを使うWorker→GAS POSTの実書込受入、他テスターの権限・承認、実機15秒タイムアウト/通信時間分析、旧申請モーダル互換経路と未マージPR #102の競合整理、動的メッセージの残監査、実在LINE退会/再入会E2E。本番環境と既存Secret・GASは未変更。各項目は未受入として保持する。
