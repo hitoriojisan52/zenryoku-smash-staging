@@ -634,3 +634,12 @@
 - GitHub Environment `d1-staging` と専用Secret `D1_STAGE_API_TOKEN`、Variables `D1_STAGE_ACCOUNT_ID` / `D1_STAGE_DATABASE_ID`が必要。D1データベース名は`zenryoku-smash-staging-d1`。**トークンをチャットやソースへ掲載しない**。ユーザーが設定した後、ChatGPTがActionsの接続・migration apply・読取SELECTを検証する。
 - 未完了：当PRのCI/マージ、Cloudflare上のDB作成とEnvironment入力、Remote D1デプロイ、Workerバインディング、既存Sheetsデータ移行、D1読込APIと実機性能比較。**実際に完了したと確認するまで完了扱いしない**。本番への反映は事前承認制。
 - 次の作業：PR CI結果確認→検証main反映→ユーザーの初期設定→D1リモートSchema/SELECTの疎通→既存全Sheet/APIの型・整合性を棚卸し。現行v0.16.94のLINE実機性能再計測と別LINE申請受入は既存案件として残す。
+
+
+## 57. D1第1工程 PR #125 統合・検証用CI/未設定時ガードの実確認（2026/11/21）
+
+- [PR #125](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/125)を検証用main`1001f2035342f513c6078706a610533c708fb6e7`にsquash統合。D1専用`schema-safety`と`spec-contract`の両CI成功。D1 SQLite初期スキーマ/設定先ガードに加え、旧収支確定順序・本人出欠・退会/再入会・試合作成の回帰が成功。今回変更したのは独立D1関連/CI/文書のみで、GAS/Worker/LIFF実コード・Sheetsデータ・本番環境は不変更。
+- main反映後[GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44781120608)はbuild/deploy/report-build-status成功、同コミットのCloudflare **Workers Buildsチェック成功**（Workerソースは不変更）。Workerの公開`/health`応答は独立に取得できていないため、新たなGET実疎通の成功とは扱わない。GASコード未変更、既存検証@51を維持。
+- [検証D1 Schema Actions](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44781121812)の`local-safety`および`migrate-stage`ジョブは成功。ただし後者は**初期設定の環境変数/Secretが未登録のため、verify-remote/apply/SELECTの3ステップがすべてskipped**であることをジョブステップから実確認。成功マークをD1 remote更新成功と読み替えない。
+- **ユーザー初期設定待ち**：Cloudflareの検証用D1`zenryoku-smash-staging-d1`作成、GitHub Environment`d1-staging`のSecret`D1_STAGE_API_TOKEN`とVariables`D1_STAGE_ACCOUNT_ID`、`D1_STAGE_DATABASE_ID`を登録。設定詳細・クリック先は[D1_MIGRATION_PLAN.md](D1_MIGRATION_PLAN.md)。LINE ID/トークンをチャットで受け取らない。
+- 次は資格情報が揃ったことを確認して**GitHub経由で**Remote D1 UUID/名前照合→0001初期SQL apply→空テーブルSELECTを実証。その後に全Sheetsと業務API棚卸し、データ移行設計、認証/会計排他の等価性評価を実施。**既存の収支・出欠・登録申請・試合の仕様変更や業務データ移行はまだ行わない。**
