@@ -211,6 +211,9 @@ export async function handleRequest(request,env){
     let payload;
     try{payload=JSON.parse(raw);}catch(_){return failure('要求のJSON形式が不正です（診断コード：BAD_REQUEST_JSON）',400,origin,'BAD_REQUEST_JSON');}
     if(!payload||Array.isArray(payload)||typeof payload!=='object')return failure('要求形式が不正です',400,origin);
+    // A single 15s budget covers token verification, GAS POST, redirect GET,
+    // response body and retry delays. A timed-out write is NEVER POSTed again.
+    const deadline=AbortSignal.timeout(15000);
     // Guest reads require a short-lived, server-issued bearer capability;
     // they never require a LINE login and never forward a member identity.
     if(isGuest){
@@ -218,12 +221,12 @@ export async function handleRequest(request,env){
         return failure('閲覧リンクが無効です',403,origin,'GUEST_LINK_INVALID');
       const result=await fetchGasOnce(env.GAS_WEB_APP_URL,{
         sharedSecret:env.GAS_SHARED_SECRET,op:'match.guest.get',guestToken:payload.token,payload:{}
-      });
+      },{},deadline);
       return json(result,result.ok?200:result.code==='UNAUTHORIZED'?403:result.code==='NOT_FOUND'?404:400,origin);
     }
     phase='line_verify';
     const lineStart=performance.now();
-    const lineUserId=await verifyLineToken(tokenMatch[1],env.LINE_LOGIN_CHANNEL_ID);
+    const lineUserId=await verifyLineToken(tokenMatch[1],env.LINE_LOGIN_CHANNEL_ID,deadline);
     const lineMs=Math.max(0,Math.round(performance.now()-lineStart));
     // v0.16.53: ALL connected-staging members are authorized test data.
     // Preserve fail-closed gates on the exact staging workbook and purpose.
@@ -307,7 +310,7 @@ export async function handleRequest(request,env){
     const gasMetrics={};
     const gasStart=performance.now();
     const result=await fetchGasOnce(env.GAS_WEB_APP_URL,
-      {sharedSecret:env.GAS_SHARED_SECRET,lineUserId,op,payload},gasMetrics);
+      {sharedSecret:env.GAS_SHARED_SECRET,lineUserId,op,payload},gasMetrics,deadline);
     // Never enable a destructive UI action until BOTH independent gates agree.
     // The boolean is safe for admin-only UI; do not publish secrets/IDs.
     if(op==='member.manage.list'&&result?.ok===true&&result?.data){
@@ -334,6 +337,9 @@ export async function handleRequest(request,env){
     console.warn('staging_gateway_failure',JSON.stringify({phase,code,errorType:exceptionType(err)}));
     if(status===401){
       return failure('LINE認証に失敗しました（診断コード：'+code+'）',401,origin,code);
+    }
+    if(status===504){
+      return failure('通信が15秒以内に完了しませんでした。最新の状態を確認してください。',504,origin,code);
     }
     if(status===502){
       // For classified known errors the message is a fixed string from this
