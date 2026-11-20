@@ -741,3 +741,12 @@
 - 同mainの[GitHub Pages #44801870673](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44801870673) build/deploy/report成功。従来Workerのコード・D1 API token・GAS@51/LIFF・Sheets正本・データ・本番に変更なし。既存Cloudflare Workers Buildsは独立に最終チェックする。
 - **ユーザー初期設定待ち**：Cloudflareの検証用アカウントで`zenryoku-smash-d1-pilot-stage-20261121`というHello World WorkerをDashboard上で作成（初期コード変更なし）、Cloudflare API tokenを`Individual Workers → Editor`・当該Workerだけで発行しGitHub Environment`d1-staging`のSecret`D1_WORKER_STAGE_API_TOKEN`へ登録、Variable`D1_WORKER_STAGE_DEPLOY_ENABLED=true`を追加。既存のD1環境変数2件とSecret1件・main限定は維持。手順詳細：[D1_WORKER_DEPLOY_PLAN.md](D1_WORKER_DEPLOY_PLAN.md)。
 - 設定が終わったと報告を受けてからGitHub経由でremoteを実行し、所有検証・D1 UUID照合・配布・Bearer認可・0件GET・p50/p95を完了/未完了に区別して記録。実データ移行/本番切替には別の判断が必要。
+
+
+## 68. D1独立Workerの実作成・名前の整合修正（2026/11/21）
+
+- ユーザーがCloudflareのOverview・Settingsスクリーンショットを提示。**実作成済みWorkerは`zenryoku-smash-d1-pilot-stage`**（Ready、公開URL `https://zenryoku-smash-d1-pilot-stage.hitori-ojisan-52.workers.dev`、Bindings 0件、Dashboardで手動初回作成）。従来GitHubコードの予定名`zenryoku-smash-d1-pilot-stage-20261121`とは異なる。ユーザーに削除/再作成を依頼せず、**実Worker名にGitHub側を合わせる**。
+- `scripts/d1-stage-worker-config.cjs`、`scripts/d1-stage-worker-ownership.cjs`、`scripts/d1-stage-worker-probe.cjs`と関連するD1設計文書を実名に修正し、固定名・旧予定名の非一致をオフラインのself-testへ追加。既存`zenryoku-smash-staging-api`とは別のまま。Workerコードの編集・D1 binding/新トークン/本番への操作は**本PR時点では行っていない**。
+- Cloudflare画面の`Production`は新Worker自身の公開環境表示であり、全力☆スマッシュ運用の本番環境を意味しない。初期Hello Worldソースはスクリーンショットから直接確認できないため**未確認**。GitHubからの初回デプロイ前に所有チェックで検査して、不一致なら停止する。
+- **次はユーザーの一度限りの設定**：Cloudflareで既存の`zenryoku-smash-d1-pilot-stage`のみに限定した`Individual Workers > Editor` API Tokenを作成、GitHub Environment `d1-staging` のSecret `D1_WORKER_STAGE_API_TOKEN`へ登録、Variable `D1_WORKER_STAGE_DEPLOY_ENABLED=true`を設定。既存D1 Token/Account/DB ID、mainブランチ制限、Worker・LINE/GAS/Sheets設定は不変更。個人情報/会計のデータ移行は禁止。
+- PR CI、main統合/Worker実デプロイ/ネイティブGETは**実際の結果を確認してから**各々別記する。本番反映は承認制。

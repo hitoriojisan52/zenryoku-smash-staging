@@ -6,7 +6,7 @@
 
 現行 Worker `zenryoku-smash-staging-api` のルーティング、LINEトークン検証、GASへの委譲、GAS/Sheetsのデータ正本、画面/LIFF URL、設定済みIDと本番環境を**すべて変更しない**。D1への利用者データ複写や会計書込もまだ禁止する。
 
-代わりに、**別名の専用Worker** `zenryoku-smash-d1-pilot-stage-20261121` で、D1ネイティブbinding `ZENRYOKU_STAGE_DB` に対して空テーブルの件数のみを取得する検証を行う。元の`readonly-pilot/worker.mjs`は既存のLINE本人認証/ロール検証を実装していないため、**業務画面のAPIに使わない**。
+代わりに、**別名の専用Worker** `zenryoku-smash-d1-pilot-stage` で、D1ネイティブbinding `ZENRYOKU_STAGE_DB` に対して空テーブルの件数のみを取得する検証を行う。元の`readonly-pilot/worker.mjs`は既存のLINE本人認証/ロール検証を実装していないため、**業務画面のAPIに使わない**。
 
 本PRで作成するのは独立の配布設定、GitHub Actions、強制認可/名前一致と失敗時停止のテスト。**今あるD1 EditのトークンでWorkerはデプロイできない**。現行Cloudflare権限では新規WorkerはAdminを要するため、DashboardでのHello World Worker作成（初回だけ）とWorker単位Editorが必要。初回設定/明示ON完了まではremote Worker deploy **skipped** とする。PR CIが成功しても、Worker公開・実HTTP疎通とは区別する。
 
@@ -24,8 +24,8 @@
 
 Cloudflare公式の2026年のWorkers権限仕様では、**まだ存在しないWorkerの新規作成にはWorkers product Adminが必要**である。以前記録した「Workers Scripts Editだけで自動新規作成可能」という説明は正しくなかった。Editorはすでに存在するWorkerに対するコード更新・デプロイ・D1 binding設定に使う。したがって、本番Workerがまだ存在しない場合も、既存検証用Worker全体に権限を広げずに済む次の方法を採用する。
 
-1. [Cloudflare Dashboard](https://dash.cloudflare.com/)で、**検証D1と既存検証Workerがあるアカウント**を開く。`Workers & Pages`→`Create application`/ `Create Worker`→`Hello World example`を選択。`zenryoku-smash-d1-pilot-stage-20261121` と**完全一致**の名前で新規作成する。テンプレートのJavaScriptを編集しない。**既存の`zenryoku-smash-staging-api`に触れない**。D1 binding・Routes・カスタムドメインの手動設定は不要。Workerの初期Hello Worldは公開されるが、個人/業務データを含まない。
-2. [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens)で`zenryoku-smash-d1-worker-staging`という新規トークンを作る。PolicyのScopeを**Individual Workers**、対象Workerを**`zenryoku-smash-d1-pilot-stage-20261121`だけ**、Roleを**Editor**として、他のWorkers・D1・Zone・Routesへの権限を付けない。対象Workerが選択できないなら発行せず画面を報告する。トークン自体はチャット・Issue・READMEに絶対貼らない。
+1. [Cloudflare Dashboard](https://dash.cloudflare.com/)で、**検証D1と既存検証Workerがあるアカウント**を開く。`Workers & Pages`→`Create application`/ `Create Worker`→`Hello World example`を選択。`zenryoku-smash-d1-pilot-stage` と**完全一致**の名前で新規作成する。テンプレートのJavaScriptを編集しない。**既存の`zenryoku-smash-staging-api`に触れない**。D1 binding・Routes・カスタムドメインの手動設定は不要。Workerの初期Hello Worldは公開されるが、個人/業務データを含まない。
+2. [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens)で`zenryoku-smash-d1-worker-staging`という新規トークンを作る。PolicyのScopeを**Individual Workers**、対象Workerを**`zenryoku-smash-d1-pilot-stage`だけ**、Roleを**Editor**として、他のWorkers・D1・Zone・Routesへの権限を付けない。対象Workerが選択できないなら発行せず画面を報告する。トークン自体はチャット・Issue・READMEに絶対貼らない。
 3. [GitHub Environment `d1-staging`](https://github.com/hitoriojisan52/zenryoku-smash-staging/settings/environments)に**Environment secret**として `D1_WORKER_STAGE_API_TOKEN` = 新トークンを追加（旧`D1_STAGE_API_TOKEN`は維持）。次に**Environment variable** `D1_WORKER_STAGE_DEPLOY_ENABLED` = `true` を追加。既存の`D1_STAGE_ACCOUNT_ID`、`D1_STAGE_DATABASE_ID`、main限定デプロイ規則は変更しない。
 4. ユーザーは**「独立Worker作成、Secret/Variable登録完了」だけ**を報告（トークンを送らない）。以後のソース変更とSQL、binding更新はGitHub/ChatGPT側が実施する。次のmain対象更新でWorkflowを起動し、Worker所有チェック→D1照合→dry-run→デプロイ→ランダムBearerの設定→実GET p50/p95の検証を実行し、結果を別々に報告する。
 
@@ -55,3 +55,10 @@ Cloudflare公式の2026年のWorkers権限仕様では、**まだ存在しない
 - Cloudflare公式の2026年権限表により、**新規Worker作成＝Workers product Admin、既存個別Worker更新＝Individual Workers Editor**と確認したため、既存の「Account Workers Scripts Edit専用トークンだけで新規自動作成」を撤回。ユーザーに広いAdmin/APIトークンを要求しないよう、最初だけDashboardで空Hello World Workerを作成し、以降は個別WorkerのEditorトークンで自動更新する。
 - 自動デプロイのソース・API・D1接続先は変更なし。変更対象は既存Workerの所有確認（未変更Hello Worldテンプレートだけの採用）と設計・初回設定案内のみ。
 - 初回GitHub Environment登録前は、実デプロイ/Worker native D1 HTTP検証は依然未実施。空テーブル0件維持、本番未変更。
+
+
+## 2026/11/21：Dashboard上で実作成したWorker名へ統一
+
+- ユーザー提供のCloudflare Worker Overviewスクリーンショットで、実際に作成した専用検証Workerは`zenryoku-smash-d1-pilot-stage`、公開先は`https://zenryoku-smash-d1-pilot-stage.hitori-ojisan-52.workers.dev`、ステータス`Ready`、Bindings 0件と確認。**以前計画していた末尾`-20261121`付きとは別の名前**。作り直さず、デプロイ用の固定名・ホスト名検証・所有確認を実物に合わせて修正した。
+- Overviewの`Production`はCloudflare Worker内の公開環境名であり、全力☆スマッシュの事業用本番システムに反映したことを示さない。
+- Workerの初期ソースが未変更Hello Worldかどうかは、デプロイ前の所有確認で厳密に照合する（スクリーンショットからは内容未確認）。ユーザーにはWorkerコードやBindingの手動編集を要求しない。

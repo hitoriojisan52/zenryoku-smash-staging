@@ -49,6 +49,6 @@
 
 ## 第4工程の安全な独立Worker実接続準備（2026/11/21）
 
-- [独立WorkerのGitHub Actions自動デプロイ方針](D1_WORKER_DEPLOY_PLAN.md)参照。`scripts/d1-stage-worker-config.cjs`が独立名`zenryoku-smash-d1-pilot-stage-20261121`と検証D1のbindingのみを生成。`scripts/d1-stage-worker-ownership.cjs`で衝突する既存Workerは上書きせず失敗扱い。未公開状態で他機能と連携しない。
+- [独立WorkerのGitHub Actions自動デプロイ方針](D1_WORKER_DEPLOY_PLAN.md)参照。`scripts/d1-stage-worker-config.cjs`が独立名`zenryoku-smash-d1-pilot-stage`と検証D1のbindingのみを生成。`scripts/d1-stage-worker-ownership.cjs`で衝突する既存Workerは上書きせず失敗扱い。未公開状態で他機能と連携しない。
 - `scripts/d1-stage-worker-probe.cjs`がシークレット作成後の実GET認証/POST拒否/業務APIの404/空件数/p50-p95を検査。業務データ移行・現行LINE/Worker/GASの認可変更ではない。
 - 現在のD1トークンではWorker deployができないため、GitHub Environment`d1-staging`に別の最小権限Secrets`D1_WORKER_STAGE_API_TOKEN`、variable`D1_WORKER_STAGE_DEPLOY_ENABLED=true`の初回登録が**必要**。本番・旧Workerは変更しない。発行手順はD1_WORKER_DEPLOY_PLANに記載。

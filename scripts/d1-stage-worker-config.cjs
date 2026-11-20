@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const ACCOUNT = '5817f07a73dbb56011012074ce1b11c5';
-const NAME = 'zenryoku-smash-d1-pilot-stage-20261121';
+const NAME = 'zenryoku-smash-d1-pilot-stage';
 const DATABASE = 'zenryoku-smash-staging-d1';
 const BINDING = 'ZENRYOKU_STAGE_DB';
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -59,6 +59,8 @@ if(command==='self-test'){
   assert.throws(()=>validateDb('not-uuid'));
   const cfg=makeConfig(uuid);
   assert.equal(cfg.name,NAME);
+  assert.equal(NAME,'zenryoku-smash-d1-pilot-stage');
+  assert.notEqual(NAME,'zenryoku-smash-d1-pilot-stage-20261121');
   assert.notEqual(cfg.name,'zenryoku-smash-staging-api');
   assert.equal(cfg.d1_databases[0].database_name,DATABASE);
   assert.equal(cfg.d1_databases[0].binding,BINDING);
