@@ -53,6 +53,18 @@ function renderGasProfile_(timings){
 }
 function dialog(id){const e=$(id);if(e&&!e.open)e.showModal();}
 function close(id){if($(id)?.open)$(id).close();}
+// Non-blocking read-only screen; keep Close available during network waits.
+const softReadEpoch_=new Map();
+async function softRead_(dialogId,statusId,label,work){
+ const key=(softReadEpoch_.get(dialogId)||0)+1;softReadEpoch_.set(dialogId,key);
+ const status=$(statusId);if(status)status.textContent=label;
+ try{await work();if(!$(dialogId)?.open||softReadEpoch_.get(dialogId)!==key)return;
+  if(status&&status.textContent===label)status.textContent='';
+ }catch(e){if(!$(dialogId)?.open||softReadEpoch_.get(dialogId)!==key)return;
+  if(status)status.textContent='読み込みに失敗しました。「更新」で再取得してください。';
+  await window.SMStageUX.showError(e);
+ }
+}
 function gateEdit(){if(!S.actor||!['duty','admin'].includes(S.actor.role))throw new Error('当番チームの権限がありません');}
 async function call(path,payload={}){
  if(!S.token||!CONFIG.apiBaseUrl)throw new Error('LINE認証またはAPI設定がありません');
@@ -458,8 +470,17 @@ async function saveAmount(kind){
    }finally{S.pending.delete('amount');el.disabled=false;}
  });
 }
-async function openLedger(){await guard(async()=>{gateEdit();close('manageDialog');
- $('ledgerMonth').value=today().slice(0,7);await loadLedger();dialog('ledgerDialog');});}
+async function openLedger(){
+ gateEdit();close('manageDialog');$('ledgerMonth').value=today().slice(0,7);
+ S.ledger=null;$('ledgerBody').replaceChildren();
+ const carry=document.createElement('tr');carry.className='carry-row';
+ for(const value of [window.SMDate.date(today().slice(0,7)+'-01'),'前月繰越','読み込み中','読み込み中','読み込み中','－','－']){
+  const cell=document.createElement('td');cell.textContent=value;carry.append(cell);
+ }
+ $('ledgerBody').append(carry);$('ledgerTotal').textContent='残金：読み込み中';
+ $('nextMonth').disabled=true;dialog('ledgerDialog');
+ await softRead_('ledgerDialog','ledgerTotal','残金：読み込み中',()=>loadLedger());
+}
 async function loadLedger(){const month=$('ledgerMonth').value,ledger=await call('/api/ledger',{month});S.ledger=ledger;const b=$('ledgerBody');b.replaceChildren();
  const rows=[{rowId:'CARRY-'+month,date:month+'-01',label:'前月繰越',income:0,expense:0,balance:ledger.carried,confirmedBy:'',kind:'carry',status:'confirmed'},...ledger.rows.filter(r=>r.kind!=='opening')];
  for(const r of rows){const tr=document.createElement('tr');
@@ -714,7 +735,7 @@ function openEditor(row=null,kind='reimbursement'){
  const targetKind=row?.kind||kind;$('ledgerKind').value=targetKind;$('ledgerKind').disabled=!!row;
  $('ledgerPayoutDate').value=row?.date||today();$('ledgerReimbursementItem').value=row?.item||'';$('ledgerReimbursementPayee').value=row?.payee||'';
  syncPayoutWeekday_('ledgerPayoutDate','ledgerPayoutWeekday');
- $('ledgerReimbursementAmount').value=row?.expense??'';$('ledgerEditDate').value=row?.date||today();$('ledgerEditLabel').value=row?.label||'';
+ $('ledgerReimbursementAmount').value=row?.expense??'';$('ledgerEditDate').value=row?.date||today();syncPayoutWeekday_('ledgerEditDate','ledgerEditWeekday');$('ledgerEditLabel').value=row?.label||'';
  $('ledgerEditIncome').value=row?.income??0;$('ledgerEditExpense').value=row?.expense??0;
  $('ledgerReimbursementReceipt').disabled=targetKind!=='reimbursement';$('ledgerReimbursementReceipt').value='';
  $('ledgerCurrentReceipt').textContent=row?.receiptFileId?'登録済みの領収書があります':'';
@@ -862,13 +883,10 @@ async function refreshCashSnapshot_(){
  cashSnapshot=response;cashCountsState=validated.counts;renderCash();
 }
 async function openCash(){
- let ready=false;
- await guard(async()=>{
-  gateEdit();if(!CASH)throw new Error('現金確認機能の読み込みに失敗しました');
-  await refreshCashSnapshot_();
-  ready=true;
- });
- if(ready){close('manageDialog');dialog('cashDialog');}
+ gateEdit();if(!CASH)throw new Error('現金確認機能の読み込みに失敗しました');
+ close('manageDialog');cashSnapshot=null;
+ prepareCashDenominations();renderCash();dialog('cashDialog');
+ await softRead_('cashDialog','cashStatus','帳簿残金を読み込んでいます…',()=>refreshCashSnapshot_());
 }
 function resetCashCounts(){
  cashCountsState=blankCashCounts();renderCash();toast('枚数をリセットしました');
@@ -964,9 +982,10 @@ async function loadScheduleMaster_(){
  renderScheduleMaster_();
 }
 async function openScheduleMaster_(){
- let loaded=false;
- await guard(async()=>{gateEdit();await loadScheduleMaster_();loaded=true;},'日程を読み込んでいます…');
- if(loaded){close('manageDialog');dialog('scheduleDialog');}
+ gateEdit();close('manageDialog');SC.rows=[];
+ $('scheduleList').textContent='練習日程を読み込んでいます…';
+ dialog('scheduleDialog');
+ await softRead_('scheduleDialog','scheduleList','練習日程を読み込んでいます…',()=>loadScheduleMaster_());
 }
 function updateScheduleWeekday_(){
  const date=$('scheduleDate').value;
@@ -1069,17 +1088,18 @@ function renderVisitorPracticeOptions_(){
  $('visitorStatus').textContent=preferred?'':'受付中の練習日程がありません';
 }
 async function openVisitorForm_(){
- let loaded=false;
- await guard(async()=>{
-  $('visitorMinePractice').value='';$('visitorPractice').value='';
+ $('visitorMinePractice').value='';$('visitorPractice').value='';
+ VIS.practices=[];VIS.draft=null;VIS.unknownResult=false;
+ $('visitorNewFormSection').open=false;
+ $('visitorName').value='';$('visitorKana').value='';$('visitorMemo').value='';
+ $('visitorSubmit').disabled=true;
+ $('visitorMineCards').textContent='申請履歴を読み込んでいます…';
+ $('visitorStatus').textContent='開催日を読み込んでいます…';
+ close('manageDialog');dialog('visitorDialog');
+ await softRead_('visitorDialog','visitorStatus','開催日を読み込んでいます…',async()=>{
   const [response]=await Promise.all([call('/api/visitor/practices'),window.SMVisitor.loadMine()]);
-  VIS.practices=validateVisitorPractices_(response);
-  VIS.draft=null;VIS.unknownResult=false;
-  $('visitorNewFormSection').open=false;
-  $('visitorName').value='';$('visitorKana').value='';$('visitorMemo').value='';
-  renderVisitorPracticeOptions_();loaded=true;
- },'開催日を読み込んでいます…');
- if(loaded){close('manageDialog');dialog('visitorDialog');}
+  VIS.practices=validateVisitorPractices_(response);renderVisitorPracticeOptions_();
+ });
 }
 function visitorFormDraft_(){
  const practiceId=$('visitorPractice').value,practice=VIS.practices.find(p=>p.practiceId===practiceId);
@@ -1331,9 +1351,6 @@ async function loadParticipants_(){
  renderParticipantManager_();
 }
 async function openParticipantManager_(){
- let ready=false;
- // Opening the screen always defaults to the nearest selectable date today
- // or later. A manually selected past open date remains selectable afterward.
  const confirmedIds=new Set(S.overview?.confirmedPracticeIds||[]);
  const candidates=(S.overview?.practices||[])
   .filter(p=>p?.practiceId&&p.date>=today()&&
@@ -1342,8 +1359,10 @@ async function openParticipantManager_(){
    String(a.startTime||'').localeCompare(String(b.startTime||''))||
    String(a.practiceId).localeCompare(String(b.practiceId)));
  PM.practiceId=candidates[0]?.practiceId||'';
- await guard(async()=>{gateEdit();await loadParticipants_();ready=true;},'参加者を読み込んでいます…');
- if(ready){close('manageDialog');dialog('participantDialog');}
+ gateEdit();close('manageDialog');PM.people=[];PM.financeLocked=true;PM.matchLocked=true;
+ $('participantCards').textContent='参加者を読み込んでいます…';
+ dialog('participantDialog');
+ await softRead_('participantDialog','participantCards','参加者を読み込んでいます…',()=>loadParticipants_());
 }
 async function switchParticipantDate_(){
  const id=$('participantPractice').value;
