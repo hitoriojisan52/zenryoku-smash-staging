@@ -54,7 +54,9 @@ const accessV2=read('live-access-v2.js'),liveJs=read('live.js'),v2Mode=read('acc
 assert(accessV2.includes('openFromCheckLink(){'),'check-specific deep link handler missing');
 assert(accessV2.includes("window.SM_STAGE_WITHDRAW_CHECK!==true||actorRole!=='admin'"),'deep link must require exact flag and admin');
 assert(accessV2.includes('await open();'),'check deep link must await member management load');
-assert(liveJs.includes(".then(()=>window.SMLiveAccess?.openFromCheckLink?.())"),'manager opens only after initial busy loading');
+assert(liveJs.includes("if(S.registrationOnly)window.SMStageRegistration?.open?.();")&&
+ liveJs.includes("else window.SMLiveAccess?.openFromCheckLink?.();"),
+ 'application or admin deep link opens only after initial busy loading');
 assert(accessV2.includes("checkButton.scrollIntoView?.({block:'center'})"),'check button should be visible on deep-linked modal');
 assert(stagingLive.includes('live-access-v2.js?v=1676-responsive-reads'),'management script cache must refresh');
 assert(stagingLive.includes('live.js?v=1676-responsive-reads'),'startup script cache must refresh');

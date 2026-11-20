@@ -12,7 +12,7 @@
   return /^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}$/.test(text)?text:'日時を確認できません';
  };
  let api=null,actor=null,selected=null,editTarget=null,deleteTarget=null;
- let refreshAfterDecision=null,mineRows=[],adminRows=[],mineDates=[],adminDates=[];
+ let refreshAfterDecision=null,mineRows=[],adminRows=[],mineDates=[],adminDates=[],registrationDates=null;
  let mineConfirmed=new Set(),adminConfirmed=new Set();
  const node=(tag,cls,text)=>{
   const el=document.createElement(tag);if(cls)el.className=cls;
@@ -130,7 +130,7 @@
  }
  async function loadMine(isCurrent=()=>true){
   if(!api)return [];
-  const result=await api('/api/visitor/mine');
+  const result=await api('/api/visitor/mine',{},{signal:isCurrent.signal});
   if(!isCurrent())return [];
   if(!Array.isArray(result?.requests)||result.requests.some(r=>!r.requestId||
      !STATUS[r.status]||!r.practiceId||!Number.isSafeInteger(r.version)))
@@ -141,11 +141,13 @@
    throw Error('確定済み日程の情報を確認できません。再読み込みしてください。');
   mineConfirmed=new Set(result.confirmedPracticeIds);
   mineDates=result.practices||[];
+  registrationDates=Array.isArray(result.registrationPractices)?
+   result.registrationPractices.slice():null;
   mineRows=result.requests;renderMine();return mineRows;
  }
  async function loadAdmin(isCurrent=()=>true){
   if(actor?.role!=='admin')throw Error('管理者のみ閲覧できます');
-  const result=await api('/api/visitor/admin-list');
+  const result=await api('/api/visitor/admin-list',{},{signal:isCurrent.signal});
   if(!isCurrent())return [];
   if(!Array.isArray(result?.requests)||result.requests.some(r=>!r.requestId||
      !STATUS[r.status]||!r.practiceId||!Number.isSafeInteger(r.version)))
@@ -273,6 +275,7 @@
    refreshAfterDecision=options.onDecision||null;
    $('visitorAdminMenu').hidden=actor?.role!=='admin';
   },
-  loadMine,loadAdmin
+  loadMine,loadAdmin,
+  registrationPractices:()=>registrationDates?registrationDates.slice():null
  });
 })(window);

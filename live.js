@@ -6,12 +6,17 @@
 'use strict';
 const M=window.SmashModel,$=id=>document.getElementById(id),yen=n=>Number(n).toLocaleString('ja-JP')+'円';
 const CONFIG=window.SMASH_CONFIG||{};
-const S={token:'',actor:null,overview:null,practiceId:'',homeReadFailed:false,loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,confirmedPracticeKey:'',selectableDayKey:'',receiptPartialWarning:''};
+const S={token:'',actor:null,overview:null,practiceId:'',registrationOnly:false,homeReadFailed:false,silentRefreshPausedUntil:0,loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,confirmedPracticeKey:'',selectableDayKey:'',receiptPartialWarning:''};
 const VISITOR_MODE=(()=>{
  const q=new URLSearchParams(location.search||'');
  let state=q.get('liff.state')||'';
  if(state.includes('?'))state=state.slice(state.indexOf('?')+1);
  return q.get('visitor')==='1'||new URLSearchParams(state).get('visitor')==='1';
+})();
+const APP_REG_MODE=(()=>{
+ const q=new URLSearchParams(location.search||'');
+ let state=q.get('liff.state')||'';if(state.includes('?'))state=state.slice(state.indexOf('?')+1);
+ return q.get('apply')==='1'||new URLSearchParams(state).get('apply')==='1';
 })();
 const PERF_MODE=(()=>{
  const q=new URLSearchParams(location.search||'');let state=q.get('liff.state')||'';
@@ -67,10 +72,18 @@ function gateEdit(){if(!S.actor||!['duty','admin'].includes(S.actor.role))throw 
   }
   S.apiPerfHistory=S.apiPerfHistory||[];
   const gas=path==='/api/overview'&&S.lastOverviewProfile;
+  const phaseNames=[
+   ['scheduleReadMs','日程'],['ledgerReadMs','収支'],['ledgerEnsureMs','収支照合'],
+   ['paymentReadMs','集金'],['attendeeAndIdentityMs','参加者・氏名'],
+   ['rosterAndCalcMs','集計']
+  ];
+  const detail=gas&&gas.phases?phaseNames
+   .filter(([key])=>Number.isSafeInteger(gas.phases[key])&&gas.phases[key]>=0)
+   .map(([key,name])=>name+gas.phases[key]+'ms').join('・'):'';
   const gasText=gas?
    '／GAS内訳 開始'+gas.spreadsheetOpenMs+'ms・会員'+gas.memberAuthMs+
    'ms・ロック待ち'+gas.lockWaitMs+'ms・処理'+gas.overviewHandlerMs+
-   'ms・合計'+gas.gasTotalMs+'ms':'';
+   'ms・合計'+gas.gasTotalMs+'ms'+(detail?'／処理内訳 '+detail:''):'';
   S.apiPerfHistory.push((outcome==='ok'?'✓':'!')+' '+path+' '+Math.round(elapsed)+'ms'+
    (metrics.length?'（'+metrics.join(' / ')+'）':'')+gasText+
    (outcome!=='ok'?' ['+outcome+']':''));
@@ -85,7 +98,11 @@ function requestTimeoutError_(isWrite){
  const e=new Error(isWrite?'通信がタイムアウトしました（15秒）。保存結果を更新で確認してください。':'通信がタイムアウトしました（15秒）。再度お試しください。');
  e.code=isWrite?'OPERATION_UNCONFIRMED':'REQUEST_TIMEOUT';return e;
 }
-async function call(path,payload={}){
+function readCancelled_(){
+ const e=new Error('画面を閉じたため読み込みを中止しました。');
+ e.code='READ_CANCELLED';return e;
+}
+async function call(path,payload={},options={}){
  if(!S.token||!CONFIG.apiBaseUrl)throw new Error('LINE認証またはAPI設定がありません');
  const url=CONFIG.apiBaseUrl.replace(/\/$/,'')+path,isWrite=MUTATING_ENDPOINTS.has(path);
  if(isWrite)S.updateEpoch++;
@@ -93,7 +110,11 @@ async function call(path,payload={}){
  if(PERF_MODE&&path==='/api/overview')S.lastOverviewProfile=null;
  let diagnosticTiming='',diagnosticOutcome='ok';
  // Reads can abort. Writes must never abort/retry: GAS may commit.
+ const externalSignal=options?.signal;
+ if(!isWrite&&externalSignal?.aborted)throw readCancelled_();
  const controller=!isWrite&&typeof AbortController!=='undefined'?new AbortController():null;
+ const onClose=()=>{if(controller)controller.abort();};
+ if(controller&&externalSignal)externalSignal.addEventListener('abort',onClose,{once:true});
  let timer,expired=false;
  const timeout=new Promise((_,reject)=>{
   timer=setTimeout(()=>{expired=true;if(controller)controller.abort();reject(requestTimeoutError_(isWrite));},REQUEST_TIMEOUT_MS);
@@ -118,11 +139,13 @@ async function call(path,payload={}){
  try{return await Promise.race([work,timeout]);}
  catch(e){
   diagnosticOutcome=expired||e?.name==='AbortError'?'timeout':'error';
+  if(!expired&&!isWrite&&externalSignal?.aborted)throw readCancelled_();
   if(expired||e?.name==='AbortError')throw requestTimeoutError_(isWrite);
   throw e;
  }
  finally{
   clearTimeout(timer);
+  if(controller&&externalSignal)externalSignal.removeEventListener('abort',onClose);
   if(PERF_MODE)profileApiRequest_(path,performance.now()-startedAt,diagnosticTiming,diagnosticOutcome);
  }
 }
@@ -235,11 +258,14 @@ function screenReadStatus_(id){
 function readScreen_(id,label,loader,onComplete,force=false){
  const screen=$(id),prev=screenReadActive_.get(id);
  if(prev&&screen.open&&!force)return prev.promise; // intentional refresh supersedes stale read
+ if(prev&&force)prev.controller?.abort();
  const version=(screenReadEpoch_.get(id)||0)+1;
  screenReadEpoch_.set(id,version);
  if(!screen.dataset.readCloseBound){
   screen.dataset.readCloseBound='1';
   screen.addEventListener('close',()=>{
+   S.silentRefreshPausedUntil=Date.now()+10000;
+   screenReadActive_.get(id)?.controller?.abort();
    screenReadEpoch_.set(id,(screenReadEpoch_.get(id)||0)+1);
    screenReadActive_.delete(id);
   });
@@ -247,6 +273,7 @@ function readScreen_(id,label,loader,onComplete,force=false){
  if(!screen.open)screen.showModal();
  const refreshId=screenReadRefreshIds_[id],refreshButton=refreshId?$(refreshId):null;
  if(refreshButton)refreshButton.disabled=true;
+ const controller=typeof AbortController!=='undefined'?new AbortController():null;
  const state=screenReadStatus_(id);
  state.hidden=false;
  state.classList.remove('stage-system-message--warning');
@@ -255,6 +282,7 @@ function readScreen_(id,label,loader,onComplete,force=false){
  state.classList.add('stage-inline-read-loading');
  state.textContent=label;
  const current=()=>screen.open&&screenReadEpoch_.get(id)===version;
+ current.signal=controller?.signal;
  const promise=Promise.resolve().then(()=>loader(current))
   .then(()=>{
    if(!current())return;
@@ -273,7 +301,7 @@ function readScreen_(id,label,loader,onComplete,force=false){
    if(screenReadActive_.get(id)?.version===version)
     screenReadActive_.delete(id);
   });
- screenReadActive_.set(id,{version,promise});
+ screenReadActive_.set(id,{version,promise,controller});
  return promise;
 }
 window.SMStageRead={open:readScreen_};
@@ -296,9 +324,16 @@ async function boot(){
   const authMs=Math.round(performance.now()-authStart);
   if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return;}
   S.token=liff.getIDToken();if(!S.token)throw new Error('LINE IDトークンを取得できません');
+  window.SMStageRegistration?.setup({api:call});
+  if(APP_REG_MODE){enterRegistrationOnly_();return;}
   $('stageBusyLabel').textContent='利用者の権限を確認しています…';
   const sessionStart=performance.now();
-  S.actor=await call('/api/session');
+  try{S.actor=await call('/api/session');}
+  catch(e){
+   // An authenticated, unregistered LINE user may apply; other failures stay errors.
+   if(e?.status===401&&e?.code==='UNAUTHORIZED'){enterRegistrationOnly_();return;}
+   throw e;
+  }
   // Staging self-role changes are tied to authenticated LINE identity.
   if(!VISITOR_MODE)window.SMRolePreview?.setup({role:S.actor.role,api:call});
   const sessionMs=Math.round(performance.now()-sessionStart);
@@ -314,9 +349,10 @@ async function boot(){
   if(VISITOR_MODE){
    document.body.classList.add('visitor-member');
    $('visitorMemberHome').hidden=false;
-   const list=await call('/api/visitor/practices');
-   VIS.practices=validateVisitorPractices_(list);
    await window.SMVisitor.loadMine();
+   const available=window.SMVisitor.registrationPractices?.();
+   VIS.practices=validateVisitorPractices_(Array.isArray(available)?
+    {practices:available}:await call('/api/visitor/practices'));
    toast('接続しました');
    return;
   }
@@ -353,7 +389,9 @@ async function boot(){
     (overviewMs/1000).toFixed(1)+'秒 / 合計 '+
     (totalMs/1000).toFixed(1)+'秒）');
   }
-  setInterval(()=>{if(!document.hidden&&!document.querySelector('dialog[open]')&&!S.paymentNeedsRefresh&&!S.homeReadFailed&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
+  setInterval(()=>{if(!document.hidden&&Date.now()>=S.silentRefreshPausedUntil&&
+   !document.querySelector('dialog[open]')&&!S.paymentNeedsRefresh&&!S.homeReadFailed&&
+   S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
   if(!PERF_MODE)toast('接続しました');
  }catch(e){
   if(S.actor&&['duty','admin'].includes(S.actor.role)&&S.homeReadFailed){
@@ -365,6 +403,21 @@ async function boot(){
   if(S.homeReadFailed&&typeof showHomeReadError_==='function')showHomeReadError_(e);
   throw e;
  }
+}
+function enterRegistrationOnly_(){
+ S.registrationOnly=true;
+ document.body.classList.add('stage-member-locked','stage-registration-only');
+ const notice=document.createElement('p');
+ notice.className='stage-system-message stage-system-message--info';
+ notice.setAttribute('role','status');
+ notice.textContent='利用申請が必要です。検証用の申請画面から登録してください。';
+ for(const control of document.querySelectorAll('main button,main select,main input,main textarea'))
+  control.disabled=true;
+ const openAgain=document.createElement('button');
+ openAgain.type='button';openAgain.className='btn-outline';
+ openAgain.textContent='📝 利用申請を開く';
+ openAgain.addEventListener('click',()=>window.SMStageRegistration?.open?.());
+ $('list').replaceChildren(notice,openAgain);
 }
 function showHomeReadError_(e){
  const list=$('list');if(!list)return;
@@ -674,7 +727,7 @@ function openLedger(){
  $('ledgerMonth').value=today().slice(0,7);
  S.ledger=null;return readLedgerScreen_();
 }
-async function loadLedger(isCurrent=()=>true){const month=$('ledgerMonth').value,ledger=await call('/api/ledger',{month});if(!isCurrent())return;S.ledger=ledger;const b=$('ledgerBody');b.replaceChildren();
+async function loadLedger(isCurrent=()=>true){const month=$('ledgerMonth').value,ledger=await call('/api/ledger',{month},{signal:isCurrent.signal});if(!isCurrent())return;S.ledger=ledger;const b=$('ledgerBody');b.replaceChildren();
  const rows=[{rowId:'CARRY-'+month,date:month+'-01',label:'前月繰越',income:0,expense:0,balance:ledger.carried,confirmedBy:'',kind:'carry',status:'confirmed'},...ledger.rows.filter(r=>r.kind!=='opening')];
  for(const r of rows){const tr=document.createElement('tr');
   // Preserve the semantic seven-column table for desktop, CSS reflows it
@@ -1075,7 +1128,7 @@ async function refreshCashSnapshot_(isCurrent=()=>true){
  const practiceId=S.practiceId;
  cashSnapshot=null;renderCash();
  updateReadScreenStatus_('cashDialog','帳簿残高と金種記録を取得しています…',isCurrent);
- const response=await call('/api/cash/get',{practiceId});
+ const response=await call('/api/cash/get',{practiceId},{signal:isCurrent.signal});
  if(!isCurrent())return;
  if(practiceId!==S.practiceId)throw new Error('開催日が変更されました。もう一度現金確認を開いてください');
  updateReadScreenStatus_('cashDialog','帳簿残高と金種枚数を確認しています…',isCurrent);
@@ -1174,7 +1227,7 @@ function renderScheduleMaster_(){
  }
 }
 async function loadScheduleMaster_(isCurrent=()=>true){
- const d=await call('/api/schedule/list');
+ const d=await call('/api/schedule/list',{},{signal:isCurrent.signal});
  if(!isCurrent())return;
  if(!Array.isArray(d?.schedules)||d.schedules.some(r=>!r?.practiceId||
    !scheduleDateValid_(r.date)||!Number.isSafeInteger(r.version)||typeof r.enabled!=='boolean')){
@@ -1292,7 +1345,11 @@ function renderVisitorPracticeOptions_(){
  $('visitorStatus').textContent=preferred?'':'受付中の練習日程がありません';
 }
 function openVisitorForm_(){
- gateEdit();close('manageDialog');
+ // All approved LINE members may request visitors, including member role.
+ // Backend verifies the requester and protects approval/deletion separately.
+ if(!S.actor||!['member','duty','admin'].includes(S.actor.role))
+  throw new Error('利用登録を確認してください。');
+ close('manageDialog');
  VIS.practices=[];VIS.draft=null;VIS.unknownResult=false;
  $('visitorMinePractice').replaceChildren(new Option('',''));
  $('visitorMinePractice').value='';$('visitorMinePractice').disabled=true;
@@ -1304,8 +1361,11 @@ function openVisitorForm_(){
  $('visitorMineCards').textContent='申請状況を読み込んでいます…';
  return readScreen_('visitorDialog','開催日とビジター申請状況を読み込んでいます…',
   async isCurrent=>{
-   const [response]=await Promise.all([
-    call('/api/visitor/practices'),window.SMVisitor.loadMine(isCurrent)]);
+   await window.SMVisitor.loadMine(isCurrent);
+   if(!isCurrent())return;
+   const available=window.SMVisitor.registrationPractices?.();
+   const response=Array.isArray(available)?{practices:available}:
+    await call('/api/visitor/practices',{},{signal:isCurrent.signal});
    if(!isCurrent())return;
    VIS.practices=validateVisitorPractices_(response);
    renderVisitorPracticeOptions_();
@@ -1399,7 +1459,7 @@ function renderMemberAttendance_(){
  $('attendanceSave').disabled=AT.uncertain||!response||response.locked;
 }
 async function loadMemberAttendance_(isCurrent=()=>true){
- const result=await call('/api/attendance/mine');
+ const result=await call('/api/attendance/mine',{},{signal:isCurrent.signal});
  if(!isCurrent())return;
  if(!result||!Array.isArray(result.practices)||!Array.isArray(result.answers))
   throw new Error('参加連絡の取得結果を確認できません');
@@ -1539,7 +1599,7 @@ function renderParticipantManager_(){
 }
 async function loadParticipants_(isCurrent=()=>true){
  const selected=PM.practiceId;
- let answer=await call('/api/participant/list',{practiceId:selected});
+ let answer=await call('/api/participant/list',{practiceId:selected},{signal:isCurrent.signal});
  if(!isCurrent())return;
  // Keep the participant picker identical to collection: all unconfirmed
  // dates (including past), plus a confirmed practice only on today's date.
@@ -1554,7 +1614,7 @@ async function loadParticipants_(isCurrent=()=>true){
  const target=selectable.some(p=>p.practiceId===selected)?selected:
   (upcoming[0]?.practiceId||'');
  if(target&&answer.practiceId!==target)
-  answer=await call('/api/participant/list',{practiceId:target});
+  answer=await call('/api/participant/list',{practiceId:target},{signal:isCurrent.signal});
  if(!isCurrent())return;
  if(!Array.isArray(answer?.practices)||!Array.isArray(answer?.participants)||
   typeof answer.practiceId!=='string'||typeof answer.financeLocked!=='boolean'||
@@ -1783,7 +1843,10 @@ function shiftMonth(amount){
 }
 bind();
 window.SMStageUX.run('読み込み中です…',boot)
- .then(()=>window.SMLiveAccess?.openFromCheckLink?.())
+ .then(()=>{
+  if(S.registrationOnly)window.SMStageRegistration?.open?.();
+  else window.SMLiveAccess?.openFromCheckLink?.();
+ })
  .catch(e=>window.SMStageUX.showError(e));
 
 // Match screen launch: current selected practice, same LINE login context.

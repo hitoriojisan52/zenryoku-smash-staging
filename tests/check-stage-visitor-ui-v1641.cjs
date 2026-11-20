@@ -187,8 +187,10 @@ const deepText=e=>[e.textContent,...e.children.map(deepText)].filter(Boolean).jo
  ok(ui.includes("render('visitorMineCards',optionsFor(mineRows,'visitorMinePractice',mineDates,mineConfirmed),false)")&&
   !ui.includes("render('visitorMineList'"),
   'request status refreshed only in integrated screen');
- ok(liveJs.includes("call('/api/visitor/practices'),window.SMVisitor.loadMine(isCurrent)"),
-  'visitor registration opening fetches own application statuses');
+ ok(liveJs.includes("await window.SMVisitor.loadMine(isCurrent)")&&
+  liveJs.includes("window.SMVisitor.registrationPractices?.()")&&
+  liveJs.includes("await call('/api/visitor/practices',{},{signal:isCurrent.signal})"),
+  'visitor registration reuses one request for status and eligible dates with legacy fallback');
  const submit=liveJs.slice(liveJs.indexOf('async function registerVisitor_()'),liveJs.indexOf('// v0.16.38d:',liveJs.indexOf('async function registerVisitor_()')));
  ok(!submit.includes("close('visitorDialog')")&&
   submit.includes('await window.SMVisitor.loadMine()'),

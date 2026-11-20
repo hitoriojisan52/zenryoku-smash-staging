@@ -34,9 +34,9 @@ const fakeDocument={
  };}
 };
 const window={};
-const openScreen=new Function('$','document','window',
+const openScreen=new Function('$','document','window','S',
  ui.slice(from,to)+'\nreturn readScreen_;')(
- id=>{assert.equal(id,'cashDialog');return dlg;},fakeDocument,window);
+ id=>{assert.equal(id,'cashDialog');return dlg;},fakeDocument,window,{silentRefreshPausedUntil:0});
 let finishFirst;
 const pendingFirst=new Promise(resolve=>{finishFirst=resolve;});
 const first=openScreen('cashDialog','帳簿残高を読み込んでいます…',async isCurrent=>{

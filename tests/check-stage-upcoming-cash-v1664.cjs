@@ -68,7 +68,7 @@ const reload=new Function('S','$','call','window','Option','renderHome','syncPay
  // Selected day on opening participant manager uses a different nearest choice.
  ok(ui.includes('PM.practiceId=candidates[0]?.practiceId')&&
   ui.includes('PM.practices=selectable;PM.practiceId=target;')&&
-  ui.includes("call('/api/participant/list',{practiceId:target})")&&
+  ui.includes("call('/api/participant/list',{practiceId:target},{signal:isCurrent.signal})")&&
   !ui.includes('toggleParticipantHistory_'),
   'participant management defaults to closest selectable future and has no History button');
  ok(ui.includes("$('visitorMinePractice').value=''")&&

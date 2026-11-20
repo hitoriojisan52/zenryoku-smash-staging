@@ -19,7 +19,7 @@ const days=[
  {practiceId:'FUTURE-C',date:offset(3),startTime:'09:00',place:'未来確定',hours:4}
 ];
 let confirmed=['PAST-C','TODAY-C','FUTURE-C'],serverDay=day,readSchedules=0,readLedger=0,ensured=0,collections=0;
-const functionBody=gas.slice(gas.indexOf('function overview_(ss,member,payload){'),
+const functionBody=gas.slice(gas.indexOf('function overview_(ss,member,payload,readContext){'),
  gas.indexOf('/* A missing practice ledger',gas.indexOf('function overview_(')));
 ok(functionBody.includes('selectEligible===true')&&
  functionBody.includes('ensureCollectionLedger_(ss,member,p,ledgerRows,all)'),
@@ -92,7 +92,7 @@ const reload=new Function('S','$','call','window','Option','renderHome',
  S.practiceId='PAST-C';await reload(true);
  ok(calls===3&&S.practiceId==='TODAY-C',
   'stale confirmed date is recovered by the server in the same overview request');
- const start=ui.indexOf('async function call(path,payload={}){'),stop=ui.indexOf('// Collection checkboxes are independent',start);
+ const start=ui.indexOf('async function call(path,payload={},options={}){'),stop=ui.indexOf('// Collection checkboxes are independent',start);
  ok(start>=0&&stop>start,'real authenticated fetch wrapper found');
  const fakeState={token:'FAKE-TOKEN',updateEpoch:0};
  let abortTime=0,mutationSignal=null;
