@@ -13,7 +13,7 @@ function harness({state='not_requested',id=expectedId,loggedIn=true,failApply=fa
   'registrationErrorMessage','registrationErrorClose','registrationName',
   'registrationKana','registrationCancel','registrationClose','registrationPerf','registrationPerfText'];
  const nodes=Object.fromEntries(ids.map(key=>[key,{
-  key,textContent:'',value:'',hidden:key==='registrationForm',disabled:false,open:false,handlers:{},
+  key,textContent:'',value:'',hidden:key==='registrationForm'||key==='registrationPerf',disabled:false,open:false,handlers:{},
   addEventListener(event,callback){this.handlers[event]=callback;},
   showModal(){this.open=true;},close(){this.open=false;}
  }]));
