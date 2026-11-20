@@ -1,0 +1,13 @@
+'use strict';
+const fs=require('node:fs'),assert=require('node:assert/strict');
+const html=fs.readFileSync('live.html','utf8'),js=fs.readFileSync('live.js','utf8');
+assert.match(html,/<span class="manage-section-heading" id="manageAdminSection"[^>]*>管理者メニュー<\/span>[\s\S]*?<button id="manageSchedules"[^>]*>📅 練習日程マスタ<\/button>/);
+assert.match(html,/<span class="manage-section-heading"[^>]*>検証用メニュー<\/span>[\s\S]*?<button id="stageRegistrationOpen"/);
+for(const id of ['stageRegistrationDialog','stageRegistrationStatus','stageRegistrationForm','stageRegistrationName','stageRegistrationKana','stageRegistrationRefresh'])assert.ok(html.includes('id="'+id+'"'),id);
+assert.match(js,/if\(REGISTRATION_MODE\)\{[\s\S]*?await openRegistration_\(\);[\s\S]*?return;[\s\S]*?S\.actor=await call\('\/api\/session'\)/);
+assert.match(js,/call\('\/api\/member\/status'\)/);
+assert.match(js,/call\('\/api\/member\/apply',\{displayName,nameKana\}\)/);
+assert.match(js,/screenReadsInFlight_===0&&performance\.now\(\)>=homePollPauseUntil_/);
+assert.match(js,/homePollPauseUntil_=performance\.now\(\)\+15000/);
+assert.match(js,/\},8000\)/);
+console.log('PASS v1683 registration and modal polling safety');
