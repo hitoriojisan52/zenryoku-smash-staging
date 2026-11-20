@@ -710,7 +710,16 @@ function cashCounts_(raw){
 }
 function cashRows_(ss){return sheetRows_(ss,'現金確認記録');}
 function cashGet_(ss,member,payload){
- var id=str_(payload.practiceId),p=practice_(ss,id),ledger=entries_(ss).find(function(r){return r.rowId==='P-'+id;});
+ var id=str_(payload.practiceId),p=practice_(ss,id),
+  sh=sheet_(ss,'全体収支管理表'),last=sh.getLastRow(),ledger=null;
+ // Read only A:I (date and balance E, rowId G). The read-only cash
+ // panel never uses financial fields J:P; cash.save still validates
+ // against the full fresh 16-column ledger under ScriptLock.
+ if(last>1)sh.getRange(2,1,last-1,9).getValues().some(function(row){
+  if(str_(row[6])!=='P-'+id)return false;
+  ledger={date:ledgerDate_(row[0]),balance:Number(row[4])||0};
+  return true;
+ });
  if(ledger&&ledger.date!==p.date)fail_('SETUP','開催日と収支行の日付が一致しません');
  var sheet=cashRows_(ss),match=sheet.filter(function(r){return str_(r[0])===id;});
  if(match.length>1)fail_('SETUP','現金確認記録に重複データがあります');
@@ -1165,10 +1174,14 @@ function attendanceAuditTime_(raw){
  return str_(raw);
 }
 function attendanceAuditDates_(ss){
- var out=Object.create(null);
- sheetRows_(ss,'操作履歴').forEach(function(row){
-  if(str_(row[1])!=='attendance.submit')return;
-  var target=str_(row[4]),when=attendanceAuditTime_(row[3]);
+ var out=Object.create(null),history=sheet_(ss,'操作履歴'),last=history.getLastRow();
+ // This view needs operation type (B), timestamp (D) and target (E).
+ // Skip audit ID (A) and potentially large JSON result (F), with the
+ // original append-only audit and lock rules unchanged.
+ if(last<2)return out;
+ history.getRange(2,2,last-1,4).getValues().forEach(function(row){
+  if(str_(row[0])!=='attendance.submit')return;
+  var target=str_(row[3]),when=attendanceAuditTime_(row[2]);
   if(!target||!/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(when))return;
   if(!out[target])out[target]={first:when,last:when};
   else{
@@ -1460,8 +1473,14 @@ function visitorPracticeOptions_(dates){
    place:p.place,startTime:p.startTime,endTime:p.endTime};});
 }
 function visitorConfirmedPracticeIds_(ss){
- return entries_(ss).filter(function(row){return row.kind==='practice'&&row.status==='confirmed';})
-  .map(function(row){return row.practiceId;});
+ var ledger=sheet_(ss,'全体収支管理表'),last=ledger.getLastRow();
+ if(last<2)return [];
+ // G:J holds rowId/kind/practiceId/status. Visitor list needs only these
+ // four fields, never dates, amounts, payees or receipt data. Unlike a
+ // cached flag this is a fresh read under the original ScriptLock.
+ return ledger.getRange(2,7,last-1,4).getValues()
+  .filter(function(r){return str_(r[0])&&str_(r[1])==='practice'&&str_(r[3])==='confirmed';})
+  .map(function(r){return str_(r[2]);});
 }
 function visitorMine_(ss,member){
  var rows=visitorRequests_(ss).filter(function(r){return r.requestedByMemberId===member.memberId&&r.status!=='withdrawn';});
