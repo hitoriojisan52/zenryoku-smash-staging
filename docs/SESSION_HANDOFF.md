@@ -643,3 +643,12 @@
 - [検証D1 Schema Actions](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44781121812)の`local-safety`および`migrate-stage`ジョブは成功。ただし後者は**初期設定の環境変数/Secretが未登録のため、verify-remote/apply/SELECTの3ステップがすべてskipped**であることをジョブステップから実確認。成功マークをD1 remote更新成功と読み替えない。
 - **ユーザー初期設定待ち**：Cloudflareの検証用D1`zenryoku-smash-staging-d1`作成、GitHub Environment`d1-staging`のSecret`D1_STAGE_API_TOKEN`とVariables`D1_STAGE_ACCOUNT_ID`、`D1_STAGE_DATABASE_ID`を登録。設定詳細・クリック先は[D1_MIGRATION_PLAN.md](D1_MIGRATION_PLAN.md)。LINE ID/トークンをチャットで受け取らない。
 - 次は資格情報が揃ったことを確認して**GitHub経由で**Remote D1 UUID/名前照合→0001初期SQL apply→空テーブルSELECTを実証。その後に全Sheetsと業務API棚卸し、データ移行設計、認証/会計排他の等価性評価を実施。**既存の収支・出欠・登録申請・試合の仕様変更や業務データ移行はまだ行わない。**
+
+
+## 58. D1初回設定完了・Remoteマイグレーション実成功（2026/11/21）
+
+- ユーザーのGitHub設定スクリーンショットでEnvironment `d1-staging`、デプロイ対象`main`のみ、Environment secret `D1_STAGE_API_TOKEN`（名前のみ）、Variables `D1_STAGE_ACCOUNT_ID`・`D1_STAGE_DATABASE_ID`（2件）を確認。トークン文字列は受け取っていない。Cloudflareで新規検証D1を作成した旨は画面/リモート検査で確認。
+- ChatGPTから[GitHub Actions run #44781121812](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44781121812)の既存`migrate-stage`ジョブを**再実行**。初回のSecret未設定`skipped`とは別の新しいジョブ実行 **136469472361** で、以下の4ステップすべて`success`：初期設定ガード、対象アカウント/DBのUUIDと`zenryoku-smash-staging-d1`の照合、`0001_bootstrap_probe.sql` remote apply、remote SELECT。
+- Wrangler v4.165.0ログで`0001_bootstrap_probe.sql`適用の✅を確認。remote SELECT `SELECT COUNT(*) AS probe_count FROM stage_d1_bootstrap;` は`probe_count: 0`、`success: true`。実行リージョンはAPAC（NRT）とログに表示。空のインフラ試験テーブルのみで、会員・出欠・集金・収支・試合データはD1未移行。
+- この工程で**既存Workerのbinding/コード、GAS@51、GitHub PagesのアプリURL、Sheetsの正本、領収書、LINE ID・権限・本番環境は変更していない**。Remote migrationの成否と既存アプリの実機挙動は異なる。Worker→D1/API接続、業務スキーマ、移行データ照合、性能改善、D1長期バックアップ/復旧は**未完了**。
+- 次：1) [D1移行計画](D1_MIGRATION_PLAN.md)に基づき既存GAS/Sheetsのデータ構造とAPI・履歴・会計保護条件を棚卸し、2) 機能ごとのD1テーブル/トランザクション・冪等・監査・排他方式を提案、3) 純粋な読み取り専用パイロットを別PRで構築、4) 両方式の性能比較、5) 本番への切り替えは個別承認。本番無断反映禁止。
