@@ -54,7 +54,15 @@ const entries=[{kind:'practice',status:'confirmed',practiceId:'PAST-C'},
  {kind:'practice',status:'open',practiceId:'PAST-O'},
  {kind:'other',status:'confirmed',practiceId:'OTHER'},
  {kind:'practice',status:'confirmed',practiceId:'TODAY-C'}];
-const actual=new Function('entries_',helper+'return visitorConfirmedPracticeIds_;')(()=>entries);
+const ledgerRows=entries.map((r,i)=>['2026-11-20','架空費目',0,0,0,'',
+ 'P-'+r.practiceId,r.kind,r.practiceId,r.status,1,0,'','','','']);
+const visitorSheet=()=>({getLastRow:()=>ledgerRows.length+1,
+ getRange:(row,col,height,width)=>{ok(row===2&&col===7&&height===ledgerRows.length&&width===4,
+  'confirmed practice IDs are read only from ledger G:J');
+  return {getValues:()=>ledgerRows.map(r=>r.slice(6,10))};
+ }});
+const actual=new Function('sheet_','str_',helper+'return visitorConfirmedPracticeIds_;')(
+ ()=>visitorSheet(),v=>String(v??'').trim());
 ok(JSON.stringify(actual({}))===JSON.stringify(['PAST-C','TODAY-C']),
  'GAS detects confirmed practice rows only, not schedule-enabled flags');
 for(const [start,end] of [['function visitorMine_(','function visitorAdminList_('],
