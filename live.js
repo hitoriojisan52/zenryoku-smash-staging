@@ -6,7 +6,7 @@
 'use strict';
 const M=window.SmashModel,$=id=>document.getElementById(id),yen=n=>Number(n).toLocaleString('ja-JP')+'円';
 const CONFIG=window.SMASH_CONFIG||{};
-const S={token:'',actor:null,overview:null,practiceId:'',loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,confirmedPracticeKey:'',selectableDayKey:'',receiptPartialWarning:''};
+const S={token:'',actor:null,overview:null,practiceId:'',homeReadFailed:false,loading:false,reloadPromise:null,pending:new Set(),ledger:null,ledgerRow:null,mode:'add',modalTarget:null,timer:null,updateEpoch:0,paymentActive:0,paymentQueue:[],paymentNeedsRefresh:false,confirmedPracticeKey:'',selectableDayKey:'',receiptPartialWarning:''};
 const VISITOR_MODE=(()=>{
  const q=new URLSearchParams(location.search||'');
  let state=q.get('liff.state')||'';
@@ -54,39 +54,39 @@ function renderGasProfile_(timings){
 function dialog(id){const e=$(id);if(e&&!e.open)e.showModal();}
 function close(id){if($(id)?.open)$(id).close();}
 function gateEdit(){if(!S.actor||!['duty','admin'].includes(S.actor.role))throw new Error('当番チームの権限がありません');}
+const REQUEST_TIMEOUT_MS=15000;
+const MUTATING_ENDPOINTS=new Set(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change','/api/schedule/change','/api/visitor/register','/api/visitor/request','/api/visitor/decide','/api/visitor/modify','/api/participant/change','/api/attendance/submit','/api/stage/self-role','/api/receipt/upload','/api/reimbursement/change','/api/cash/save','/api/member/apply','/api/member/manage/decide','/api/member/manage/role','/api/member/manage/edit','/api/member/manage/withdraw']);
+function requestTimeoutError_(isWrite){
+ const e=new Error(isWrite?'通信がタイムアウトしました（15秒）。保存結果を更新で確認してください。':'通信がタイムアウトしました（15秒）。再度お試しください。');
+ e.code=isWrite?'OPERATION_UNCONFIRMED':'REQUEST_TIMEOUT';return e;
+}
 async function call(path,payload={}){
  if(!S.token||!CONFIG.apiBaseUrl)throw new Error('LINE認証またはAPI設定がありません');
- const url=CONFIG.apiBaseUrl.replace(/\/$/,'')+path;
- // Invalidate responses from reads that started before a write.
- if(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change','/api/schedule/change','/api/visitor/register','/api/visitor/request','/api/visitor/decide','/api/visitor/modify','/api/participant/change','/api/attendance/submit'].includes(path))S.updateEpoch++;
+ const url=CONFIG.apiBaseUrl.replace(/\\/$/,'')+path,isWrite=MUTATING_ENDPOINTS.has(path);
+ if(isWrite)S.updateEpoch++;
  const startedAt=performance.now();
- // Bound only bootstrap/ordinary reads. NEVER abort accounting writes:
- // after a client timeout the server could still commit the transaction.
- const boundedRead=['/api/session','/api/overview','/api/participant/list',
-  '/api/visitor/practices','/api/visitor/mine'].includes(path);
- const controller=boundedRead&&typeof AbortController!=='undefined'?new AbortController():null;
- const timer=controller?setTimeout(()=>controller.abort(),25000):null;
- let response,value;
- try{
-  response=await fetch(url,{method:'POST',
+ // Reads can abort. Writes must never abort/retry: GAS may commit.
+ const controller=!isWrite&&typeof AbortController!=='undefined'?new AbortController():null;
+ let timer,expired=false;
+ const timeout=new Promise((_,reject)=>{
+  timer=setTimeout(()=>{expired=true;if(controller)controller.abort();reject(requestTimeoutError_(isWrite));},REQUEST_TIMEOUT_MS);
+ });
+ const work=(async()=>{
+  const response=await fetch(url,{method:'POST',
    headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},
    body:JSON.stringify(payload),cache:'no-store',
    ...(controller?{signal:controller.signal}:{})});
   if(PERF_MODE){
-   S.lastPerf={path,totalMs:Math.round(performance.now()-startedAt),
-    serverTiming:response.headers.get('Server-Timing')||''};
+   S.lastPerf={path,totalMs:Math.round(performance.now()-startedAt),serverTiming:response.headers.get('Server-Timing')||''};
    console.info('[STAGE PERF]',S.lastPerf.path,S.lastPerf.totalMs+'ms',S.lastPerf.serverTiming);
   }
-  try{value=await response.json();}catch{throw new Error('サーバーからの応答を読み取れません');}
- }catch(e){
-  if(controller?.signal.aborted){
-   const error=new Error('読み込みが25秒以内に完了しませんでした。通信状態を確認し、画面を開き直すか「更新」で最新の状態を確認してください。');
-   error.code='REQUEST_TIMEOUT';throw error;
-  }
-  throw e;
- }finally{if(timer!==null)clearTimeout(timer);}
- if(!response.ok||!value.ok){const err=new Error(value.error||'処理を完了できませんでした');err.status=response.status;err.code=String(value.code||'');throw err;}
- return value.data;
+  let value;try{value=await response.json();}catch{throw new Error('サーバーの応答を確認できませんでした。');}
+  if(!response.ok||!value.ok){const err=new Error(value.error||'処理に失敗しました。');err.status=response.status;err.code=String(value.code||'');throw err;}
+  return value.data;
+ })();
+ try{return await Promise.race([work,timeout]);}
+ catch(e){if(expired||e?.name==='AbortError')throw requestTimeoutError_(isWrite);throw e;}
+ finally{clearTimeout(timer);}
 }
 // Collection checkboxes are independent. Only up to two requests leave this page
 // concurrently. Apps Script's lock remains the source of truth for the ledger.
@@ -95,8 +95,8 @@ function syncPaymentControls(){
  const pending=S.pending.size>0,ledger=S.overview?.ledger,access=S.overview?.collectionAccess;
  const locked=!ledger||ledger.status==='confirmed'||access?.canCollect===false;
  const savingAmount=S.pending.has('amount');
- for(const id of ['date','refresh','reimbursementBtn','manageBtn']){
-   const el=$(id);if(el)el.disabled=pending||(id==='date'&&!Array.from(el.options||[]).some(o=>!!o.value));
+ for(const id of ['date','refresh','reimbursementBtn','manageBtn','receiptBtn']){
+   const el=$(id);if(el)el.disabled=pending||S.homeReadFailed||(id==='date'&&!Array.from(el.options||[]).some(o=>!!o.value));
  }
  if($('confirm'))$('confirm').disabled=pending||locked||
     S.overview?.practice?.date>today()||ledger?.canConfirm!==true;
@@ -228,8 +228,7 @@ function readScreen_(id,label,loader,onComplete,force=false){
    state.hidden=false;state.classList.remove('stage-inline-read-loading');
    state.classList.remove('stage-system-message--info');
    state.classList.add('stage-system-message--error');
-   state.textContent='読み込みできませんでした：'+String(error?.message||error)+
-    '。閉じるか「更新」から再試行してください。';
+   state.textContent=error?.code==='REQUEST_TIMEOUT'?'通信がタイムアウトしました（15秒）。更新してください。':'読み込みに失敗しました。'+String(error?.message||'再度お試しください。');
   }).finally(()=>{
    if(current()&&refreshButton)refreshButton.disabled=false;
    if(screenReadActive_.get(id)?.version===version)
@@ -251,8 +250,8 @@ async function boot(){
    await Promise.race([
     liff.init({liffId:CONFIG.liveLiffId,withLoginOnExternalBrowser:true}),
     new Promise((_,reject)=>{liffTimer=setTimeout(()=>reject(
-     Object.assign(new Error('LINEの初期化が20秒以内に完了しませんでした。LINEからアプリを開き直してください。'),{code:'REQUEST_TIMEOUT'})
-    ),20000);})
+     Object.assign(new Error('LINE認証がタイムアウトしました（15秒）。開き直してください。'),{code:'REQUEST_TIMEOUT'})
+    ),REQUEST_TIMEOUT_MS);})
    ]);
   }finally{if(liffTimer!==undefined)clearTimeout(liffTimer);}
   const authMs=Math.round(performance.now()-authStart);
@@ -285,7 +284,7 @@ async function boot(){
    const notice=document.createElement('p');
    notice.className='stage-system-message stage-system-message--warning';
    notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');
-   notice.textContent='メンバー権限では運用管理を操作できません。検証用の「権限切換」から管理者・当番担当へ戻せます。';
+   notice.textContent='メンバー権限では運用管理を利用できません。';
    $('list').replaceChildren(notice);
    for(const control of document.querySelectorAll('main button,main select,main input,main textarea')){
     if(control.id!=='stageRolePreviewOpen')control.disabled=true;
@@ -314,7 +313,17 @@ async function boot(){
   setInterval(()=>{if(!document.hidden&&!document.querySelector('dialog[open]')&&!S.paymentNeedsRefresh&&S.pending.size===0&&!S.loading&&!window.SMStageUX.isBusy())reload(false).catch(()=>{});},8000);
   if(!PERF_MODE)toast('接続しました');
  }catch(e){
-  $('list').textContent=e.message;throw e;
+  showHomeReadError_(e);throw e;
+ }
+}
+function showHomeReadError_(e){
+ const list=$('list');if(!list)return;
+ const error=document.createElement('p');error.className='stage-system-message stage-system-message--error';
+ error.setAttribute('role','alert');
+ error.textContent=e?.code==='REQUEST_TIMEOUT'?'通信がタイムアウトしました（15秒）。更新してください。':'集金データを読み込めませんでした。更新してください。';
+ list.replaceChildren(error);
+ for(const id of ['reimbursementBtn','receiptBtn','manageBtn','confirm','adjustment','expense','cashCounter','date']){
+  const control=$(id);if(control)control.disabled=true;
  }
 }
 async function reload(refreshDates){
@@ -372,11 +381,12 @@ async function reload(refreshDates){
    S.practiceId=target;$('date').value=target;S.overview=d;
    S.confirmedPracticeKey=confirmedKey;
    S.selectableDayKey=selectableDayKey;
-   S.paymentNeedsRefresh=false;
+   S.paymentNeedsRefresh=false;S.homeReadFailed=false;
    renderHome();syncPaymentControls();
  })();
  S.reloadPromise=task;
  try{return await task;}
+ catch(e){S.homeReadFailed=true;showHomeReadError_(e);syncPaymentControls();throw e;}
  finally{
    if(S.reloadPromise===task)S.reloadPromise=null;
    S.loading=false;
@@ -384,7 +394,7 @@ async function reload(refreshDates){
 }
 function renderHome(){const v=S.overview;if(!v)return;const {practice,ledger,participants}=v;
  const receiptView=$('homeReceiptView');if(receiptView)receiptView.hidden=!ledger?.receiptFileId;
- const receiptUpload=$('receiptBtn');if(receiptUpload)receiptUpload.disabled=!ledger||ledger.status==='confirmed';
+ const receiptUpload=$('receiptBtn');if(receiptUpload)receiptUpload.disabled=S.homeReadFailed||!ledger||ledger.status==='confirmed';
  if(!practice){
   $('place').textContent='開催日なし';$('hours').textContent='時間区分：—';
   $('count').textContent='参加者：0名';$('completedCount').textContent='集金完了：0名';
