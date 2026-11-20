@@ -815,3 +815,12 @@
 - 限定的な関係チェック：メンバー4行でLINE ID重複0、練習日程5行でraw値日付重複0、出欠39行で日程参照孤立0、集金16行で出欠/日程参照孤立0、試合セッション1行で日程参照孤立0、チーム所属5行は存在するメンバー/チームのみ。**全セル公式・重複日付の型正規化・全履歴復元の成功を主張しない**。
 - `tests/check-d1-phase5-membership.py`は**創作された架空の同一キー3行**を用い、GASの「有効な所属があれば当番」ルールを再現しつつD1の現行複合PKがそれらを保持できないことをオフライン検出。`d1-staging-check.yml`のPRゲートに追加。Google Sheets/GAS/Workers/Cloudflare D1へ業務データを書かない。
 - 次：本PRのCIと検証main統合/Pages/Workers Buildsを確認。**業務仕様に影響するD1スキーマ変更の承認は未取得**。履歴保持の取り扱いとJST日付変換の詳細を協議したうえで、ロスレス・監査可能なRead Shadowの検証を行い、本番移行前の正式判断を得る。
+
+
+## 76. D1第5工程・検証シート監査PR #145 CI/反映結果確認（2026/11/21）
+
+- [PR #145](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/145)で[読み取り専用20タブ事前監査](D1_STAGE_SHEET_PREFLIGHT.md)を保存（各タブの現存行数、複合キーの重複、参照孤立0件の限定チェック、日付の生型混在）。`tests/check-d1-phase5-membership.py`で**架空のチーム所属同一キー3行**を使い、旧GASの当番判定とD1候補複合PKのロスレス不適合を安全に再現。**実Sheetsには一切書き込んでおらず、個人情報や金額の生値をコミットしていない**。
+- [PR schema-safety Actions #44837424824](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44837424824)は**success**。47経路切替禁止、架空日程の等価性、架空所属の重複拒否に加え、既存会計確定順序・LINE本人出欠・退会再入会・試合作成の回帰も全成功。別の`spec-contract`チェックもsuccess。
+- 検証用main `3fe47c382bc3fe801c94ab9027c44729975a6d77`へPR #145をsquash統合。同SHAの[GitHub Pages Actions #44837505002](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44837505002) build/deploy/report成功、`Workers Builds: zenryoku-smash-staging-api` success。**既存GAS/Workerのソース・D1 binding/LIFF接続・Sheets正本・本番は変更なし**（ビルド成功は業務APIのD1移行が完了した意味ではない）。Cloudflare Remote D1業務テーブルの件数は今回再読取していないが、今回のPR/CIにリモートのD1書込処理はない。
+- **ユーザー判断が必要な残件**：BLOCK-1の同一(teamId,memberId)3行（有効1/無効2）を損なわず保持する**履歴用テーブル/行順等の保存方法**の採否。推奨はD1に原本を保存する履歴構造を別設計として用意し、現役当番判定を旧GASと同等に維持する案。現行の複合PKを黙って緩和・重複行を削除してはならない。BLOCK-2はGoogleシリアル日付・文字列混在とJST変換のロスレス設計未完了。
+- 次に進める安全な作業：履歴保持案の比較と架空fixtureによるJST日付正規化の事前試験、全操作履歴・試合版チャンクの監査計画。既存WorkerにService Bindingを追加する/会計読取をD1へ切り替える/本番反映は、業務整合性への影響を整理してユーザーが承認してから実施する。
