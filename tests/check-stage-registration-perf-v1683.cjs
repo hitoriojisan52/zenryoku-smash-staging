@@ -68,10 +68,10 @@ const fn=new Function('sheetRows_','str_','norm_','bool_',gas.slice(begin,end)+
  s=>String(s??'').trim(),s=>String(s??'').normalize('NFKC').replace(/\s+/g,''),
  x=>x===true||x==='TRUE');
 const identities=[
- ['M-ONE','全力太郎','','',true,false,'ゼンリョクタロウ'],
- ['M-TWO','重複一','','',true,false,'ジュウフクイチ'],
- ['M-TWO','重複二','','',true,false,'ジュウフクニ'],
- ['M-INACTIVE','停止中','','',false,false,'テイシチュウ']
+ ['M-ONE','全力太郎','U-one',true,false,'ゼンリョクタロウ'],
+ ['M-TWO','重複一','U-two1',true,false,'ジュウフクイチ'],
+ ['M-TWO','重複二','U-two2',true,false,'ジュウフクニ'],
+ ['M-INACTIVE','停止中','U-inactive',false,false,'テイシチュウ']
 ];
 const map=fn(null,identities);
 ok(physicalReads===0&&map['M-ONE'].name==='全力太郎'&&
