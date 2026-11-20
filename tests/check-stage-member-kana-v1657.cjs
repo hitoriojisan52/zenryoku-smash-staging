@@ -102,10 +102,11 @@ ok(listed.find(r=>r.participantId==='M-NEW').nameKana==='ナカタロウ','parti
 ok(listed.map(r=>r.participantId).join('|')==='M-ABS|M-NEW|M-OLD|M-STU|V-1',
  'manager list category+kana order includes absentees without changing enrollment');
 ok(JSON.stringify(DATA['出欠回答'])===readOnlyBefore&&writes===1,'list reads only; no historical edits');
-ok(core.includes("var roster=attendees_(ss,id,true)")&&
- core.includes("return overlayMemberRosterV1657_(rows,memberRosterMapV1657_(ss));"),
- 'collection and match use same master-aware read path');
-ok(core.includes("function attendees_(ss,id,withCurrentMemberNames)")&&
+ok(core.includes("var roster=attendees_(ss,id,true,readContext&&readContext.memberRows)")&&
+ core.includes("memberRosterMapV1657_(ss,knownMemberRows)")&&
+ core.includes("return withCurrentMemberNames?overlayMemberRosterV1657_"),
+ 'collection and match retain authoritative names using optional request-local master rows');
+ok(core.includes("function attendees_(ss,id,withCurrentMemberNames,knownMemberRows)")&&
  core.includes("return withCurrentMemberNames?overlayMemberRosterV1657_"),
  'finance write path has no extra member-sheet read');
 console.log('PASS '+checks+'/'+checks+' kana application, immutable history and shared roster ordering');
