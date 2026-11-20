@@ -163,6 +163,58 @@ async function guard(action,label='処理中です…'){
  }
  return result;
 }
+// v0.16.76: allow read-only management screens to open immediately.
+// Never hide/disable their Close buttons; stale results from closed screens
+// cannot overwrite a newly opened screen. Mutations still use guard().
+const screenReadEpoch_=new Map(),screenReadActive_=new Map();
+function screenReadStatus_(id){
+ const screen=$(id);
+ let status=screen.querySelector('.stage-inline-read-status');
+ if(!status){
+  status=document.createElement('p');
+  status.className='stage-inline-read-status stage-system-message stage-system-message--info';
+  status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+  const toolbar=screen.querySelector('.stage-dialog-toolbar')||screen.querySelector('.participant-heading');
+  if(toolbar)toolbar.insertAdjacentElement('afterend',status);
+  else screen.querySelector('h2')?.insertAdjacentElement('afterend',status);
+ }
+ return status;
+}
+function readScreen_(id,label,loader,onComplete){
+ const screen=$(id),prev=screenReadActive_.get(id);
+ if(prev&&screen.open)return prev.promise; // no duplicate locked GAS reads
+ const version=(screenReadEpoch_.get(id)||0)+1;
+ screenReadEpoch_.set(id,version);
+ if(!screen.dataset.readCloseBound){
+  screen.dataset.readCloseBound='1';
+  screen.addEventListener('close',()=>{
+   screenReadEpoch_.set(id,(screenReadEpoch_.get(id)||0)+1);
+   screenReadActive_.delete(id);
+  });
+ }
+ if(!screen.open)screen.showModal();
+ const state=screenReadStatus_(id);
+ state.hidden=false;state.classList.remove('stage-system-message--warning');
+ state.textContent=label;
+ const current=()=>screen.open&&screenReadEpoch_.get(id)===version;
+ const promise=Promise.resolve().then(()=>loader(current))
+  .then(()=>{
+   if(!current())return;
+   state.textContent='';state.hidden=true;
+   if(onComplete)onComplete();
+  }).catch(error=>{
+   if(!current())return; // closed while reading; no modal/no stale UI write
+   state.hidden=false;state.classList.add('stage-system-message--warning');
+   state.textContent='読み込みできませんでした：'+String(error?.message||error)+
+    '。閉じるか「更新」から再試行してください。';
+  }).finally(()=>{
+   if(screenReadActive_.get(id)?.version===version)
+    screenReadActive_.delete(id);
+  });
+ screenReadActive_.set(id,{version,promise});
+ return promise;
+}
+window.SMStageRead={open:readScreen_};
 async function boot(){
  for(const id of ['confirm','reimbursementBtn','manageBtn','refresh','adjustment','expense','newLedgerRow'])$(id).disabled=true;
  try{
