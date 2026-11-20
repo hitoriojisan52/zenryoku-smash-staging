@@ -21,8 +21,8 @@ ok(toolbar.includes("'receiptPreviewDialog'")&&
  toolbar.includes('actions.append(closeButton)'),
  'receipt dialog uses same rightmost emoji Close as other management screens');
 ok(html.includes('dialog-close.js?v=1673-receipt-close')&&
- html.includes('live.js?v=1675-startup-perf')&&
- html.includes('stage-ui.css?v=1673-receipt-close'),
+ html.includes('live.js?v=1676-responsive-reads')&&
+ html.includes('stage-ui.css?v=1676-responsive-reads'),
  'LINE browser loads the revised controller, toolbar, and CSS');
 ok(!js.includes("'receiptPreviewOpen'")&&!js.includes("'receiptPreviewDownload'")&&
  !js.includes("'receiptPreviewHint'"),
