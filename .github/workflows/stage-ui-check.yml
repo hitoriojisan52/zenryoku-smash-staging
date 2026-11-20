@@ -58,6 +58,7 @@ on:
       - 'tests/check-stage-role-preview-visitor-delete-v1679.cjs'
       - 'tests/check-stage-self-role-v1680.cjs'
       - 'tests/check-stage-error-perf-v1682.cjs'
+      - 'tests/check-stage-read-profile-ui-v1691.cjs'
       - 'tests/check-stage-registration-perf-v1683.cjs'
       - 'registration.html'
       - 'registration.js'
@@ -186,6 +187,8 @@ jobs:
         run: node tests/check-stage-self-role-v1680.cjs
       - name: Verify paired Japanese errors, manual retry and overview timing
         run: node tests/check-stage-error-perf-v1682.cjs
+      - name: Verify per-request read timing diagnostics and no normal-mode payload changes
+        run: node tests/check-stage-read-profile-ui-v1691.cjs
       - name: Verify standalone registration and semantic message palette
         run: node tests/check-stage-registration-standalone-v1684.cjs
       - name: Simulate approved and new registration LIFF read/write lifecycle

@@ -13,6 +13,11 @@ const VISITOR_MODE=(()=>{
  if(state.includes('?'))state=state.slice(state.indexOf('?')+1);
  return q.get('visitor')==='1'||new URLSearchParams(state).get('visitor')==='1';
 })();
+// Diagnostics are opt-in and only for read endpoints with server-side
+// profile allowlists. No role, identity or financial value is cached.
+const READ_PROFILE_ENDPOINTS=new Set(['/api/participant/list','/api/cash/get',
+ '/api/visitor/admin-list','/api/visitor/mine','/api/visitor/practices',
+ '/api/ledger','/api/schedule/list']);
 const PERF_MODE=(()=>{
  const q=new URLSearchParams(location.search||'');let state=q.get('liff.state')||'';
  if(state.includes('?'))state=state.slice(state.indexOf('?')+1);
@@ -56,7 +61,7 @@ function close(id){if($(id)?.open)$(id).close();}
 function gateEdit(){if(!S.actor||!['duty','admin'].includes(S.actor.role))throw new Error('当番チームの権限がありません');}
 // Opt-in diagnostics (?perf=1). Durations and fixed API paths only:
  // never store LINE IDs, names, tokens, request bodies or response data.
- function profileApiRequest_(path,elapsed,timing,outcome){
+ function profileApiRequest_(path,elapsed,timing,outcome,internalProfile){
   if(!PERF_MODE)return;
   const phases={line:'LINE',gas:'GAS',gas_post:'GAS POST',gas_content:'GAS応答'};
   const segments=String(timing||'').split(',').map(x=>x.trim());
@@ -66,10 +71,11 @@ function gateEdit(){if(!S.actor||!['duty','admin'].includes(S.actor.role))throw 
    if(match)metrics.push(phases[match[1]]+' '+Math.round(Number(match[2]))+'ms');
   }
   S.apiPerfHistory=S.apiPerfHistory||[];
-  const gas=path==='/api/overview'&&S.lastOverviewProfile;
-  const gasText=gas?
+  const gas=internalProfile||(path==='/api/overview'&&S.lastOverviewProfile);
+  const handler=gas&&(Number.isSafeInteger(gas.readHandlerMs)?gas.readHandlerMs:gas.overviewHandlerMs);
+  const gasText=gas&&Number.isSafeInteger(handler)?
    '／GAS内訳 開始'+gas.spreadsheetOpenMs+'ms・会員'+gas.memberAuthMs+
-   'ms・ロック待ち'+gas.lockWaitMs+'ms・処理'+gas.overviewHandlerMs+
+   'ms・ロック待ち'+gas.lockWaitMs+'ms・処理'+handler+
    'ms・合計'+gas.gasTotalMs+'ms':'';
   S.apiPerfHistory.push((outcome==='ok'?'✓':'!')+' '+path+' '+Math.round(elapsed)+'ms'+
    (metrics.length?'（'+metrics.join(' / ')+'）':'')+gasText+
@@ -91,7 +97,7 @@ async function call(path,payload={}){
  if(isWrite)S.updateEpoch++;
  const startedAt=performance.now();
  if(PERF_MODE&&path==='/api/overview')S.lastOverviewProfile=null;
- let diagnosticTiming='',diagnosticOutcome='ok';
+ let diagnosticTiming='',diagnosticOutcome='ok',diagnosticGasProfile=null;
  // Reads can abort. Writes must never abort/retry: GAS may commit.
  const controller=!isWrite&&typeof AbortController!=='undefined'?new AbortController():null;
  let timer,expired=false;
@@ -101,7 +107,7 @@ async function call(path,payload={}){
  const work=(async()=>{
   const response=await fetch(url,{method:'POST',
    headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},
-   body:JSON.stringify(PERF_MODE&&path==='/api/overview'?
+   body:JSON.stringify(PERF_MODE&&(path==='/api/overview'||READ_PROFILE_ENDPOINTS.has(path))?
     {...payload,profileTimings:true}:payload),cache:'no-store',
    ...(controller?{signal:controller.signal}:{})});
   if(PERF_MODE){
@@ -110,8 +116,10 @@ async function call(path,payload={}){
    console.info('[STAGE PERF]',S.lastPerf.path,S.lastPerf.totalMs+'ms',S.lastPerf.serverTiming);
   }
   let value;try{value=await response.json();}catch{throw new Error('サーバーの応答を確認できませんでした。');}
-  if(PERF_MODE&&path==='/api/overview')S.lastOverviewProfile=
-   value?.data?.profileTimings||null;
+  if(PERF_MODE){
+   diagnosticGasProfile=value?.data?.profileTimings||null;
+   if(path==='/api/overview')S.lastOverviewProfile=diagnosticGasProfile;
+  }
   if(!response.ok||!value.ok){const err=new Error(value.error||'処理に失敗しました。');err.status=response.status;err.code=String(value.code||'');throw err;}
   return value.data;
  })();
@@ -123,7 +131,7 @@ async function call(path,payload={}){
  }
  finally{
   clearTimeout(timer);
-  if(PERF_MODE)profileApiRequest_(path,performance.now()-startedAt,diagnosticTiming,diagnosticOutcome);
+  if(PERF_MODE)profileApiRequest_(path,performance.now()-startedAt,diagnosticTiming,diagnosticOutcome,diagnosticGasProfile);
  }
 }
 // Collection checkboxes are independent. Only up to two requests leave this page

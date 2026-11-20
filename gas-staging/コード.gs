@@ -710,7 +710,16 @@ function cashCounts_(raw){
 }
 function cashRows_(ss){return sheetRows_(ss,'現金確認記録');}
 function cashGet_(ss,member,payload){
- var id=str_(payload.practiceId),p=practice_(ss,id),ledger=entries_(ss).find(function(r){return r.rowId==='P-'+id;});
+ var id=str_(payload.practiceId),p=practice_(ss,id),
+  sh=sheet_(ss,'全体収支管理表'),last=sh.getLastRow(),ledger=null;
+ // Read only A:I (date and balance E, rowId G). The read-only cash
+ // panel never uses financial fields J:P; cash.save still validates
+ // against the full fresh 16-column ledger under ScriptLock.
+ if(last>1)sh.getRange(2,1,last-1,9).getValues().some(function(row){
+  if(str_(row[6])!=='P-'+id)return false;
+  ledger={date:ledgerDate_(row[0]),balance:Number(row[4])||0};
+  return true;
+ });
  if(ledger&&ledger.date!==p.date)fail_('SETUP','開催日と収支行の日付が一致しません');
  var sheet=cashRows_(ss),match=sheet.filter(function(r){return str_(r[0])===id;});
  if(match.length>1)fail_('SETUP','現金確認記録に重複データがあります');
@@ -1165,10 +1174,14 @@ function attendanceAuditTime_(raw){
  return str_(raw);
 }
 function attendanceAuditDates_(ss){
- var out=Object.create(null);
- sheetRows_(ss,'操作履歴').forEach(function(row){
-  if(str_(row[1])!=='attendance.submit')return;
-  var target=str_(row[4]),when=attendanceAuditTime_(row[3]);
+ var out=Object.create(null),history=sheet_(ss,'操作履歴'),last=history.getLastRow();
+ // This view needs operation type (B), timestamp (D) and target (E).
+ // Skip audit ID (A) and potentially large JSON result (F), with the
+ // original append-only audit and lock rules unchanged.
+ if(last<2)return out;
+ history.getRange(2,2,last-1,4).getValues().forEach(function(row){
+  if(str_(row[0])!=='attendance.submit')return;
+  var target=str_(row[3]),when=attendanceAuditTime_(row[2]);
   if(!target||!/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(when))return;
   if(!out[target])out[target]={first:when,last:when};
   else{
@@ -1460,8 +1473,14 @@ function visitorPracticeOptions_(dates){
    place:p.place,startTime:p.startTime,endTime:p.endTime};});
 }
 function visitorConfirmedPracticeIds_(ss){
- return entries_(ss).filter(function(row){return row.kind==='practice'&&row.status==='confirmed';})
-  .map(function(row){return row.practiceId;});
+ var ledger=sheet_(ss,'全体収支管理表'),last=ledger.getLastRow();
+ if(last<2)return [];
+ // G:J holds rowId/kind/practiceId/status. Visitor list needs only these
+ // four fields, never dates, amounts, payees or receipt data. Unlike a
+ // cached flag this is a fresh read under the original ScriptLock.
+ return ledger.getRange(2,7,last-1,4).getValues()
+  .filter(function(r){return str_(r[0])&&str_(r[1])==='practice'&&str_(r[3])==='confirmed';})
+  .map(function(r){return str_(r[2]);});
 }
 function visitorMine_(ss,member){
  var rows=visitorRequests_(ss).filter(function(r){return r.requestedByMemberId===member.memberId&&r.status!=='withdrawn';});
@@ -1958,6 +1977,20 @@ function receiptDownload_(ss,member,payload){
   base64:Utilities.base64Encode(bytes)}};
 }
 
+// Optional diagnostics for authenticated READ endpoints only. Attaches integer
+// durations to the response, never logs/stores member identities or body data.
+function stageReadProfileV1691_(profile,start,response){
+ if(profile&&response&&response.ok&&response.data){
+  response.data.profileTimings={
+   spreadsheetOpenMs:Math.max(0,profile.spreadsheetOpenMs||0),
+   memberAuthMs:Math.max(0,profile.memberAuthMs||0),
+   lockWaitMs:Math.max(0,profile.lockWaitMs||0),
+   readHandlerMs:Math.max(0,Date.now()-start),
+   gasTotalMs:Math.max(0,Date.now()-profile.startedAt)
+  };
+ }
+ return response;
+}
 function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||!conf_('BACKEND_SECRET'))fail_('UNAUTHORIZED','API接続を確認できません');
  // Guest sharing verifies a short-lived token; LINE login is not required.
  if(body.op==='match.guest.get')return accessGuestGet16_(ss_(),body.guestToken);
@@ -1968,9 +2001,12 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
  // v0.15.12: measure only this read-only startup request (no IDs or secrets logged).
  var smProfile=body.op==='match.bootstrap',smT0=smProfile?Date.now():0,
      paymentProfile=body.op==='payment.set'&&body.payload&&body.payload.profileTimings===true?{startedAt:Date.now()}:null,
-     overviewProfile=body.op==='overview'&&body.payload&&body.payload.profileTimings===true?{startedAt:Date.now()}:null;
- var ss=ss_(),smT1=smProfile||paymentProfile||overviewProfile?Date.now():0,
-     member=member_(ss,body.lineUserId),smT2=smProfile||paymentProfile||overviewProfile?Date.now():0,
+     overviewProfile=body.op==='overview'&&body.payload&&body.payload.profileTimings===true?{startedAt:Date.now()}:null,
+     readProfile=body.payload&&body.payload.profileTimings===true&&
+       ['participant.list','cash.get','visitor.admin.list','visitor.mine','visitor.practices',
+        'ledger.list','schedule.list'].indexOf(body.op)>=0?{startedAt:Date.now()}:null;
+ var ss=ss_(),smT1=smProfile||paymentProfile||overviewProfile||readProfile?Date.now():0,
+     member=member_(ss,body.lineUserId),smT2=smProfile||paymentProfile||overviewProfile||readProfile?Date.now():0,
      op=str_(body.op),payload=body.payload||{};
  if(paymentProfile){
   paymentProfile.spreadsheetOpenMs=smT1-paymentProfile.startedAt;
@@ -1979,6 +2015,10 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
  if(overviewProfile){
   overviewProfile.spreadsheetOpenMs=smT1-overviewProfile.startedAt;
   overviewProfile.memberAuthMs=smT2-smT1;
+ }
+ if(readProfile){
+  readProfile.spreadsheetOpenMs=smT1-readProfile.startedAt;
+  readProfile.memberAuthMs=smT2-smT1;
  }
  if(op==='session')return {ok:true,data:{memberId:member.memberId,name:member.name,role:member.role}};
  if(op==='stage.selfRole')return accessStageSelfRoleV1680_(ss,member,body.lineUserId,payload);
@@ -2000,7 +2040,10 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
  // Match reads and roster reads are allowed for registered LINE members.
  if(op==='roster.line')return {ok:true,data:{text:formatRosterForLine_(ss,str_(payload.practiceId))}};
  // Member-level proxy visitor registration is deliberately before requireDuty_.
- if(op==='visitor.practices')return withLock_(function(){return visitorAvailablePractices_(ss,member,payload);});
+ if(op==='visitor.practices')return withLock_(function(){
+  var mark=readProfile?Date.now():0;
+  return stageReadProfileV1691_(readProfile,mark,visitorAvailablePractices_(ss,member,payload));
+ },readProfile);
  if(op==='visitor.register'||op==='visitor.request'){
    var visitorOpId=checkOpId_(payload);
    return withLock_(function(){
@@ -2019,8 +2062,14 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
    return result;
   });
  }
- if(op==='visitor.mine')return withLock_(function(){return visitorMine_(ss,member);});
- if(op==='visitor.admin.list')return withLock_(function(){return visitorAdminList_(ss,member);});
+ if(op==='visitor.mine')return withLock_(function(){
+  var mark=readProfile?Date.now():0;
+  return stageReadProfileV1691_(readProfile,mark,visitorMine_(ss,member));
+ },readProfile);
+ if(op==='visitor.admin.list')return withLock_(function(){
+  var mark=readProfile?Date.now():0;
+  return stageReadProfileV1691_(readProfile,mark,visitorAdminList_(ss,member));
+ },readProfile);
  if(op==='visitor.decide'){
   var decisionOpId=checkOpId_(payload);
   return withLock_(function(){
@@ -2057,7 +2106,11 @@ function dispatch_(body){if(!body||body.sharedSecret!==conf_('BACKEND_SECRET')||
   };
   return result;
  },overviewProfile);
-  if(['overview','ledger.list','cash.get','schedule.list','schedule.delete.preview','participant.list'].indexOf(op)>=0)return withLock_(function(){return op==='overview'?overview_(ss,member,payload):op==='ledger.list'?monthLedger_(ss,member,payload):op==='cash.get'?cashGet_(ss,member,payload):op==='schedule.list'?scheduleList_(ss,member,payload):op==='schedule.delete.preview'?scheduleDeletePreview_(ss,member,payload):participantList_(ss,member,payload);});
+  if(['overview','ledger.list','cash.get','schedule.list','schedule.delete.preview','participant.list'].indexOf(op)>=0)return withLock_(function(){
+   var mark=readProfile?Date.now():0;
+   var result=op==='overview'?overview_(ss,member,payload):op==='ledger.list'?monthLedger_(ss,member,payload):op==='cash.get'?cashGet_(ss,member,payload):op==='schedule.list'?scheduleList_(ss,member,payload):op==='schedule.delete.preview'?scheduleDeletePreview_(ss,member,payload):participantList_(ss,member,payload);
+   return stageReadProfileV1691_(readProfile,mark,result);
+  },readProfile);
  if(['payment.set','category.set','adjustment.set','expense.set','ledger.change','cash.save','schedule.change','participant.change','receipt.upload'].indexOf(op)<0)fail_('BAD_REQUEST','API操作が不正です');
  var opId=checkOpId_(payload);
  return withLock_(function(){

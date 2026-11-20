@@ -49,7 +49,23 @@ const cashSheet={
  getRange:(row,col,height,width)=>({setValues:values=>{ok(row===2&&col===1&&height===1&&width===9,'cash update targets 9 fields');physical[0]=sheetsTypedRecord(values[0]);writes++;}}),
  appendRow:record=>{physical.push(sheetsTypedRecord(record));writes++;}
 };
-const mockSheet=(ss,name)=>{ok(name==='現金確認記録','cash records always use dedicated sheet');return cashSheet};
+const mockSheet=(ss,name)=>{
+ if(name==='全体収支管理表'){
+  // cash.get may READ this existing authoritative ledger. It must never
+  // WRITE it; cash.save keeps its original full entries_() validation.
+  return {getLastRow:()=>2,
+   getRange:(row,col,height,width)=>{
+    ok(row===2&&col===1&&height===1&&width===9,
+     'cash.get reads only the nine required financial columns');
+    reads++;
+    return {getValues:()=>[[ledger.date,'架空体育館',0,0,ledger.balance,'',ledger.rowId,
+     'practice','TEST-20261116']]};
+   }
+  };
+ }
+ ok(name==='現金確認記録','cash records are written only to their dedicated sheet');
+ return cashSheet;
+};
 const mockRows=(ss,name)=>{ok(name==='現金確認記録','only cash tab is accessed');reads++;return physical.map(row=>row.slice());};
 const fail_=(code,message)=>{const e=new Error(message);e.smCode=code;throw e};
 const funcs=new Function('fail_','practice_','entries_','sheetRows_','sheet_','str_','dateAllowed_',
