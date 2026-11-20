@@ -1088,7 +1088,7 @@ function overview_(ss,member,payload,readContext){
   participants:roster,ledger:visibleLedger,collectionAccess:access,
   expected:roster.reduce(function(a,b){return a+b.fee;},0),
   completedFee:total,completedCount:completed.length,attendingCount:roster.length,
-  overviewPhases:phases||undefined}};
+  ...(phases?{overviewPhases:phases}:{})}};
 }
 /* A missing practice ledger is not necessarily a DELETED ledger: unpublished,
  * archived, or future practices must not activate the re-registration option.
