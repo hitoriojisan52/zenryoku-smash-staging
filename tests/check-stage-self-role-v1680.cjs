@@ -8,7 +8,8 @@ const access=read('gas-staging/AccessAndGuestV160.gs'),gas=read('gas-staging/コ
  worker=read('cloudflare-worker/worker.js'),live=read('live.js'),
  html=read('live.html'),js=read('stage-role-preview.js'),css=read('stage-ui.css');
 let n=0;function ok(v,msg){assert.ok(v,msg);n++}
-for(const s of [access,gas,worker,live,js]){new Function(s);n++;}
+for(const s of [access,gas,live,js]){new Function(s);n++;}
+new Function(worker.replace('export async function','async function').replace('export default {fetch:handleRequest};',''));n++;
 const begin=access.indexOf('var SMA_STAGE_ROLE_OWNER_V1680=');
 const end=access.indexOf('function accessShareIssue16_',begin);
 ok(begin>0&&end>begin,'extract real staging self-role GAS function');
