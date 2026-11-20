@@ -99,9 +99,10 @@ const reload=new Function('S','$','call','window','Option','renderHome','syncPay
  ok(css.includes('font-size:14px!important;')&&
   css.includes('.stage-ui #matchPractice{font-size:13px!important;}'),
   'calendar dropdown text is a little smaller for long dates');
- ok(html.includes('⚙ 運用管理メニュー')&&
-  html.indexOf('当番担当メニュー')<html.indexOf('管理者メニュー')&&
-  html.indexOf('管理者メニュー')<html.indexOf('検証用メニュー')&&
+ const orderedMenu=html.slice(html.indexOf('<dialog id="manageDialog">'),html.indexOf('</dialog>',html.indexOf('<dialog id="manageDialog">')));
+ ok(orderedMenu.includes('⚙ 運用管理メニュー')&&
+  orderedMenu.indexOf('当番担当メニュー')<orderedMenu.indexOf('管理者メニュー')&&
+  orderedMenu.indexOf('管理者メニュー')<orderedMenu.indexOf('検証用メニュー')&&
   html.includes('id="manageAdminSection"')&&
   ui.includes("hidden=S.actor.role!=='admin'"),
   'management groups are duty, admin only and temporary test; original access gated');
