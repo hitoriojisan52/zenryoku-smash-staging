@@ -7,8 +7,15 @@ const el=(tag,cls,value)=>{const n=document.createElement(tag);if(cls)n.classNam
 let inFlight=false;
 async function load(){if(inFlight)return;inFlight=true;const refresh=$('guestRefresh');refresh.disabled=true;refresh.textContent='更新中…';try{
  if(!/^[0-9a-f]{64}$/.test(token))throw Error('閲覧リンクが無効です。担当者から新しいQRをご案内ください。');
+ let timer;
+ const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{
+  const e=Error('通信がタイムアウトしました（15秒）。再度お試しください。');e.code='REQUEST_TIMEOUT';reject(e);
+ },15000)});
+ const result=await Promise.race([(async()=>{
  const resp=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token}),cache:'no-store',referrerPolicy:'no-referrer'});
  const result=await resp.json();if(!resp.ok||!result.ok)throw Error(result.error||'対戦表を取得できません');
+ return result;
+ })(),timeout]).finally(()=>clearTimeout(timer));
  const data=result.data;
  $('guestNotice').textContent='';$('guestNotice').hidden=true;
  $('guestPractice').textContent=window.SMDate.date(data.practice.date)+'　'+data.practice.place;

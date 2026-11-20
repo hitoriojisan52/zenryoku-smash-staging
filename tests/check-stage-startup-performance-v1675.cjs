@@ -106,12 +106,12 @@ const reload=new Function('S','$','call','window','Option','renderHome',
  };
  const bounded=new Function('S','CONFIG','PERF_MODE','performance','fetch',
   'AbortController','setTimeout','clearTimeout','console',
-  ui.slice(start,stop)+'return call;')(
+  ui.slice(ui.indexOf('const REQUEST_TIMEOUT_MS='),stop)+'return call;')(
   fakeState,{apiBaseUrl:'https://worker.example'},false,{now:()=>0},mockedFetch,
-  AbortController,(callback,ms)=>{abortTime=ms;Promise.resolve().then(callback);return 1;},
+  AbortController,(callback,ms)=>{if(!abortTime){abortTime=ms;Promise.resolve().then(callback);}return 1;},
   ()=>{},console);
  await assert.rejects(bounded('/api/session'),e=>e.code==='REQUEST_TIMEOUT');n++;
- ok(abortTime===25000,'stalled startup reads fail closed after a bounded delay');
+ ok(abortTime===15000,'stalled startup reads fail closed after a bounded delay');
  const paid=await bounded('/api/payment',{operationId:'test-payment-operation'});
  ok(paid.saved&&mutationSignal===undefined,
   'financial writes are never automatically aborted or retried');

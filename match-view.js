@@ -4,8 +4,12 @@ const $=id=>document.getElementById(id),CFG=window.SMASH_CONFIG||{};
 let token='',practiceId='';
 const el=(tag,cls,content)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(content!==undefined)n.textContent=content;return n;};
 async function request(path,payload={}){
+ let timer;
+ const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{const e=Error('通信がタイムアウトしました（15秒）。再度お試しください。');e.code='REQUEST_TIMEOUT';reject(e);},15000)});
+ return Promise.race([(async()=>{
  const res=await fetch(CFG.apiBaseUrl.replace(/\/$/,'')+path,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(payload),cache:'no-store'});
  const r=await res.json();if(!res.ok||!r.ok)throw Error(r.error||'取得できませんでした');return r.data;
+ })(),timeout]).finally(()=>clearTimeout(timer));
 }
 function viewMessage_(text,kind='error'){
  const target=$('matchViewNotice');target.textContent=String(text||'');target.hidden=!text;
@@ -35,7 +39,14 @@ async function init(){
  try{
   if(!CFG.viewLiffId||CFG.viewLiffId.includes('REPLACE_')||
     !CFG.apiBaseUrl||CFG.apiBaseUrl.includes('REPLACE_'))throw Error('設定がありません');
-  await liff.init({liffId:CFG.viewLiffId});
+  let authTimer;
+  try{await Promise.race([
+   liff.init({liffId:CFG.viewLiffId}),
+   new Promise((_,reject)=>{authTimer=setTimeout(()=>{
+    const e=Error('LINE認証がタイムアウトしました（15秒）。開き直してください。');
+    e.code='REQUEST_TIMEOUT';reject(e);
+   },15000);})
+  ]);}finally{clearTimeout(authTimer);}
   if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return;}
   token=liff.getIDToken();if(!token)throw Error('LINE認証に失敗しました');
   const list=await request('/api/match/practices');

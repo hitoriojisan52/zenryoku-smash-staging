@@ -39,8 +39,18 @@ async function mutation(path,payload){
  }
 }
 
+function deadlineMatch_(task,isWrite){
+ let timer,expired=false;
+ const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{
+  expired=true;const e=Error(isWrite?'通信がタイムアウトしました（15秒）。更新で操作結果を確認してください。':'通信がタイムアウトしました（15秒）。再度お試しください。');
+  e.code=isWrite?'OPERATION_UNCONFIRMED':'REQUEST_TIMEOUT';reject(e);
+ },15000)});
+ return Promise.race([task,timeout]).finally(()=>clearTimeout(timer));
+}
 async function request(path,payload={}){
  if(!S.token||!CFG.apiBaseUrl)throw Error('LINE認証またはAPI設定がありません');
+ const isWrite=path!=='/api/match/bootstrap'&&path!=='/api/match/get'&&path!=='/api/match/practices'&&path!=='/api/match/operation';
+ return deadlineMatch_((async()=>{
  const res=await fetch(CFG.apiBaseUrl.replace(/\/$/,'')+path,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},body:JSON.stringify(payload),cache:'no-store'});
 
  if(path==='/api/match/bootstrap'){
@@ -56,6 +66,7 @@ async function request(path,payload={}){
  }
  let data;try{data=await res.json();}catch{throw Error('API応答を取得できません');}
  if(!res.ok||!data.ok){const e=Error(data.error||'操作できませんでした');e.code=data.code;e.status=res.status;throw e;}return data.data;
+ })(),isWrite);
 }
 const isDuty=()=>['duty','admin'].includes(S.actor?.role);
 const operationId=()=>crypto.randomUUID();
@@ -148,7 +159,7 @@ async function change(action,payload={}){if(!isDuty())throw Error('対戦表の�
 const Startup={scriptStarted:performance.now(),timings:{}};
 async function timedStartup(key,fn){
  const start=performance.now();
- try{return await fn();}finally{Startup.timings[key]=Math.round(performance.now()-start);}
+ try{return await deadlineMatch_(Promise.resolve().then(fn),false);}finally{Startup.timings[key]=Math.round(performance.now()-start);}
 }
 // v0.16 staging: members share one LIFF; read-only members use existing safe APIs.
 async function openGeneralMemberView16_(){

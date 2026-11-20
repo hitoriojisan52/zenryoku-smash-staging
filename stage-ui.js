@@ -36,11 +36,13 @@
    try{return await action();}finally{setBusy(false);}
  }
  function errorDetails(e){
-   if(e?.status===409)return {title:'内容が変わりました',message:'ほかの人が先に変更しました。\n最新の内容を確認してください。'};
-   if(Number(e?.status)>=500||['NETWORK_ERROR','REQUEST_TIMEOUT','OPERATION_UNCONFIRMED'].includes(e?.code)||
+   if(e?.status===409)return {title:'内容が変わりました',message:'最新の内容を確認してください。'};
+   if(e?.code==='OPERATION_UNCONFIRMED')return {title:'通信エラー',message:'通信がタイムアウトしました（15秒）。保存結果を更新で確認してください。'};
+    if(e?.code==='REQUEST_TIMEOUT')return {title:'通信エラー',message:'通信がタイムアウトしました（15秒）。再度お試しください。'};
+    if(Number(e?.status)>=500||['NETWORK_ERROR'].includes(e?.code)||
       /Failed to fetch|NetworkError|通信に失敗|Load failed/i.test(String(e?.message||'')))
-     return {title:'通信エラー',message:'通信できませんでした。\n最新の情報を確認してください。'};
-   return {title:'操作できませんでした',message:String(e?.message||'再度確認してください。')};
+     return {title:'通信エラー',message:'通信に失敗しました。再度お試しください。'};
+   return {title:'操作できませんでした',message:String(e?.message||'再度お試しください。')};
  }
  async function showError(e) {
    // Errors never disappear automatically and cannot be hidden by touching the backdrop.
