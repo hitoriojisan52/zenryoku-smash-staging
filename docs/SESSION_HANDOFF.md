@@ -613,3 +613,14 @@
 - **新しい回帰**：`tests/check-stage-ledger-single-snapshot-v1694.cjs` が実GAS関数の残高変動・確定順序と後日確定済み残高の拒否・バージョン競合・追加/変更/削除の1回読込・無書込異常・監査削除履歴・getLastRow回数をオフライン検証。`gas-staging-check.yml`に追加。
 - **結果と次の工程**：PR・CI・検証main統合・GASデプロイ・Pages/Worker等の結果は独立に確認して次節で記録。端末の所要秒数改善は**未確認**。新しい性能ログを既存 [性能診断付きLIFF](https://liff.line.me/2012602642-XBSkXduO?perf=1) で収集し、初回/再訪・集金ホーム/収支一覧/金額変更を同条件で測定する。**本番事前承認**。
 - 詳細：[v0.16.94 収支スナップショット読取削減](stage-v1694-ledger-snapshot-performance.md)。
+
+
+## 55. v0.16.94 CI・検証用GAS @51 デプロイ・データ保全確認（2026/11/21）
+
+- [PR #123](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/123) を `safety-check`（既存GASと新しい金融スナップショット試験を含む）・`spec-contract` の **2系統CI成功後**、検証main `fb03f982c89c735a7d4c2feaa5b8cbcbd311b860` へマージ。検証UIコード/Workerコードは変更していないため、UI回帰ワークフローをこのPR差分では起動していない。GAS側で認証・収支・集金・ビジター・出欠・現金・試合等の既存回帰は成功。
+- [既存検証用GASデプロイ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44777101202) **success**、`GitHub source verification PASS`、`Redeployed *** @51`、既存のGAS WebアプリIDを維持。新規デプロイID・GAS/Worker Secrets・公開URL・LINE LIFF ID・本番設定は変更なし。
+- [GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44777099814) **build/deploy/report-build-status すべてsuccess**、同main SHAの **Cloudflare Workers Builds: zenryoku-smash-staging-api success**。この差分では公開GET-only smokeのワークフローが自動起動しておらず、追加実行結果は**未取得**（成功したと表現しない）。Workerのソースは今回改修なし。
+- **Google Sheetsをデプロイ後に読み取り専用再照合**：検証用Workbook「全力☆スマッシュ 接続検証用 v0.15（架空データ）」に9件の収支ID行が存在。11/19の練習・立替精算2件・その他収支はすべてconfirmed、11/21はopen、11/25と11/28はopen。架空テスト出欠は11/25・11/28各10件が継続存在。これらは**閲覧時点の状態**であり、検証GASコード改修による操作・確定は実行していない。ユーザーがその後アプリで更新すれば変わり得る。
+- **確定した改善範囲**：金額保存と収支変更の収支表全16列読み込み **1操作2→1**、共通Sheet helperの最終行メタデータ呼出し **2→1**、削除済み練習日行の履歴参照 A:F→B:F。全て同一ロック内の最新値で旧残高計算/確定解除順序/バージョン/操作履歴の既存関数を使用し続ける。**秒数短縮は未実測・未受入**。
+- **次の計測**：[検証管理LIFF（`?perf=1`）](https://liff.line.me/2012602642-XBSkXduO?perf=1) で同じ日付の `/api/overview` と `/api/ledger` の読み取り、必要な既存の検証行だけを使った `/api/adjustment`／`/api/ledger/change` の保存を一度ずつ確認し、最新の「GAS POST／処理内訳」と所要時間を採取。保存操作が重複しないよう通信結果不明なら**無断再送しない**。本番反映は別途事前承認が必要。
+- 詳細：[v0.16.94 検証用読取/保存最適化と実機基準](stage-v1694-ledger-snapshot-performance.md)。
