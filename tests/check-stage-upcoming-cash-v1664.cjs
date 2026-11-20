@@ -74,9 +74,9 @@ const reload=new Function('S','$','call','window','Option','renderHome','syncPay
  ok(ui.includes("$('visitorMinePractice').value=''")&&
   visitor.includes("$('visitorAdminPractice').value=''")&&
   visitor.includes('const unique=new Map()')&&
-  visitor.includes('r.date<today')&&
+  visitor.includes('p.date<today&&confirmed.has(p.practiceId)')&&
   !visitor.includes("{value:'all',text:'すべての日程'}"),
-  'visitor lists default to upcoming with opt-in read-only history');
+  'visitor dates are now driven by ledger confirmation, not an opt-in History toggle');
  ok(visitor.includes("unique.has(previous)?previous:(future?.[0]||'')")&&
   ui.includes("$('visitorMinePractice').value=d.practiceId"),
   'manual day selection and newly submitted future request remain visible');
