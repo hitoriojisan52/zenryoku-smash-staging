@@ -775,3 +775,14 @@
 - mainの[Actions #44808223493](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44808223493)：DB IDと名前照合、所有マーカー、dry-run、独立Workerデプロイ、一次Bearer Secretアップロード成功。実HTTPは**認証GET・POST拒否405・旧API404まで通過**したが、最後の12件性能測定中に`stage=benchmark-read expected=200 observed=401 code=PILOT_UNAUTHORIZED`でFAIL。**p50/p95未測定、Native D1の動作が安定したと確定しない**。Cloudflare secret putによる新バージョン公開直後のEdge反映差は推定原因であり、未確定。
 - 次の対策：`wrangler secret put`から測定まで45秒の静置時間を置き、その後6回連続の認証付きGET（途中401なら即失敗）を合格条件としてから12回のp50/p95を計測。測定中の401は除外せずFAILを維持（性能結果の改ざん防止）。既存の収支・参加・退会・試合仕様と本番環境は不変更。ユーザーの追加Secret/Token再登録不要。
 - 次：PR CI成功→検証用main統合→remoteのGET/POST/旧経路/6連続安定/p50/p95確認。失敗時はステータス別根本原因を報告し、認可や書込保護を勝手に緩和しない。
+
+
+## 72. D1独立Workerネイティブ接続・実HTTP性能測定が全項目成功（2026/11/21）
+
+- ユーザーがGitHub Environment`d1-staging`に正しく**Secrets 2件／Variables 3件／main限定**を登録したことを画像で確認。`D1_WORKER_STAGE_API_TOKEN`はEnvironment Secretに保管。ユーザーは今後トークンやSQLの再入力不要（失効・ローテーションの場合を除く）。
+- [PR #139](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/139)と[PR #140](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/140)で初回Worker deployment後の一時401を診断し、失敗を失敗として記録。[PR #141](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/141)でWorker Secret deploy直後の45秒安定化と認証付きGET6回連続の必須確認を追加。各PRのoffline-safety（会計・本人出欠・退会再入会・試合）とspec-contractのCIは**成功**。
+- [D1独立Worker Actions #44808754064](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44808754064)は最終的に`offline-safety`、`deploy-native-worker`の両ジョブ**success**。正しいCloudflare Account/D1 DB UUID/DB名、独立Worker所有確認、Wrangler dry-run、独立Worker`zenryoku-smash-d1-pilot-stage`のデプロイ、ランダム一時Bearer Secret注入、実際のWorkers.devの空件数GET（練習日・出欠・集金・月次収支）、不正Bearer401、POST拒否405、従来APIパス404、6回の安定GETをすべて確認。
+- **Worker Native D1 binding経由のHTTP応答時間：ウォームアップ2＋実計測12回でp50 173.4ms／p95 185.5ms。** GitHubランナー→公開Workers.dev→D1でゼロ件の件数SQLのベースラインであり、LINE/LIFF本人認証・既存GAS・実データ・集金や残高計算を含まない。旧GASの数秒とこの値を単純比較して「高速化完了」とはしない。
+- 同main `f52d06342656ec79091152b4265106ddf5752604`のGitHub Pages build/deployと既存Workers Buildsもsuccess。**既存`zenryoku-smash-staging-api`のコード/Binding/URL、GAS@51、Sheets正本、LINE/LIFF、本番環境の反映は変更なし**。検証用D1への個人情報・会計・試合/操作履歴のデータ移行は未実施。
+- 従来の失敗ログ：[初回 #44804229743](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44804229743)の最後のcontract mismatch、[#44807828712](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44807828712)のPOST期待405に401、[#44808223493](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44808223493)の測定途中GET期待200に401。Secret配信直後の反映差が疑われるが、**根本原因は断定しない**。最終合格した安定化要件を後続のCIから削除しない。
+- 次の工程：既存Workerの本人認証・権限/GAS委譲を残したままD1読み取りへ段階的に切り替えるため、2つのWorkerの相互接続方式、認可、セッション/ログ、データ整合性とバックアップを設計。アプリの応答実測をp50/p95で比較。会計の操作ID冪等・版番号CAS・日付順の確定/解除・試合版/退会履歴などを旧仕様と照合。移行・本番反映は明示承認制を維持。

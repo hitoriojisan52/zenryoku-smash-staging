@@ -62,3 +62,15 @@ Cloudflare公式の2026年のWorkers権限仕様では、**まだ存在しない
 - ユーザー提供のCloudflare Worker Overviewスクリーンショットで、実際に作成した専用検証Workerは`zenryoku-smash-d1-pilot-stage`、公開先は`https://zenryoku-smash-d1-pilot-stage.hitori-ojisan-52.workers.dev`、ステータス`Ready`、Bindings 0件と確認。**以前計画していた末尾`-20261121`付きとは別の名前**。作り直さず、デプロイ用の固定名・ホスト名検証・所有確認を実物に合わせて修正した。
 - Overviewの`Production`はCloudflare Worker内の公開環境名であり、全力☆スマッシュの事業用本番システムに反映したことを示さない。
 - Workerの初期ソースが未変更Hello Worldかどうかは、デプロイ前の所有確認で厳密に照合する（スクリーンショットからは内容未確認）。ユーザーにはWorkerコードやBindingの手動編集を要求しない。
+
+
+## 第4工程の最終実証（2026/11/21）：Cloudflare Native D1 binding成功
+
+- ユーザーが[GitHub Environment d1-staging](https://github.com/hitoriojisan52/zenryoku-smash-staging/settings/environments)に、**Environment secrets 2件**（既存D1専用`D1_STAGE_API_TOKEN`、個別Worker Editor`D1_WORKER_STAGE_API_TOKEN`）と**variables 3件**（Account/Database ID、`D1_WORKER_STAGE_DEPLOY_ENABLED=true`）、main限定のブランチ規則を設定した画面を提出。GitHub Actionsの認証・有効化の実成功も確認（秘密値は受け取っていない）。
+- 既存の[Actions #44804229743](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44804229743) `deploy-native-worker`ジョブをChatGPTから再実行。Workerの初期Hello World所有確認、D1アカウント/名前/UUID、Wrangler dry-runと**独立Workerだけのデプロイ**、一時Bearer Secret導入は成功。最後のHTTP契約が失敗し、成功扱いにせず修正PRと調査を継続。
+- [PR #139](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/139)ではGET readinessと不一致HTTPステータスのみを記録（[Actions #44807828712](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44807828712)で一時401）。[PR #140](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/140)では保護されたPOST拒否405/旧API GET拒否404の検査に限り401を短く再確認。計測中に一時401が残り、測定を中止（[Actions #44808223493](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44808223493)）。結果の改ざん・失敗の隠蔽を行わなかった。
+- [PR #141](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/141)でWorker secret注入後45秒の安定化、**6回連続認証付きGET**を必須としてから本計測12回を実施。前述の一時的な401はSecretを更新する2回目のデプロイ直後に発生するため、Edge反映差は**原因候補**だが公式に根本原因を特定したわけではない。
+- [最終成功したActions #44808754064](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44808754064) `offline-safety` / `deploy-native-worker`ともに**success**。Cloudflare Account+UUID+DB名検証、既存独立Worker ownership `ours`、Wrangler dry-run、`zenryoku-smash-d1-pilot-stage`だけのdeploy、ランダムSecret注入、実GET認証、別Bearer拒否401、POST拒否405、旧API経路404、安定化GET6連続、読取12回のすべてに合格。**HTTP p50 173.4ms／p95 185.5ms**。D1件数は存在しない架空練習IDと検証月に対して0件、個人/会計/試合の業務データはインポートしていない。
+- 同main`f52d06342656ec79091152b4265106ddf5752604`でGitHub Pagesと既存`Workers Builds: zenryoku-smash-staging-api`チェックも成功。ただし**既存WorkerにはD1 bindingを追加していない**。GAS、Sheets、LINE/LIFF、旧会計/確定順序/排他処理、本番は変更なし。
+- 重要：一時BearerはGitHub Actions実行時にランダム発行してCloudflareへ直接注入し、チャットやリポジトリ/GitHub Secretに残さない。公開されたWorkers.devでBearer無しにD1データの件数を読めない。**現行LINE本人認証/ロールの再実装や実業務APIが完成したわけではない**。アプリ全体の高速化効果や同条件負荷下のp50/p95もまだ未検証。
+- 次：旧Workerと独立Workerをどう接続するかは、LINE認証とロール権限の既存制約・CORS・秘密トークン管理・Cloudflare Worker tokenのleast privilegeを踏まえて別設計／PRで段階的に検討。本番アカウントと業務データのD1への切替はユーザー明示承認後。バックアップ/復元・整合性/競合・会計全日付順序・監査・データ移行計画は未完了。
