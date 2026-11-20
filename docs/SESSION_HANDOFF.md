@@ -713,3 +713,11 @@
 - 同SHAの[GitHub Pages Actions #44798638771](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44798638771) build/deploy成功、既存のCloudflare Workers Buildsもsuccess。**既存Worker `zenryoku-smash-staging-api`のソース・binding・ルーティングは不変更**。GAS@51、LIFF、Sheets正本、本番を変更していない。
 - 必要なユーザー初期設定：Cloudflareの同じアカウントに最小権限`Account → Workers Scripts → Edit`の新規トークン`zenryoku-smash-d1-worker-staging`を作成し、[GitHub Environment d1-staging](https://github.com/hitoriojisan52/zenryoku-smash-staging/settings/environments)のSecret`D1_WORKER_STAGE_API_TOKEN`に登録。同Environment variable`D1_WORKER_STAGE_DEPLOY_ENABLED=true`を追加。既存のD1トークン・ID・main限定を変更しない。手順と広域権限リスクは[D1_WORKER_DEPLOY_PLAN.md](D1_WORKER_DEPLOY_PLAN.md)に記載。値はチャットに送らない。
 - 次はユーザーからの初期設定完了を受けて、ChatGPTが検証mainから新Workerの所有確認→新規デプロイ→Bearer Secret設定→実HTTP 0件/無認証拒否→Worker Native D1 GETのp50/p95をログ確認し、テスト結果と残存リスクを報告する。本番移行はユーザー事前承認制、会計/LINE本人認証/データ正本の移行は別工程。
+
+
+## 65. D1 Worker単体権限のセキュリティ判断待ち（2026/11/21）
+
+- 現時点の新Workerデプロイworkflowは**有効化フラグ未設定でremoteすべてskip**。ソース・D1・本番はこの判断整理で変更しない。
+- 追加のCloudflare権限調査で、API tokenの`Account > Workers Scripts > Edit`は同一アカウント内の他Workerの編集権限にも及び、**本番Workerが同居する場合は技術的に本番Worker編集も可能**であると確認。GitHub内の固定名ガードだけでは漏洩時の横断権限を限定できない。これまでは本番アカウントが別か確認できていない。
+- 2026年のCloudflare公式ドキュメントは`Individual Workers > Editor`による**Worker単位のAPIトークン**を案内している。ただし未作成のWorkerを初回作成する権限とは別で、個別権限運用には初回Worker作成・所有確認・引き継ぎ方式の再設計が必要。ユーザーの初期設定以降の手作業禁止ルールを維持する。
+- **次の判断**：ユーザーが検証と本番のCloudflareアカウント分離を確認。別アカウントなら検証用トークンによる自動新規作成を継続可能。同一アカウントなら原則、個別Workerトークンでの安全な初回ブートストラップを別PRで構築し、そのための一度限りの初期設定手順を提示する。ユーザーに無断でAccount全体Edit権限を要求・既存Workerを変更しない。詳細：[D1_WORKER_DEPLOY_PLAN.md](D1_WORKER_DEPLOY_PLAN.md)。

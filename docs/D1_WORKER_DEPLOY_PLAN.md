@@ -27,7 +27,11 @@
 3. 同じEnvironmentのvariableに`D1_WORKER_STAGE_DEPLOY_ENABLED` = `true`を登録する。既存`D1_STAGE_ACCOUNT_ID`、`D1_STAGE_DATABASE_ID`の2件と`main`限定Ruleはそのまま。
 4. 「Secret 1件とVariable 1件の初期設定完了」とだけ報告する。Workerを管理画面で新規作成したりSQL/JSを貼り付けたりする**作業は不要**。ChatGPT側で次のGitHub main変更でWorkflowを起動し、Wrangler dry-run→独立Worker deploy→Secret注入→実GET→ログ/引き継ぎ照合まで行う。
 
-**セキュリティ上の制限・検討事項**：Workers Scripts Editは対象アカウントの他のWorkerも技術的には編集可能なため、漏洩リスクがD1専用トークンより大きい。アカウント制限・Environment Secret・mainブランチ制限・厳密なWorker名の固定・既存スクリプト所有確認・非デプロイ時の明示的停止で緩和する。初回作成後、Cloudflareが個別Worker Editorトークンをサポートする場合は、将来そのWorkerのみに限定したトークンへのローテーションを検討する。これらを踏まえユーザーが初回発行を判断する。**本番環境への権限やデプロイは許可しない**。
+**重要な権限リスク（初回発行前に判断）**：`Account > Workers Scripts > Edit`は**同じCloudflareアカウント内にある他のWorkerの変更権限も含む**。仮に本番Workerが検証Workerと同じCloudflareアカウント内なら、トークン自体は本番Workerも変更できる（GitHub Actionsの固定名/ブランチ/衝突チェックでは、漏洩したトークンの権限までは縮小できない）。**本番と検証のアカウント分離が確認できるまでは新トークンの発行を保留する選択が安全**。GitHub Workflowは本番を対象にしないが、技術的なトークン権限と混同しない。
+
+Cloudflare公式には2026年時点で **Individual Workers > Editor** としてWorker単位のAPIトークンがある。ただしWorkerがまだ存在しなければ、そのリソースのみのスコープで「初回作成」を行うことはできない。安全性を最大化する別案は、ユーザーが最初に検証用WorkerをCloudflare画面で作成し、個別Worker EditorのトークンをGitHubに登録する方法。既存Workerの上書き禁止ガードに合うよう、初回登録済みWorkerの所有確認・初回ブートストラップ動作を別PRでレビューしてから実行する。**現在の自動化では個別Worker方式での初回作成は未対応**なので、権限を無断変更したり、独断で既存Workerを採用したりしない。
+
+新規トークンを発行する前に「本番WorkerがこのCloudflareアカウントに同居しているか」を確認し、同居している場合は個別Worker/アカウント分離の方針を先に判断する。D1 Edit tokenはそのまま維持し、権限を付け足さない。
 
 ## 合格条件・未実施事項
 
