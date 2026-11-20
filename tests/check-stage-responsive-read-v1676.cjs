@@ -35,7 +35,9 @@ const fakeDocument={
 };
 const window={};
 const state={silentRefreshPausedUntil:0};
-const openScreen=new Function('
+const openScreen=new Function('$','document','window','S',
+ ui.slice(from,to)+'\\nreturn readScreen_;')(
+ id=>{assert.equal(id,'cashDialog');return dlg;},fakeDocument,window,state);
 let finishFirst;
 const pendingFirst=new Promise(resolve=>{finishFirst=resolve;});
 const first=openScreen('cashDialog','帳簿残高を読み込んでいます…',async isCurrent=>{
