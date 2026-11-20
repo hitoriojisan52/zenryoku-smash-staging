@@ -1042,3 +1042,17 @@ body.stage-ui > main.container .app-header h1{
 .stage-ui .stage-role-preview-group{display:grid;gap:6px}
 .stage-ui .stage-role-preview-group h3{font-size:14px;margin:6px 0 1px}
 .stage-ui .stage-role-preview-group button:disabled{opacity:1;color:#34475a;cursor:default;background:#f2f4f6;border:1px solid #bcc8d0;min-height:38px}
+
+/* v0.16.80: semantic system messages throughout staging.
+ * Blue=processing, yellow=warning, red=error; warning symbol is decorative
+ * CSS, not copied into user data or log records. Use pre-existing spinner
+ * for an animated blue pending request. */
+.stage-ui .stage-system-message:not(.stage-system-message--info):not(.stage-system-message--error):not(.stage-inline-read-loading)::before{
+ content:"⚠️";display:inline-block;margin-right:5px;vertical-align:baseline;
+}
+.stage-ui #stageRolePreviewDialog .stage-role-preview-note{margin:7px 0}
+.stage-ui .app-header .header-btns #stageRolePreviewOpen{white-space:nowrap}
+@media(max-width:560px){
+ .stage-ui .app-header .header-btns{flex-wrap:wrap;gap:4px;justify-content:flex-end}
+ .stage-ui #stageRolePreviewOpen{font-size:12px;padding-inline:7px}
+}
