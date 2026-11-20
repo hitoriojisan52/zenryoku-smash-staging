@@ -3,7 +3,7 @@
 // Protects all pre-existing Worker scripts from accidental overwrite.
 const assert=require('node:assert/strict');
 const ACCOUNT='5817f07a73dbb56011012074ce1b11c5';
-const WORKER='zenryoku-smash-d1-pilot-stage-20261121';
+const WORKER='zenryoku-smash-d1-pilot-stage';
 const MARKER='ZENRYOKU_D1_PILOT_STAGE_REPO_20261121';
 function check(status,body) {
   // New Worker creation requires product-level Workers Admin. The user first
