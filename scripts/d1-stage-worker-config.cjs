@@ -32,19 +32,25 @@ function makeConfig(id) {
   };
 }
 function parseDeployedUrl(raw) {
-  // The ONLY acceptable remote endpoint has the exact new Worker prefix.
-  // Hostnames/log lines must not control access to an arbitrary URL.
-  const safe=NAME; // fixed alphanumeric/hyphen constant; no regex metacharacters
-  const matches=[...raw.matchAll(new RegExp('https:\\/\\/'+safe+'\\.[a-z0-9.-]+\\.workers\\.dev\\/?','g'))];
-  assert.ok(matches.length,'Expected isolated Worker URL not found in deploy output');
-  const urls=[...new Set(matches.map(m=>new URL(m[0]).origin))];
-  assert.equal(urls.length,1,'Multiple distinct Worker URLs in deploy output');
-  const url=new URL(urls[0]);
-  assert.equal(url.protocol,'https:');
-  assert.ok(url.hostname.startsWith(NAME+'.'));
-  assert.ok(url.hostname.endsWith('.workers.dev'));
-  return url.origin;
+  // Parse complete hostnames, never a partial ".workers.dev" suffix from an
+  // attacker-controlled longer hostname in a build log.
+  const links=[...raw.matchAll(/https:\/\/[^\s\"'<>]+/g)].map(m=>m[0].replace(/[),;]+$/,''));
+  const candidates=links.map(x=>{try{return new URL(x);}catch(_){return null;}})
+    .filter(x=>x && x.hostname.startsWith(NAME+'.'));
+  assert.ok(candidates.length,'Expected isolated Worker URL not found in deploy output');
+  const origins=[];
+  for(const url of candidates){
+    assert.equal(url.protocol,'https:');
+    const tail=url.hostname.slice(NAME.length+1);
+    assert.match(tail,/^[a-z0-9-]+\.workers\.dev$/,'Unexpected Worker hostname suffix');
+    assert.equal(url.port,'');
+    origins.push(url.origin);
+  }
+  const unique=[...new Set(origins)];
+  assert.equal(unique.length,1,'Multiple distinct Worker URLs in deploy output');
+  return unique[0];
 }
+
 const command=process.argv[2];
 if(command==='self-test'){
   const uuid='11111111-2222-4333-8444-555555555555';
