@@ -19,7 +19,7 @@ const days=[
  {practiceId:'FUTURE-C',date:offset(3),startTime:'09:00',place:'未来確定',hours:4}
 ];
 let confirmed=['PAST-C','TODAY-C','FUTURE-C'],serverDay=day,readSchedules=0,readLedger=0,ensured=0,collections=0;
-const functionBody=gas.slice(gas.indexOf('function overview_(ss,member,payload){'),
+const functionBody=gas.slice(gas.indexOf('function overview_(ss,member,payload,readContext){'),
  gas.indexOf('/* A missing practice ledger',gas.indexOf('function overview_(')));
 ok(functionBody.includes('selectEligible===true')&&
  functionBody.includes('ensureCollectionLedger_(ss,member,p,ledgerRows,all)'),
