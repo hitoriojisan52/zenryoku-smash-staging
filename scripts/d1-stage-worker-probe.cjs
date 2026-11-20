@@ -105,7 +105,16 @@ async function run(urlFile,tokenFile){
   const method=await awaitRejectedRequest(url,token,practice,'POST',405,'write-rejection');
   assert.equal(method.json?.ok,false);
   const unknown=await awaitRejectedRequest(url,token,'/api/overview','GET',404,'legacy-route-rejection');
-  // No request is retried; these GET requests read empty aggregates only.
+  // Require consecutive authorized reads from the deployed secret before
+  // starting a strict latency sample. A 401 here fails the probe rather than
+  // being silently excluded from benchmark timings.
+  for(let stable=0;stable<6;stable++){
+    const result=await fetchResult(url,token,practice);
+    expectHttp('auth-stability',result.response,result.json,200);
+    assertEmpty(result.json,['practiceCount','attendeeCount','paymentCount']);
+    if(stable!==5) await sleep(900);
+  }
+  // No benchmark request is retried or silently discarded.
   const durations=[];
   for(let i=0;i<WARMUP+SAMPLES;i++){
     const value=await fetchResult(url,token,practice);
