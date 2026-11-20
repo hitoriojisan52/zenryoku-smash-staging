@@ -60,15 +60,22 @@ async function call(path,payload={}){
  // Invalidate responses from reads that started before a write.
  if(['/api/payment','/api/category','/api/adjustment','/api/expense','/api/ledger/change','/api/schedule/change','/api/visitor/register','/api/visitor/request','/api/visitor/decide','/api/visitor/modify','/api/participant/change','/api/attendance/submit'].includes(path))S.updateEpoch++;
  const startedAt=performance.now();
- // Bound only bootstrap/ordinary reads. NEVER abort accounting writes:
- // after a client timeout the server could still commit the transaction.
+ // v0.16.81: 15 seconds for every network operation INCLUDING JSON parsing.
+ // Only proven reads are aborted; a mutation may already have committed in
+ // GAS, so a timed-out write is NOT aborted, retried or treated as unsaved.
  const boundedRead=['/api/session','/api/overview','/api/participant/list',
-  '/api/visitor/practices','/api/visitor/mine'].includes(path);
+  '/api/visitor/practices','/api/visitor/mine','/api/visitor/admin-list',
+  '/api/attendance/mine','/api/ledger','/api/cash/get',
+  '/api/schedule/list','/api/schedule/delete-preview','/api/receipt/get',
+  '/api/member/status','/api/member/manage/list','/api/member/manage/withdraw/check',
+  '/api/match/practices','/api/match/get','/api/match/bootstrap',
+  '/api/match/operation','/api/match/line','/api/roster/line']
+  .includes(path)||(path==='/api/stage/self-role'&&payload.action==='status');
  const controller=boundedRead&&typeof AbortController!=='undefined'?new AbortController():null;
- const timer=controller?setTimeout(()=>controller.abort(),25000):null;
- let response,value;
- try{
-  response=await fetch(url,{method:'POST',
+ const timeoutMs=15000;
+ let timer=null;
+ const task=(async()=>{
+  const response=await fetch(url,{method:'POST',
    headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.token},
    body:JSON.stringify(payload),cache:'no-store',
    ...(controller?{signal:controller.signal}:{})});
@@ -77,15 +84,35 @@ async function call(path,payload={}){
     serverTiming:response.headers.get('Server-Timing')||''};
    console.info('[STAGE PERF]',S.lastPerf.path,S.lastPerf.totalMs+'ms',S.lastPerf.serverTiming);
   }
-  try{value=await response.json();}catch{throw new Error('サーバーからの応答を読み取れません');}
- }catch(e){
-  if(controller?.signal.aborted){
-   const error=new Error('読み込みが25秒以内に完了しませんでした。通信状態を確認し、画面を開き直すか「更新」で最新の状態を確認してください。');
+  let value;
+  try{value=await response.json();}catch(e){
+   if(controller?.signal.aborted)throw e;
+   throw new Error('サーバーの応答を読み取れませんでした。');
+  }
+  return {response,value};
+ })();
+ const deadline=new Promise((_,reject)=>{
+  timer=setTimeout(()=>{
+   if(boundedRead)controller?.abort();
+   const error=new Error(boundedRead?
+    '通信が15秒以内に完了しませんでした。「更新」で再確認してください。':
+    '通信が15秒以内に完了しませんでした。保存結果を「更新」で確認してください。');
+   error.code=boundedRead?'REQUEST_TIMEOUT':'OPERATION_UNCONFIRMED';
+   if(!boundedRead)error.mutationUncertain=true;
+   reject(error);
+  },timeoutMs);
+ });
+ let response,value;
+ try{({response,value}=await Promise.race([task,deadline]));}
+ catch(e){
+  // The deadline is authoritative even if AbortController wins the race.
+  if(controller?.signal.aborted&&e?.code!=='REQUEST_TIMEOUT'){
+   const error=new Error('通信が15秒以内に完了しませんでした。「更新」で再確認してください。');
    error.code='REQUEST_TIMEOUT';throw error;
   }
   throw e;
- }finally{if(timer!==null)clearTimeout(timer);}
- if(!response.ok||!value.ok){const err=new Error(value.error||'処理を完了できませんでした');err.status=response.status;err.code=String(value.code||'');throw err;}
+ }finally{clearTimeout(timer);}
+ if(!response.ok||!value.ok){const err=new Error(value.error||'処理を完了できませんでした。');err.status=response.status;err.code=String(value.code||'');throw err;}
  return value.data;
 }
 // Collection checkboxes are independent. Only up to two requests leave this page
@@ -251,8 +278,8 @@ async function boot(){
    await Promise.race([
     liff.init({liffId:CONFIG.liveLiffId,withLoginOnExternalBrowser:true}),
     new Promise((_,reject)=>{liffTimer=setTimeout(()=>reject(
-     Object.assign(new Error('LINEの初期化が20秒以内に完了しませんでした。LINEからアプリを開き直してください。'),{code:'REQUEST_TIMEOUT'})
-    ),20000);})
+     Object.assign(new Error('LINE認証が15秒以内に完了しませんでした。LINEから開き直してください。'),{code:'REQUEST_TIMEOUT'})
+    ),15000);})
    ]);
   }finally{if(liffTimer!==undefined)clearTimeout(liffTimer);}
   const authMs=Math.round(performance.now()-authStart);
