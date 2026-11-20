@@ -1480,6 +1480,7 @@ function bind(){
  $('reimbursementBtn').addEventListener('click',()=>{$('payoutDate').value=today();syncPayoutWeekday_('payoutDate','payoutWeekday');$('reimbursementReceipt').disabled=false;dialog('reimbursementDialog');});
  $('payoutDate').addEventListener('change',()=>syncPayoutWeekday_('payoutDate','payoutWeekday'));
  $('ledgerPayoutDate').addEventListener('change',()=>syncPayoutWeekday_('ledgerPayoutDate','ledgerPayoutWeekday'));
+ $('ledgerEditDate').addEventListener('change',()=>syncPayoutWeekday_('ledgerEditDate','ledgerEditWeekday'));
  $('cancelReimbursement').addEventListener('click',()=>close('reimbursementDialog'));$('reimbursementForm').addEventListener('submit',submitReimbursement);
  $('manageBtn').addEventListener('click',()=>dialog('manageDialog'));$('closeManage').addEventListener('click',()=>close('manageDialog'));$('openLedger').addEventListener('click',openLedger);
  prepareCashDenominations();
