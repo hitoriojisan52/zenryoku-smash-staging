@@ -1,3 +1,5 @@
+**D1第4工程（2026/11/21・独立WorkerネイティブD1接続成功）**：ユーザーがEnvironment Secret/Variableを設定したため[GitHub Actions #44808754064](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44808754064)で独立検証用Worker`zenryoku-smash-d1-pilot-stage`の所有・対象D1厳密照合、自動デプロイ、一時Bearer Secret注入、実HTTPの認証・拒否・空データSELECTをすべて検証成功。ネイティブD1 GETの12回HTTP p50 **173.4ms** / p95 **185.5ms**（空テーブル・LINE/GAS/実会計を含まず、旧アプリとの同条件比較不可）。[詳細](docs/D1_WORKER_DEPLOY_PLAN.md)。**既存Worker/GAS/LINE/Sheets・本番は不変更**。
+
 **D1第4工程・実作成Worker名との整合（2026/11/21）**：ユーザーがCloudflareで`zenryoku-smash-d1-pilot-stage`を作成（Ready／Binding 0）。元の予定名は`zenryoku-smash-d1-pilot-stage-20261121`だったため、**作成済みWorkerを活かしてコード・URL検証・所有確認を正しい名前へ更新**。Cloudflare個別Worker Editorの初期トークンとGitHub Environment設定はまだ必要。既存GAS/Worker/Sheetsと本番は不変更。[手順](docs/D1_WORKER_DEPLOY_PLAN.md)。
 
 **D1第4工程・権限方式修正（2026/11/21）**：Cloudflare最新仕様では新規Worker作成に`Workers Admin`が必要。不要に広いアカウント権限を渡さないため、検証用の`Hello World` WorkerをDashboardで最初に1件だけ作り、**Individual Workers → Editor（そのWorkerのみ）**でGitHubから以後の実装を更新する方式へ変更。未変更テンプレートだけを自動引継ぎする安全ガードを追加。**既存Worker/GAS/LINE/Sheets/本番に変更なし**。[初期設定](docs/D1_WORKER_DEPLOY_PLAN.md)。
