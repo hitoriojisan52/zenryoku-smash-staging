@@ -673,3 +673,13 @@
 - [D1_SCHEMA_DESIGN.md](D1_SCHEMA_DESIGN.md)に21タブ（うち業務20）との対応、実GASの会計確定順序・複合キー・退会後履歴保持の契約を記録。数式検査は核心10タブのA1:P20まで、全セル/本番を分析済みとは書かない。
 - **今後の判断とリスク**：現役会員の物理削除と履歴の恒久保存、確定済み残高再計算/同日順序、操作IDの原子的重複チェック、試合版と監査、権限/本人認証、秘匿データの取り扱い、バックアップ/復旧、無断二重書込を再実装するまで、D1を業務正本にしない。Workerバインディングや実利用者データ転送は事前の影響レビューなしに行わない。**本番事前承認**。
 - **次の工程**：架空fixtureによる読取専用D1 API/性能比較を別PRで設計。既存Workerへのバインディング追加を伴う場合は旧API/認可/CORSへの影響を先に評価し、危険がある箇所はユーザー判断を得る。現行GAS/Sheets稼働を維持。
+
+
+## 61. D1第3工程：未デプロイの独立読取API試作・REST計測CI準備（2026/11/21）
+
+- 最新main `9aab68a8796a18b55a43d61c545a4a5e99baddc4`、直近の[21タブ/業務20テーブル設計](D1_SCHEMA_DESIGN.md)、[優先順位](SPEC_PRIORITY_POLICY.md)、`cloudflare-worker/worker.js`/既存wrangler設定を再確認。既存WorkerがLINE IDトークンを毎回verifyし、GASを認可・収支の正本としている設計を維持する。
+- [D1_READONLY_PILOT.md](D1_READONLY_PILOT.md)に実装・保留理由・測定条件を記録。新規`d1-staging/readonly-pilot/worker.mjs`は**未デプロイ**の独立D1 bindingの読み取りAPIプロトタイプ。2 GETは件数のみ（出欠/集金/練習、月次収支）。`D1_PILOT_ENABLED=true`と32文字以上の専用`PILOT_READ_TOKEN`がないと不可。CORSなし、パラメータ固定SELECTのCOUNTのみ、書込なし。実際の本人認証・役割/会計認可の代替ではなく公開禁止。
+- `tests/check-d1-readonly-pilot.mjs`は架空mockで認証不正/無効ゲート/POSTやPATCH拒否/SQL注入拒否/パラメータ化/月跨ぎ/例外詳細非漏洩・権限をオフライン確認。現在D1専用GitHub API Tokenでは**Worker新規デプロイ権限がない**ため、既存Workerバインドを無断で追加せず、別の安全レビューと必要な権限設定まで実公開しない。
+- `scripts/d1-staging-http-bench.cjs`と`.github/workflows/d1-staging-http-bench.yml`は、既存の検証D1へ固定SQL SELECT COUNTだけをCloudflare公式REST API経由で行い、main統合時に自動で**warmup2/計測12回**のHTTP p50/p95とD1 SQL内部時間を記録する。事前Account/UUID/DB名照合、全4集計件数0、DB無書込を必須。実データ複製やGAS/LIFFの書込/本番変更なし。
+- **この節はコードとCI準備の記録。** PRマージ/CI・REST本計測・Pages/Workers Buildsの結果は**実際にログで確認後**、別途記載する。REST APIのGitHubランナー～Cloudflare D1空テーブル計測はLINE実機/既存GASとの同条件比較ではなく、**高速化/本番移行を断言しない**。
+- 次：CI→検証main統合→D1 REST測定p50/p95/SQL内部・0件結果確認→設計資料に実測記録。続くWorker実接続・公開に必要な権限と安全性/利用者判断を整理してから、新しい検証Workerの作成を検討する。バックアップ、会計/権限等価性、実データ移転は依然未完了。本番事前承認を維持。
