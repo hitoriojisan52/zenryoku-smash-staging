@@ -19,15 +19,15 @@ ok(html.includes('id="manageSchedules" type="button" class="btn-outline" hidden 
  'member and duty have schedule button hidden/disabled until verified admin login');
 ok(gas.includes("requireDuty_(member);")&&gas.includes("op==='schedule.list'?scheduleList_(ss,member,payload)"),
  'GAS duty authorization unchanged per specification priority');
-ok(live.includes('window.SMStageUX.errorDetails(error).message')&&
- live.includes('void window.SMStageUX.showError(error)'),
+ok(live.includes('window.SMStageUX?.errorDetails?.(error)?.message')&&
+ live.includes('void window.SMStageUX?.showError?.(error)'),
  'read dialogs use shared wording and both visible red indicator and modal');
-ok(live.includes("if(!window.SMStageUX.isBusy())void window.SMStageUX.showError(e)")&&
+ok(live.includes("if(window.SMStageUX?.isBusy?.()===false)void window.SMStageUX.showError(e)")&&
  live.includes("if($('refresh')&&S.pending.size===0)$('refresh').disabled=false"),
  'home read failure displays modal and still offers manual Refresh');
 ok(live.includes("!S.homeReadFailed&&S.pending.size===0&&!S.loading"),
  'failed background overview no longer creates repeated high-concurrency polling');
-ok(live.includes('window.SMStageUX.clearInlineError()'),
+ok(live.includes('window.SMStageUX?.clearInlineError?.()'),
  'successful home refresh clears previous red error');
 ok(live.includes("profileTimings:true")&&
  live.includes('profileApiRequest_')&&live.includes('stageApiPerfText'),
