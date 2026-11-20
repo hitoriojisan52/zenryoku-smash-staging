@@ -441,3 +441,13 @@
 - `registration.html`のJSクエリを `v=1685`、新規申請/管理画面双方の共通CSSクエリを `v1685-status-icons` に更新し、古い成功/処理中表示をキャッシュしてしまうリスクを避ける。画面・業務APIの仕様変更はない。
 - `stage-line-public-smoke.yml`のpush対象に独立申請ページ/JS/共通CSSを追加。正確な公開反映はPR回帰テストとmainマージ後に分けて検証し、結果不明を成功としない。
 - **継続課題**：LINE申請の実機受入にはユーザーの専用LIFF ID作成指示が必要。全画面の静的青枠案内文の中立化、15秒性能原因の実測、別LINEテスターの検証、実在LINE退会/再入会は未完了。本番未変更。
+
+## 38. v0.16.86 — 利用申請専用LIFFの設定（2026/11/20）
+
+- ユーザー発行済みの独立利用申請LIFF ID `2012602642-lKuGSb43` を `runtime-config.js.registrationLiffId` に設定。既存運用管理 `liveLiffId:2012602642-XBSkXduO`、対戦表等のLIFF IDや本番設定は不変更。
+- 専用LIFFエンドポイントの想定：`https://hitoriojisan52.github.io/zenryoku-smash-staging/registration.html`。本人のLINE IDトークン取得のため `openid` scope。チャネル・エンドポイントのLINE Developers側設定はこの連携から直接確認できないため、**実機の本人認証／申請受入を別に確認する**。
+- `registration.html` の `runtime-config.js?v=1686-registration-liff` によってLIFF IDの旧WebViewキャッシュを回避。公開read-only smokeで専用LIFF IDと設定JSの配信内容を照合。
+- **維持する仕様**：未承認本人は管理用 `/api/session` を通さず `/api/member/status` と `/api/member/apply` で申請可能。既存のWorkerでLINE本人のIDトークンを検証、GASで既存申請・権限規則を維持。二重送信や結果不明時の自動再送禁止、氏名カナ必須も維持。
+- **実機受入の入口**：`https://liff.line.me/2012602642-lKuGSb43`。既存登録済みLINEでは緑「利用登録済みです。」、未登録LINEではフォーム→確認→送信→申請中の表示。管理者による承認/却下、再申請、通信失敗後の手動更新は別途検証する。
+- 変更対象：公開 `runtime-config.js`、`registration.html`、静的/公開回帰テスト、README/引継ぎのみ。GAS、Worker、会計、集金、退会、認証判定、本番リッチメニューは不変更。
+- 次：PR CI→検証main→Pages/Workers Builds/公開GET-only成功確認。実機はユーザーのLINE操作で受入、未実施を成功扱いしない。
