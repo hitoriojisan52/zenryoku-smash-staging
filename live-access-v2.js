@@ -12,9 +12,11 @@
  const cancel=$('accessConfirmCancelV2'),okay=$('accessConfirmOkayV2'),toastEl=$('toast');
  let api=null,actorRole='',actorMemberId='',busy=false,prompt=null,toastTimer=null,readVersion=0,
   editingMember=null;
- const status=(s,loading=false)=>{
+ const status=(s,loading=false,error=false)=>{
   const el=$('memberAccessStatus');el.textContent=String(s||'');
   el.classList?.toggle?.('stage-inline-read-loading',loading);
+  el.classList?.toggle?.('stage-system-message--error',error);
+  el.classList?.toggle?.('stage-system-message--info',!error);
  };
  function item(tag,cls,label){
    const x=document.createElement(tag);if(cls)x.className=cls;
@@ -264,7 +266,7 @@
      if(!first)toast('更新しました。');
      return true;
    }catch(e){
-     if(current())status('読み込みに失敗しました：'+String(e?.message||e));
+     if(current())status('読み込みに失敗しました：'+String(e?.message||e),false,true);
      return false;
    }finally{
      if(current())$('memberAccessRefresh').disabled=false;
