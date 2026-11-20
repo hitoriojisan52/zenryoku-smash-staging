@@ -1174,3 +1174,44 @@ body.stage-ui > main.container .expense-box > .expense-actions > .stage-field-sa
 body.stage-ui > main.container .expense-box > .expense-actions > span{
  flex:none;
 }
+
+
+/* Keep the save label physically paired with its own numeric field,
+ * including when the receipt buttons wrap on a narrow phone. */
+body.stage-ui > main.container .stage-money-save-pair{
+ display:inline-flex;
+ align-items:center;
+ justify-content:flex-end;
+ gap:4px;
+ flex:none;
+ white-space:normal;
+ min-width:0;
+}
+body.stage-ui > main.container .stage-money-save-pair > .stage-field-save-status{
+ display:inline-block;
+ flex:none;
+ max-width:145px;
+ min-width:0;
+ margin:0;
+ padding:0;
+ text-align:right;
+ font-size:11px;
+ line-height:1.25;
+ overflow-wrap:anywhere;
+}
+body.stage-ui > main.container .stage-money-save-pair > span{
+ white-space:nowrap;
+ flex:none;
+}
+body.stage-ui > main.container .expense-box > .expense-actions{
+ flex-wrap:wrap;
+}
+body.stage-ui > main.container .expense-box > .expense-actions > .stage-money-save-pair{
+ margin-left:auto;
+}
+@media(max-width:370px){
+ body.stage-ui > main.container .stage-money-save-pair > .stage-field-save-status{
+  max-width:78px;
+  font-size:10px;
+ }
+}
