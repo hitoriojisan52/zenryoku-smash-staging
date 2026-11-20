@@ -2,7 +2,7 @@
 
 このファイルは、新しいChatGPTチャットで必ず最初に確認する**継続開発用の入口**。
 単なる実装履歴ではなく、旧アプリの業務仕様を無断変更しないための確認事項。
-更新日：2026-11-20。**検証用main現行版：v0.16.77（PR #88/#89、GAS既存Webアプリ @43）。次の開発対象：v0.16.78（現金確認読込青枠1つ・初期プルダウン空欄・初回/手動読込中の更新非活性）**。現金確認・全体収支管理表の業務仕様は維持、帳簿差異警告も維持。自動更新中は操作を止めない旧ルールを守る。v0.16.78は現時点では実機未受入、本番未反映。各CI、Pages、GAS、Worker、LINE実機を独立に照合する。
+更新日：2026-11-20。**最新の検証main：v0.16.78（PR #90統合、SHA 462f8a87001d6dcca057721e0b2319c8f81c623e）**。3系統CI成功、Pages・Worker Builds・公開LINE GET-onlyスモーク成功。GASの検証用既存デプロイは **@44**。ユーザーの現金確認画面スクリーンショットに基づき青い読込枠を1つに集約、初期選択欄空白、前景読込中の更新ボタンを非活性化。従来の自動更新中の操作許容・既存会計ルールは維持。LINE実機受入は未完了。本番変更なし。
 
 ## 1. 最優先原則
 
@@ -310,3 +310,14 @@
 - `cashStatus` は読込中はhidden、帳簿行なし／残高変更等の警告のみ表示。上部 `stage-inline-read-status` の既存回転スピナーで取得・照合の段階を伝える。現金残高・金種・保存・収支確定のロジックは不変更。
 - 運用管理の閲覧ダイアログと集金画面、対戦表作成・閲覧にも初期選択肢・更新ボタン制御を適用。ゲスト対戦表・権限管理は従来の更新中非活性を維持。
 - 追加回帰テスト `tests/check-stage-foreground-read-v1678.cjs`、[詳細設計・受入チェック](stage-v1678-single-cash-read-blank-selects.md)。**本番更新には明示的な事前承認**。
+
+### v0.16.78 検証デプロイ結果
+
+## v0.16.78 — 検証版の統合・自動テスト・公開状況（2026/11/20）
+
+- [PR #90](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/90) mainへ統合（SHA `462f8a87001d6dcca057721e0b2319c8f81c623e`）。**UI・GAS安全性・仕様優先順位の3系統CI合格**。
+- 新規`tests/check-stage-foreground-read-v1678.cjs` **45/45件**、旧現金確認 **87/87件**、旧v15会計確定順序 **28/28件**、ビジターv0.16.77確定過去日 **29/29件** 自動検証合格。
+- [GitHub Pages](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44670439100) build/deploy成功。
+- [検証用GAS既存Webアプリ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44670439783) 自動デプロイ成功（ログ `Redeployed *** @44`）。GASの実ソースはv0.16.77から変更せず、CIワークフロー改修のためデプロイが走った。新規Webアプリの作成は行っていない。
+- [Cloudflare Worker Builds](https://github.com/hitoriojisan52/zenryoku-smash-staging/commit/462f8a87001d6dcca057721e0b2319c8f81c623e/checks)成功。Worker本体の変更なし。[公開LIFF・Worker GET-onlyスモーク](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44670439677)成功。
+- **LINE実機受入は未完了**。スクリーンショットでの重複青枠・初期プルダウン・更新ボタンの実動作は、v0.16.78のLINE実機を開いて再確認する。自動試験・疎通・デプロイを実機成功と混同しない。本番は事前承認まで未変更。
