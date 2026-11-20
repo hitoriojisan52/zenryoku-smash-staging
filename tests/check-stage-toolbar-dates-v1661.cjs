@@ -91,12 +91,12 @@ ok(win.SMDate.practiceLabel({...test,startTime:'09:00'})===win.SMDate.practiceLa
  'single-digit hour and existing zero-padded time are consistent');
 ok(ui.includes('window.SMDate.practiceLabel(p),p.practiceId')&&
  visitor.includes('label:practiceOption(p)')&&
- visitor.includes('w.SMDate.upcomingPractices(practices)'),
+ visitor.includes('const selectable=p=>'),
  'participant and visitor selectors share detailed practice labels');
 ok(!visitor.includes("{value:'all',text:'すべての日程'}")&&
- visitor.includes('r.date<today')&&
+ visitor.includes('p.date<today&&confirmed.has(p.practiceId)')&&
  visitor.includes('unique.has(previous)?previous'),
- 'all/past dates excluded and manually chosen future date preserved');
+ 'all-dates omitted, confirmed past filtered and manual date selection preserved');
 ok(html.includes('date-format.js?v=1664')&&html.includes('visitor-approval.js?v=1676-responsive-reads')&&
  html.includes('dialog-close.js?v=1673-receipt-close')&&html.includes('stage-ui.css?v=1676-responsive-reads')&&
  html.includes('live.js?v=1676-responsive-reads'),
