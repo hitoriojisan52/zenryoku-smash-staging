@@ -23,6 +23,7 @@ jobs:
           node-version: '22'
       - run: python3 scripts/d1-staging-check.py
       - run: python3 tests/check-d1-business-schema.py
+      - run: node scripts/d1-staging-remote-smoke.cjs self-test
       - run: node scripts/d1-staging-config.cjs self-test
   migrate-stage:
     needs: local-safety
@@ -68,3 +69,11 @@ jobs:
         run: |
           npx --yes wrangler@4 d1 execute zenryoku-smash-staging-d1 --remote --config d1-staging/.wrangler.staging.runtime.json --command "SELECT COUNT(*) AS probe_count FROM stage_d1_bootstrap;"
           echo "Staging D1 migration and read-only smoke completed; no API/Worker/Sheets data changed." >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify all 20 business tables exist and contain no imported data
+        if: steps.setup.outputs.ready == 'true'
+        shell: bash
+        run: |
+          SQL="$(node scripts/d1-staging-remote-smoke.cjs sql)"
+          npx --yes wrangler@4 d1 execute zenryoku-smash-staging-d1 --remote --json --config d1-staging/.wrangler.staging.runtime.json --command "$SQL" > "$RUNNER_TEMP/d1-stage-schema-smoke.json"
+          node scripts/d1-staging-remote-smoke.cjs verify "$RUNNER_TEMP/d1-stage-schema-smoke.json"
+          echo "Verified 20 staging D1 business tables with zero imported business rows." >> "$GITHUB_STEP_SUMMARY"
