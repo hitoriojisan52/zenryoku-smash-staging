@@ -44,7 +44,7 @@ const dialogMap={
  stageErrorDialog:['stageErrorOkay']
 };
 const blocks=[...html.matchAll(/<dialog\s[^>]*\bid="([^"]+)"[^>]*>([\s\S]*?)<\/dialog>/g)];
-ok(blocks.length===31,'expected 31 modals including self-role confirmation');
+ok(blocks.length===32,'expected 32 modals including tester registration and self-role confirmation');
 ok(Object.keys(dialogMap).length===31,'inventory intentionally covers every dialog');
 for(const [,id,body] of blocks){
  ok(Object.hasOwn(dialogMap,id),'new or removed dialog must be reviewed: '+id);
