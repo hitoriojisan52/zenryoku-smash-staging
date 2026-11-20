@@ -570,3 +570,13 @@
 - **新しい回帰試験**：`tests/check-stage-money-status-confirm-gate-v1692.cjs`（実GAS確定順序、当日/未来日、実renderHomeの理由表示と状態、保存ステータスCSSとレイアウト）、`stage-ui-check.yml`に追加。既存GAS/Workerソースは無変更。
 - **未完了**：このPRの全CI・マージ・Pages/Workers Builds/公開GET-only疎通を確認して記録する。ユーザーによるLINE実機での保存状態位置・警告文、会計11/19の2行の適切な確定・11/21ボタン再判定は未実施。引き続きUI動作と本番反映は別管理。
 - 詳細：[v0.16.92原因と対応](stage-v1692-amount-status-ledger-confirm-reason.md)／[検証用LIFF](https://liff.line.me/2012602642-XBSkXduO)。GASは従前の検証@50のまま、本番環境変更なし。
+
+
+## 51. v0.16.92 検証UI修正のCI・公開完了（2026/11/21）
+
+- [PR #119](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/119)：GAS `safety-check`、UI `payment-and-ui-safety`、`spec-contract` の**3系統すべて成功**後、main `afbd21baaa0a1c144828effbea69b26055cb0952` へマージ。既存のCSSキャッシュキー検証、古いコンパクト幅テスト、現場保存状態テストに適合するようモック/スタイルを調整し、全回帰成功。従来の暗黙仕様を削除してテストを通したわけではない。
+- [GitHub Pagesデプロイ](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44763488644) **build/deploy/report-build-status すべてsuccess**、同SHAの **Workers Builds: zenryoku-smash-staging-api success**（Workerコード不変更）、[公開GET-only疎通](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44763492363) **success**。検証用GASコード不変更のため既存@50を維持、GAS更新ワークフローは不要/未実施。本番は不変更。
+- 修正確認の範囲：CSSとHTMLの構造テストで「当日補正/当日支出のフィールド保存状態は入力右でなく下段」「青い処理中スピナー・緑成功」「保存結果不明時の手動更新」の条件を検証。実際のLIFFスマートフォン画面での配置確認は**未受入**。
+- **11/21収支の最新照合**：当日自動補完された収支行（`ledger.auto` 操作履歴あり）を確認済み。非活性の原因は11/19の立替精算5,200円、その他の収支10,000円の**2行がopen**なため。旧v15の先行行確定の順序を保持し、GAS `canConfirm` に連動する黄色の理由案内を追加したのみ。対象行の手動確定やSheet直接変更はしていない。
+- **次**：実機[検証用運用管理LIFF](https://liff.line.me/2012602642-XBSkXduO)で当日補正を保存して下段表示を確認し、11/21の「収支を確定」が灰色・黄色理由表示であることを確認。11/19の未確定2行をユーザーの判断で正しく確定した場合のみ再読込後の11/21活性を確認する。操作順序や金額に懸念があれば未確定のまま保留する。
+- 直近の性能診断では `/api/overview` が最長10,646ms、`/api/payment` が最長9,396ms等の例がある。新UI修正がこの数秒待ちを解消したとは言わない。性能改善、LINE利用申請の別テスターの完了までの受入は引き続き別件。
