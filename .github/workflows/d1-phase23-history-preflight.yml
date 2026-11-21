@@ -21,15 +21,20 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Verify schema constraints on synthetic records in SQLite memory only
+      - name: Verify actual candidate D1 schema constraints with fictional SQLite rows
         run: python3 tests/check-d1-phase23-history-preflight.py
-      - name: Guard against any remote network or real migration in Phase23 test
+      - name: Verify offline-only test without remote calls or silent replacement
         run: |
           python3 - <<'PY'
+          import ast
           from pathlib import Path
-          script=Path("tests/check-d1-phase23-history-preflight.py").read_text()
-          assert "sqlite3.connect(\":memory:\")" in script
-          forbidden=["urllib", "requests", "cloudflare", "googleapis", "D1_STAGE_", "subprocess", "os.environ", "INSERT OR REPLACE", "INSERT OR IGNORE", "https://"]
-          assert not any(word in script.lower() for word in forbidden), "REMOTE_OR_SILENT_REPLACEMENT_GUARD"
+          source=Path("tests/check-d1-phase23-history-preflight.py").read_text()
+          tree=ast.parse(source)
+          imports=[n.names[0].name.split('.')[0] for n in ast.walk(tree) if isinstance(n,ast.Import)]
+          imports += [n.module.split('.')[0] for n in ast.walk(tree) if isinstance(n,ast.ImportFrom) and n.module]
+          assert set(imports)<=set(["pathlib","sqlite3"])
+          assert 'sqlite3.connect(":memory:")' in source
+          sql_strings=[n.value.upper() for n in ast.walk(tree) if isinstance(n,ast.Constant) and isinstance(n.value,str) and n.value.strip().upper().startswith("INSERT")]
+          assert not any(" OR REPLACE" in s or " OR IGNORE" in s for s in sql_strings)
           print("PHASE23_OFFLINE_ONLY_PASS")
           PY
