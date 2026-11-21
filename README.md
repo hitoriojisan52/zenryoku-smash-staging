@@ -179,3 +179,6 @@
 
 
 **v0.16.75検証反映（2026/11/20）**：[PR #84](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/84) はUI/GAS/仕様CI成功。GAS既存デプロイ`@42`、Pages、Workers Builds、公開LIFF/Workerスモーク成功。集金画面の起動速度および復旧の実機確認はまだ未実施。LINE本人参加連絡E2Eは一時停止し起動復旧を優先。本番未変更。[詳細](docs/stage-v1675-startup-performance.md)。
+
+
+**D1第23工程（準備中、2026/11/21）**：第22工程のユーザー判断「旧3シート会計履歴を旧Google READ ONLYで維持（A・推奨）／将来のD1参照専用履歴アーカイブを設計（B）」は**未決定**。いずれも業務用D1への実移送・コピー・本番反映の承認ではない。既存20表DDLを実際に使用する、架空値/SQLiteメモリのみの出欠履歴構造試験を追加し、現行マスタにない過去日程のFK拒否、同一D1参加者IDに複数版を保存できないPK制約をテストする。現実のメール+日程重複とD1参加者ID重複は同一とは断定しない。[第23工程の準備と判断](docs/D1_PHASE23_HISTORY_MIGRATION_PREFLIGHT.md)／[引継ぎ第115節](docs/SESSION_HANDOFF.md)。旧SHA46版と会計・本人・権限・保存/復旧No-Go、47 API GAS_ONLY、性能改善/LINE連携保留、本番事前承認制は維持。**PR/CI・デプロイ結果は別途確認後のみ完了扱い**。
