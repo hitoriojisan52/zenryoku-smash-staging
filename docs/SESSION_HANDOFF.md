@@ -1209,3 +1209,14 @@
 - PR [Phase22 offline #44886028091](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44886028091)、[Phase21 offline #44886028080](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44886028080)、[D1 schema #44886028079](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44886028079)、[spec #44886028070](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44886028070) **all success**。main [Phase22 offline #44886073739](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44886073739)、[Phase21 offline #44886073738](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44886073738) **success**。main [GitHub Pages #44886073116](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44886073116) build/deploy/report **success**、[既存Worker Builds](https://dash.cloudflare.com/5817f07a73dbb56011012074ce1b11c5/workers/services/view/zenryoku-smash-staging-api/production/builds/3a885d24-5b41-46e7-80ad-de3e538df597) **success**。既存47 APIはGAS_ONLY、業務Worker/実D1/元Sheets/非共有バックアップ/LINE/LIFF/本番への変更なし。**Cloudflare D1業務表の最新行数は本工程で再計測していない**。
 - **残存No-Go**：旧試合SHA不一致46版、過去フォーム回答73件の履歴方針と同キー11件、旧会計6日付行が現行openingへ既に繰り越されたか、旧3タブの参照履歴の保存/管理者閲覧、会計残高/確定順序/退会/本人権限/領収書の全機能同値、実データ同意/バックアップ・コピー・移送/復旧、本番、全47API切替。性能改善・LINE機能拡張はD1完了まで保留。
 - **次のユーザー判断（停止地点）**：旧3シート版固有の過去会計日付を A「現GoogleのREAD ONLY参照のみで保持（推奨・移行先には含めない）」か B「D1の現役ledger_rowsと完全に分離した将来の参照専用旧履歴アーカイブを設計する」。Bでも実データ移送/複製/本番適用の承認ではない。どちらも旧Google原本は削除せず、opening残高の照合は別途必要。
+
+
+## 115. D1第23工程開始：旧会計A/B判断を維持した過去出欠の無損失移行・構造ゲート（2026/11/21）
+
+- 最新main `252595d6808247a94cd85dde89c06f3122e73052`、第114節、README、SPEC_PRIORITY_POLICY、13シート正本候補の確定仕様、第21/22工程、D1候補`0002_business_skeleton.sql`を確認。性能改善・LINE連携拡張はD1移行完了まで引き続き保留。
+- **第114節の未決定事項は未決定のまま**：旧3シート会計履歴A=旧Google READ ONLYで保持（推奨）か、B=将来のD1参照専用アーカイブの設計か。ユーザーの選択なしにBを採用しない。旧会計の現行openingへの繰越・残高の重複、原本保持/閲覧権限/期間、全47 APIの安全な切替は別判断。
+- **判断に依存しない非破壊準備**：`tests/check-d1-phase23-history-preflight.py`に元の業務20表DDLを直接ロードする完全架空・SQLite `:memory:` 試験を追加。過去日程が現在`practices`にないと`attendances`の外部キー違反となる点、同一`practice_id+participant_id`に複数の出欠版を上書きなしで格納できない点を再現。現実のメール+日程重複11行が同じparticipant_idだとは断定しない。過去回答73件を自動削除・日程再受付・本人ID推測/自動再集計しない。
+- 新規[`D1_PHASE23_HISTORY_MIGRATION_PREFLIGHT.md`](D1_PHASE23_HISTORY_MIGRATION_PREFLIGHT.md)に旧Google会計A/B比較、履歴保護と今回の技術的制約を記録。`.github/workflows/d1-phase23-history-preflight.yml`は認証情報とリモートアクセスを使わないPR/main **offline専用**のテスト。Google/Cloudflare/GAS/LIFF/既存Worker/実D1/本番/設定済みID・URL・Secret・個人情報/領収書への書込み・複製・移送なし。
+- **この節の作成時点でCI/PR/main統合/Pages/Worker Buildの結果は未確認**。確認後、実行した範囲のみ別節に追記する。旧SHA不一致46版、旧会計6行のopening含有判定、過去日程の原本保全・複合キー履歴方式、実データ移送/同意・権限・復旧・本番切替はNo-Goを維持。
+- 次はPR CIの実行確認と検証main統合可否を判断し、未承認の業務仕様変更・実データ取込を避ける。その後ユーザーに旧会計履歴A/Bを提示。ユーザー作業は選択/確認のみ。
+
