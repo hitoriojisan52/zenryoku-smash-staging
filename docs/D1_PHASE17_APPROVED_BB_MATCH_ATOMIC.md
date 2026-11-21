@@ -48,3 +48,13 @@ Cloudflareに新たな課金設定、Secretsの公開、追加DB/Worker作成、
 ## 判定・次工程
 
 GitHub CI/実Cloudflare結果とPages/既存Worker Buildsを別途確認し、未実施の試験をPASS扱いしない。架空版の原子的更新PASS後は、**本番相当の会計一括CAS/収支順序/残高と試合SHA問題の解析・移行可否**を別に検討し、実データに触れる前の次のユーザー判断地点で停止する。
+
+
+## 2026/11/21 実Cloudflare第17工程の実測・確定結果
+
+- [PR #176](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/176) で確定仕様B/B・第17工程の独立試験Worker/SQL・オフライン SQLite/mock/旧GAS回帰を実装。[初回CI #44879946818](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44879946818)は**試験Python側のSQL bind数誤り**で失敗し、SQL/業務データは変更せず引数を修正。[再実行後PR Actions #44879991875](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44879991875)、[D1 schema #44879991821](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44879991821)、[spec-contract #44879991837](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44879991837)はすべて**success**。PRは検証main `2bc56a7a36cc8e76ddb0a3006336791497c79b09` へsquash統合。
+- [main実Cloudflare Actions #44880055446](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44880055446)でoffline job success、[独立Worker deploy/probe job #136773177759](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44880055446/job/136773177759) **success**。元検証D1全20表0行・別D1の架空業務fixture件数をpreflightで照合し、既存専用Worker（ownership ours）のみdry-run/deploy/一時Bearer設定。旧Phase15 native batchとPhase16同時HTTP CASもそれぞれ再試験PASS。
+- 実HTTPログ `PHASE17_APPROVED_BB_REAL_PASS`：架空試合で**監査CHECK違反 → Native batch全体巻戻し → version0/revision0/audit0**。正常時はversion1/revision1/audit1（有効版あり）を同時に保存。同じ操作IDの再送は無書込みで成功、**別対象へのID再利用は409拒否**、別対象で同じIDの**並列2リクエストは1成功/1拒否**（敗者に孤立した版/ポインタ/監査は残らない）。401/400のアクセス制御も確認。リモート第17工程の追加書込は**新設テスト用3表だけ**。現行業務20表/旧試合版/実運用原本には一切書かない。
+- **独立の事後読み取り** `FINAL_READ_ONLY_CHECK_PASS: OLD_D1_20_TABLES_ZERO_ROWS; NEW_D1_GENERATED_FIXTURES_ONLY`。元検証D1全業務20表0行/bootstrap0行、独立架空D1の第14工程で投入した業務fixture件数が不変。実証用のテスト表/架空行は自動削除しない。
+- 同main [GitHub Pages #44880054870](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44880054870) build/deploy/report-build-status **success**、[既存Worker Builds](https://dash.cloudflare.com/5817f07a73dbb56011012074ce1b11c5/workers/services/view/zenryoku-smash-staging-api/production/builds/d5e54581-92fb-4b5c-a18e-5a86ac98cc70) **success**。これらは業務APIの移行や本番Worker変更を意味しない。
+- **成果範囲**：第17工程の承認B/B仕様をWorker-native架空トランザクションで技術的に実証。**未完成**：本人/権限、実試合版JSON/SHA/UTF-16チャンク、操作IDの全業務API適用、会計の多行残高/確定順/監査、46版の旧架空SHA不一致、実データ安全な移送・復旧。本番/既存47 GAS_ONLY APIへの反映は行わない。性能改善とLINE機能開発もD1完了まで保留。
