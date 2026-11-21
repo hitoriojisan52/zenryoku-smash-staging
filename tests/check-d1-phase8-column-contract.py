@@ -49,8 +49,10 @@ def check():
 
     source = GAS.read_text(encoding="utf-8")
     # Compare the *actual* GAS header list with this documented header order.
-    start = source.index("function ensureSheets_")
-    region = source[start:start + 15000]
+    start = source.index("  headers: {")
+    end = source.index("  fees: {", start)
+    region = source[start:end]
+    non_sm_tabs = {"試合セッション", "試合版管理", "試合操作履歴", "閲覧リンク", "退会履歴"}
     for e in entries:
         name = e["source"]
         expected = e["headers"]
@@ -59,8 +61,10 @@ def check():
         if match:
             found = re.findall(r"'([^']*)'", match.group(1))
             assert found == expected, f"GAS header drift: {name}"
-        # Missing header declarations are handled by the live-sheet audit;
-        # no assumption is made about absence of historical sheet metadata.
+        else:
+            assert name in non_sm_tabs, f"Unexpected GAS header absent: {name}"
+        # Other five tabs are defined in separate legacy/match sections;
+        # their physical header order was read from the staging sheet.
     memberships = next(e for e in entries if e["source"] == "チーム所属")
     assert memberships["kind"] == "state_with_duplicate_source_rows"
     assert memberships["logical_key"] == ["teamId", "memberId"]
