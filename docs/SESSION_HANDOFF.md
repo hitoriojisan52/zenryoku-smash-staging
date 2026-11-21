@@ -989,3 +989,14 @@
 - `.github/workflows/d1-phase14-account-preflight.yml`：PRでは架空self-testと現行GAS回帰、mainに統合後は既存GitHub Environment `d1-staging`のD1トークンを使うGET専用遠隔チェック。レスポンス本文/DB UUID/契約内容/Secretsはログに出さず集計とエラーコードのみ。D1 CIにもmock自己検査を追加。
 - 第13工程のGoogle Driveネイティブコピーは1件保管継続、全21タブ/2,641入力セル同値、ready版46/46 SHA不一致は移行禁止。既存47 APIはGAS_ONLY。現行会計/権限/退会/試合処理とデプロイ設定を変更しない。
 - **この節の時点では未確認**：PR/CI、Cloudflare実プランとD1数、リモートDB作成/架空SQL、GitHub Pages・既存Workerビルド。成功確認後に続く節へ記載。ユーザーの確認が必要なのは、契約情報がAPIで検証できない場合のWorkers Free/Paidと追加費用の有無（アカウント/カード情報・トークンは共有不要）。
+
+
+## 94. D1第14工程 PR #163／Cloudflare GET事前確認完了・無料プラン立証不可で作成停止（2026/11/21）
+
+- ユーザーは既存`zenryoku-smash-staging-d1`と分離した`zenryoku-smash-d1-atomic-fixture-stage`**一時DB1件のみ**を、無料枠/既存利用状況・追加課金の有無が確認できた場合に限って作成し、プログラム生成架空値だけで実SQL試験する案を承認済み。Cloudflare Workers/D1契約の裏付けが取れない場合、**DB作成・リモート試験は停止する**条件。
+- [PR #163](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/163)でCloudflare D1 APIへのGET限定`scripts/d1-atomic-fixture-preflight.cjs`と隔離Actions`.github/workflows/d1-phase14-account-preflight.yml`、架空mock fail-closed、[第14工程の費用/承認境界](D1_PHASE14_ISOLATED_FIXTURE_PREFLIGHT.md)、README/引継ぎを追加。既存47 API GAS_ONLY、会計・退会・試合・個人情報・Sheets原本/コピー/本番/Worker/LIFF/D1 0行ガード不変。
+- PRでは [offline-contract](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44857907497) **success**、[D1 schema-safety](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44857907435) **success**、[spec-contract](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44857907431) **success**。main `5139ea682e3123d29bf769849c777e3985430ef7` にsquash統合。
+- **実Cloudflare GET**：[Actions #44857950109](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44857950109)のoffline-contractとcloudflare-readonlyは**success**。ログ上`Existing D1 database count: 1`、`D1 read-only billing/capacity preflight: BLOCKED`、`Status codes: WORKERS_FREE_PLAN_NOT_PROVEN`。固定検証アカウント・既存DB名/UUID・新DB重複なし・Free件数とストレージ余裕はすべて合格。**Workers Freeの契約種別をAPI応答から立証できない**ため作成不可。実際のプランがFree/Paidのどちらかは未確定。Billing Read権限不足など原因も未確定であり、GitHub Secretの権限拡大/ユーザーに秘密値送付を要求しない。
+- 同mainの[GitHub Pages Actions #44857949495](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44857949495) build/deploy/report-build-status **success**。既存Worker Buildsの完了状態は個別チェックで最新確認して未完了を完了としない。
+- **次ユーザー確認（必要）**：[Cloudflare Dashboard](https://dash.cloudflare.com/)で検証用アカウントの**WorkersプランがFreeかPaidか／新しいD1 1DB＋少数の架空行で追加料金が発生しないか**だけを確認。カード・トークン・アカウントIDは不要。確認前には**新規D1/DDL/実SQL・Worker/Binding/Secret変更を一切しない**。確認後も新規API実装・GAS/LIFF/本番の切替は独立レビュー/承認。
+- 第13工程の検証用ネイティブコピーは非共有ownerのみ、全21タブ・2,641セル差分0、試合46/46 SHA不一致と業務移行BLOCKEDを維持。本番原本バックアップ/不一致原因の真正性・GAS Date/領収書・退会/会計/試合のD1本実装/LINE認証/本番は未完了。
