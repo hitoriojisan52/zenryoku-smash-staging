@@ -220,7 +220,7 @@ def accounting_tests():
             "ALREADY_CONFIRMED", db)
     blocked(lambda: ledger(db, actor=MEMBER, op_id="FICT-LEDGER-3"),
             "FORBIDDEN", db)
-    blocked(lambda: ledger(db, row=R, op_id="FICT-LEDGER-4", action="unlock", version=3),
+    blocked(lambda: ledger(db, row=R, op_id="FICT-LEDGER-4", action="unlock", version=3, actor=ADMIN),
             "NOT_CONFIRMED", db)
     blocked(lambda: ledger(db, row=PLEDGER, op_id="FICT-LEDGER-5",
                            action="unlock", version=4),
