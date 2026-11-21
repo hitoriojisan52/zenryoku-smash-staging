@@ -48,7 +48,7 @@ assert len(read_active())==3 and len(old)==3
 balance=calc(baseline)
 assert balance==1950
 assert sum(1 for r in baseline if r[6]=='confirmed')==2
-assert all(r[2]<canonical[0][1] for r in old)
+assert all(r[1]<canonical[0][1] for r in old)
 
 # The CHECK and a separate view prohibit old records from becoming live.
 try:
