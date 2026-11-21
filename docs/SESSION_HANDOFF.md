@@ -979,3 +979,13 @@
 - 新規CI：[D1 schema-safety Actions #44856740572](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44856740572) **success**、[spec-contract Actions #44856740619](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44856740619) **success**。既存会計確定順・参加連絡・退会再入会・試合・全47 API GAS_ONLY、過去のD1架空安全検証もCI回帰成功。PRを検証用main **`b38002ef391de0b7912567b37e6c758530c88b22`**にsquash統合。同SHAの[GitHub Pages Actions #44856785431](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44856785431) build/deploy/report-build-status **すべてsuccess**、`Workers Builds: zenryoku-smash-staging-api` **success**。GAS/既存Worker/独立パイロットWorkerの業務ソース/設定、リモートD1スキーマ・行、既存URL/Secret/LINE/LIFF・本番には手を加えていない。
 - **次のユーザー承認を要する境界**：既存の0業務行維持を義務とする`zenryoku-smash-staging-d1`へは投入せず、**別の一時D1`zenryoku-smash-d1-atomic-fixture-stage`1DB**をCloudflare上の同じ検証アカウントに（Free枠/実契約/DB枠と最小権限を作成前に確認できた場合のみ）作成し、**全く新しく生成した架空会員/集金/収支/試合の固定レコードだけ**で実SQLの型/版数/CAS/二重送信/ロールバックを確認する提案。既存スプレッドシート原本とバックアップのデータは**一切D1へ転送しない**。既存Worker・専用read-only Workerの変更、Binding/Secret/公開経路変更、試合SHA書換、本番は別の事前承認制。
 - **未実行**：一時DBの作成・リモート架空データ投入・実Cloudflare batch検証、Google Sheet/GASの実復旧、試合SHA46件の調査完了、原本会計/個人情報/添付領収書の業務移行・権限と監査/退会、Read Shadow、本番移行。新規コピーは削除しない（検証終了後30日を目安にユーザー判断）。次のチャットは本章および第13工程設計を基準に**新規D1作成には明示承認を待ち**、承認がなければ非破壊オフライン作業に限定。性能改善とLINE機能拡張はD1移行後まで保留。
+
+
+## 93. D1第14工程：別D1実SQLテスト承認済み、費用/アカウント・既存D1の事前確認ゲート追加（2026/11/21）
+
+- ユーザーは、検証アカウントの既存`zenryoku-smash-staging-d1`とは**別の独立一時Cloudflare D1`zenryoku-smash-d1-atomic-fixture-stage`を1つだけ新規作成**してプログラムで生成した架空値のみで実SQL/会計・試合のCAS/ロールバックを検証する案を明示承認。ただし**無料枠・既存DBの利用状況・追加課金がないことを作成前に検証し、確認不能/追加費用ありはSTOP**。元Google Sheetsと承認済コピーの内容、会員/LINE識別子、領収書等は投入しない。既存DBの20業務表/0行ガードも維持。
+- Cloudflare公式のWorkers Free D1は1アカウント**10 DB、1 DB最大500MB、合計5GB**。既存DBが9未満で十分小さいだけでは利用プランFree証明にならない。D1 Edit-onlyトークンではWorkers Billing Readの可視性が不足する可能性がある。[第14工程の独立検証ゲート](D1_PHASE14_ISOLATED_FIXTURE_PREFLIGHT.md)。
+- `scripts/d1-atomic-fixture-preflight.cjs`はGitHub Actions上の**GETのみ**のCloudflare API照合。既存検証アカウント固定ID・既存D1の名前/UUID、対象名との衝突、既存DB 9件以下・既存サイズ4GiB未満を照合。契約情報APIで**Workers Freeと明示確認できた時のみ**次段作成候補、Workers Paid/契約情報読み取り不可なら**BLOCKED**。新規DB作成・業務データ書込・Worker配備・Binding・Secret変更・本番反映を行わない。ユーザーに契約/請求を無断変更させない。
+- `.github/workflows/d1-phase14-account-preflight.yml`：PRでは架空self-testと現行GAS回帰、mainに統合後は既存GitHub Environment `d1-staging`のD1トークンを使うGET専用遠隔チェック。レスポンス本文/DB UUID/契約内容/Secretsはログに出さず集計とエラーコードのみ。D1 CIにもmock自己検査を追加。
+- 第13工程のGoogle Driveネイティブコピーは1件保管継続、全21タブ/2,641入力セル同値、ready版46/46 SHA不一致は移行禁止。既存47 APIはGAS_ONLY。現行会計/権限/退会/試合処理とデプロイ設定を変更しない。
+- **この節の時点では未確認**：PR/CI、Cloudflare実プランとD1数、リモートDB作成/架空SQL、GitHub Pages・既存Workerビルド。成功確認後に続く節へ記載。ユーザーの確認が必要なのは、契約情報がAPIで検証できない場合のWorkers Free/Paidと追加費用の有無（アカウント/カード情報・トークンは共有不要）。
