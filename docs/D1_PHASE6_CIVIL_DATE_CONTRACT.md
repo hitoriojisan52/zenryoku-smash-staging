@@ -39,6 +39,13 @@
 - `tests/check-d1-phase6-civil-codec.py`：**架空データのみ**でJST/UTC日跨ぎ、年跨ぎ、うるう年、DATE/TIME/DATE_TIME、文字列、秒精度、ブール値・NaN/Infinity・無効日付・意図しない書式・入力重複の拒否をチェックし、GASのdate/clock/audit契約と既存47 API `GAS_ONLY` ガードを照合。
 - `.github/workflows/d1-staging-check.yml` に新規PRゲートを追加。旧会計・出欠・退会・試合およびD1の第5工程ガードは残す。
 
+### 操作履歴を保護する候補（今回追加）
+
+- `d1-staging/phase6/audit_preflight.py`は操作IDを**全行で一意・欠落なし**と確認し、元の`resultJSON`を解析できる**JSONオブジェクト**であることを検査するが、保存文字列は再シリアライズせず**原文のまま保持**。日時は前述の暦日コーデックで検証し、`timestamp_raw`は既存GASのJST秒形式、`timestamp_source`は元の数値文字列/生文字列を保持する。処理順序は元の行順を崩さない。
+- `attendance_audit_window`で`attendance.submit`の`targetId`ごとに初回・最終報告日時をJST文字列の辞書順で求める（旧`attendanceAuditDates_`の動作）。これらは**架空ケースの同値確認**であり、全出欠履歴の本物の移行実証ではない。
+- `tests/check-d1-phase6-audit-preflight.py`は架空イベントのみで重複/欠落/不正JSON/不正日時を拒否し、現行D1スキーマの`operation_audit`に`members`表に存在しない**退会済み架空actorMemberIdを保持**できることをSQLiteメモリで検証する（退会時に監査へFKを貼らない旧仕様）。実際の退会や会員情報を参照しない。
+- 2026/11/21、検証用Sheetの`操作履歴!A2:F211`（**210行**）を**読み取り専用**で匿名構造監査し、空の操作ID・重複操作ID・空のoperation/actorId/timestamp/resultJSON・不正JSONの**すべてが0件**、resultJSONは210/210行がJSONオブジェクトであることを確認。LINEユーザーID・名前・JSON本文・操作ID・金額はリポジトリと報告に出力していない。この限定監査は他の履歴・アーカイブ/過去日付での網羅的保証ではない。
+
 ## 4. 未完了・移行の受入ゲート
 
 - **今回のコードはGoogle SheetsやCloudflareに接続しない**。GitHub Pages/既存Worker/GAS・D1パイロット・D1スキーマとデータを変更しない。公開APIから参照できるコードでもない。
