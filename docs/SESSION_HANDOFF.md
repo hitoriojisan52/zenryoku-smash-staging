@@ -1237,3 +1237,12 @@
 - **安全な実装**：`d1-staging/analysis/phase24-approved-source-guard.mjs` で旧3タブサンプルと架空21タブを migration planning から除外し、現13タブのみ**計画可**、実コピー/D1書込/本番切替は常に別承認が必要なfail-closed gate。架空のソース役割のみの`tests/check-d1-phase24-sample-source-exclusion.mjs`とoffline専用Action追加。**将来の実移行パイプラインには未接続**、これだけで実データ移行安全性を保証しない。
 - **未完了/残存No-Go**：現13シートの過去フォーム回答73件は現在日程マスタ9件の範囲外、メール+日付反復11行もあり、元回答の履歴・本人/LINE ID識別・D1 FK/PKを無損失で表現する方針未確定。現13シートの収支確定順、opening/繰越/確定済み残高、料金・排他・権限・領収書、旧架空試合SHA不一致46版の改変禁止、47 API GAS_ONLYと実データ同意/バックアップ・本番切替No-Go継続。D1移行完了まで性能改善・LINE機能拡張は保留。
 - **今回の変更範囲**：GitHub上の文書とオフライン安全ガード/架空テストのみ。**現行Google/バックアップ、Cloudflare D1/Worker、GAS、LIFF/LINE、API/データ、本番には一切変更を加えない**。PR/main CI、Pages、Worker Buildsの状態は実測の後で記録（今回の時点では未確認）。次は第24工程のオフラインテストとCI→検証用mainを確認した後、**現行13シートの履歴とD1スキーマの設計**へ安全に進む。
+
+
+## 118. D1第24工程の実測証跡：旧3タブサンプル除外を検証用mainで確定（2026/11/21）
+
+- ユーザー回答を受け、[PR #189](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/189) を検証用main `91ef9ade71ccf2a88deffcdce87b0f8d34fc0fae` に **squash統合済み**。変更はGitHub上の移行元除外ポリシー・架空role専用offlineテスト・CI・仕様/引継ぎ文書だけ。旧3シートは導入前の**サンプル電子会計帳簿**であり、`bk` に残したまま**全件D1移行対象外**。旧会計のA/B保管方針選択は消滅。最新の[確定除外仕様](D1_PHASE24_EXCLUDE_LEGACY_SAMPLE_3TAB.md)が過去の第21～23工程記録の未確認記述に優先する。
+- PR Actions：[Phase24 sample-source exclusion #44899439984](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44899439984)、[Phase21 readonly regression #44899439735](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44899439735)、[D1 schema #44899439729](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44899439729)、[spec handoff #44899439723](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44899439723) **全てsuccessを実確認**。
+- main Actions：[Phase24 #44899503086](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44899503086)、[Phase21 #44899503127](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44899503127) **ともにsuccess**。[GitHub Pages #44899502470](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44899502470) は workflow success、個別の **build/deploy/report-build-status 3ジョブ全success** を確認。
+- **未実施の確認を明示**：今回のCloudflare Worker Builds表示の現時点での再確認、Cloudflare D1リモート件数の再測定、GAS再デプロイ/LIFF/LINE実機・ユーザー受入は未実施。今回の差分にWorker/GAS/実D1/Google Sheetsのコード・値・権限の変更は含まない。**GitHub Pages検証用配信成功を本番反映・実D1移行成功と扱わない**。
+- 残存No-Go：**現13タブの過去出欠73件/反復11行の無損失表現、日程FK/本人識別、会計/収支/権限/領収書、旧架空試合SHA46版**、47 GAS_ONLY API、実データ移送と本番切替承認。次は現13タブのみを正本候補として過去の出欠・日程履歴の読み取り専用分析/架空オフライン設計へ進む。性能改善・LINE機能拡張はD1移行後まで保留。
