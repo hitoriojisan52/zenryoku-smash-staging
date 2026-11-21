@@ -1220,3 +1220,11 @@
 - **この節の作成時点でCI/PR/main統合/Pages/Worker Buildの結果は未確認**。確認後、実行した範囲のみ別節に追記する。旧SHA不一致46版、旧会計6行のopening含有判定、過去日程の原本保全・複合キー履歴方式、実データ移送/同意・権限・復旧・本番切替はNo-Goを維持。
 - 次はPR CIの実行確認と検証main統合可否を判断し、未承認の業務仕様変更・実データ取込を避ける。その後ユーザーに旧会計履歴A/Bを提示。ユーザー作業は選択/確認のみ。
 
+
+## 116. D1第23工程：架空履歴FK/PKゲートのCI成功・検証main統合（2026/11/21）
+
+- [PR #187](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/187)を検証main **`e4c318e5c04e1ac9390fe73030548e5af805ed2f`** にsquash統合。変更は`tests/check-d1-phase23-history-preflight.py`、オフライン専用Actions、[第23工程報告](D1_PHASE23_HISTORY_MIGRATION_PREFLIGHT.md)、README、第115節の5ファイルだけ。**GAS/Worker/LIFF/Google/実D1 migration/本番の業務ファイルを変更していない**。
+- PR [Phase23 offline #44898368110](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44898368110) **success**（メモリSQLiteで現行候補`0002`のFK/PK・架空過去日程拒否と上書き防止、および外部I/OなしのASTガード）。PR [SPEC #44898368035](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44898368035) **success**。main [Phase23 offline #44898407884](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44898407884) **success**。
+- main [GitHub Pages #44898407172](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44898407172) のbuild/deploy/report-build-status **全3ジョブsuccess**を確認。**既存Cloudflare Worker Buildsの今回SHAに対する結果・GASデプロイは未確認（Worker/GASソースに変更なし）**。Cloudflare D1の業務20表0行を今回新規にremote SELECTしたと主張しない。前回の第20工程実測は歴史的証跡として維持。
+- **明示的に未完了**：旧3シート会計履歴のユーザーA（旧Google参照保持・推奨）/B（分離D1参照用アーカイブの設計のみ）の判断。旧会計が現行openingへすでに含まれるか、過去73回答・同キー11行の無損失保持方式、SHA不一致46版、本人権限・会計/退会/領収書・復旧の全API同値、実データ移送/本番切替。
+- **次の作業**：ユーザーに第114節の会計履歴A/Bを選んでもらう。それまでは旧Google/13シート/D1への履歴複製・物理削除・現役会計合算・アーカイブ作成を行わない。選択後でも実データ移送/Cloudflare書込/本番は別途明示承認。性能改善・LINE連携拡張はD1完了まで保留。
