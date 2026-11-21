@@ -1000,3 +1000,13 @@
 - 同mainの[GitHub Pages Actions #44857949495](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44857949495) build/deploy/report-build-status **success**。既存Worker Buildsの完了状態は個別チェックで最新確認して未完了を完了としない。
 - **次ユーザー確認（必要）**：[Cloudflare Dashboard](https://dash.cloudflare.com/)で検証用アカウントの**WorkersプランがFreeかPaidか／新しいD1 1DB＋少数の架空行で追加料金が発生しないか**だけを確認。カード・トークン・アカウントIDは不要。確認前には**新規D1/DDL/実SQL・Worker/Binding/Secret変更を一切しない**。確認後も新規API実装・GAS/LIFF/本番の切替は独立レビュー/承認。
 - 第13工程の検証用ネイティブコピーは非共有ownerのみ、全21タブ・2,641セル差分0、試合46/46 SHA不一致と業務移行BLOCKEDを維持。本番原本バックアップ/不一致原因の真正性・GAS Date/領収書・退会/会計/試合のD1本実装/LINE認証/本番は未完了。
+
+
+## 95. D1第14工程：Workers Free表示確認・独立D1架空実SQL実装（2026/11/21）
+
+- ユーザー提示のCloudflare `Billing > Subscriptions`画面に**Workers Free / Active**、**No payment method on file** が明示されていることを画像で確認。プランの証拠写真や画面にある個人メール/請求情報はpublic GitHubに格納しない。前工程の実Cloudflare GETでは**既存D1 1件**、既存検証D1名/UUID一致、新規D1名重複なし、サイズ余裕を照合済み（Workers Free契約のAPI証明だけできずBLOCKEDだった）。Cloudflare公式Free枠10DB、1DB 500MB、アカウント5GBで、上限を超えると無料プランはクエリが拒否されるため追加従量請求ではない。
+- 既存の明示承認は**別の新規一時D1 `zenryoku-smash-d1-atomic-fixture-stage` 1件と、新規生成した架空データの実SQLテストだけ**。業務データ移送、元のGoogle Sheetと非共有コピー/保管フォルダの変更、既存D1、GAS/Worker/LIFF/バインド・Secretの変更、本番は承認されていない。
+- `scripts/d1-phase14-isolated-sql-fixture.cjs`：固定検証アカウント・GitHub main/pushと元検証D1 UUID/名前、既存DB総数<10件・サイズ上限・新規名未使用をCloudflareに**再GET**し、1回のみ別DB CREATE。作成結果とGET再同定できた専用UUIDでしかSQLを実行せず、実データのコピー・旧DB書込・DELETEやWorker公開経路変更はコード上禁止。生成架空値だけで20表の空スキーマ・集金CAS・収支日付確定順/金額・試合版CAS・二重送信冪等性・REST batch巻戻し/コミットを検証。SQL API最大70回/新DB容量2MiB未満、Cloudflare生レスポンスやUUID/LINE情報は出力しない。
+- `.github/workflows/d1-phase14-isolated-fixture.yml`：PR時は架空offline self-testとPhase12/13・会計/退会/試合・47 API GAS_ONLY回帰のみ。main push時だけ既存GitHub Environment`d1-staging`の最小D1 Tokenで一時DB作成とREST SQL試験を実行。再実行時に同名DBが存在したら停止し、勝手に繰り返し書込・削除しない。
+- [詳細と未検証](D1_PHASE14_ISOLATED_SQL_RESULTS.md)。REST batch成功でもWorkerネイティブの`D1Database.batch()`/read→compute→write競合・旧GAS実装完全同値・47 API移行・試合SHA不一致46件は別工程の検証と承認が必要。
+- **現時点ではPR/CI・main実SQL/デプロイ未確認**。GitHubの実結果を確認したら次節へ記載する。失敗した工程は成功扱いしない。独立DBは作成後無断削除しない。
