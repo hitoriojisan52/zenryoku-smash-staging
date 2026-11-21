@@ -1,0 +1,35 @@
+name: D1 Phase23 historical-response structural preflight - offline only
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/check-d1-phase23-*'
+      - '.github/workflows/d1-phase23-history-preflight.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'tests/check-d1-phase23-*'
+      - '.github/workflows/d1-phase23-history-preflight.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  offline-history-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify schema constraints on synthetic records in SQLite memory only
+        run: python3 tests/check-d1-phase23-history-preflight.py
+      - name: Guard against any remote network or real migration in Phase23 test
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          script=Path("tests/check-d1-phase23-history-preflight.py").read_text()
+          assert "sqlite3.connect(\":memory:\")" in script
+          forbidden=["urllib", "requests", "cloudflare", "googleapis", "D1_STAGE_", "subprocess", "os.environ", "INSERT OR REPLACE", "INSERT OR IGNORE", "https://"]
+          assert not any(word in script.lower() for word in forbidden), "REMOTE_OR_SILENT_REPLACEMENT_GUARD"
+          print("PHASE23_OFFLINE_ONLY_PASS")
+          PY
