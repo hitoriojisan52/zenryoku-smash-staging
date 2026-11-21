@@ -38,3 +38,17 @@
 ## 実行結果を追記すべき証拠
 
 GitHub PR、main commit、offline Checks、**isolated-cloudflare-d1** のActions結果、Cloudflare D1新規DB作成の成否、REST SQL別試験結果、Pages/Worker Buildsの別々の反映を確認して、実際の結果だけ `docs/SESSION_HANDOFF.md` に追記する。**テスト失敗は合格扱いせず、作成成功/SQL失敗のときDBを勝手に削除しない**。失敗後の修正コードも既存D1へ動くことのないよう検証する。
+
+
+## 2026/11/21 実施結果：Cloudflare新規D1 1件、既存D1とは完全に分離、架空REST SQL全7試験成功
+
+1. [PR #165](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/165)を検証main`19fe60894ad6b7d3dbb4074f3c04880ed778fd7f`にsquash統合。offline-safety / spec-contractは**成功**。[初回のmain SQL Actions #44859726039](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44859726039)では**独立D1 CREATE 1回が成功**（`ONE_ISOLATED_DB_CREATED`）。ただしスキーマ作成後の `sqlite_master`テーブル合計を**20ちょうどと誤認して検査失敗**、`SQL NOT_VERIFIED`で停止。失敗を成功として扱わず、二重CREATEもDB削除も実施せず。
+2. [PR #166](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/166)で、Cloudflare **GET / SELECTのみ**を使う別の診断を追加。[read-only Actions #44859931553](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44859931553)は**成功**。CloudflareアカウントにD1は**計2件**、元検証D1とは名前/UUIDが別の新D1を1件確認。新DB内はSQLiteカタログ**計21テーブル**、`members`は**0行**。20業務テーブル以外のCloudflare側管理テーブルが1件追加される環境差が直接原因と判断。初回は架空レコード投入前に停止。
+3. [PR #167](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/167)を検証main`7b05404ee3783090326aff9737c598ecc4f11788`に統合。CREATE API呼び出しを**完全に禁止**した回復用コードで、**元の新規DB 1件だけを作成日時/UUID/名前・20業務表の全テーブル名・9関連テーブル0行**を再検証。Cloudflare独自1テーブルを除く20表を名前で検証してから、コード生成架空データのみ投入。[再開用REST SQL Actions #44860162654](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44860162654)は**offline-contract success / isolated-sql-resume success**。Cloudflare実SQL API 40コール、結果は`PASS`。**追加DB作成なし**。
+4. 実REST SQLの結果：`PAYMENT_CAS`（集金更新競合1勝1敗）、`LEDGER_CONFIRM_ORDER`（古い行優先・二重確定拒否）、`LEDGER_MONEY`（架空金額の整合）、`MATCH_CAS`（試合有効版・version更新1勝1敗）、`OPERATION_IDEMPOTENT`（操作ID初回1/再送0）、`REST_BATCH_ROLLBACK`（制約違反後に監査行も無書込）、`REST_BATCH_COMMIT`（監査と試合履歴の2表同時書込）、**計7/7 PASS**。
+5. 一時D1は無料のWorkers Freeアカウント内に作成され、**自動削除を行っていない**。GitHubにはDB UUID/APIトークン、LINE/会員の実ID、元Sheets/バックアップの値、個々の架空IDやSQL結果本文は保存しない。元Sheet/非共有コピー/領収書・GAS/Worker/LIFF/本番の変更なし。旧検証D1へのSQL書込はコード上禁止、旧47 APIはGAS_ONLY。
+6. **今回の成功判定に含まれない事項**：Cloudflare Workerからのネイティブ`D1Database.batch()`、アプリ業務APIのD1本実装、権限/LINE認証/本人識別、本物の金銭残高計算完全一致、試合の既存SHA不一致46件、実運用データの移行/戻し、本番切替。実REST batchだけの成功をこれらの完了と誤認しない。
+
+### 追加の読取専用・元D1無変更回帰
+
+`scripts/d1-phase14-readonly-postcheck.cjs`と`.github/workflows/d1-phase14-readonly-postcheck.yml`は、新規DBと既存DBの名前/UUIDが2件で分離していることを確認したあと、**SELECTだけ**で元D1の既存20業務表/業務データ0行/Bootstrap0行、および一時DBの架空会員1/日程1/出欠1/集金済1/確定収支2/試合セッション1/readyチャンク3/監査2/試合監査1を検証する。ユーザー個人情報や行本文は出力しない。PR時はモックのみ、main統合後のクラウド結果を追加引継ぎ節へ記録する。これはあくまで**既存D1は旧0行仕様を維持している**という最後の確認であり、本番D1正本移行の承認ではない。
