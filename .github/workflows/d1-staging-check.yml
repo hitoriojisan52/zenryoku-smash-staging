@@ -10,6 +10,8 @@ on:
       - 'tests/check-d1-phase5-route-parity.cjs'
       - 'tests/check-d1-phase5-schedule.py'
       - 'tests/check-d1-phase5-membership.py'
+      - 'tests/check-d1-phase6-civil-codec.py'
+      - 'tests/check-d1-phase6-audit-preflight.py'
       - 'cloudflare-worker/worker.js'
       - 'gas-staging/コード.gs'
       - '.github/workflows/d1-staging-*.yml'
@@ -41,6 +43,10 @@ jobs:
         run: python3 tests/check-d1-phase5-schedule.py
       - name: Block lossy team membership history import with fabricated duplicate keys
         run: python3 tests/check-d1-phase5-membership.py
+      - name: Guard JST Sheets serial-date / time / audit projection with fabricated cells
+        run: python3 tests/check-d1-phase6-civil-codec.py
+      - name: Reject corrupt audit records and keep withdrawn-actor event history
+        run: python3 tests/check-d1-phase6-audit-preflight.py
       - name: Validate D1 target-account and database guard
         run: node scripts/d1-staging-config.cjs self-test
       - name: Protect legacy ledger confirmation ordering and balances
