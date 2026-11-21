@@ -36,3 +36,14 @@
 ## 実測結果の記録欄
 
 PR・CI/Cloudflare実作業はこの文書の最初の作成時点では未確認。成功・失敗・No-Goを確認後に**実測証拠・引き継ぎ文書へ追加**し、推測でPASSと記載しない。
+
+
+## 2026/11/21　PR／Cloudflare実SQL検証の確定結果
+
+- [PR #179](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/179)に架空専用Workerのmatch19生成・SHA/UTF-16分割・保存・読込・削除アーカイブ・復元のSQL候補を追加。PRではCloudflareリモート書込を行わず、[Worker offline Actions #44881694363](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44881694363) **success**（remoteはPRのためskip）、[D1 schema #44881694335](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44881694335) **success**、[spec/回帰 #44881694336](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44881694336) **success**。オフラインログ `PHASE19_OFFLINE_GENERATOR_PASS` および `PHASE19_OFFLINE_SQL_PASS` を確認。検証main `d1a992e3a91153c9e68d9e0a6eb6e53f95bf5676`にsquash統合。
+- [main実Cloudflare第19工程 Actions #44881757505](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44881757505) **offline success / deploy-native-fixture-worker success**。[実ジョブ #136778384820](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44881757505/job/136778384820)にて、実デプロイ前Cloudflare API READ ONLY `PREDEPLOY_READ_ONLY_PASS`（旧検証D1の20業務表0行＋別架空D1既存fixture件数一致）、専用Worker所有者照合**ours**、dry-run→独立Workerのみdeploy→一時Bearer secret更新を成功。
+- 実Cloudflareで従来Phase15 Native batch、Phase16独立HTTP CAS、Phase17承認済B/B監査rollbackを再実行して**すべてPASS**。その後ログ `PHASE19_GENERATED_MATCH_REAL_PASS`：**新規Worker内で生成した架空JSON**をUnicode安全な2チャンク+SHAで保存/照合。架空セッションからの原子的な削除アーカイブと復元の検証、監査書込失敗を挿入した**保存・削除・復元の3段階すべての全体ロールバック**、同じ操作IDの再送による二重保存なし、異なる架空対象への操作ID再利用拒否、401/400入力拒否。実験リクエストは25以下、書込は独立架空D1の`z_native_fixture_match19_`4表の新規テスト行だけ。新規テスト行を勝手に消していない。
+- 最後の**別Cloudflare API GET/SELECT**：`FINAL_READ_ONLY_CHECK_PASS: OLD_D1_20_TABLES_ZERO_ROWS; NEW_D1_GENERATED_FIXTURES_ONLY`。旧D1の20業務表0行/Bootstrap0行と独立架空D1の第14工程生成済み業務fixture件数が元のままであることを確認。**旧Googleの不一致46版（現役8、アーカイブ38）は取得・書換・移送していない**。旧GAS/本番/公開Worker/LINE/LIFFと47 GAS_ONLY APIは変更なし。
+- 同main [GitHub Pages #44881756607](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44881756607) はbuild/deploy/report-build-status **success**。既存Worker Buildsは独立して最終判定を確認し、この追記の後で引き継ぎに確定すること。これらは現行業務APIのD1切替ではない。
+- **第19工程の完了範囲**：架空試合の2チャンク/UTF-8 SHA/native D1 batch/監査・操作IDの保存→削除/保全→再有効化という実験のみ。GASの物理行削除/閲覧リンク失効/過去の全版・元行順・旧SHA46版・認証/個人情報/会計・47 APIの完全移植・復旧運用は未実装。**技術的に復元できたからといって実業務の新しい自動復元を無断採用しない**。
+- **次のユーザー判断地点**：本来GASの「物理削除＋全履歴/閲覧リンクのアーカイブ＋手動復旧」を優先するか、D1の「論理削除＋原文保持＋認可付き復元」へ正式に変更するか（いずれも旧SHA46版の実移送は許可しない）。選択まではこの技術候補を実業務APIに接続しない。本番反映・性能改善・LINE連携も指定どおり保留。
