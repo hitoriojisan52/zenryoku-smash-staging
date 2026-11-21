@@ -1,0 +1,572 @@
+{
+  "version": 1,
+  "scope": "Staging v0.15 fabricated workbook, column HEADERS only; do not use for data copy",
+  "timezone": "Asia/Tokyo",
+  "authority": "gas-staging/コード.gs and inspected Google Sheet header row, 2026-11-21",
+  "source_is_system_of_record": true,
+  "auto_import_allowed": false,
+  "notes": [
+    "Never upload original sheet values, names, LINE IDs, token hashes, financial amounts or JSON to GitHub/CI.",
+    " Preserve physical source row order, raw types, formats, formula metadata and unconverted text in a separately approved snapshot before any lossy projection.",
+    "Duplicate team memberships can be folded to active=OR only after a complete protected snapshot and audit parity review; this manifest does not authorize folding.",
+    "Legacy 7-column match revisions need a separate explicit fallback; do not silently set chunk indices for all rows.",
+    "Historical actors are not foreign-keyed to current active members. Archive prepared/incomplete records must block migration, not be auto-repaired."
+  ],
+  "sheets": [
+    {
+      "source": "メンバー",
+      "target": "members",
+      "headers": [
+        "memberId",
+        "displayName",
+        "lineUserId",
+        "active",
+        "isAdmin",
+        "nameKana"
+      ],
+      "d1_columns": [
+        "member_id",
+        "display_name",
+        "line_user_id",
+        "active",
+        "is_admin",
+        "name_kana"
+      ],
+      "logical_key": [
+        "memberId"
+      ],
+      "kind": "current"
+    },
+    {
+      "source": "当番チーム",
+      "target": "duty_teams",
+      "headers": [
+        "teamId",
+        "teamName",
+        "active"
+      ],
+      "d1_columns": [
+        "team_id",
+        "team_name",
+        "active"
+      ],
+      "logical_key": [
+        "teamId"
+      ],
+      "kind": "current"
+    },
+    {
+      "source": "チーム所属",
+      "target": "team_memberships",
+      "headers": [
+        "teamId",
+        "memberId",
+        "active"
+      ],
+      "d1_columns": [
+        "team_id",
+        "member_id",
+        "active"
+      ],
+      "logical_key": [
+        "teamId",
+        "memberId"
+      ],
+      "kind": "state_with_duplicate_source_rows"
+    },
+    {
+      "source": "練習日程",
+      "target": "practices",
+      "headers": [
+        "practiceId",
+        "date",
+        "place",
+        "startTime",
+        "endTime",
+        "hours",
+        "enabled",
+        "remark",
+        "version"
+      ],
+      "d1_columns": [
+        "practice_id",
+        "practice_date",
+        "place",
+        "start_time",
+        "end_time",
+        "hours",
+        "enabled",
+        "remark",
+        "version"
+      ],
+      "logical_key": [
+        "practiceId"
+      ],
+      "kind": "current"
+    },
+    {
+      "source": "出欠回答",
+      "target": "attendances",
+      "headers": [
+        "practiceId",
+        "participantId",
+        "displayName",
+        "nameKana",
+        "category",
+        "attending",
+        "remark",
+        "version",
+        "registeredBy"
+      ],
+      "d1_columns": [
+        "practice_id",
+        "participant_id",
+        "display_name",
+        "name_kana",
+        "category",
+        "attending",
+        "remark",
+        "version",
+        "registered_by_member_id"
+      ],
+      "logical_key": [
+        "practiceId",
+        "participantId"
+      ],
+      "kind": "current"
+    },
+    {
+      "source": "集金記録",
+      "target": "payments",
+      "headers": [
+        "practiceId",
+        "participantId",
+        "completed",
+        "version",
+        "updatedBy",
+        "updatedAt"
+      ],
+      "d1_columns": [
+        "practice_id",
+        "participant_id",
+        "completed",
+        "version",
+        "updated_by_member_id",
+        "updated_at_raw"
+      ],
+      "logical_key": [
+        "practiceId",
+        "participantId"
+      ],
+      "kind": "current"
+    },
+    {
+      "source": "全体収支管理表",
+      "target": "ledger_rows",
+      "headers": [
+        "日付",
+        "開催場所・費目名",
+        "集金額",
+        "支出",
+        "残金",
+        "確認者",
+        "rowId",
+        "kind",
+        "practiceId",
+        "status",
+        "version",
+        "当日補正",
+        "費目",
+        "立替者",
+        "receiptFileId",
+        "作成者"
+      ],
+      "d1_columns": [
+        "ledger_date",
+        "label",
+        "income_yen",
+        "expense_yen",
+        "balance_yen",
+        "confirmed_by",
+        "row_id",
+        "kind",
+        "practice_id",
+        "status",
+        "version",
+        "adjustment_yen",
+        "item",
+        "payee",
+        "receipt_file_id",
+        "created_by_member_id"
+      ],
+      "logical_key": [
+        "rowId"
+      ],
+      "kind": "ordered_financial"
+    },
+    {
+      "source": "操作履歴",
+      "target": "operation_audit",
+      "headers": [
+        "operationId",
+        "operation",
+        "actorMemberId",
+        "timestamp",
+        "targetId",
+        "resultJSON"
+      ],
+      "d1_columns": [
+        "operation_id",
+        "operation",
+        "actor_member_id",
+        "timestamp_raw",
+        "target_id",
+        "result_json"
+      ],
+      "logical_key": [
+        "operationId"
+      ],
+      "kind": "audit"
+    },
+    {
+      "source": "試合セッション",
+      "target": "match_sessions",
+      "headers": [
+        "practiceId",
+        "activeRevisionId",
+        "sessionVersion",
+        "settingsVersion",
+        "updatedAt"
+      ],
+      "d1_columns": [
+        "practice_id",
+        "active_revision_id",
+        "session_version",
+        "settings_version",
+        "updated_at_raw"
+      ],
+      "logical_key": [
+        "practiceId"
+      ],
+      "kind": "current"
+    },
+    {
+      "source": "試合版管理",
+      "target": "match_revision_chunks",
+      "headers": [
+        "revisionId",
+        "practiceId",
+        "stage",
+        "stateJSON",
+        "sha256",
+        "operationId",
+        "createdAt",
+        "chunkIndex",
+        "chunkTotal"
+      ],
+      "d1_columns": [
+        "revision_id",
+        "practice_id",
+        "stage",
+        "state_json_chunk",
+        "sha256",
+        "operation_id",
+        "created_at_raw",
+        "chunk_index",
+        "chunk_total"
+      ],
+      "logical_key": [
+        "revisionId",
+        "chunkIndex"
+      ],
+      "kind": "chunked_revision"
+    },
+    {
+      "source": "試合操作履歴",
+      "target": "match_operation_audit",
+      "headers": [
+        "operationId",
+        "practiceId",
+        "actorMemberId",
+        "action",
+        "sessionVersion",
+        "createdAt",
+        "details"
+      ],
+      "d1_columns": [
+        "operation_id",
+        "practice_id",
+        "actor_member_id",
+        "action",
+        "session_version",
+        "created_at_raw",
+        "details"
+      ],
+      "logical_key": [
+        "operationId"
+      ],
+      "kind": "audit"
+    },
+    {
+      "source": "登録申請",
+      "target": "registration_requests",
+      "headers": [
+        "requestId",
+        "lineUserId",
+        "displayName",
+        "status",
+        "requestedAt",
+        "decidedBy",
+        "decidedAt",
+        "memberId",
+        "nameKana"
+      ],
+      "d1_columns": [
+        "request_id",
+        "line_user_id",
+        "display_name",
+        "status",
+        "requested_at_raw",
+        "decided_by_member_id",
+        "decided_at_raw",
+        "member_id",
+        "name_kana"
+      ],
+      "logical_key": [
+        "requestId"
+      ],
+      "kind": "current"
+    },
+    {
+      "source": "閲覧リンク",
+      "target": "guest_links",
+      "headers": [
+        "tokenHash",
+        "practiceId",
+        "expiresAt",
+        "revokedAt",
+        "issuedBy",
+        "createdAt"
+      ],
+      "d1_columns": [
+        "token_hash",
+        "practice_id",
+        "expires_at_raw",
+        "revoked_at_raw",
+        "issued_by_member_id",
+        "created_at_raw"
+      ],
+      "logical_key": [
+        "tokenHash"
+      ],
+      "kind": "current"
+    },
+    {
+      "source": "退会履歴",
+      "target": "withdrawal_history",
+      "headers": [
+        "memberId",
+        "displayName",
+        "withdrawnAt",
+        "withdrawnBy",
+        "state",
+        "operationId"
+      ],
+      "d1_columns": [
+        "member_id",
+        "display_name",
+        "withdrawn_at_raw",
+        "withdrawn_by_member_id",
+        "state",
+        "operation_id"
+      ],
+      "logical_key": [
+        "operationId"
+      ],
+      "kind": "audit"
+    },
+    {
+      "source": "現金確認記録",
+      "target": "cash_audits",
+      "headers": [
+        "practiceId",
+        "auditDate",
+        "countsJson",
+        "cashTotal",
+        "bookBalance",
+        "difference",
+        "version",
+        "updatedBy",
+        "updatedAt"
+      ],
+      "d1_columns": [
+        "practice_id",
+        "audit_date",
+        "counts_json",
+        "cash_total_yen",
+        "book_balance_yen",
+        "difference_yen",
+        "version",
+        "updated_by_member_id",
+        "updated_at_raw"
+      ],
+      "logical_key": [
+        "practiceId",
+        "auditDate"
+      ],
+      "kind": "financial"
+    },
+    {
+      "source": "日程削除アーカイブ",
+      "target": "practice_delete_archive_chunks",
+      "headers": [
+        "operationId",
+        "practiceId",
+        "archivedAt",
+        "archivedBy",
+        "chunkIndex",
+        "chunkCount",
+        "snapshotChunk",
+        "status"
+      ],
+      "d1_columns": [
+        "operation_id",
+        "practice_id",
+        "archived_at_raw",
+        "archived_by_member_id",
+        "chunk_index",
+        "chunk_count",
+        "snapshot_chunk",
+        "status"
+      ],
+      "logical_key": [
+        "operationId",
+        "chunkIndex"
+      ],
+      "kind": "chunked_archive"
+    },
+    {
+      "source": "参加者操作アーカイブ",
+      "target": "participant_action_archive",
+      "headers": [
+        "operationId",
+        "practiceId",
+        "participantId",
+        "action",
+        "beforeJson",
+        "createdAt",
+        "actorMemberId",
+        "status"
+      ],
+      "d1_columns": [
+        "operation_id",
+        "practice_id",
+        "participant_id",
+        "action",
+        "before_json",
+        "created_at_raw",
+        "actor_member_id",
+        "status"
+      ],
+      "logical_key": [
+        "operationId"
+      ],
+      "kind": "audit_archive"
+    },
+    {
+      "source": "試合削除アーカイブ",
+      "target": "match_delete_archive_chunks",
+      "headers": [
+        "operationId",
+        "practiceId",
+        "archivedAt",
+        "archivedBy",
+        "chunkIndex",
+        "chunkCount",
+        "snapshotChunk",
+        "status"
+      ],
+      "d1_columns": [
+        "operation_id",
+        "practice_id",
+        "archived_at_raw",
+        "archived_by_member_id",
+        "chunk_index",
+        "chunk_count",
+        "snapshot_chunk",
+        "status"
+      ],
+      "logical_key": [
+        "operationId",
+        "chunkIndex"
+      ],
+      "kind": "chunked_archive"
+    },
+    {
+      "source": "ビジター申請",
+      "target": "visitor_requests",
+      "headers": [
+        "requestId",
+        "practiceId",
+        "participantId",
+        "name",
+        "nameKana",
+        "memo",
+        "requestedByMemberId",
+        "status",
+        "version",
+        "requestedAt",
+        "reviewedAt",
+        "reviewedBy",
+        "lastOperationId"
+      ],
+      "d1_columns": [
+        "request_id",
+        "practice_id",
+        "participant_id",
+        "name",
+        "name_kana",
+        "memo",
+        "requested_by_member_id",
+        "status",
+        "version",
+        "requested_at_raw",
+        "reviewed_at_raw",
+        "reviewed_by_member_id",
+        "last_operation_id"
+      ],
+      "logical_key": [
+        "requestId"
+      ],
+      "kind": "current"
+    },
+    {
+      "source": "ビジター審査アーカイブ",
+      "target": "visitor_decision_archive",
+      "headers": [
+        "operationId",
+        "requestId",
+        "practiceId",
+        "actorMemberId",
+        "action",
+        "beforeJson",
+        "createdAt",
+        "status"
+      ],
+      "d1_columns": [
+        "operation_id",
+        "request_id",
+        "practice_id",
+        "actor_member_id",
+        "action",
+        "before_json",
+        "created_at_raw",
+        "status"
+      ],
+      "logical_key": [
+        "operationId"
+      ],
+      "kind": "audit_archive"
+    }
+  ]
+}
