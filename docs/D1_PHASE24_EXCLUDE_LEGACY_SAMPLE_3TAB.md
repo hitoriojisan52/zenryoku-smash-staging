@@ -29,3 +29,12 @@
 旧3シート会計履歴の移行・旧会計A/B判断は**終了**。次は**現行13シートの過去参加連絡73件と反復11行の意味/無損失表現・D1日程FK/参加者識別**を仕様とD1候補DDLに照らし、運用中の現行13シートに対して読み取り専用/架空テストで設計を続ける。実個人情報コピー・変更/Cloudflare実D1書込・本番切替は新規承認なしには行わない。
 
 PR/CI/main/Pages/既存Worker Buildsは個別に結果確認して引き継ぎへ記録する。記載前に成功扱いしない。
+
+
+## 第24工程PR・CI・検証用Pagesの実測証跡（2026/11/21）
+
+[PR #189](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/189) を検証用main `91ef9ade71ccf2a88deffcdce87b0f8d34fc0fae` へsquash統合。
+
+- PR [Phase24 #44899439984](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44899439984)、[Phase21 #44899439735](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44899439735)、[schema #44899439729](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44899439729)、[spec #44899439723](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44899439723) は全success。
+- main [Phase24 #44899503086](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44899503086)、[Phase21 #44899503127](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44899503127) success。[Pages #44899502470](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44899502470) workflowとbuild/deploy/report-build-statusの全ジョブsuccess。
+- Cloudflare Worker Buildsの今回の反映・遠隔D1件数再計測・GAS/LINE実機の今回再確認は未実施。Google原本・bk・個人情報、現行GAS/Worker・D1実データ、本番への変更なし。実データ移行の承認・完了と混同しない。
