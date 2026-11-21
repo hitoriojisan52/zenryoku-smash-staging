@@ -1,0 +1,40 @@
+name: D1 Phase23 historical-response structural preflight - offline only
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/check-d1-phase23-*'
+      - '.github/workflows/d1-phase23-history-preflight.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'tests/check-d1-phase23-*'
+      - '.github/workflows/d1-phase23-history-preflight.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  offline-history-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify actual candidate D1 schema constraints with fictional SQLite rows
+        run: python3 tests/check-d1-phase23-history-preflight.py
+      - name: Verify offline-only test without remote calls or silent replacement
+        run: |
+          python3 - <<'PY'
+          import ast
+          from pathlib import Path
+          source=Path("tests/check-d1-phase23-history-preflight.py").read_text()
+          tree=ast.parse(source)
+          imports=[n.names[0].name.split('.')[0] for n in ast.walk(tree) if isinstance(n,ast.Import)]
+          imports += [n.module.split('.')[0] for n in ast.walk(tree) if isinstance(n,ast.ImportFrom) and n.module]
+          assert set(imports)<=set(["pathlib","sqlite3"])
+          assert 'sqlite3.connect(":memory:")' in source
+          sql_strings=[n.value.upper() for n in ast.walk(tree) if isinstance(n,ast.Constant) and isinstance(n.value,str) and n.value.strip().upper().startswith("INSERT")]
+          assert not any(" OR REPLACE" in s or " OR IGNORE" in s for s in sql_strings)
+          print("PHASE23_OFFLINE_ONLY_PASS")
+          PY
