@@ -20,6 +20,13 @@
 | 全体収支管理表 A2:A12 | numberValue 7 (DATE)、stringValue 2 (TEXT) | 2行は文字列ISO相当 |
 | 操作履歴 D2:D26 | numberValue 25 (DATE_TIME) | **直近25行のみ**。全210行の精度・変換の完全一致とは主張しない |
 
+
+### 参考：同じ条件による実セルの非破壊・匿名集計
+
+2026/11/21、上記4範囲の**実セル234個**について、数値セルのDATE/TIME/DATE_TIME書式一致、暦日の整数性、時刻の分境界、日時の秒境界（浮動小数誤差許容50ms）、文字列の書式の可否を**一時的に読み取り専用で計数**した。練習日程日付5/5、時刻10/10、収支日付9/9、操作履歴日時210/210はすべて候補条件を満たした。日程の日付を日付型＋文字列型で正規化して比較した結果、重複は0件。不明書式/大きな端数による拒否は0件。**生の値と会員ID、操作結果JSONは記録していない**。
+
+この一時確認はPythonの候補関数をGoogle Sheets本番認証で実行した証拠でも、GAS`getValues()`のDateオブジェクトとの全フィールド一致の証拠でもない。元シート全20タブの監査、時系列・収支確定・履歴の同値比較は別途必要。
+
 ## 3. 実装した非公開・読み取り専用の候補
 
 `d1-staging/phase6/civil_codec.py` は外部依存なしの純粋関数 `project_cell(value, semantic, number_format, spreadsheet_timezone)`。入力はSheets API `effectiveValue` の `numberValue` または `stringValue` を表す値と、`effectiveFormat.numberFormat.type`、明示した業務上の型 `date|time|datetime`、タイムゾーン。
