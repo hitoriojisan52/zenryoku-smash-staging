@@ -1,4 +1,5 @@
 import {processConcurrent} from './concurrency.mjs';
+import {processApprovedMatch17} from './approved-match17.mjs';
 /**
  * Phase15: isolated, synthetic-only Cloudflare D1 native batch probe.
  * Owner marker: ZENRYOKU_D1_NATIVE_FIXTURE_STAGE_REPO_20261121
