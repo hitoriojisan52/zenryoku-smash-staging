@@ -244,6 +244,13 @@ def payment_transition(db, *, scope, op_id, actor_id, practice_id,
         replay = _audit_replay(db, op_id, "payment.set", actor_id,
                                participant_id)
         if replay is not None:
+            # GAS replay only compares op/actor; candidate additionally rejects
+            # same operationId used on a different practice/participant.
+            data = replay.get("data")
+            guard(isinstance(data, dict) and
+                  data.get("practiceId") == practice_id and
+                  data.get("participantId") == participant_id,
+                  "OP_ID_REUSE")
             return copy.deepcopy(replay)
         practice = db.execute("""SELECT practice_date,hours,enabled
             FROM practices WHERE practice_id=?""", (practice_id,)).fetchone()
