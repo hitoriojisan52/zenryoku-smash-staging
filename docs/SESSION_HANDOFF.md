@@ -853,3 +853,10 @@
 - PRを**検証用main `68eaf271c310f574298dc3951b8738931458ae9a`**にsquash統合。[GitHub Pages Actions #44841361091](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44841361091)はbuild / deploy / report-build-status **success**、同コミットの`Workers Builds: zenryoku-smash-staging-api`チェックも**success**。これはソース／設定を更新していない既存Workerのビルド確認であり、公開APIにD1読み取りを追加していない。GAS反映・実機LINE受入は今回の変更対象外のため実施していない。
 - **変更しない範囲**：現在のGAS・LINE/LIFF、GitHub Pagesの実アプリのロジック、既存WorkerのJSコード/環境変数、独立D1パイロットWorker、Cloudflare D1のschemaとレコード、検証用および本番のSheetsデータ・設定済みID/URL/Secrets、本番環境。D1の実業務レコードを挿入していない。
 - 次は**全20業務タブの日付・操作履歴・申請/試合/会計アーカイブの列別検証**、元シートのバックアップと復元・同期一意性・操作IDによる冪等性と会計の順序維持の設計。今回の日時・監査の純粋関数を使って架空の統合データセットの完全な再現性を検査したのち、GASとD1の本番接続方式・権限を別PRで安全評価する。原本移行と本番反映は**ユーザー事前承認制**を維持。
+
+
+## 80. D1第7工程：架空データの複数テーブル・冪等・ロールバック検証（2026/11/21）
+
+- 最新main、README/仕様優先順位、第5・6工程の引継ぎ、既存D1の20テーブルSQL、GASの権限・監査・退会仕様を再確認。実データ・実会計は読み書きせず、`tests/check-d1-phase7-offline-replay.py`を追加。架空2会員・日程・出欠・集金・収支・監査をメモリSQLiteで横断し、role admin優先/当番チーム停止、降格/昇格時の複合PK、operationId二重送信禁止、最後の管理者保護、退会済みactorの監査保持、同一トランザクションの監査衝突・集金収支のロールバックを検証する。
+- [第7工程の範囲と未完了](D1_PHASE7_OFFLINE_REPLAY.md)。第6工程の日時/監査前検査を再利用し、`.github/workflows/d1-staging-check.yml`に追加。**CI結果、PR、main反映、Pages/Worker Buildはこの節の作成時点では未確認。完了扱いしない**。
+- 変更しない：既存47 API GAS_ONLY、既存GAS/Worker/LIFF、検証用/本番Sheets、D1実テーブル/業務データ/Secrets、本番。残課題：20タブ列別検証・原本バックアップ/復元、試合/会計アーカイブ、実GASとの書込境界同値、Read Shadow、実データ移行の事前承認。
