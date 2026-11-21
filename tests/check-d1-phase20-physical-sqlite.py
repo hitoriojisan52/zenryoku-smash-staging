@@ -42,7 +42,7 @@ def insert_fake(f):
         db.execute(S["seedAudit"],(op1,f,1,r1,2))
         db.execute(S["seedAudit"],(op2,f,1,r2,3))
         for i in range(3):
-            db.execute(S["seedLink"],(f"token-{f[-6:]}-{i}",f,"" if i<2 else "2026/11/20",i+2))
+            db.execute(S["seedLink"],(f"token-{f[8:16]}-{i}",f,"" if i<2 else "2026/11/20",i+2))
 insert_fake(fid)
 def rows(k,f):
     return db.execute(S[k],(f,)).fetchall()
