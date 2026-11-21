@@ -1,0 +1,41 @@
+name: D1 Phase21 read-only source inventory gates - offline only
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'd1-staging/analysis/**'
+      - 'tests/check-d1-phase21-readonly-readiness.mjs'
+      - 'docs/D1_PHASE21_LIVE_SOURCE_READONLY_AUDIT.md'
+      - '.github/workflows/d1-phase21-readonly-inventory.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'd1-staging/analysis/**'
+      - 'tests/check-d1-phase21-readonly-readiness.mjs'
+      - 'docs/D1_PHASE21_LIVE_SOURCE_READONLY_AUDIT.md'
+      - '.github/workflows/d1-phase21-readonly-inventory.yml'
+permissions:
+  contents: read
+jobs:
+  offline-readonly-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify read-only aggregate-only anonymous migration NO-GO logic
+        run: |
+          node --check d1-staging/analysis/phase21-readonly-readiness.mjs
+          node tests/check-d1-phase21-readonly-readiness.mjs
+      - name: Verify there is no Google/Cloudflare connector access or artifact copy in Phase21 runtime
+        run: |
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            import assert from 'node:assert/strict';
+            const p=fs.readFileSync('d1-staging/analysis/phase21-readonly-readiness.mjs','utf8');
+            assert(!/fetch\\s*\\(|axios|googleapis|@google-cloud|wrangler|D1Database|writeFile|secret|spreadsheet_id|spreadsheet_url/.test(p));
+            assert(!/CREATE TABLE|INSERT INTO|DELETE FROM|UPDATE ledger_rows/.test(p));
+            console.log('PHASE21_NO_EXTERNAL_DATA_ACCESS_PASS');
+          "

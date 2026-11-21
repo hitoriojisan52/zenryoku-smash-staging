@@ -1168,3 +1168,14 @@
 - **最後の独立Cloudflare GET/SELECT**：`FINAL_READ_ONLY_CHECK_PASS: OLD_D1_20_TABLES_ZERO_ROWS; NEW_D1_GENERATED_FIXTURES_ONLY`（旧検証D1の業務20表0行と既存第14工程生成架空fixture件数不変）。[GitHub Pages #44883093508](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44883093508) build/deploy/report-build-status **success**、[既存Worker Builds](https://dash.cloudflare.com/5817f07a73dbb56011012074ce1b11c5/workers/services/view/zenryoku-smash-staging-api/production/builds/98dd21ae-bbba-4fd6-99b9-476be7b08a44) **success**。[詳細結果](D1_PHASE20_LEGACY_PHYSICAL_DELETE_VALIDATION.md)。**Google原本・非共有コピー・不一致SHA46版は無改変/未移送、実個人情報/領収書/本番/公開Worker/LINEは無変更**。
 - **第20工程の完了範囲は新規架空データだけの物理削除技術検証**。未完了/No-Go：旧GAS原本行番号・旧46版の不一致原因、削除済アーカイブから実権限を持つ管理者による復旧実装（今回previewのみ）、実閲覧リンクの失効連動、会計/日程削除・役割・本人認証/監査/残高/確定順の同値、個人情報/領収書の移送・保全/保持・廃棄・復旧責任、47 APIのD1 Read shadow/正本切替、本番反映。性能改善とLINE連携開発はD1完了まで保留。
 - **次に進める対象/ユーザー判断**：実試合復元機能の管理者認証と復旧/アーカイブ保存期間・削除請求対応を設計で確定するか、実データに触れない会計/権限の架空D1業務同値検証を優先するか。どちらも本番反映や実データ移送・SHA修復の承認ではない。ユーザー判断が必要になるまで安全な独立環境に限定。ユーザーは初期設定以降、原則確認作業のみ。
+
+## 111. D1第21工程：ユーザー承認B・実Google READ ONLY調査（2026/11/21）
+
+- ユーザーが既存Google Sheetsの読み取り専用構造・件数・整合性調査を承認。**実データの変更・複製・移送・個人情報のGitHub記録は禁止**。旧SHA不一致46版は保全、本番反映は事前承認制、性能改善/LINE機能拡張はD1移行完了後まで保留。
+- 最新検証main `458945ec4940dfe56e61dcb07d2a1708170c3608` と引継ぎ第110節、現行GAS、20業務表D1スキーマを確認。接続済みGoogle Drive/Sheetsから**メタデータ・値・数式をREAD ONLY取得し、一時的に非識別集計**。[第21工程調査](D1_PHASE21_LIVE_SOURCE_READONLY_AUDIT.md)にシート名・合計件数・リスク分類だけ記録。原本ID/URL、氏名/メール/LINE ID、試合JSON/旧SHA値・領収書や本文はGitHub/Actionsへ記録しない。Googleファイル/Sheets、Cloudflare D1・Worker、GAS/LINE、個人情報への**書込/コピー/移送はゼロ**。
+- 13タブの現行管理台帳、3タブの旧出欠集金管理表、21タブのD1検証用架空台帳（業務D1 schemaは20表）は**構造不一致**。更新日時だけでどれを本番移行の唯一の正本とするか断定不可。日付別/テンプレートの約5万行gridは実レコード数ではない。
+- 非識別の調査時点集計：現管理台帳の練習日程マスタ開催日**9件（重複0）**、受付G列真2・偽7。フォーム回答**115行（参加90・欠席25）**、開催日5種類、メール値55種類。開催日のマスタ一致42行、不一致**73行はすべてマスタ最古日以前の過去回答**。メール＋開催日の複合キー繰返し11行。領収書回答3行。全体収支管理表A1:L495には数式2922セル・その他入力546セル・effective error0。INDIRECT/QUERY/SUMIFS等への依存あり。旧3タブ版の先頭8列には非空行85/50/12（業務レコード数とは別）。日付別の全5万行や全数式までは走査していない。
+- 重要な移行ブロッカー：D1 attendances.practice_idのFKはpracticesを要求し、今ある9日程だけでは過去73回答の履歴を保存できない。11のキー繰返しを自動統合/消去すると履歴喪失リスク。フォームのメール値を正式なmember/LINE user IDとして自動認証・紐付けしない。収支数式を残高/収支確定順序と無条件に同一視しない。旧SHA不一致46版は引き続き移送禁止。
+- 実装：`d1-staging/analysis/phase21-readonly-readiness.mjs`（匿名数値だけのfail-closed migration gate、余剰個人識別フィールド拒否）、`tests/check-d1-phase21-readonly-readiness.mjs`（完全架空の入力だけ）、`.github/workflows/d1-phase21-readonly-inventory.yml`（Google/Cloudflare Secretを使わずoffline only）。**現行47 API GAS_ONLY・Google・Cloudflare・本番には一切変更なし**。
+- 第111節作成時点のPR/CI・main統合は未確認。実行後は別節で結果を追記し、未実施を成功扱いしない。
+- **次にユーザー判断が必要**：移行正本をA『現13タブ版を正本、旧3タブ版は参照専用』またはB『旧3タブ版も移行対象、先に差分・重複統合設計』から選択（推奨A）。次段階で過去73回答の非受付履歴保持方法と複合キー繰返し11件の判定も必要。実データコピー/移送・本番切替の承認にはならない。
