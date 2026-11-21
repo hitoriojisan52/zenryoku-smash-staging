@@ -41,3 +41,13 @@ Cloudflare公式Workers権限上、**新規Worker作成にはWorkers product Adm
 - **main**：第15工程flag未設定ならremote `SKIPPED`。設定済の場合のみ、実Cloudflareの旧D1/新D1照合、専用Workerのみdeployed、Native SQL rollback/commit/CAS/idempotencyのHTTP PASS、旧DB空維持・第14工程fixture件数不変をそれぞれ確認する。
 - 何らかの障害で初回Workerが作成済み、しかしデプロイ失敗した場合も**無断で削除・再作成せず**修正PR/ログ診断。独立Worker/新D1の保管/削除はユーザー判断待ち。
 - 次の開発候補は「複数Workerリクエスト間CAS、収支同日/月跨ぎの確定・解除、旧GASの監査追記失敗とD1原子的挙動の差異整理」。旧仕様と衝突する変更は適用前にレビュー・承認。
+
+
+## 2026/11/21：初回ユーザー設定完了後の実Cloudflare Native batch 試験結果
+
+- ユーザーのCloudflare Account API Token（対象Worker1件だけのIndividual Workers Editor）の発行後、GitHub `d1-staging` Environmentで専用secretとdeploy flag=`true` を確認。既存secret/variableは保持。
+- [GitHub Actions #44868727688（attempt 2）](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44868727688/attempts/2)、[remote専用job #136750699135](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44868727688/job/136750699135)をChatGPTからrerun、**offline success / remote job success**。旧検証D1 20業務表0行/Bootstrap0行、別D1第14工程の生成fixture件数をCloudflare GET/SELECTで事前確認。
+- 専用Worker GET所有検証 `starter` PASS、Wrangler dry-run PASS、独立Workerだけに `ZENRYOKU_FIXTURE_DB` を接続したdeployed、ランダムBearer Secret upload success。Workers.dev URL/401/405/404の拒否試験 success。
+- **実際のWorker-native `D1Database.batch()`** で、制約違反時ロールバック、二行commit、再送二重作成なし、CAS version 0から1成功＋もう一方の変更0の**4/4 PASS**。 `NATIVE_D1_WORKER_PASS`。書込は架空D1内 `z_native_fixture_probe` のテスト専用行のみ。
+- 実行後の独立Cloudflare REST GET/SELECTも `FINAL_READ_ONLY_CHECK_PASS`：元D1の20業務表すべて0行、元probe0行。架空D1内の既存会員1/日程1/出欠1/集金済1/確定収支2/試合セッション1/readyチャンク3/操作履歴2/試合操作履歴1の元件数は維持。Secret/実UUID/架空の個別値は公開ログ・ドキュメントへ掲載しない。
+- **完了範囲の限定**：REST batchとは別にNative batchの一実験が成功しただけで、複数HTTPリクエストでの非原子的read→compute→write、GASの権限・監査・金額・月跨ぎ確定順の完全同値、試合SHA46版不一致原因と移行、実利用者のPII/領収書移送、アプリ47 APIのD1切替、性能改善、LINE連携、本番反映は**未完了**。自動削除・再作成・既存設定変更なし。次は安全な追加競合検証を架空D1の範囲で設計する。
