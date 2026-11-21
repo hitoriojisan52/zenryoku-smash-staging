@@ -1246,3 +1246,14 @@
 - main Actions：[Phase24 #44899503086](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44899503086)、[Phase21 #44899503127](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44899503127) **ともにsuccess**。[GitHub Pages #44899502470](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44899502470) は workflow success、個別の **build/deploy/report-build-status 3ジョブ全success** を確認。
 - **未実施の確認を明示**：今回のCloudflare Worker Builds表示の現時点での再確認、Cloudflare D1リモート件数の再測定、GAS再デプロイ/LIFF/LINE実機・ユーザー受入は未実施。今回の差分にWorker/GAS/実D1/Google Sheetsのコード・値・権限の変更は含まない。**GitHub Pages検証用配信成功を本番反映・実D1移行成功と扱わない**。
 - 残存No-Go：**現13タブの過去出欠73件/反復11行の無損失表現、日程FK/本人識別、会計/収支/権限/領収書、旧架空試合SHA46版**、47 GAS_ONLY API、実データ移送と本番切替承認。次は現13タブのみを正本候補として過去の出欠・日程履歴の読み取り専用分析/架空オフライン設計へ進む。性能改善・LINE機能拡張はD1移行後まで保留。
+
+
+## 119. D1第25工程：13シートの過去出欠・重複候補を匿名READ ONLYで精査、架空履歴分離PoC（2026/11/21）
+
+- 最新main `90788a0949bc7e63cda9b2e3d440f0c52525a10d` を確認。README、SPEC_PRIORITY_POLICY、[第24工程の旧3シートのサンプル全除外確定](D1_PHASE24_EXCLUDE_LEGACY_SAMPLE_3TAB.md)、[第23工程履歴FK/PKゲート](D1_PHASE23_HISTORY_MIGRATION_PREFLIGHT.md)、現GAS`コード.gs`と現D1候補`0002_business_skeleton.sql`を参照。実現行13タブGoogleシートを**読み取り専用**で限定分析し、個人名・メール・日付・備考/取引額・ファイルIDをGitHubやActionsログに出力しない。
+- **現行13タブのフォーム回答115行**、うち現在の練習日程マスタ9件に一致するのは2日程42行、現マスタ以前の3日程に対応するのが**73行**。回答はA:Gの**7列**（日時・メール・開催日・名前・出欠・区分・備考）、H:M先頭203行は非空0。回答の7列にはmemberId/LINE ID/participantId/行バージョンがない。**新検証用21タブGASの出欠回答9列と違う**ので本人IDの自動生成・転記・出欠/収支再計算は禁止。
+- メール＋開催日の複数回答は**7組計18行／追加11行**。**うち6組は名前が異なり、同メールから別参加者を申請した可能性**、残り**1組は同じ名前でも出欠が参加/欠席で異なる**。自動最新行化・重複削除・メールによる名寄せをすると旧動作・参加者保護に反する恐れ。これらの業務的な同一人識別は未確認。
+- [第25工程の匿名調査と2案](D1_PHASE25_FORM_ANSWER_HISTORY_CONFLICT_AUDIT.md)を作成。現20表候補DDLをSQLite :memory:に読込み、架空の`phase25_synthetic_form_response_history`を**参照候補としてだけ**隔離したSQL/テストを追加。旧日程の自動作成・enabled化なし、現役出欠/集金/収支テーブル無変更、7セルと原行番号での履歴保持、同一メール同日異名と同名反対出欠の共存、履歴更新/削除・同原行番号衝突拒否。**実D1 migrationでも実Google行コピーでもなく、ここでAを確定していない**。
+- **次のユーザー判断が必要**：**A（推奨）** 将来のD1に115行の7列元回答を**現役データと切り離した参照専用履歴**として保持する*設計*を承認／**B** 過去を含む元回答履歴はGoogle原本で保持し、D1に個別履歴テーブルを作らない。どちらも過去73行を削除せず、現役42行の本人・カテゴリ・出欠状態を自動確定せず、実個人情報コピー/Cloudflare実書込/本番切替は新規承認が必要。別途LINE本人ID、同名出欠不一致、閲覧権限/PII同意、会計/本人・退会同値を検証。
+- **維持する停止条件**：旧3タブのサンプル全除外、架空試合旧SHA不一致46版保全、現会計opening/先行未確定行/確定済残高・負残高/権限・退会/ビジター・領収書、47 GAS_ONLY APIと本番承認。実D1、GAS/Worker/LINE/LIFF、Google原本/バックアップ/bkには一切変更なし。性能改善・LINE機能拡張はD1移行後。
+- **検証状態**：この節の作成時点でPR/CI/main統合/Pages/Worker Build**未確認**。実測の後に引き継ぎ追記し、未実施のCloudflare実SQLや本番移行を完了扱いしない。
