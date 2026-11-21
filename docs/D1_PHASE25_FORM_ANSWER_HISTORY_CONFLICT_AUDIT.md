@@ -55,3 +55,8 @@
 - PR [Phase25 #44900365556](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900365556)、[schema #44900365474](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900365474)、[Phase21 #44900365471](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900365471)、[spec #44900365480](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900365480) **全success**。
 - main [Phase25 #44900411604](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900411604)、[Phase21 #44900411637](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900411637) **全success**。[Pages #44900411242](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900411242) build/deploy/report-build-status含むworkflow **全success**。[既存Worker Builds](https://dash.cloudflare.com/5817f07a73dbb56011012074ce1b11c5/workers/services/view/zenryoku-smash-staging-api/production/builds/3402cdf4-d557-4f7c-946f-2575f0af2867) **success**。
 - 実データのGoogle/Cloudflare D1への書込・コピー、既存D1業務表のリモート件数再測定、GAS再配備、LINE実機・本番切替は**未実施**。ユーザーA/B待ちを維持する。
+
+
+## 第26工程でユーザーがAを正式承認（2026/11/21）
+
+本資料の末尾より前に示した「履歴をD1に分離保存するA、Googleにのみ保管するB」は**ユーザーがAを明示承認したため選択済み**。現行13シートのフォーム回答全行を将来のD1に参照専用として**現役業務データから完全に分離する設計**を進める。Bは採用しない。実データ移送・本番反映はユーザーが明示的に不承認。**次のユーザー判断地点は閲覧権限（管理者だけ／管理者＋当番担当）**。新しい確定仕様は[第26工程承認済み方針](D1_APPROVED_13TAB_FORM_HISTORY_POLICY.md)と[第26工程設計](D1_PHASE26_APPROVED_HISTORY_DESIGN.md)を優先し、旧選択待ちは歴史的記録としてのみ残す。

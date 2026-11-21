@@ -1,0 +1,64 @@
+name: D1 Phase26 approved Form history design offline
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'd1-staging/analysis/phase26-*'
+      - 'tests/check-d1-phase26-*'
+      - '.github/workflows/d1-phase26-approved-history-design-offline.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'd1-staging/analysis/phase26-*'
+      - 'tests/check-d1-phase26-*'
+      - '.github/workflows/d1-phase26-approved-history-design-offline.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  offline-history-design:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify approved-A history schema with fictional SQLite records
+        run: |
+          python3 tests/check-d1-phase26-approved-form-history-sqlite.py
+          node --check d1-staging/analysis/phase26-history-read-guard.mjs
+          node tests/check-d1-phase26-history-read-guard.mjs
+      - name: Verify no external access or real D1 migration was introduced
+        run: |
+          python3 - <<'PY'
+          import ast
+          from pathlib import Path
+
+          roots = [
+            Path('tests/check-d1-phase26-approved-form-history-sqlite.py'),
+          ]
+          banned = {'requests','httpx','urllib','socket','subprocess',
+                    'googleapiclient','cloudflare','wrangler','boto3'}
+          for path in roots:
+            code = path.read_text(encoding='utf-8')
+            tree = ast.parse(code)
+            for node in ast.walk(tree):
+              if isinstance(node, ast.Import):
+                assert not ({item.name.split('.')[0] for item in node.names} & banned)
+              if isinstance(node, ast.ImportFrom) and node.module:
+                assert node.module.split('.')[0] not in banned
+          sql = Path('d1-staging/analysis/phase26-approved-form-history-schema-offline.sql').read_text().lower()
+          guard = Path('d1-staging/analysis/phase26-history-read-guard.mjs').read_text()
+          assert not any(term in sql for term in
+             ('attach database','drop table','create table practices',
+              'create table attendances','create table ledger_rows','d1database'))
+          assert not any(term in guard for term in
+             ('fetch(', 'googleapis', 'wrangler', 'D1Database',
+              'process.env', 'https://', 'http://'))
+          assert 'phase26_synthetic_form_rows' in sql
+          assert 'history_read_forbidden' in guard.lower()
+          print('PHASE26_NO_EXTERNAL_ACCESS_OR_BUSINESS_MIGRATION_PASS')
+          PY

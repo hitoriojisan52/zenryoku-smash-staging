@@ -1266,3 +1266,14 @@
 - **main Actions実測**：[Phase25 #44900411604](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900411604)、[Phase21 #44900411637](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900411637) **success**。[Pages #44900411242](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900411242) workflow及び**build/deploy/report-build-status各job success**。[既存Cloudflare Worker Builds](https://dash.cloudflare.com/5817f07a73dbb56011012074ce1b11c5/workers/services/view/zenryoku-smash-staging-api/production/builds/3402cdf4-d557-4f7c-946f-2575f0af2867) **success**。Workerの業務APIソース変更やデータベース移行を意味しない。
 - 第25工程は**元13シート115行をREAD ONLYで匿名分析し、架空データで履歴の候補構造を検証しただけ**。今回のリモートCloudflare D1 SQL/実データのコピー、現GASの再配備・LINE実機受入、既存20業務表0行の再測定は**未実施**。古い実測を今回の完了にしない。
 - **次のユーザー判断地点**：A（推奨）現行13シートの元フォーム115行を、将来D1に現役とは分離した参照専用履歴として保持する**設計**／B 元フォーム履歴は既存Google原本にだけ保管し、D1履歴表は設けない。詳細は[第25工程調査/2案](D1_PHASE25_FORM_ANSWER_HISTORY_CONFLICT_AUDIT.md)。いずれも元フォームの出欠矛盾/代理申込の自動解決なし、本人ID・権限/同意/保持/バックアップと移送承認は別途必要、旧3タブのサンプルは完全除外、GAS_ONLY47 APIと本番・会計のNo-Goを維持。**ユーザー選択前に実履歴のD1保存方式を確定しない**。
+
+
+## 121. D1第26工程：ユーザーがA承認、現行13シートフォーム全回答をD1参照専用履歴として分離保存する「設計」を開始（2026/11/21）
+
+- **ユーザーの明示承認**：第25工程のA「現行13シートのフォーム回答履歴を将来のD1で現役の出欠・集金・収支と完全に分離した**参照専用履歴として保存する設計**」を確定。**実データの移送・本番反映は承認していない**。旧3シートの電子会計サンプルは全件移行対象外のまま、bkを変更しない。[確定仕様](D1_APPROVED_13TAB_FORM_HISTORY_POLICY.md)と[仕様優先順位](SPEC_PRIORITY_POLICY.md)に反映。
+- 最新main確認時点 `6e8878ee3479aa0cf180cdbcb85c901492d4adf0`、README、SESSION_HANDOFF、SPEC_PRIORITY_POLICY、Phase24/25資料、候補`0002_business_skeleton.sql`、検証用GASのmember/duty/admin・出欠更新/日程/収支ロックを照合。第25工程の匿名集計**115行（過去73行、反復追加11行）**は調査時点の観測値。移行時固定件数とはせず、元シートの原子的相当スナップショットと再照合が必要。
+- **隔離した架空実装**：`d1-staging/analysis/phase26-approved-form-history-schema-offline.sql`に、独立snapshot/row履歴・7項目を順序付きJSON配列で保持、元取得時点/行番号/rowハッシュとマニフェスト、同メール/日付の複数記録を残す案を作成。更新/削除/同一snapshot上書き拒否、別snapshotで再取得時も旧版を保全。**d1-staging/migrationsには追加せず**、実D1に適用しない。現役`practices/attendances/payments/ledger_rows`にはFK/更新路なし。
+- `tests/check-d1-phase26-approved-form-history-sqlite.py`は`0002`の20表DDLを**メモリSQLite**に作り、完全に架空のメール`.invalid`・人物・未来日程だけで重複回答保持、後日スナップショット、元行UPDATE/DELETE/INSERT OR REPLACE/OR IGNORE拒否、行順/ハッシュ/件数と現役無変更を検証。`phase26-history-read-guard.mjs`の純粋オフライン権限ゲートとJSテストは**暫定adminだけ**の閲覧プレビューを許可し、一般/当番/未認証・偽装を拒否する。実LINE認証と実APIルートではなく、**閲覧権限の最終ユーザー判断は未完了**。[設計と次判断](D1_PHASE26_APPROVED_HISTORY_DESIGN.md)。
+- **新しいユーザー判断地点**：履歴内のメール・備考等の個人情報を閲覧できる役割をA「管理者のみ（推奨）」／B「管理者＋当番担当」から選択。現行の通常参加者一覧と異なる歴史的原回答データの閲覧は新規業務仕様であり、既存権限の無断拡大は不可。承認があっても**実データコピー/D1書込/公開API・本番切替には別の事前承認**と同意/保持期間・監査/本人・復旧条件が必要。
+- **維持するNo-Go**：Google原本/バックアップ/bkは不変更、21シート架空のSHA不一致46版の修復/実移行禁止、会計opening/収支確定順・確定済み残高/権限、47既存API GAS_ONLY、実業務データの移送/公開と本番切替禁止。D1移行が完了するまで性能改善・LINE連携の拡張停止。
+- **この節の作成時点でPR・CI・main統合・Pages/Worker Buildは未確認**。成功の主張は実測後に別節へ記録する。
