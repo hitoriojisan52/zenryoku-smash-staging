@@ -844,3 +844,12 @@
 - `d1-staging/phase6/audit_preflight.py`は元の操作IDとresultJSONテキストを保持してJST日時を厳格検証し、出欠submitの初回／最終日時を旧GASの時刻比較に一致させる候補。`tests/check-d1-phase6-audit-preflight.py`は架空イベントのみで重複ID/JSON破損を拒否、退会後の旧actorIdが`members`のFK不在で`operation_audit`に残ることをSQLite上で検証。**個人情報・実会計・元操作ログは試験入力として使用しない**。
 - [実施設計](D1_PHASE6_CIVIL_DATE_CONTRACT.md)を作成、`.github/workflows/d1-staging-check.yml`に2件の追加オフライン回帰を登録。**本節作成時点はPRチェック・main統合/Pages/Worker Buildsの確認前**。追記して確定扱いする。検証シート、GAS、既存Workerと独立D1 Workerのソース/URL/Binding、D1業務データ/スキーマ、Secrets、LINE/LIFF、本番は不変更。
 - **残課題**：現シート/実運用シートの原本バックアップと復旧、本来のGoogle`getValues()`日時との全行同値性、全20業務タブの申請/出欠/退会/試合監査の参照整合、監査原文・履歴のD1への暗号化/保持/削除設計、ロール・会計の同時更新トランザクション、D1 read-only shadowと同条件性能比較。既存の47 APIは`GAS_ONLY`のまま、D1への実データ移行・本番反映は事前承認制。
+
+
+## 79. D1第6工程 PR #148 合格・検証mainへの反映確認（2026/11/21）
+
+- [PR #148](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/148) にて新規`d1-staging/phase6/civil_codec.py` / `audit_preflight.py`、2つのオフラインCI試験と[D1_PHASE6_CIVIL_DATE_CONTRACT.md](D1_PHASE6_CIVIL_DATE_CONTRACT.md)を追加。2026/11/21の検証用スプレッドシート234日時セルの非破壊型・精度匿名検査では不整合0、実`操作履歴`210行のID/JSON構造検査でも異常0だった。ただし検査は**指定セルの限定的な事前監査**で、実データをD1へ変換・書込したものではない。
+- [D1 staging schema-safety Actions #44841285784](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44841285784)：**success**。新しいJST/Google Sheets日付シリアル変換の架空試験と監査ID重複・退会済みactor保持試験、全47 API GAS_ONLY、日程・チーム所属、会計確定順/残高、LINE出欠、退会・再入会、試合作成を含むすべてのステップsuccess。[仕様引継ぎ契約 Actions #44841285702](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44841285702)もsuccess。
+- PRを**検証用main `68eaf271c310f574298dc3951b8738931458ae9a`**にsquash統合。[GitHub Pages Actions #44841361091](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44841361091)はbuild / deploy / report-build-status **success**、同コミットの`Workers Builds: zenryoku-smash-staging-api`チェックも**success**。これはソース／設定を更新していない既存Workerのビルド確認であり、公開APIにD1読み取りを追加していない。GAS反映・実機LINE受入は今回の変更対象外のため実施していない。
+- **変更しない範囲**：現在のGAS・LINE/LIFF、GitHub Pagesの実アプリのロジック、既存WorkerのJSコード/環境変数、独立D1パイロットWorker、Cloudflare D1のschemaとレコード、検証用および本番のSheetsデータ・設定済みID/URL/Secrets、本番環境。D1の実業務レコードを挿入していない。
+- 次は**全20業務タブの日付・操作履歴・申請/試合/会計アーカイブの列別検証**、元シートのバックアップと復元・同期一意性・操作IDによる冪等性と会計の順序維持の設計。今回の日時・監査の純粋関数を使って架空の統合データセットの完全な再現性を検査したのち、GASとD1の本番接続方式・権限を別PRで安全評価する。原本移行と本番反映は**ユーザー事前承認制**を維持。
