@@ -1,5 +1,7 @@
 # D1第16工程：独立Workerの複数HTTP要求CASと業務仕様互換性ゲート
 
+**後日確定（2026/11/21）**：本書の操作ID対象一致と試合監査失敗時ロールバックについて、ユーザーが**①B・②Bを明示承認**。最新[確定仕様](D1_APPROVED_OPERATION_MATCH_ATOMIC_POLICY.md)を優先。本書の「未承認」は過去時点の記録。
+
 起点：2026/11/21、検証用main `2abaf6392c9656636d4e13427d1045902d665140`、第15工程の実Worker Native batch/rollback 4/4 PASS、`docs/SPEC_PRIORITY_POLICY.md`、`docs/D1_PHASE12_ATOMIC_CANDIDATE_AND_APPROVAL.md`、現行GAS/回帰テスト。
 
 ## 目的・既存機能の不変更

@@ -1,4 +1,5 @@
 import {processConcurrent} from './concurrency.mjs';
+import {processApprovedMatch17} from './approved-match17.mjs';
 /**
  * Phase15: isolated, synthetic-only Cloudflare D1 native batch probe.
  * Owner marker: ZENRYOKU_D1_NATIVE_FIXTURE_STAGE_REPO_20261121
@@ -101,6 +102,8 @@ export async function handleNativeFixture(request,env={}){
   let url;
   try{url=new URL(request.url);}catch(_){return reply(400,{ok:false,code:'BAD_URL'});}
   if(url.search||url.hash) return reply(400,{ok:false,code:'QUERY_NOT_ALLOWED'});
+  if(url.pathname.startsWith('/native/match17/'))
+    return processApprovedMatch17(request,env,reply,SQL.fingerprint);
   if(url.pathname.startsWith('/native/concurrent/'))
     return processConcurrent(request,env,reply,SQL.fingerprint);
   if(url.pathname==='/native/health'&&request.method==='GET')

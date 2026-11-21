@@ -1,6 +1,6 @@
 # D1第12工程：会計・集金・対戦表の原子的更新候補と検証用バックアップ承認ゲート
 
-作成日：2026/11/21。基準：検証用main `ba92ade0bf0643e67f248c37d4593bf720cb31bb`、`README.md`、`docs/SESSION_HANDOFF.md`第88節、`docs/SPEC_PRIORITY_POLICY.md`、`gas-staging/コード.gs`、`d1-staging/migrations/0002_business_skeleton.sql`、第1～11工程。PR/CI・検証環境への統合結果は**別節で事実確認後に記録**。
+作成日：2026/11/21。**追補：2026/11/21、第16工程で指摘した2点のD1移行仕様差異はユーザーが双方Bで承認済み**。確定仕様は[本書](D1_APPROVED_OPERATION_MATCH_ATOMIC_POLICY.md)を参照。第12工程当時の「未承認」記述は当時の履歴として保存し、現在の判定に使わない。基準：検証用main `ba92ade0bf0643e67f248c37d4593bf720cb31bb`、`README.md`、`docs/SESSION_HANDOFF.md`第88節、`docs/SPEC_PRIORITY_POLICY.md`、`gas-staging/コード.gs`、`d1-staging/migrations/0002_business_skeleton.sql`、第1～11工程。PR/CI・検証環境への統合結果は**別節で事実確認後に記録**。
 
 **この段階は架空値・ローカルメモリSQLiteを使用した設計候補であり、既存GAS/Worker/LIFFやCloudflare上のリモートD1にコード/業務データ/DDLを書き込むものではない。既存47 APIはGAS_ONLY。** 検証用v0.15スプレッドシートで確認済みの試合版SHA不一致8/8（有効版を含む）は引き続き移行禁止。未承認の修復や架空データの無断補充は禁止。
 
