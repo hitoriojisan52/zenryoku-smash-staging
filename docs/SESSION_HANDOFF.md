@@ -898,3 +898,12 @@
 - PRを検証用main `42dc1e970cd61809b5e77f9dd1a9f0ed7fc7829e`へsquash統合。同SHAの[Pages Actions #44850080677](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44850080677) build/deploy/report-build-status **success**、`Workers Builds: zenryoku-smash-staging-api` **success**。これは既存Workerコードを書換えたことやD1業務API切替を意味しない。GAS再デプロイ、独立D1 Worker再デプロイ、リモートD1の業務行数再確認、LINE実機受入、本番反映は**今回未実施**。
 - **残存BLOCK**：検証用試合版8件は現行GASと同等のUTF-8 SHA-256と不一致で、activeRevisionも含む。検証用架空データの作成手順や後日編集が原因かは未確定。勝手に原本SHA/JSONを修正しない。旧削除アーカイブにSHAがないため内容は原本バックアップと突き合わせる。原本の独立ネイティブコピー・復旧訓練・保存先/権限/保持期間の承認、write barrier・GAS Date同値、D1会計/権限/監査完全同値、Read Shadow/正本切替も未完了。
 - **次に着手**：まず試合版SHA不一致の発生経緯をGitHub履歴/既存GAS/検証用元データから**読み取り専用**で調べ、未承認の修復を行わない。合わせて独立原本バックアップの最小権限・保存期間・復旧手順案を固め、必要なユーザー判断を分けて提示する。元Sheet/本番D1への転送、既存Worker Binding変更、本番反映は事前承認制。性能改善・LINE連携機能拡張はD1移行後まで保留。
+
+
+## 85. D1第10工程：試合SHA生成経緯と実原本コピー前の非破壊ゲート（2026/11/21）
+
+- 最新main `e929fda97490b3a320a347675960081b32b5859c`、README、確定仕様優先順位、既存GASの`matchHash_`/`matchLoad_`/`matchCommit_`、第8・9工程及び直近PR #153/#154成功を照合。現行GASではJSON SHA→staging書込→Sheet読戻しハッシュ一致→`ready`→有効版ポインタ切替→操作監査追記（最後の監査追記失敗はcatch）が確定順序。現存検証用試合版8件は以前照合した保存SHAとの不一致を引き続き持つが、検証用v0.15ガイドには**架空データを初期配置した**と明示されており、現行GAS正常保存後の改変や実運用データ破損を原因と断定しない。元JSON/SHAは改変せずGitHubに持ち込まない。
+- Google Drive版履歴メタデータ41件を読み取り専用確認し、UTC 2026/11/19 05:21〜22:38 の旧リビジョン4件では現存8版のIDに一致するテキストを確認できなかった。生成・修正日時、実際の保存経路、ハッシュ生成者は特定できていない。追加の版本文取得はHTTP 429のため中止。無断修復せず、調査結果は限定的とする。
+- 実装：`d1-staging/phase10/match_preflight.py`は架空9列試合版のJSON/SHA/UTF-16分割・stage、session activeRevisionIdの同一日・版数、操作ID重複を**非破壊**でチェック。成功候補でも転送・切替は許可せず、返答にID/本文/SHAを含めない。現行GASでポインタ切替後に操作履歴の追記失敗があり得るため、監査行の不足は警告・別照合とし自動補完しない。対応架空回帰テストをD1 CIへ追加。[第10工程設計](D1_PHASE10_MATCH_PROVENANCE_BACKUP.md)には原本の書込停止、最小権限コピー、型/数式/権限/領収書を含む保全、隔離復旧、事前承認のゲートを具体化。
+- **この節の記載時点で未完了**：PR/CI/検証main統合・Pages/Worker Buildsの確認、試合版SHA不一致の確定原因、原本ネイティブバックアップ/復元、実データD1コピー・Read Shadow・API切替、GAS Date同値、全会計/権限のD1完全等価、本番反映。**47 API GAS_ONLY、性能改善とLINE機能追加保留**を維持。旧Sheet/GAS/Worker/LIFF/D1スキーマ/実業務データ、設定済みURL/ID・Secrets、本番は変更しない。
+- **次の作業**：架空CIと検証デプロイを確認後、試合履歴SHAの過去生成経路を調査し、必要なら旧7列版/削除アーカイブのロスレス検査を追加する。実データの保全・復元についてユーザーの保存先/アクセス/保持期間承認を得るまでコピーしない。

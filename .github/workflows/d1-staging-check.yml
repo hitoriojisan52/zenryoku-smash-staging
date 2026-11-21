@@ -17,6 +17,7 @@ on:
       - 'tests/check-d1-phase8-archives.py'
       - 'tests/check-d1-phase9-snapshot.py'
       - 'tests/check-d1-phase9-readiness.py'
+      - 'tests/check-d1-phase10-match-preflight.py'
       - 'cloudflare-worker/worker.js'
       - 'gas-staging/コード.gs'
       - '.github/workflows/d1-staging-*.yml'
@@ -62,6 +63,8 @@ jobs:
         run: python3 tests/check-d1-phase9-snapshot.py
       - name: Require backup, SHA, audit, and explicit approval gates before D1 business copy
         run: python3 tests/check-d1-phase9-readiness.py
+      - name: Reject invalid fabricated match SHA, active revision, CAS and duplicate operation IDs
+        run: python3 tests/check-d1-phase10-match-preflight.py
       - name: Validate D1 target-account and database guard
         run: node scripts/d1-staging-config.cjs self-test
       - name: Protect legacy ledger confirmation ordering and balances
