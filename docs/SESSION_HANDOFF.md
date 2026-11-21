@@ -1146,3 +1146,13 @@
 - 別のCloudflare GET/SELECT `FINAL_READ_ONLY_CHECK_PASS: OLD_D1_20_TABLES_ZERO_ROWS; NEW_D1_GENERATED_FIXTURES_ONLY`：旧D1全20業務0行/bootstrap0行、独立架空D1の既存第14工程生成業務件数不変。実Google原本/非共有コピー/旧46SHA・GAS/47 GAS_ONLY API/既存公開Worker/LIFF/LINE/本番は改修なし。[Pages #44881756607](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44881756607) build/deploy/report-build-status **success**、[既存Worker Builds](https://dash.cloudflare.com/5817f07a73dbb56011012074ce1b11c5/workers/services/view/zenryoku-smash-staging-api/production/builds/96afb905-c8c1-47e9-b5ac-482f5966a49e) **success**（業務コードは未変更）。詳細：[第19工程設計と実証結果](D1_PHASE19_SYNTHETIC_MATCH_LIFECYCLE.md)。
 - **今回のD1試験は、削除を論理フラグにし、版は保持したまま復元する技術候補。旧GASは、試合版・セッション・操作履歴・閲覧リンクをスナップショットしてリンク失効後に対象行を物理削除し、復元は運営判断が必要**。両者は**業務仕様差**を伴うため実APIへの採用は禁止。**次のユーザー判断地点**：A（旧動作維持）物理削除＋全版/履歴/リンクを保全した完全アーカイブ＋管理者の明示的な復旧、または B（明示的仕様変更）論理削除＋版の保持/リンク失効＋新しい認可付き復元機能。どちらも実個人情報・領収書やSHA不一致46版の自動移送は含まない。
 - **残存No-Go**：本番相当の全試合版/過去削除アーカイブのSHA46版・JSON/UTF-16旧分割・リンク/監査/元物理行順・参加者権限・日程関連、収支確定順/残高計算/会員・最終管理者/退会/再入会、GAS/LINE認証、実データ/PII/領収書コピーと国外取扱/保持/廃棄・復旧演習、Read Shadow/47 API切替と本番承認。ここで停止し、ユーザーの削除仕様判断後に非破壊の次工程へ進む。
+
+
+## 109. D1第20工程：ユーザーが試合削除仕様Aを承認、旧GASの完全アーカイブ・物理削除・管理者復旧を確定（2026/11/21）
+
+- 第19工程で提示したA/B判断をユーザーが**A**で明示承認。旧GAS `matchDeletePlan_`/`matchDeleteExecute_` の**試合セッション5列・全版9列・操作履歴7列と未失効閲覧リンク6列を元行番号つきで完全アーカイブ→リンク失効→版/操作履歴/セッション物理削除→復旧は管理者の明示操作に限定**を正式に維持。[D1確定仕様](D1_APPROVED_LEGACY_MATCH_DELETE_POLICY.md)、[SPEC_PRIORITY_POLICY](SPEC_PRIORITY_POLICY.md)へ反映。第19工程の論理削除・復元ルートは**隔離した架空実験であり本業務API採用は却下**。
+- 第16工程承認①B（操作IDの別対象流用は拒否）・第17工程承認②B（監査失敗時はNative一括ロールバック）は継続。旧のアーカイブ中断残留状態を再現するのでなく、D1のSQL transactionで一括保存/削除のデータ整合性を高める。実データ移行・本番反映の承認ではない。
+- 第20工程候補：既存の**独立Worker/完全架空D1のみ**で新設テスト専用 `z_native_fixture_match20_` 5表に固定架空の1セッション・2試合版（1+2チャンク）・操作履歴2・閲覧リンク3（未失効2）を作る。`legacy-match20.mjs`の固定SQLで全対象と元行順の疑似`{rowNumber,cells}`を12,000単位SHA付きアーカイブへ保存、未失効リンク失効、版/監査/セッションを**物理削除**。最後の故意エラーなら全体rollback、同操作ID再送は既存結果、別対象再利用を拒否。アーカイブの読取プレビューは検査のみ、**restore/復元write routeなし**。
+- [第20工程設計](D1_PHASE20_LEGACY_PHYSICAL_DELETE_VALIDATION.md)と `tests/check-d1-phase20-physical-sqlite.py`（Worker SQL実体をインメモリSQLiteで実行）、`tests/check-d1-phase20-physical-worker.mjs`、`scripts/d1-phase20-legacy-physical-probe.cjs` を実装。独立Worker専用flag `NATIVE_LEGACY_DELETE20_ENABLED` で隔離。元検証D1全20業務表0行・独立D1の第14工程生成架空業務fixture不変を前後別のCloudflare GET/SELECTで検証する計画。
+- **この節を作成した時点ではPR CI/main統合/Cloudflare第20工程の実SQL・Pages/既存Worker Builds結果はまだ未確認**。PR→オフライン→検証main→隔離Worker実HTTP→独立の事後D1ゼロ行検査→結果追記が必要。実施していない試験を成功扱いしない。
+- 残存No-Go：原本の旧46試合版SHA不一致/元物理行番号、日程削除との連動・会計全順序/残高・会員/権限/本人/履歴・実個人情報と領収書の移行、47 API D1切替、LINE/LIFF・本番。旧Google原本・非共有コピー・既存GAS/Worker/本番/未改変46版は不変更。性能改善/LINE連携開発は移行完了まで保留。次にユーザー判断が必要なところまで架空データの安全な検証を継続する。
