@@ -870,3 +870,11 @@
 - 追加：`tests/check-d1-phase8-column-contract.py`（既存D1 SQL表とヘッダーの一致）、`tests/check-d1-phase8-archives.py`（架空12,000/30,000 UTF-16単位のチャンク、SHA-256、prepared、欠番/重複・破損を拒否）。D1オフラインCIへ登録。[第8工程の設計・制約](D1_PHASE8_COLUMN_ARCHIVES.md)。GAS/Worker/LIFF、設定済みURL/Secrets、Sheets原本、実D1スキーマ/レコード、本番は不変更。
 - **本節作成時点の未完了**：今回PRのCI/統合、mainのPages/Worker Buildsを後で照合し追記する。全タブの実値・型・数式の読み取り専用全件精査、試合版の実SHAとJSON復元、安全な独立バックアップ/復旧訓練、操作ID・CAS・会計のD1側完全同値性、Read Shadow、データ移送のユーザー承認は未完了。**47 APIはGAS_ONLYのまま**。性能改善・LINE機能追加はD1移行完了まで保留。
 - **次の安全な作業**：CIを確認後、原本のバックアップ形式・復元順・参照/日時・数式の完全な契約を設計。承認が必要な実Sheets/D1データ複製や旧Gatewayのバインディング変更は実施しない。
+
+
+## 82. D1第8工程 PR #151 合格・検証用main反映結果（2026/11/21）
+
+- [PR #151](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/151) は旧アーカイブのJSON文字列本文の変更をハッシュなしで検出できるという誤ったテスト期待を修正後、[schema-safety Actions #44848998148](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44848998148) **success**、[spec-contract Actions #44848998140](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44848998140) **success**。154列/20タブのGAS+SQL対応、架空試合版SHA・12,000/30,000単位のチャンク、prepared/欠損/重複、既存47 API GAS_ONLY、旧会計・出欠・退会・試合回帰が合格。
+- PRを検証用main `bd5a2ebfc16510caa04267a0f8a7da206e0bb2c8` にsquash統合。[GitHub Pages Actions #44849042480](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44849042480)はbuild/deploy/report-build-status全**success**、同SHAの `Workers Builds: zenryoku-smash-staging-api` **success**。Workerビルド成功はD1への認証・業務API切替ではない。GAS/LIFF/LINE実機変更・本番デプロイは**未実施**。
+- 検証用架空Sheetのヘッダーのみ20タブ/154列確認、試合版8行・削除アーカイブ37行等の匿名・限定構造監査。原本Sheetへの書込なし、個人情報・ID・JSON本文・金額等のGitHub転記なし。実D1 schema/行の変更なし。旧削除アーカイブにはend-to-end checksumがなく、構文正常な本文変更を検出できないケースがあるため、**原本バックアップ・復元/照合と保存方式の決定は必須の未完了ゲート**。
+- **次**：実20タブの値・日時・数式・書式・行順と全アーカイブのロスレス復元/操作ID相関を読み取り専用で分析する。バックアップ/復元・権限・個人情報保持について安全な設計案を作り、実データD1コピー・既存WorkerへのService Binding/切替・本番反映はユーザー承認前に行わない。性能改善とLINE機能改修はD1移行後まで保留。業務47 APIは引き続きGAS_ONLY。
