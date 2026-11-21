@@ -55,3 +55,8 @@
 - mainの[Phase22 offline #44886073739](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44886073739)、[Phase21 offline #44886073738](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44886073738) **ともにsuccess**。[GitHub Pages #44886073116](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44886073116) build/deploy/report-build-status **success**。[既存Worker Builds](https://dash.cloudflare.com/5817f07a73dbb56011012074ce1b11c5/workers/services/view/zenryoku-smash-staging-api/production/builds/3a885d24-5b41-46e7-80ad-de3e538df597) **success**。これは**現行Worker経路や業務APIのD1切替を示すものではない**。
 - 本工程のCloudflare D1 SQL実地書込み／Google実データのコピー・移送・変更は**未実施**。前工程第20工程の旧検証D120業務表0行という証跡を今回の実測と混同しない。旧SHA不一致46版は現状維持・移行禁止。
 - **次のユーザー判断地点**：旧3シート版のみの古い日付の収支行を A「旧Google台帳でREAD ONLY保管し、D1の現役会計へ含めない」または B「別途認可の上、将来のD1で閲覧する参照専用履歴アーカイブとして設計（現行収支計算へ一切含めない）」のどちらにするか。いずれも移送/コピー/本番反映の許可ではない。
+
+
+## 第24工程で旧台帳の種別が確定（2026/11/21・以前のA/B判断を終了）
+
+ユーザーは旧「運用_全力スマッシュ出欠集金管理表」3シートが**運用管理ツール導入前のテスト用電子会計帳簿（中身はサンプル）**で、`bk`フォルダ保管と明示した。したがって旧6行を実取引履歴として取り込む必要はなく、**全3シートをD1移行対象外**とする。本資料の匿名差分・日付集計は履歴的調査結果に限り、現13シートのopening残高との照合のため旧サンプルを合算したり、別D1旧会計参照アーカイブを設計したりしない。旧A/B選択待ちは**解消**。旧ファイルの削除・変更・移動・権限変更は行わない。[最新確定仕様](D1_PHASE24_EXCLUDE_LEGACY_SAMPLE_3TAB.md)。現行13シートの会計と履歴、旧SHA46版ほかの移行No-Goは維持する。

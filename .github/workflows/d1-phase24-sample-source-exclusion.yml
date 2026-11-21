@@ -1,0 +1,41 @@
+name: D1 Phase24 sample-source exclusion offline guard
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'd1-staging/analysis/phase24-*'
+      - 'tests/check-d1-phase24-*'
+      - '.github/workflows/d1-phase24-sample-source-exclusion.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'd1-staging/analysis/phase24-*'
+      - 'tests/check-d1-phase24-*'
+      - '.github/workflows/d1-phase24-sample-source-exclusion.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  sample-source-exclusion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify sample three-tab cannot enter migration plans
+        run: |
+          node --check d1-staging/analysis/phase24-approved-source-guard.mjs
+          node tests/check-d1-phase24-sample-source-exclusion.mjs
+      - name: Confirm offline-only no runtime data access
+        run: |
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            import assert from 'node:assert/strict';
+            const src=fs.readFileSync('d1-staging/analysis/phase24-approved-source-guard.mjs','utf8');
+            assert(!/fetch\\s*\\(|googleapis|cloudflare|wrangler|D1Database|writeFile|spreadsheet_id|authorization|secret|https?:\\/\\//i.test(src));
+            console.log('PHASE24_OFFLINE_ONLY_PASS');
+          "
