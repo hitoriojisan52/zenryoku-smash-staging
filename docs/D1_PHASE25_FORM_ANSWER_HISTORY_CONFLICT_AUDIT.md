@@ -46,3 +46,12 @@
 ## 実行結果（PR・CI・Pages・Worker）
 
 本資料作成時点で**未確認**。PRとCIを実測後に追記する。確認したことだけを成功として記録する。
+
+
+## 第25工程のPR/CI/Pages/Worker Buildsの実測確定（2026/11/21）
+
+[PR #191](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/191) を検証用main `ef2e78b797f20dc9ff49fd80ba266b9abdd4f4c7` にsquash統合。実データ・現役GAS/Worker/Cloudflare D1/LINE/LIFFは変更なし。
+
+- PR [Phase25 #44900365556](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900365556)、[schema #44900365474](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900365474)、[Phase21 #44900365471](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900365471)、[spec #44900365480](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900365480) **全success**。
+- main [Phase25 #44900411604](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900411604)、[Phase21 #44900411637](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900411637) **全success**。[Pages #44900411242](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900411242) build/deploy/report-build-status含むworkflow **全success**。[既存Worker Builds](https://dash.cloudflare.com/5817f07a73dbb56011012074ce1b11c5/workers/services/view/zenryoku-smash-staging-api/production/builds/3402cdf4-d557-4f7c-946f-2575f0af2867) **success**。
+- 実データのGoogle/Cloudflare D1への書込・コピー、既存D1業務表のリモート件数再測定、GAS再配備、LINE実機・本番切替は**未実施**。ユーザーA/B待ちを維持する。
