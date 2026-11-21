@@ -3,3 +3,6 @@
 
 # Generated Worker deployment config contains the D1 UUID; never commit it.
 readonly-pilot/.wrangler.stage.runtime.json
+
+# Phase15: generated binding contains private fixture DB UUID.
+native-fixture/.wrangler.native.runtime.json
