@@ -1032,3 +1032,15 @@
 - **第14工程は完了**：Workers Freeの画面確認→元D11件・無料枠確認→別D1新規1件作成→Cloudflare管理用テーブルを除いた20業務表の同定→新規コード生成架空データでCloudflare REST SQL 7/7 PASS（40 API calls）→旧D10行ガードと新DB架空件数の実確認。旧Sheets/承認済非共有コピー・領収書/LINE ID・元D1行・本番に触れていない。作成した独立D1は無断削除せず保管する。
 - **残る仕様の懸念**：実Cloudflareの`REST {batch: [...]}`の原子性を試験しただけで、今後の本命である**Workerネイティブ`D1Database.batch()`／複数Worker通信でのCAS/lock/補正・ガス旧仕様との完全同値は未検証**。試合ready版46/46のSHA不一致は既存架空Sheet側で依然保全・未修復。元アプリの残高計算/収支確定全シナリオ・認可/退会・過去監査の実D1本業務移行、Read Shadow、LINE実機、本番切替はNo-Go。
 - **次の承認地点**：新規Workerを仮に `zenryoku-smash-d1-atomic-fixture-worker-stage` とし、既存`zenryoku-smash-staging-api`とread-only`zenryoku-smash-d1-pilot-stage`のどちらも変更せず、**作成済みの独立架空D1だけをbind**した限定Workerでネイティブ`batch()`やCASを実SQL試験する案。専用Workerの新規作成/デプロイ/バインディングの権限とFree Worker制限を確認し、費用/権限不足なら作成前停止。古い検証D1/Google原本/LINE/本番は絶対にbind/移送/更新しない。実施には**ユーザーの別途明示承認**が必要。新D1の削除も別承認。
+
+
+## 98. D1第15工程：ユーザー承認の独立Native batch Worker実装と初期設定ゲート（2026/11/21）
+
+- ユーザーは「独立Workerの作成・検証環境へのデプロイ・架空データ専用D1への接続」を承認。**性能改善とLINE連携はD1移行完了まで作業停止**。第14工程のREST SQL架空7/7・旧検証D1全業務0行・第13工程試合SHA46/46不一致No-Goを基準とする。
+- 第15工程独立Worker名は `zenryoku-smash-d1-atomic-fixture-worker-stage`。接続先は作成済みの架空D1 `zenryoku-smash-d1-atomic-fixture-stage` のみ。元D1 `zenryoku-smash-staging-d1`、既存Worker `zenryoku-smash-staging-api`、read-only Worker `zenryoku-smash-d1-pilot-stage`、GAS/Sheets/LIFF/本番・47業務APIの接続・データ・設定を変更しない。
+- 新規 `d1-staging/native-fixture/worker.mjs`：専用D1 binding、ランダムBearer、CORSなし。別名テスト用の `z_native_fixture_probe` 表だけに書込み、元の20業務表はSELECT指紋照合だけ。Workers native `D1Database.batch()`のCHECK失敗ロールバック、2行コミット、INSERT OR IGNORE冪等、version CASを1回の架空プローブで検証する。旧GAS完全同値・複数リクエスト間の競合や権限/LINE連携はこの工程の合格条件ではない。
+- `scripts/d1-phase15-native-worker.cjs` はCloudflare GET/SELECTで元D1の20業務表全0行と新D1架空fixture件数を確認し、旧D1へのbindingを拒否。専用Worker既存ソースの所有権を判定して、他のWorkerや予期しない内容を上書きしない。生成Wrangler一時設定にはD1 UUIDが含まれるためGit除外。
+- `.github/workflows/d1-phase15-native-fixture-worker.yml`：PRは架空Node mock/旧業務回帰のみ。mainでも新規Environment variable `D1_NATIVE_WORKER_DEPLOY_ENABLED=true` と新規個別Worker Editor Token `D1_NATIVE_WORKER_STAGE_API_TOKEN`がなければremoteは**SKIPPED**。明示ON後だけ独立Workerへのdry-run/deploy/一時Secret・実HTTP native検証、元D1空・架空fixture不変の再読取を行う。既存のSecret、ID、D1 URIを変更しない。
+- **権限制約**：Cloudflareの仕様上、Workerの新規作成にはWorkers product Adminが必要で、第4工程の既存read-only WorkerだけのIndividual Worker Editor Tokenを転用できない。ユーザーにはDashboardで新規正確な名前のHello World Workerを1つ作成し、**その1Workerだけ**を対象にした個別Editor Token、GitHub Environmentの上記Secret/variableを初回登録いただく。[操作手順](D1_PHASE15_NATIVE_WORKER_VALIDATION.md)。ユーザーにソースコード/SQLを貼らせない。トークンの値をチャットへ送らない。
+- **本節記録時点**：変更ブランチ実装作業中。**PR/CI、main統合、Cloudflare Workerの実作成・デプロイ、Worker nativeの実D1試験、Pages/既存Workerのビルド状態はまだ確認していない**。オフライン実装済みとリモート検証済みを混同しない。承認のない本番反映、元Google/Sheets/本番D1への書込、試合SHA修復・実データ転送、独立D1/Workerの削除をしない。
+- **次の作業**：PRで差分とオフラインCIを検証→検証用mainへ統合（既存Worker/GAS/本番は不変更）→Cloudflareへの実デプロイは初回Worker/最小権限Secret/flag設定後にActionsで実施→実HTTP/batch結果・前後D1の内容不変と各デプロイ状況を本引継ぎへ追記。性能改善とLINE連携の機能開発は移行完了後に再開。
