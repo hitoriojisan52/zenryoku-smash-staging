@@ -916,3 +916,13 @@
 - PRを検証用main **`88016e907af324c018722b8c69a7c1230cb4d0d6`**にsquash統合。同SHAの[GitHub Pages Actions #44851245967](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44851245967)はbuild/deploy/report-build-status全**success**、`Workers Builds: zenryoku-smash-staging-api`も**success**。既存Worker/GASのソース/環境設定は変更なし（ビルド合格はD1業務API実装完了ではない）。独立D1 Worker再デプロイ、Remote D1再件数監査、LINE実機受入、本番反映は今回未実施。
 - **未完了・移行阻害要因**：検証用架空試合版8/8のSHA不一致の確定原因、ソース原本の書込停止/独立ネイティブバックアップ/隔離復旧、GAS native DateとSheets APIの全件同値、チーム所属物理重複のロスレス保全、削除アーカイブ旧JSONの完全復元、操作ID/監査/会計/権限の実API等価、read shadow、実D1業務データ投入と接続切替。第10工程の判定は`CANDIDATE_ONLY`までで、絶対にwrite/cutoverを承認しない。
 - **次の作業**：旧試合版の7列形式と削除アーカイブ内の試合版のロスレス復旧を架空fixturesで検証し、原本のバックアップ先/最小権限/保存期間/書込停止方式をユーザーと事前合意。その上で明示許可された検証用の独立コピー・隔離復旧・read shadowの準備を検討。現行47 API GAS_ONLY、性能改善・LINE機能追加はD1移行後まで保留。旧Sheets/GAS/Worker/LIFF/実D1 schema/レコード・Secrets/URL/ID/本番は変更なし。
+
+
+## 87. D1第11工程：旧7列試合版と試合削除アーカイブのロスレス保全・仮復元（2026/11/21）
+
+- 最新main `2f1e47411efa6c29639af92f1c7b29ace20c2d30` とREADME、`docs/SPEC_PRIORITY_POLICY.md`、第8～10工程、現行GASの `matchLoad_`／`matchCommit_`／`matchDeletePlan_`／`matchDeleteExecute_`／`matchDeleteArchiveStatus_`、候補D1 `0002_business_skeleton.sql` を照合。PR #155/#156 のCI成功、Pages/既存Worker Builds成功を確認。実シート/リモートD1は書き込まない。
+- GAS `matchLoad_` は旧7列の試合版を末尾チャンク番号/総数=1として読めるが、D1候補テーブルは9列相当が必須。**原本7列の値・行順を失う無断変換禁止**。旧7列相当、または9列の末尾2列空の候補を元配列を保持したままメモリ内で1/1投影。明示0、欠損片側、範囲外の分割情報は安全のため拒否。元が物理7列だったかどうかはフル原本保全・メタデータ検査まで未確定。
+- 試合削除アーカイブの `targets`（セッション5/試合版9/試合操作履歴7列の元行番号）、`links`（未失効の閲覧リンク6列の元行番号）、同一日程/版数/有効版のSHA、UTF-16 12,000単位のチャンク、`prepared`→`completed`を調査。削除操作の現行GASは先にアーカイブを保存し、閲覧リンク失効→試合版/監査/セッションを各表の逆行順で削除し、先頭ステータスを`completed`へ変える。再生時に原本が変化した可能性を考慮し、行番号だけで元表にINSERTしない。
+- 新規 `d1-staging/phase11/legacy_archive_guard.py`（架空専用、外部I/Oなし）は原形の元行・元リンク保持、SHA/JSON/分割・stage・版数/日程の整合、先頭 `completed` 以外の拒否、元アーカイブSHA欠落ゆえの `unverified_provenance=true` を含むメモリ内仮復元・件数限定安全判定を提供。新規 `tests/check-d1-phase11-legacy-archive.py` は複数チャンクと絵文字サロゲート跨ぎ、7/9列相当、構造不一致・`prepared`・SHA不一致・参照欠損等を架空fixtureで試験。CI追加。[復元仕様/原本コピー承認ゲート](D1_PHASE11_LEGACY_ARCHIVE_RESTORE.md)。
+- **未完了**：本PRのCIとmain統合、Pages/Worker Build、現検証用の試合版8/8 SHA不一致の確定原因、ネイティブ原本バックアップ/隔離復旧・保存先/アクセス/保持期間の承認、会計/出欠/権限/操作IDのD1側完全同値、read shadow、D1実データ転送・API切替・本番。旧試合削除アーカイブの真正性は独立した改変防止原本なしに証明できない。**47 APIはGAS_ONLY、性能改善/LINE拡張保留**。
+- 次の安全な作業：PR CIと検証用デプロイ結果を確定記録し、会計・試合・操作履歴のD1トランザクション/冪等な失敗復旧の架空試験へ。実業務Sheet/Driveコピー・既存Worker Binding変更・本番切替は保存先/個人情報/復旧責任を含むユーザーの明示承認まで行わない。
