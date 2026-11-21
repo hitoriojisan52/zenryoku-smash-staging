@@ -88,7 +88,6 @@ def chunked(snapshot):
         b[n:n + 12000 * 2].decode("utf-16-le", errors="surrogatepass")
         for n in range(0, len(b), 12000 * 2)
     ]
-    assert len(pieces) >= 2, "expected multi-chunk legacy archive fixture"
     return [{
         "operationId": "FICTION-OP-DELETE",
         "practiceId": P,
@@ -122,6 +121,7 @@ def assert_reject(fn, code):
 def main():
     original = fixture()
     rows = chunked(original)
+    assert len(rows) >= 2, "baseline must exercise multi-chunk archived JSON"
     original_frozen = copy.deepcopy(original)
     rows_frozen = copy.deepcopy(rows)
     result = inspect_archive(scope=SCOPE, rows=rows)
