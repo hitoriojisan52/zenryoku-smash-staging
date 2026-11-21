@@ -1010,3 +1010,15 @@
 - `.github/workflows/d1-phase14-isolated-fixture.yml`：PR時は架空offline self-testとPhase12/13・会計/退会/試合・47 API GAS_ONLY回帰のみ。main push時だけ既存GitHub Environment`d1-staging`の最小D1 Tokenで一時DB作成とREST SQL試験を実行。再実行時に同名DBが存在したら停止し、勝手に繰り返し書込・削除しない。
 - [詳細と未検証](D1_PHASE14_ISOLATED_SQL_RESULTS.md)。REST batch成功でもWorkerネイティブの`D1Database.batch()`/read→compute→write競合・旧GAS実装完全同値・47 API移行・試合SHA不一致46件は別工程の検証と承認が必要。
 - **現時点ではPR/CI・main実SQL/デプロイ未確認**。GitHubの実結果を確認したら次節へ記載する。失敗した工程は成功扱いしない。独立DBは作成後無断削除しない。
+
+
+## 96. D1第14工程：Workers Freeで別D1 1件作成成功・架空REST SQL 7/7成功（2026/11/21）
+
+- ユーザー提供のCloudflare`Billing > Subscriptions`画面で**Workers Free / Active**と**支払方法未登録**を確認。公開GitHubにユーザー画像/メール/個別契約情報は保管しない。公式Free容量10DB/1DB500MB/5GBと第14工程の実Cloudflare GET（既存DB1件）により、承認済の独立一時D1作成を続行。
+- [PR #165](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/165)は架空offline-safety/spec CI success、検証用main `19fe60894ad6b7d3dbb4074f3c04880ed778fd7f`に統合。[最初の作成・実SQL Actions #44859726039](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44859726039)では**作成予定通り1件の一時Cloudflare D1 `zenryoku-smash-d1-atomic-fixture-stage` がCREATE成功**、しかし本コードが独立DBの全SQLite表数を20と誤認し、**実際はCloudflare内部管理用1を含む21表**だったため、架空データ投入前に失敗停止。Cloudflare GET結果のUUID/Secrets/実LINE IDを公開しない。**SQLテストはこの時点で未成功、CREATEを再実行せずDBを削除しない**。
+- [PR #166](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/166)でCloudflare GET/SELECTだけの診断を実装しmain `dec7750704b8c6e54aaee5989e91f9313b6bae6e`へ統合。[読取診断 Actions #44859931553](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44859931553) **success**：D1はアカウント合計2件、元D1とは別UUID/名前の作成DBを1件確認、一時DB内の全テーブル21件、架空会員0件。失敗原因はテーブル合計と業務表数の違い。元D1への書込は行わず、1件の新DBをそのまま保管。
+- [PR #167](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/167)をmain `7b05404ee3783090326aff9737c598ecc4f11788` に統合。新規CREATEを**コードから削除**した再開用スクリプトが元の1DBのCREATE日時・名前/UUID・D1総数2・20業務表名/9関連表0行を再照合。PR offline-contract success。[実Cloudflare REST SQL Actions #44860162654](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44860162654) のoffline-contractとisolated-sql-resumeは共に**success**、40 SQL API requestsで`PASS`：`PAYMENT_CAS`、`LEDGER_CONFIRM_ORDER`、`LEDGER_MONEY`、`MATCH_CAS`、`OPERATION_IDEMPOTENT`、`REST_BATCH_ROLLBACK`、`REST_BATCH_COMMIT`＝**7/7**。2件目の一時DBを作成したり元D1を更新したりしていない。
+- この成果に基づく新規`scripts/d1-phase14-readonly-postcheck.cjs`と`.github/workflows/d1-phase14-readonly-postcheck.yml`：**GET/SELECTのみ**で元の検証D1の20業務表と0行契約、別DBの架空件数をクロスチェックする（未確認の実Cloudflare結果は次節へ）。[第14工程の実測・制限](D1_PHASE14_ISOLATED_SQL_RESULTS.md)。
+- 既存47業務API `GAS_ONLY`、収支確定順・役割/退会・試合・LINE認証を変えない。元Sheets/非共有コピー・Drive/GAS/Worker/LIFF/本番に書込/デプロイ変更なし。独立D1は無断削除せず、引き続き無料枠に保管（消去・保持の判断は後日ユーザー承認）。
+- **未解決**：既存架空Google Sheetのready試合版46件SHA不一致の生成経緯と移行不可、正本のアトミックバックアップ・領収書/Native Dateの整合、既存会計/認可/退会・監査の完全移行、Cloudflare Workerネイティブ`D1Database.batch()`/長いread→compute→write競合の実験（REST batchだけ成功）、LINE実機、D1 read shadow、本番切替。追加のWorker/Binding/Secret展開や本番反映は**別のユーザー承認が必要**。
+- PR #167のPages build/deploy/report-build-statusはmainでsuccess。既存Workers Builds成功は別チェックで確認し、同じ時点のステータスを下記の追加節で確定する。
