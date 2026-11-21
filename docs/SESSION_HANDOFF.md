@@ -860,3 +860,13 @@
 - 最新main、README/仕様優先順位、第5・6工程の引継ぎ、既存D1の20テーブルSQL、GASの権限・監査・退会仕様を再確認。実データ・実会計は読み書きせず、`tests/check-d1-phase7-offline-replay.py`を追加。架空2会員・日程・出欠・集金・収支・監査をメモリSQLiteで横断し、role admin優先/当番チーム停止、降格/昇格時の複合PK、operationId二重送信禁止、最後の管理者保護、退会済みactorの監査保持、同一トランザクションの監査衝突・集金収支のロールバックを検証する。
 - [第7工程の範囲と未完了](D1_PHASE7_OFFLINE_REPLAY.md)。第6工程の日時/監査前検査を再利用し、`.github/workflows/d1-staging-check.yml`に追加。**CI結果、PR、main反映、Pages/Worker Buildはこの節の作成時点では未確認。完了扱いしない**。
 - 変更しない：既存47 API GAS_ONLY、既存GAS/Worker/LIFF、検証用/本番Sheets、D1実テーブル/業務データ/Secrets、本番。残課題：20タブ列別検証・原本バックアップ/復元、試合/会計アーカイブ、実GASとの書込境界同値、Read Shadow、実データ移行の事前承認。
+
+
+## 81. D1第8工程：20タブ154列の静的移行契約／アーカイブ復元安全ゲート（2026/11/21）
+
+- 最新main `7d24e1d16f591141a99abeb9e595b95329438ae1`、README、優先順位、既存GASと第5～7工程、PR #150 のCI（schema-safety/spec-contract success）とmain Pages/Worker Builds成功を照合。第7工程を**CI統合まで完了**とし、実データ移行は未完了のままとする。
+- Google Drive接続検証用 v0.15（架空データ、Asia/Tokyo）の**全20業務タブのヘッダーだけ**を読取専用で確認。`d1-staging/phase8/source-column-contract.json` は20タブ／154列の列順とD1候補列名を記録。実値や個人情報、会計額、ID、JSON本文、秘密値はGitHubへ一切記録しない。
+- アーカイブの限定的匿名監査：試合版8行/8グループ、日程削除3行/3グループ、試合削除34行/5グループについて分割インデックス/総数およびready/completed状態の構造不整合0。参加者操作1行、ビジター審査2行は件数のみ。**本文のSHA-256再計算・実JSON復元・全行公式/型の検証は未実施**。
+- 追加：`tests/check-d1-phase8-column-contract.py`（既存D1 SQL表とヘッダーの一致）、`tests/check-d1-phase8-archives.py`（架空12,000/30,000 UTF-16単位のチャンク、SHA-256、prepared、欠番/重複・破損を拒否）。D1オフラインCIへ登録。[第8工程の設計・制約](D1_PHASE8_COLUMN_ARCHIVES.md)。GAS/Worker/LIFF、設定済みURL/Secrets、Sheets原本、実D1スキーマ/レコード、本番は不変更。
+- **本節作成時点の未完了**：今回PRのCI/統合、mainのPages/Worker Buildsを後で照合し追記する。全タブの実値・型・数式の読み取り専用全件精査、試合版の実SHAとJSON復元、安全な独立バックアップ/復旧訓練、操作ID・CAS・会計のD1側完全同値性、Read Shadow、データ移送のユーザー承認は未完了。**47 APIはGAS_ONLYのまま**。性能改善・LINE機能追加はD1移行完了まで保留。
+- **次の安全な作業**：CIを確認後、原本のバックアップ形式・復元順・参照/日時・数式の完全な契約を設計。承認が必要な実Sheets/D1データ複製や旧Gatewayのバインディング変更は実施しない。
