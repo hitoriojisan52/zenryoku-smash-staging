@@ -1257,3 +1257,12 @@
 - **次のユーザー判断が必要**：**A（推奨）** 将来のD1に115行の7列元回答を**現役データと切り離した参照専用履歴**として保持する*設計*を承認／**B** 過去を含む元回答履歴はGoogle原本で保持し、D1に個別履歴テーブルを作らない。どちらも過去73行を削除せず、現役42行の本人・カテゴリ・出欠状態を自動確定せず、実個人情報コピー/Cloudflare実書込/本番切替は新規承認が必要。別途LINE本人ID、同名出欠不一致、閲覧権限/PII同意、会計/本人・退会同値を検証。
 - **維持する停止条件**：旧3タブのサンプル全除外、架空試合旧SHA不一致46版保全、現会計opening/先行未確定行/確定済残高・負残高/権限・退会/ビジター・領収書、47 GAS_ONLY APIと本番承認。実D1、GAS/Worker/LINE/LIFF、Google原本/バックアップ/bkには一切変更なし。性能改善・LINE機能拡張はD1移行後。
 - **検証状態**：この節の作成時点でPR/CI/main統合/Pages/Worker Build**未確認**。実測の後に引き継ぎ追記し、未実施のCloudflare実SQLや本番移行を完了扱いしない。
+
+
+## 120. D1第25工程の検証用main統合・CI/Pages/Worker Build実測（2026/11/21）
+
+- [PR #191](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/191) を検証用main **`ef2e78b797f20dc9ff49fd80ba266b9abdd4f4c7`**にsquash統合。変更は第25工程の架空SQLiteメモリ専用源回答履歴テーブル案と架空行テスト、offline CI、[第25工程の匿名READ ONLY調査](D1_PHASE25_FORM_ANSWER_HISTORY_CONFLICT_AUDIT.md)、READMEと第119節。**実データのGoogle/Cloudflareコピー・D1業務行書込、本番反映、GAS/Worker/LINE/LIFF/業務API変更なし**。
+- **PR Actions実測**：[第25工程履歴保持 #44900365556](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900365556)、[現候補D1 schema #44900365474](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900365474)、[Phase21 既存READ ONLY #44900365471](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900365471)、[spec #44900365480](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900365480) は**全てsuccess**。
+- **main Actions実測**：[Phase25 #44900411604](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900411604)、[Phase21 #44900411637](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900411637) **success**。[Pages #44900411242](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44900411242) workflow及び**build/deploy/report-build-status各job success**。[既存Cloudflare Worker Builds](https://dash.cloudflare.com/5817f07a73dbb56011012074ce1b11c5/workers/services/view/zenryoku-smash-staging-api/production/builds/3402cdf4-d557-4f7c-946f-2575f0af2867) **success**。Workerの業務APIソース変更やデータベース移行を意味しない。
+- 第25工程は**元13シート115行をREAD ONLYで匿名分析し、架空データで履歴の候補構造を検証しただけ**。今回のリモートCloudflare D1 SQL/実データのコピー、現GASの再配備・LINE実機受入、既存20業務表0行の再測定は**未実施**。古い実測を今回の完了にしない。
+- **次のユーザー判断地点**：A（推奨）現行13シートの元フォーム115行を、将来D1に現役とは分離した参照専用履歴として保持する**設計**／B 元フォーム履歴は既存Google原本にだけ保管し、D1履歴表は設けない。詳細は[第25工程調査/2案](D1_PHASE25_FORM_ANSWER_HISTORY_CONFLICT_AUDIT.md)。いずれも元フォームの出欠矛盾/代理申込の自動解決なし、本人ID・権限/同意/保持/バックアップと移送承認は別途必要、旧3タブのサンプルは完全除外、GAS_ONLY47 APIと本番・会計のNo-Goを維持。**ユーザー選択前に実履歴のD1保存方式を確定しない**。
