@@ -833,3 +833,14 @@
 - **退会起因ではない**：v0.16.53の退会実装は対象memberIdのチーム所属を物理削除、再入会で別memberId+当番所属なし。旧`member.manage.role`でも当番→一般で行をFALSEにして残す実機テストがある。**3列の所属シート行は操作日時・操作者を持つ正規のイベント履歴ではなく、`操作履歴`が監査の正本**。
 - 先の[20タブ監査](D1_STAGE_SHEET_PREFLIGHT.md)の「3行の独立業務履歴保存を必須としユーザー判断を要求」という評価は、発生原因調査前の過剰な設計提案だったため[原因究明](D1_TEAM_MEMBERSHIP_ROOT_CAUSE.md)で訂正。D1の(teamId,memberId)複合PKは**現在の有効所属を1行で示す候補として継続可能**。案は「実原本行はバックアップで保護、同一キーのactive=OR(active)へ変換、操作履歴/退会旧IDを別契約として保持」。管理者優先→当番→一般の判定を維持し、検証専用`stage.selfRole`を本番へ移植しない。
 - 今回の変更は**説明・オフラインfixture試験のみ**。検証用Sheets／本番Sheet、GAS、旧Worker・新D1 Worker、Cloudflare D1 schema/実レコード、LIFF・Secrets・本番は変更なし。`tests/check-d1-phase5-membership.py`で6回の架空の権限変更と管理者優先・複合PKの制限・状態集約の同値性を検証。原本バックアップ・監査全件移行・ロール書込の冪等性と退会再入会の正式な実移行/切替は**未実施**。次はオフラインの合格→PR統合後、日付/監査とデータ正本移転を別途設計する。
+
+
+## 78. D1第6工程：JST暦日/Googleシリアル/操作履歴の事前安全検証（2026/11/21）
+
+- 前回main `36f4093829f309db164035c981abf30d5334616d`、`README.md`、`SPEC_PRIORITY_POLICY.md`、第5工程日付/チーム所属の再調査、実GASの`ledgerDate_`・`scheduleTime_`・`attendanceAuditTime_`・`attendanceAuditDates_`、D1 `operation_audit` schemaとCI、直近PR/反映状況を確認。**旧アプリのJST秒単位報告日時・全日程日付一意性・操作ID・退会後の監査保持は変更不可**。
+- 検証用v0.15**架空データ**の`Asia/Tokyo`設定をGoogle Sheets connectorで読み取り専用確認。セル書式と値の型について`練習日程!B2:B6`5件（DATE数値4/文字1）、`練習日程!D2:E6`10件（TIME数値8/文字2）、`全体収支管理表!A2:A12`9件（DATE数値7/文字2）、`操作履歴!D2:D211`210件（DATE_TIME数値210）の**計234セル**を一時判定、日付/時刻/日時の整数分秒・書式不整合0件、正規化後の日程日付重複0件。**生セル値や個人情報はGitHub/Actionsログに転記していない**。
+- 同`操作履歴!A2:F211`210行の匿名構造監査では、必須操作ID・種類・操作者ID・時刻・結果JSONの空欄、重複操作ID、不正JSONはすべて0件。結果JSONは210/210行オブジェクト。**実データの完全移行や操作結果の業務等価性を保証したものではない**。
+- 実装した`d1-staging/phase6/civil_codec.py`は外部API呼出しのない候補の純粋関数。シート数値シリアルの基点`1899-12-30`をJSTローカルの暦日・時刻として解釈し、UTC時刻が必要なら明示してJST-9時間で派生。型・元入力・書式を保持し、曖昧な文字列／不正日付／DATE列の時刻混入／分や秒単位を超える端数を**自動補正せず拒否**。`tests/check-d1-phase6-civil-codec.py`で架空の日跨ぎ・うるう年・時刻境界・数値/文字列・失敗ケースを検証する。
+- `d1-staging/phase6/audit_preflight.py`は元の操作IDとresultJSONテキストを保持してJST日時を厳格検証し、出欠submitの初回／最終日時を旧GASの時刻比較に一致させる候補。`tests/check-d1-phase6-audit-preflight.py`は架空イベントのみで重複ID/JSON破損を拒否、退会後の旧actorIdが`members`のFK不在で`operation_audit`に残ることをSQLite上で検証。**個人情報・実会計・元操作ログは試験入力として使用しない**。
+- [実施設計](D1_PHASE6_CIVIL_DATE_CONTRACT.md)を作成、`.github/workflows/d1-staging-check.yml`に2件の追加オフライン回帰を登録。**本節作成時点はPRチェック・main統合/Pages/Worker Buildsの確認前**。追記して確定扱いする。検証シート、GAS、既存Workerと独立D1 Workerのソース/URL/Binding、D1業務データ/スキーマ、Secrets、LINE/LIFF、本番は不変更。
+- **残課題**：現シート/実運用シートの原本バックアップと復旧、本来のGoogle`getValues()`日時との全行同値性、全20業務タブの申請/出欠/退会/試合監査の参照整合、監査原文・履歴のD1への暗号化/保持/削除設計、ロール・会計の同時更新トランザクション、D1 read-only shadowと同条件性能比較。既存の47 APIは`GAS_ONLY`のまま、D1への実データ移行・本番反映は事前承認制。
