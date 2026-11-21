@@ -19,6 +19,7 @@ on:
       - 'tests/check-d1-phase9-readiness.py'
       - 'tests/check-d1-phase10-match-preflight.py'
       - 'tests/check-d1-phase11-legacy-archive.py'
+      - 'tests/check-d1-phase12-atomic-candidate.py'
       - 'cloudflare-worker/worker.js'
       - 'gas-staging/コード.gs'
       - '.github/workflows/d1-staging-*.yml'
@@ -68,6 +69,8 @@ jobs:
         run: python3 tests/check-d1-phase10-match-preflight.py
       - name: Guard fabricated 7-column revisions and match deletion archive lossless virtual restore
         run: python3 tests/check-d1-phase11-legacy-archive.py
+      - name: Prove fabricated SQLite payment ledger match atomicity CAS idempotence and rollback
+        run: python3 tests/check-d1-phase12-atomic-candidate.py
       - name: Validate D1 target-account and database guard
         run: node scripts/d1-staging-config.cjs self-test
       - name: Protect legacy ledger confirmation ordering and balances
