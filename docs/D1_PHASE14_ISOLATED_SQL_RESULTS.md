@@ -52,3 +52,17 @@ GitHub PR、main commit、offline Checks、**isolated-cloudflare-d1** のActions
 ### 追加の読取専用・元D1無変更回帰
 
 `scripts/d1-phase14-readonly-postcheck.cjs`と`.github/workflows/d1-phase14-readonly-postcheck.yml`は、新規DBと既存DBの名前/UUIDが2件で分離していることを確認したあと、**SELECTだけ**で元D1の既存20業務表/業務データ0行/Bootstrap0行、および一時DBの架空会員1/日程1/出欠1/集金済1/確定収支2/試合セッション1/readyチャンク3/監査2/試合監査1を検証する。ユーザー個人情報や行本文は出力しない。PR時はモックのみ、main統合後のクラウド結果を追加引継ぎ節へ記録する。これはあくまで**既存D1は旧0行仕様を維持している**という最後の確認であり、本番D1正本移行の承認ではない。
+
+
+## 最終読み取り専用チェック・検証mainへの反映（2026/11/21）
+
+[PR #168](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/168)をmain `fe6fb9279d8e67f87eb79e8c94639ee692eb92f3` へ統合。PR offline/spec安全回帰全て成功。Cloudflare本番データを一切更新しない独立[Actions #44860501021](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44860501021)は **READ ONLY PASS**：
+
+- 既存検証D1：業務用**20テーブル**、全業務行**0**、bootstrap行**0**。
+- 新規一時D1（Cloudflareアカウントに1件だけ作成済み、追加CREATEなし）：架空会員1、練習日程1、出欠1、集金済1、確定収支2、試合セッション1、ready試合チャンク3、操作監査2、試合操作監査1。すべて新規プログラム生成した架空値のみ。
+- DB間をまたぐ実本人データ/LINE ID/スプレッドシート原本/バックアップは**1行も移送せず**、旧検証D1の業務データ0行を実確認した。
+- 同mainの[Pages Actions #44860500389](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44860500389) build/deploy/report-build-status **all success**、[既存Worker Build](https://github.com/hitoriojisan52/zenryoku-smash-staging/runs/136712763744) **success**。既存Worker/GAS/LIFFの機能コード・バインディング/設定は変更なし。
+
+**完了範囲**：CloudflareのWorkers Freeアカウント内に独立したD1を**1 DBのみ**作り、生成架空データでREST SQL集金CAS/収支順/金額/試合CAS/再送冪等性/REST batch失敗巻戻し・成功を**7/7 PASS**し、旧DB0行と新DBの架空件数を実検証した。
+
+**次工程の承認が必要**：これ以上のD1 Worker Native `D1Database.batch()`実測には、作成済み架空D1専用の**別の小型Worker**、その専用Binding、GitHub Actionsによる限定デプロイが必要。既存のWorkerや旧検証D1の設定変更、本番への反映は禁止。作成/デプロイ前にユーザーの明示承認を得てFree枠と権限を再照合する。独立D1の保管/削除も別途ユーザーが判断する。既存架空Sheetの試合SHA46版不一致・旧GAS実業務同値・本番移行は引き続き未完了。
