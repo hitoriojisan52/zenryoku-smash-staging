@@ -46,7 +46,7 @@ def state(fid):
 def apply(fid, op, *, fault=False, expected=0, revision="synthetic-rev"):
     db.execute("BEGIN IMMEDIATE")
     try:
-        c1 = db.execute(sql["revision"], (revision, fid, '{"fictional":true}', fid, expected)).rowcount
+        c1 = db.execute(sql["revision"], (revision, '{"fictional":true}', fid, expected)).rowcount
         c2 = db.execute(sql["pointer"], (revision, fid, expected, revision, fid)).rowcount
         c3 = db.execute(sql["audit"], (op, fid, "synthetic-duty-only", expected,
                              revision, "fault" if fault else "committed",
