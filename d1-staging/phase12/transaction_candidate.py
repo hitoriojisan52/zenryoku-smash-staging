@@ -114,7 +114,8 @@ def _audit_replay(db, op_id, operation, actor_id, target_id):
     if not record:
         return None
     # Legacy GAS verifies operation and actor, not target or request payload.
-    # Target check is a safer candidate only; integration must be approved.
+    # D1 target-bound operation ID is explicitly approved (2026-11-21 B).
+    # This remains an offline candidate, never a live GAS behavior change.
     guard((record[0], record[1], record[2]) ==
           (operation, actor_id, target_id), "OP_ID_REUSE")
     try:
@@ -396,7 +397,8 @@ def match_transition(db, *, scope, op_id, actor_id, practice_id, action,
     """Synthetic candidate: match version, revision, and audit in one txn.
 
     Difference from GAS: GAS may commit pointer even if final audit append
-    fails. This candidate rolls back the entire change; needs explicit review.
+    fails. D1 full rollback on audit failure is explicitly approved
+    (2026-11-21 B). This is still synthetic/offline only.
     """
     _op_id(op_id)
     guard(action in ("create", "change"), "INVALID_ACTION")
