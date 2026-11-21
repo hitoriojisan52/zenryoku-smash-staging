@@ -211,33 +211,33 @@ def accounting_tests():
     db.commit()
 
     for checkpoint in ("after_ledger", "after_audit"):
-        blocked(lambda checkpoint=checkpoint: ledger(db, inject=checkpoint),
+        blocked(lambda checkpoint=checkpoint: ledger(db, version=3, inject=checkpoint),
                 "INJECTED_ROLLBACK", db)
-    confirmed = ledger(db)
-    assert confirmed["data"]["version"] == 3  # updated balance incremented once
+    confirmed = ledger(db, version=3)
+    assert confirmed["data"]["version"] == 4  # two payment changes then confirm
     assert ledger(db) == confirmed
-    blocked(lambda: ledger(db, op_id="FICT-LEDGER-2", version=2),
+    blocked(lambda: ledger(db, op_id="FICT-LEDGER-2", version=4),
             "ALREADY_CONFIRMED", db)
     blocked(lambda: ledger(db, actor=MEMBER, op_id="FICT-LEDGER-3"),
             "FORBIDDEN", db)
-    blocked(lambda: ledger(db, row=R, op_id="FICT-LEDGER-4", action="unlock"),
+    blocked(lambda: ledger(db, row=R, op_id="FICT-LEDGER-4", action="unlock", version=3),
             "NOT_CONFIRMED", db)
     blocked(lambda: ledger(db, row=PLEDGER, op_id="FICT-LEDGER-5",
-                           action="unlock", version=3),
+                           action="unlock", version=4),
             "FORBIDDEN", db)
-    rresult = ledger(db, row=R, op_id="FICT-LEDGER-6", version=2)
-    assert rresult["data"]["version"] == 3
-    ledger(db, row=O, op_id="FICT-LEDGER-7", version=2)
+    rresult = ledger(db, row=R, op_id="FICT-LEDGER-6", version=3)
+    assert rresult["data"]["version"] == 4
+    ledger(db, row=O, op_id="FICT-LEDGER-7", version=3)
     blocked(lambda: ledger(db, row=PLEDGER, op_id="FICT-LEDGER-8",
-                           action="unlock", version=3, actor=ADMIN),
+                           action="unlock", version=4, actor=ADMIN),
             "LATER_CONFIRMED", db)
     blocked(lambda: ledger(db, row=R, op_id="FICT-LEDGER-9",
-                           action="unlock", version=3, actor=ADMIN),
+                           action="unlock", version=4, actor=ADMIN),
             "LATER_CONFIRMED", db)
     # Latest confirmed non-opening row must be unlocked first. Same-day
     # kind ordering: practice, reimbursement, other (regardless of row order).
     ledger(db, row=O, op_id="FICT-LEDGER-10",
-           action="unlock", version=3, actor=ADMIN)
+           action="unlock", version=4, actor=ADMIN)
     ledger(db, row=R, op_id="FICT-LEDGER-11",
            action="unlock", version=3, actor=ADMIN)
     ledger(db, row=PLEDGER, op_id="FICT-LEDGER-12",
