@@ -15,6 +15,8 @@ on:
       - 'tests/check-d1-phase7-offline-replay.py'
       - 'tests/check-d1-phase8-column-contract.py'
       - 'tests/check-d1-phase8-archives.py'
+      - 'tests/check-d1-phase9-snapshot.py'
+      - 'tests/check-d1-phase9-readiness.py'
       - 'cloudflare-worker/worker.js'
       - 'gas-staging/コード.gs'
       - '.github/workflows/d1-staging-*.yml'
@@ -56,6 +58,10 @@ jobs:
         run: python3 tests/check-d1-phase8-column-contract.py
       - name: Guard archive chunks, UTF-16 boundaries, ready status and SHA (fabricated)
         run: python3 tests/check-d1-phase8-archives.py
+      - name: Verify fabricated native-cell snapshot parity and virtual restore without external I/O
+        run: python3 tests/check-d1-phase9-snapshot.py
+      - name: Require backup, SHA, audit, and explicit approval gates before D1 business copy
+        run: python3 tests/check-d1-phase9-readiness.py
       - name: Validate D1 target-account and database guard
         run: node scripts/d1-staging-config.cjs self-test
       - name: Protect legacy ledger confirmation ordering and balances
