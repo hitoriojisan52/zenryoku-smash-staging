@@ -39,3 +39,15 @@
 ## 残存No-Go
 
 旧会計履歴A/B未選択。現行openingへの旧収支含有の有無。過去日程の出欠履歴73件と反復11行の無損失取り扱い。試合SHA不一致46版。実会計・本人認証/権限・監査・退会履歴・本人同意・領収書の同値と復旧。本番切替の明示承認。**実データ/Cloudflareの業務行への書込みは行わない**。
+
+
+## 第23工程PR/main 実行確認（2026/11/21）
+
+[PR #187](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/187) をmain `e4c318e5c04e1ac9390fe73030548e5af805ed2f` にsquash統合。変更ファイル5件は架空in-memory SQLiteテスト、offline CI、本報告、README、SESSION_HANDOFFのみ。
+
+- PR [Phase23 offline #44898368110](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44898368110) **success**：候補0002 DDLのFK/PK実行、過去日程欠落時拒否、同一仮IDの二重insert拒否、異なる仮IDの共存、SQLite integrity_check、外部接続禁止ASTガード。
+- PR [spec priority #44898368035](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44898368035) **success**。
+- main [Phase23 offline #44898407884](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44898407884) **success**。
+- main [GitHub Pages #44898407172](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44898407172) **build/deploy/report-build-status 全success**。今回のCloudflare Worker BuildsとリモートD1行数の再照合は未実施・未確認。元Google・実D1/Worker/GAS/LIFF/LINE・本番/実会計・実出欠へのアクセス/書込/複製なし。
+
+旧会計A/Bは未選択、実データ/会計/権限・履歴同値・同意/復旧/本番はNo-Goを維持。ユーザー選択後に別段階の設計を進める。
