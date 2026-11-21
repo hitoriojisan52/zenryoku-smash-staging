@@ -8,6 +8,9 @@ on:
       - 'tests/check-d1-native-fixture-worker.mjs'
       - 'tests/check-d1-phase16-concurrency.mjs'
       - 'scripts/d1-phase16-concurrent-worker-probe.cjs'
+      - 'scripts/d1-phase17-approved-worker-probe.cjs'
+      - 'tests/check-d1-phase17-approved-worker.mjs'
+      - 'tests/check-d1-phase17-approved-sqlite.py'
       - '.github/workflows/d1-phase15-native-fixture-worker.yml'
   push:
     branches: [main]
@@ -17,6 +20,9 @@ on:
       - 'tests/check-d1-native-fixture-worker.mjs'
       - 'tests/check-d1-phase16-concurrency.mjs'
       - 'scripts/d1-phase16-concurrent-worker-probe.cjs'
+      - 'scripts/d1-phase17-approved-worker-probe.cjs'
+      - 'tests/check-d1-phase17-approved-worker.mjs'
+      - 'tests/check-d1-phase17-approved-sqlite.py'
       - '.github/workflows/d1-phase15-native-fixture-worker.yml'
 permissions:
   contents: read
@@ -39,6 +45,9 @@ jobs:
           node scripts/d1-phase14-readonly-postcheck.cjs self-test
           node tests/check-d1-phase16-concurrency.mjs
           node scripts/d1-phase16-concurrent-worker-probe.cjs self-test
+          node tests/check-d1-phase17-approved-worker.mjs
+          python3 tests/check-d1-phase17-approved-sqlite.py
+          python3 tests/check-d1-phase12-atomic-candidate.py
       - name: Preserve legacy GAS and staging D1 schema business contracts
         run: |
           python3 scripts/d1-staging-check.py
@@ -129,6 +138,10 @@ jobs:
         if: steps.gate.outputs.ready == 'true'
         run: |
           node scripts/d1-phase16-concurrent-worker-probe.cjs run "$RUNNER_TEMP/native-fixture-url.txt" "$RUNNER_TEMP/native-fixture-bearer.txt"
+      - name: Phase17 approved B/B native match/audit rollback and target-bound operation identity
+        if: steps.gate.outputs.ready == 'true'
+        run: |
+          node scripts/d1-phase17-approved-worker-probe.cjs run "$RUNNER_TEMP/native-fixture-url.txt" "$RUNNER_TEMP/native-fixture-bearer.txt"
       - name: Postcheck original D1 zero rows and original synthetic fixtures unchanged
         if: steps.gate.outputs.ready == 'true'
         run: node scripts/d1-phase14-readonly-postcheck.cjs run
