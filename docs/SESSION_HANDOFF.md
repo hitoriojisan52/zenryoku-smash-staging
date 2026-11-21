@@ -1123,3 +1123,14 @@
 - この調査で**SHA不一致の真因は確定していない**。既存46版の原文SHAを上書き/修復したり検証を迂回してD1へ移送したりしない。元Googleシート/コピー/旧GAS/LIFF/Worker/実D1業務20表・独立架空D1テーブル/本番は**すべて読取のみ・書込なし**。[第18工程の匿名結果と選択肢](D1_PHASE18_READONLY_SHA_DIAGNOSIS_AND_CHOICES.md)。
 - **次のユーザー確認（移行方針）**：A（推奨）＝既存46版を保全したまま、**別の新規生成・正しいSHAの架空試合版のみ**でD1試合の保存/復元/削除の技術実験を継続（旧46版の移送は依然No-Go）。B＝試合履歴機能のD1移行はSHA原因解明まで凍結し、集金/収支/会員/権限候補を先行。いずれも**旧46版の再ハッシュ上書き/実業務データ移送/本番切替の承認ではない**。ユーザー判断が必要な仕様衝突を避けるため、この時点でA/Bの業務方針を勝手に採用しない。
 - **さらに必要な後工程承認**：実Sheets/LINE/領収書/会員/収支のバックアップと個人情報・国外取り扱い/保持/廃棄・復旧責任、旧GASの残高/確定順/権限/監査の全API同値検証、47 APIの切替/ロールバック・本番反映。本番は必ず事前承認、性能改善とLINE連携開発はマイグレーション完了まで保留。
+
+
+## 107. D1第19工程（ユーザーA承認）：旧SHA46版を保全した新規架空試合の保存/読込/削除アーカイブ/復元技術候補（2026/11/21）
+
+- ユーザーは第18工程**方針A**を明示承認：旧検証シートのSHA不一致46版を**一切改変・補正・移送せず**、新規生成の正常な架空試合版のみを独立D1で試験。性能改善・LINE機能拡張はD1移行完了まで停止、実データ/本番は変更しない。
+- 最新main `3ea253e792599ed910073cfc5abe0a3b056b415a`、第106節、旧GAS `matchLoad_`/`matchCommit_`/`matchDeletePlan_`/`matchDeleteExecute_`、第11/17工程を確認し、[第19工程設計・新旧仕様影響と次判断](D1_PHASE19_SYNTHETIC_MATCH_LIFECYCLE.md)を作成。
+- 既存の**独立架空D1**に新たなテスト専用`z_native_fixture_match19_`の4表のみを対象としたWorker試験候補を `d1-staging/native-fixture/generated-match19.mjs` に作成。元検証D1全業務20表、独立D1の既存会員・会計・試合fixtureにはSELECT fingerprint以外のアクセスなし。Workerが固定架空JSONを生成、WebCrypto UTF-8 SHA-256、Unicodeサロゲート境界でUTF-16コード単位が切れない2チャンク、read側のindex/total/stage/SHA検証を実装。
+- **操作IDターゲット一致（既承認①B）、監査失敗時全rollback（既承認②B）**を、架空試合のsave/archive-delete/restoreの3段階でネイティブSQL batchとCHECK制約に反映。オリジナルversion・revision・操作履歴・アーカイブを上書き/物理削除せず、削除アーカイブの整合性検証前の復元は禁止。HTTP tokenと別フラグ `NATIVE_SYNTHETIC_MATCH19_ENABLED=true`が必須で、業務API・LINE認証ではない。
+- `tests/check-d1-phase19-generated-worker.mjs`：SHA既知ベクトルと絵文字のUTF-16 29999番境界/2チャンク原文一致、テスト表SQL allowlist/認証/元D1指紋を確認。`tests/check-d1-phase19-generated-sqlite.py`：Workerの正確なSQLを抽出し、メモリSQLiteで保存→削除→復元・各監査失敗全巻戻し/再送/古い版/別対象OP再使用を検証。`scripts/d1-phase19-generated-match-probe.cjs`：検証mainの既存専用Workerに限り25 HTTP以下で実Cloudflare接続の技術実証予定。以前の第15～17工程の検証と旧D1全20表0行/第14工程fixture件数不変のpre/postゲートを維持。
+- **記録時点の実行結果は未確認**。PR/CI、独立Workerの実配備/HTTP、Pages/既存Worker buildは追って確認し、未実施を成功扱いしない。新しいD1/Worker/Secret/有料設定/公開業務API/実データ移行は作らない・変えない。
+- **次に判断が必要な新旧仕様差**：現行GASの「旧版/監査/閲覧リンクの物理行のスナップショット→リンク失効→行物理削除、復旧は管理者対応」に対し、今回の技術候補は**論理削除・原版本文維持・管理者に限定する予定の再有効化候補**。実業務APIへこの方法を採用することは未承認。ユーザーに旧互換の物理削除＋完全アーカイブか、論理削除＋認可付き復元か、既存仕様への影響を示して選択してもらう。実利用者情報の保持期間/削除義務、過去46版のSHA真正性・収支/権限・read shadow・本番切替はNo-Go。
