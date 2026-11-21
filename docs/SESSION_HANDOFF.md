@@ -935,3 +935,15 @@
 - PRを検証用main **`373f777e444259edf98ef06dd7675a775c47f921`**にsquash統合。同SHAの[GitHub Pages Actions #44854206810](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44854206810)で**build/deploy/report-build-statusすべてsuccess**、同コミットの`Workers Builds: zenryoku-smash-staging-api`も**success**。既存Workerのビルド成功は業務APIのD1移行やLIFF実機受入を意味しない。GAS再デプロイ・独立D1 Worker・D1 Remote書込/件数監査・本番反映は今回**未実施**。
 - **残存No-Go**：検証用試合版8/8 SHA不一致の原因未確定、旧削除アーカイブの原文ハッシュ不在、元シートのネイティブバックアップ/権限・保存期間/復旧/書込停止の承認、GAS native DateとSheet API、D1本番同値のロール/会計/監査/CAS/二重送信/残高確定順、業務データ移行とread shadow、LINE実機、本番切替は未完了。今回の旧7列対応も**候補投影のみ**で実原本の補正をしない。
 - **次**：D1書込境界（同一トランザクションで残高/操作ID/試合の整合・再送/ロールバック）を架空SQLiteで追加回帰し、データ保存先・アクセス制御・バックアップ/復旧の具体的なユーザー承認案を準備。個人情報の実コピー、既存WorkerへのD1 Binding、Cloudflare D1への実業務レコード転送、既存業務API切替、本番反映には**別途明示的な承認**が必要。性能改善とLINE連携の追加はD1移行後まで保留。
+
+
+
+## 89. D1第12工程：会計/集金/試合の原子性候補、事前承認地点の明文化（2026/11/21）
+
+- 最新main ba92ade0bf0643e67f248c37d4593bf720cb31bb、README、docs/SPEC_PRIORITY_POLICY.md、第11工程/PR #157/#158合格、現行GASの dispatch_ / member_ / withLock_ / auditExisting_ / fee_ / setPayment_ / mutateLedger_ / ledgerChronologyCompare_ / balanceRecalc_ / matchCommit_、D1候補20テーブルSQL、GitHub Pages/既存Worker Builds successを再確認。**全47 API GAS_ONLY** と現行の原本/本番を維持。
+- 新規 d1-staging/phase12/transaction_candidate.py：**架空・メモリSQLiteのみ**（外部I/O・実D1/Sheets/GASアクセスなし）でBEGIN IMMEDIATE/CAS/操作ID再送の原子的更新候補。ledger_transitionは同日も含む確定順、未来日拒否、後続確定時の解除禁止、権限を検証。payment_transitionは出欠/料金・集金と収支/後続残高と操作履歴、確定済残高保護を一括更新。match_transitionはversion/CAS・staging/ready・SHA・activeRevisionId・試合操作履歴を同一メモリトランザクションに置き、失敗で全体ロールバック。**将来のD1ランタイム実装の設計候補**でありD1 Worker API用コードやリモート成功実績ではない。
+- 新規 tests/check-d1-phase12-atomic-candidate.py：架空会員/日程/収支/集金/試合を候補20テーブルに投入し、途中失敗で全テーブルが元通りになるか、同日practice/reimbursement/otherの順・残高/確認済/支払版数・試合旧版保持・操作ID重複/再送・権限・SHAを検査。D1 CIへ登録。[設計/ユーザー確認案](D1_PHASE12_ATOMIC_CANDIDATE_AND_APPROVAL.md)。
+- **既存仕様との違い（実API反映前にユーザー判断が必要）**：旧GASの試合操作履歴追記失敗は確定済ポインタが維持され得るが、D1候補では一体ロールバック。旧GAS auditExisting_はoperationId/op/actorを照合するが、候補では対象IDも厳格に照合する。この安全性強化を実APIへ無断導入しない。金銭/会計の確定順序や金額を勝手に変えない。
+- Cloudflare公式D1Database.batch()は一括SQLとしてトランザクション化可能だが、複数API往復の前提状態読取→計算→CASが同一トランザクションになるわけではない。今後、SQL側の前提条件/失敗時全体拒否・競合/コミット後の応答消失を実D1で別途検証する。D1 Time Travelは破壊的復旧であり、長期独立バックアップに代えない。
+- **未完了／ユーザー承認が必要な地点**：検証用v0.15架空Google Sheetsの**非共有新規Driveフォルダへのネイティブコピー1件**と原本不変更の読取専用照合/メモリ仮復元を提案。実テスターIDを含み得るため、保存先・アクセス・保持/削除方針についてユーザーの**明示承認前にコピーしない**。本番Google Sheetsの独立バックアップ/領収書、Cloudflare D1実データ・schema/Worker Binding・LINE接続、本番反映は**この限定承認に含まず別途承認制**。試合版SHA不一致8/8は引続きBLOCKED。
+- **この節の時点で未確認**：今回PRのCI/main統合/Pages/Worker Build、Google Drive実バックアップ、GAS DateとSheets API完全同値、会計/退会/監査の全API等価、D1実競合試験、read shadow/同条件性能、LINE実機、本番承認。CI後に完了した範囲のみ追記する。性能改善・LINE新機能はD1移行完了まで保留。
