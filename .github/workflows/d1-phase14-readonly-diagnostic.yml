@@ -1,0 +1,45 @@
+name: D1 Phase14 fixture read-only verification after first CREATE
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/d1-phase14-fixture-readonly-diagnostic.cjs'
+      - '.github/workflows/d1-phase14-readonly-diagnostic.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/d1-phase14-fixture-readonly-diagnostic.cjs'
+      - '.github/workflows/d1-phase14-readonly-diagnostic.yml'
+permissions:
+  contents: read
+concurrency:
+  group: zenryoku-d1-phase14-fixture-readonly
+  cancel-in-progress: false
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/d1-phase14-fixture-readonly-diagnostic.cjs self-test
+      - run: python3 tests/check-d1-phase13-backup-readiness.py
+  verify-remote-readonly:
+    needs: offline
+    if: github.repository == 'hitoriojisan52/zenryoku-smash-staging' && github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: d1-staging
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.D1_STAGE_ACCOUNT_ID }}
+      D1_STAGE_ACCOUNT_ID: ${{ vars.D1_STAGE_ACCOUNT_ID }}
+      D1_STAGE_DATABASE_ID: ${{ vars.D1_STAGE_DATABASE_ID }}
+      D1_STAGE_API_TOKEN: ${{ secrets.D1_STAGE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Inspect only independently created D1 table count; no writes
+        run: node scripts/d1-phase14-fixture-readonly-diagnostic.cjs run
