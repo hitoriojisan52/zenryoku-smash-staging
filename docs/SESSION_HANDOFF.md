@@ -889,3 +889,12 @@
 - 実装：`d1-staging/phase9/snapshot_guard.py`（架空21タブの元型・式・書式・行順・非表示/シートIDをハッシュ付きでメモリ内復元、外部IO/実データは厳格拒否）、`readiness_gate.py`（不一致SHA、prepared、未検証バックアップ/復旧/権限/承認のいずれかでBLOCKED）、対応する架空Python CI試験、[設計書](D1_PHASE9_AUDIT_BACKUP_RESTORE.md)。GAS/Worker/LIFF/Sheets実データ/実D1レコード/既存設定・本番不変更、47 API GAS_ONLY。
 - **未完了**：今回PRのCI・main統合・Pages/Worker Build結果、試合SHA不一致原因の確定、元シートの独立ネイティブバックアップ/復旧、GAS native Date同値、領収書/共有/保護、書込停止・二重反映回避、D1ロール・収支・監査完全同値、read shadow、本番移行。すべての実データ複製・切替と本番反映はユーザー事前承認制。性能改善とLINE連携拡張はD1移行完了まで保留。
 - **次の安全な作業**：CI/検証main結果を確認し、SHA不一致の架空データ生成経緯と原本をさらに非破壊調査。原本の保存先・アクセス・保持・復元手順と安全な書込停止/一致判定をレビューしてから、実データ移送の個別承認を得る。
+
+
+## 84. D1第9工程 PR #153 合格・検証用main反映・残存BLOCK（2026/11/21）
+
+- [PR #153](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/153) では、検証用（架空）Google Sheet業務20タブ371行の読み取り専用匿名監査、試合版8/8 SHA不一致の移行阻害要因、21タブ架空バックアップ/メモリ内復元と安全No-Goを明文化。**検証用シート・実D1データ・GAS/Worker/LINEへ書込なし**。変更ファイルは8件（第9工程Python純粋関数/架空テスト/CI/README/設計/引継ぎ）に限定。
+- PRの[D1 schema-safety Actions #44850041980](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44850041980) **success**、[spec-contract Actions #44850041975](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44850041975) **success**。新規架空snapshot整合/仮復元・原本バックアップ/監査/権限/ユーザー承認No-Goに加え、既存D1全工程・47 API GAS_ONLY・会計確定順/残高・出欠・退会再入会・試合回帰が成功。
+- PRを検証用main `42dc1e970cd61809b5e77f9dd1a9f0ed7fc7829e`へsquash統合。同SHAの[Pages Actions #44850080677](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44850080677) build/deploy/report-build-status **success**、`Workers Builds: zenryoku-smash-staging-api` **success**。これは既存Workerコードを書換えたことやD1業務API切替を意味しない。GAS再デプロイ、独立D1 Worker再デプロイ、リモートD1の業務行数再確認、LINE実機受入、本番反映は**今回未実施**。
+- **残存BLOCK**：検証用試合版8件は現行GASと同等のUTF-8 SHA-256と不一致で、activeRevisionも含む。検証用架空データの作成手順や後日編集が原因かは未確定。勝手に原本SHA/JSONを修正しない。旧削除アーカイブにSHAがないため内容は原本バックアップと突き合わせる。原本の独立ネイティブコピー・復旧訓練・保存先/権限/保持期間の承認、write barrier・GAS Date同値、D1会計/権限/監査完全同値、Read Shadow/正本切替も未完了。
+- **次に着手**：まず試合版SHA不一致の発生経緯をGitHub履歴/既存GAS/検証用元データから**読み取り専用**で調べ、未承認の修復を行わない。合わせて独立原本バックアップの最小権限・保存期間・復旧手順案を固め、必要なユーザー判断を分けて提示する。元Sheet/本番D1への転送、既存Worker Binding変更、本番反映は事前承認制。性能改善・LINE連携機能拡張はD1移行後まで保留。
