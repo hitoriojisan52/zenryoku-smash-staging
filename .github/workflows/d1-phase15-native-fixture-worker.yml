@@ -6,6 +6,8 @@ on:
       - 'd1-staging/native-fixture/**'
       - 'scripts/d1-phase15-native-worker.cjs'
       - 'tests/check-d1-native-fixture-worker.mjs'
+      - 'tests/check-d1-phase16-concurrency.mjs'
+      - 'scripts/d1-phase16-concurrent-worker-probe.cjs'
       - '.github/workflows/d1-phase15-native-fixture-worker.yml'
   push:
     branches: [main]
@@ -13,6 +15,8 @@ on:
       - 'd1-staging/native-fixture/**'
       - 'scripts/d1-phase15-native-worker.cjs'
       - 'tests/check-d1-native-fixture-worker.mjs'
+      - 'tests/check-d1-phase16-concurrency.mjs'
+      - 'scripts/d1-phase16-concurrent-worker-probe.cjs'
       - '.github/workflows/d1-phase15-native-fixture-worker.yml'
 permissions:
   contents: read
@@ -33,6 +37,8 @@ jobs:
           node tests/check-d1-native-fixture-worker.mjs
           node scripts/d1-phase15-native-worker.cjs self-test
           node scripts/d1-phase14-readonly-postcheck.cjs self-test
+          node tests/check-d1-phase16-concurrency.mjs
+          node scripts/d1-phase16-concurrent-worker-probe.cjs self-test
       - name: Preserve legacy GAS and staging D1 schema business contracts
         run: |
           python3 scripts/d1-staging-check.py
@@ -119,6 +125,10 @@ jobs:
         if: steps.gate.outputs.ready == 'true'
         run: |
           node scripts/d1-phase15-native-worker.cjs probe "$RUNNER_TEMP/native-fixture-url.txt" "$RUNNER_TEMP/native-fixture-bearer.txt"
+      - name: Phase16 actual independent Worker requests CAS/operationId synthetic-only
+        if: steps.gate.outputs.ready == 'true'
+        run: |
+          node scripts/d1-phase16-concurrent-worker-probe.cjs run "$RUNNER_TEMP/native-fixture-url.txt" "$RUNNER_TEMP/native-fixture-bearer.txt"
       - name: Postcheck original D1 zero rows and original synthetic fixtures unchanged
         if: steps.gate.outputs.ready == 'true'
         run: node scripts/d1-phase14-readonly-postcheck.cjs run

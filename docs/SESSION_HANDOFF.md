@@ -1073,3 +1073,13 @@
 - 実行後の別Cloudflare REST GET/SELECTチェック `FINAL_READ_ONLY_CHECK_PASS: OLD_D1_20_TABLES_ZERO_ROWS; NEW_D1_GENERATED_FIXTURES_ONLY` **PASS**。元検証D1は20業務表/全0行・bootstrap0行、別D1の既存架空会員/日程/会計/試合/操作監査件数は不変。テスト表の新規生成probe行は安全性検証の証跡として**自動削除しない**。元Google Sheets/非共有Driveバックアップ、GAS/既存Gateway Worker/read-only Worker、LINE/LIFF/47 GAS_ONLY API、実運用・本番は不変更。GitHubや公開ログへトークン/SQL本文/架空の個別ID/既存会員・LINE IDは転載しない。
 - **第15工程の完了範囲**：専用Workerが本物のCloudflare D1 native bindingで架空テストだけを実行できることと、Native batch/再送/CAS/元D1保全の最低限の技術的契約。**未完了を完了扱いにしない**：複数Workerリクエスト間read→compute→writeとCAS／排他、実GASの収支残高・確定順序と異常時監査の完全同値、試合ready版46/46のSHA不一致原因/ロスレス復旧、21タブ・領収書/個人情報移転管理/本番独立バックアップ、47業務APIの移行・正本切替はNo-Go。D1移行完了まで性能改善・LINE連携機能拡張の開発を保留。
 - **次の安全な作業**：第15工程の実結果とCI/Pages/既存Worker Buildsの状態を文書化した後、まず架空D1だけでの**複数独立WorkerリクエストによるCAS競合（全順序・原子的更新・操作ID再送）**を設計する。前行残高+集金-支出・月跨ぎ確定順、退会/本人ロール/監査の差分が旧仕様に衝突しないよう先にレビュー。既存Worker/元D1/実データ/本番への改変は別のユーザー判断が必要。複数リクエスト試験に新たな書込や追加Workerが必要なら実施前に承認範囲を照合する。
+
+
+## 102. D1第16工程：複数Worker HTTP要求のCAS・再送実証候補（2026/11/21）
+
+- 第15工程の独立Worker Native batch 4/4 PASSを起点に、複数の別HTTP要求から同一架空D1テスト行へCASを書込み、操作IDの再送・別対象誤用を検査するPhase16を開始。ユーザーは「次のユーザー確認が必要な所まで作業継続」を指示。現行GAS/Worker/LINE/本番・Google原本・独立バックアップ/既存47 APIは変更禁止、Free枠内の既存専用Worker/独立架空D1のみ利用。性能改善・LINE機能拡張はD1移行後まで保留。
+- 新設`d1-staging/native-fixture/concurrency.mjs`、`tests/check-d1-phase16-concurrency.mjs`、`scripts/d1-phase16-concurrent-worker-probe.cjs`。専用Workerの新ルートはBearer・独立フラグ・固定SQLのみで、既存テスト表の新規phase16行と新規操作IDテスト表だけに書込む。実業務20表はSELECT指紋照合のみ。2つの独立HTTP要求でCAS1勝1敗、同じ操作IDの同時2要求とタイムアウト再送の受理結果再現、古い版数・別対象へのoperationId再利用拒否、最終版/操作数検証。
+- [Phase16設計・旧GAS互換性レビュー](D1_PHASE16_CROSS_REQUEST_CAS_AND_PARITY.md)に、旧収支の確定順、opening起点の残高・確定済み保護、操作IDの同値（旧GASは対象IDまで検査しない）、試合監査追記失敗の異常系（旧GASでは有効版保持可能、D1候補は全巻戻し）を分離。**本番/実業務APIに持ち込む前にユーザー判断が必要**。試合ready版46/46 SHA不一致は無断修復禁止。
+- 既存1本のPhase15専用Actions workflowを拡張し、main/push/専用flag時だけ元のPhase15デプロイ・Native試験後にPhase16架空SQLを実施し、最後に旧D1全20表0行とPhase14架空業務件数不変を確認。PRではCloudflare Worker deploy/SQL書込は行わない。上限18 HTTP・架空3行程度、DB/Worker自動削除なし。追加のWorker/D1/Secretやユーザー初期設定は不要。
+- **記録時点ではPR/CI・main統合・実Cloudflare Phase16 HTTP/Native検証・Pages/既存Worker Build未確認**。オフライン成功を実競合試験成功と扱わず、実証後に別節へ追記する。旧GAS業務結果完全一致・会計多行・本人権限・監査・試合SHA解決・正本移行はNo-Go。
+- 次の作業：PR CI/既存業務回帰→検証main統合→Cloudflare実競合/前後件数照合/デプロイ個別結果→旧GASとの差異に関するユーザー選択提示。実運用業務仕様/本番の変更は明示承認前に実施しない。
