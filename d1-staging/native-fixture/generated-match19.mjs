@@ -40,12 +40,12 @@ async function bodyOf(request,fields){
   return x&&typeof x==='object'&&!Array.isArray(x)&&
     Object.keys(x).sort().join(',')===fields.slice().sort().join(',')?x:null;
 }
-async function sha(text){
+export async function sha(text){
   const bytes=new TextEncoder().encode(text);
   const hash=new Uint8Array(await crypto.subtle.digest('SHA-256',bytes));
   return Array.from(hash,b=>b.toString(16).padStart(2,'0')).join('');
 }
-function chunksOf(text,limit=30000){
+export function chunksOf(text,limit=30000){
   const parts=[];let start=0;
   while(start<text.length){
     let end=Math.min(start+limit,text.length);
@@ -58,14 +58,23 @@ function chunksOf(text,limit=30000){
   }
   return parts.length?parts:[''];
 }
-function newMatchPayload(large){
+export function newMatchPayload(large){
   // Fixed synthetic state only: no user-origin or legacy-sheet data can enter.
-  return JSON.stringify({
+  const state={
     generatedOnly:true, schema:1, sessionVersion:1, settingsVersion:1,
     participants:['Fiction A','Fiction B','Fiction C','Fiction D'],
     rounds:[{number:1,courts:[{court:1,pairs:[[0,1],[2,3]]}]}],
-    comment:large?'x'.repeat(29902)+'🏸'+'y'.repeat(211):'架空試合🏸'
-  });
+    comment:''
+  };
+  if(large){
+    const prefix=JSON.stringify(state);
+    const at=prefix.indexOf('"comment":""')+'"comment":"'.length;
+    if(at<30||at>2000)throw Error('BAD_GENERATED_PREFIX');
+    // Deliberately put the emoji's high surrogate at UTF-16 index 29999
+    // to prove that a naive String.slice(0,30000) is not safe D1 TEXT.
+    state.comment='x'.repeat(29999-at)+'🏸'+'y'.repeat(211);
+  }else state.comment='架空試合🏸';
+  return JSON.stringify(state);
 }
 async function verified(db,id,revision){
   const rows=(await db.prepare(MATCH19_SQL.chunks).bind(id,revision).all())?.results;
