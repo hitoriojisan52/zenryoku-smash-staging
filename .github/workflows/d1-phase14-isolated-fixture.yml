@@ -1,0 +1,61 @@
+name: D1 Phase14 one-time isolated generated-fixture SQL (Free only)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/d1-phase14-isolated-sql-fixture.cjs'
+      - '.github/workflows/d1-phase14-isolated-fixture.yml'
+      - 'docs/D1_PHASE14_ISOLATED_SQL_RESULTS.md'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/d1-phase14-isolated-sql-fixture.cjs'
+      - '.github/workflows/d1-phase14-isolated-fixture.yml'
+permissions:
+  contents: read
+concurrency:
+  group: zenryoku-d1-phase14-single-create
+  cancel-in-progress: false
+jobs:
+  offline-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test strict original D1 UUID, account and one-time fixture restrictions
+        run: node scripts/d1-phase14-isolated-sql-fixture.cjs self-test
+      - name: Verify existing phase13 backup no-import safety gate
+        run: python3 tests/check-d1-phase13-backup-readiness.py
+      - name: Verify payment, ledger, and match atomic candidates (offline)
+        run: python3 tests/check-d1-phase12-atomic-candidate.py
+      - name: Verify 20-table business schema and existing Worker protection
+        run: |
+          python3 scripts/d1-staging-check.py
+          python3 tests/check-d1-business-schema.py
+      - name: Protect existing GAS_ONLY routes and accounting confirm order
+        run: |
+          node tests/check-d1-phase5-route-parity.cjs
+          node tests/check-stage-ledger-confirm-order-v1651.cjs
+          node tests/check-stage-withdraw-rejoin-v1653.cjs
+          node tests/check-stage-match-create-v1639a.cjs
+  isolated-cloudflare-d1:
+    needs: offline-safety
+    if: github.repository == 'hitoriojisan52/zenryoku-smash-staging' && github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    environment: d1-staging
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.D1_STAGE_ACCOUNT_ID }}
+      D1_STAGE_ACCOUNT_ID: ${{ vars.D1_STAGE_ACCOUNT_ID }}
+      D1_STAGE_DATABASE_ID: ${{ vars.D1_STAGE_DATABASE_ID }}
+      D1_STAGE_API_TOKEN: ${{ secrets.D1_STAGE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Create exactly one isolated synthetic D1 and test generated SQL only
+        run: node scripts/d1-phase14-isolated-sql-fixture.cjs run
