@@ -1,0 +1,54 @@
+name: D1 Phase14 isolated fixture account and billing read-only preflight
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/d1-atomic-fixture-preflight.cjs'
+      - '.github/workflows/d1-phase14-account-preflight.yml'
+      - 'docs/D1_PHASE14_ISOLATED_FIXTURE_PREFLIGHT.md'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/d1-atomic-fixture-preflight.cjs'
+      - '.github/workflows/d1-phase14-account-preflight.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: zenryoku-d1-phase14-readonly-account
+  cancel-in-progress: false
+jobs:
+  offline-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify fail-closed billing, count, storage and target guard with fabricated data
+        run: node scripts/d1-atomic-fixture-preflight.cjs self-test
+      - name: Preserve legacy read/write route and accounting protections
+        run: |
+          python3 tests/check-d1-phase13-backup-readiness.py
+          python3 tests/check-d1-phase12-atomic-candidate.py
+          node tests/check-d1-phase5-route-parity.cjs
+          node tests/check-stage-ledger-confirm-order-v1651.cjs
+  cloudflare-readonly:
+    needs: offline-contract
+    if: github.repository == 'hitoriojisan52/zenryoku-smash-staging' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: d1-staging
+    env:
+      GITHUB_REPOSITORY: hitoriojisan52/zenryoku-smash-staging
+      D1_STAGE_ACCOUNT_ID: ${{ vars.D1_STAGE_ACCOUNT_ID }}
+      D1_STAGE_DATABASE_ID: ${{ vars.D1_STAGE_DATABASE_ID }}
+      D1_STAGE_API_TOKEN: ${{ secrets.D1_STAGE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: GET-only Cloudflare D1 list and billing plan (never create or write)
+        run: node scripts/d1-atomic-fixture-preflight.cjs preflight
