@@ -122,7 +122,7 @@ def payment(db, **kw):
 
 def match(db, **kw):
     return match_transition(
-        db, scope=SCOPE, op_id=kw.pop("op_id", "FICT-MATCH-OP-1"),
+        db, scope=kw.pop("scope", SCOPE), op_id=kw.pop("op_id", "FICT-MATCH-OP-1"),
         actor_id=kw.pop("actor", DUTY),
         practice_id=kw.pop("practice", P_B),
         action=kw.pop("action", "create"),
