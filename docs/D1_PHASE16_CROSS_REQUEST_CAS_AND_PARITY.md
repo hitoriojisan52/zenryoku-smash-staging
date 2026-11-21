@@ -56,3 +56,13 @@ PRはすべてオフラインモックで検証し、Cloudflareへは書込を�
 3. 46版の試合SHA不一致の扱いを、原本/生成経路再調査（非破壊）と、別の隔離復元（将来追加承認が必要）に分けて判断する。SHA値/JSONを無断で補正しない。
 
 これらの選択が未了でも、Phase16の専用架空Workerに限定した小規模競合実験は、業務仕様を変更しないため実施可能。**性能改善やLINE連携開発はD1移行完了まで中断**する。
+
+
+## 2026/11/21 実Cloudflare・GitHubの確定結果（第16工程）
+
+- [PR #174](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/174) は独立したWorkerの架空CASルート・前後安全ガード・モック/実HTTP試験と本設計/引継ぎを実装。PR [Native Worker offline #44877447871](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44877447871) **success**（deploy stepはPRにつきskipped）、[D1 schema #44877447916](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44877447916) **success**、[spec-contract #44877447924](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44877447924) **success**。main `05568c4a09c6e5ba66ffcb9183aa60a81f12729c`にsquash統合。
+- [第16工程 main Actions #44877501643](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44877501643) で、`offline` success、[実Cloudflareジョブ #136765369035](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44877501643/job/136765369035) **success**。preflightで**旧検証D1の20業務表0行/独立架空D1の生成業務fixture件数**照合PASS、Worker ownership=ours、Wrangler dry-run・専用Workerのみdeploy・一時Bearer登録PASS。旧Phase15のNative batch/再送/CASも再度PASS。
+- **Phase16実HTTP結果** `PHASE16_REAL_CONCURRENT_PASS`：異なる操作IDで並列2要求→**成功1・競合1**、版数1・操作記録1。同じ操作IDの同時2要求→**成功1・再送成功1**、版数1・記録1。失われた応答後の同じ操作IDでの再送は**再更新せず成功結果を再現**。旧版の第三要求と**別対象への操作ID使い回しを拒否**。認証なし401、不正入力400。すべて**新設の架空テスト表だけ**を対象とした実験であり、会計/LINE/会員実APIへの変更ではない。
+- 実行後Cloudflare GET/SELECT `FINAL_READ_ONLY_CHECK_PASS: OLD_D1_20_TABLES_ZERO_ROWS; NEW_D1_GENERATED_FIXTURES_ONLY`。旧検証D1の20業務表0行・bootstrap0行と独立架空D1の既存Phase14生成業務fixture件数は**不変**。新たにテスト専用のphase16レコード3ケースとテスト操作記録を保持（無断削除なし）。元Google Sheet/バックアップ/旧Worker/LINE・LIFF・GAS/47業務API・本番は変更なし。
+- 同mainの[GitHub Pages #44877501262](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44877501262) build/deploy/report-build-status **all success**、[既存Worker Builds](https://dash.cloudflare.com/5817f07a73dbb56011012074ce1b11c5/workers/services/view/zenryoku-smash-staging-api/production/builds/0f5775fb-a405-4c61-800e-770a33f602d8) **success**。既存Workerの業務ソース変更を意味しない。
+- **次のユーザー判断前の停止地点**：架空テーブルの実証は完了。旧GASと移行先で「operationIdの対象違いを拒否するか（旧GASと差異）」「試合操作履歴追記失敗で版を保持するか／D1の原子性に統一して全巻戻すか（旧GASと差異）」に業務上の意思決定が必要。試合SHA46/46不一致原因も未解明で、実業務行/会員/領収書のD1移送・旧GASの書込停止や47 API切替は承認していない。**ユーザー承認なしの業務変更・本番反映はNo-Go**。性能改善・LINE連携はマイグレーション完了まで停止。
