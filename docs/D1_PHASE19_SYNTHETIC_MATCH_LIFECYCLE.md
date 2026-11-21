@@ -47,3 +47,8 @@ PR・CI/Cloudflare実作業はこの文書の最初の作成時点では未確�
 - 同main [GitHub Pages #44881756607](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44881756607) はbuild/deploy/report-build-status **success**。[既存Worker Builds](https://dash.cloudflare.com/5817f07a73dbb56011012074ce1b11c5/workers/services/view/zenryoku-smash-staging-api/production/builds/96afb905-c8c1-47e9-b5ac-482f5966a49e) **success** を独立確認。これらは現行業務APIのD1切替ではない。
 - **第19工程の完了範囲**：架空試合の2チャンク/UTF-8 SHA/native D1 batch/監査・操作IDの保存→削除/保全→再有効化という実験のみ。GASの物理行削除/閲覧リンク失効/過去の全版・元行順・旧SHA46版・認証/個人情報/会計・47 APIの完全移植・復旧運用は未実装。**技術的に復元できたからといって実業務の新しい自動復元を無断採用しない**。
 - **次のユーザー判断地点**：本来GASの「物理削除＋全履歴/閲覧リンクのアーカイブ＋手動復旧」を優先するか、D1の「論理削除＋原文保持＋認可付き復元」へ正式に変更するか（いずれも旧SHA46版の実移送は許可しない）。選択まではこの技術候補を実業務APIに接続しない。本番反映・性能改善・LINE連携も指定どおり保留。
+
+
+## 2026/11/21 後続ユーザー判断による仕様確定
+
+本書の末尾で提示した物理削除（旧仕様維持）/論理削除の選択について、ユーザーは**A：旧GASの物理削除・完全アーカイブ・管理者明示復旧**を正式承認。[確定仕様](D1_APPROVED_LEGACY_MATCH_DELETE_POLICY.md)を優先。本書の論理削除と自動復元は**既存の架空実験の技術的記録のみ**。47 GAS_ONLY APIや業務用D1移行候補には採用せず、実データは引き続きNo-Go。
