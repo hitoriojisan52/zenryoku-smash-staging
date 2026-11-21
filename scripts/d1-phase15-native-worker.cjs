@@ -55,7 +55,7 @@ function config(databaseId){
     workers_dev:true,
     preview_urls:false,
     keep_vars:true,
-    vars:{NATIVE_FIXTURE_ENABLED:'true',NATIVE_CONCURRENCY_ENABLED:'true',NATIVE_APPROVED_MATCH_ENABLED:'true',NATIVE_SYNTHETIC_MATCH19_ENABLED:'true'},
+    vars:{NATIVE_FIXTURE_ENABLED:'true',NATIVE_CONCURRENCY_ENABLED:'true',NATIVE_APPROVED_MATCH_ENABLED:'true',NATIVE_SYNTHETIC_MATCH19_ENABLED:'true',NATIVE_LEGACY_DELETE20_ENABLED:'true'},
     d1_databases:[{binding:'ZENRYOKU_FIXTURE_DB',
       database_name:FIXTURE,database_id:databaseId.toLowerCase()}]
   };
