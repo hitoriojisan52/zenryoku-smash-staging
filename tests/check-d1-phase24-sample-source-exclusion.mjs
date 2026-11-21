@@ -30,7 +30,7 @@ for (const operation of ['migrate','copy','archive','cutover','write']) {
 }
 assert.throws(() => assess('unknown-source','plan'), /UNRECOGNIZED_SOURCE_ROLE/);
 assert.throws(() => assess({email:'fake@example.invalid'},'plan'), /UNRECOGNIZED_SOURCE_ROLE/);
-assert.throws(() => assess('management-13-tabs',undefined), /ACTUAL_DATA_TRANSFER_NOT_AUTHORIZED/);
+assert.throws(() => assess('management-13-tabs',null), /ACTUAL_DATA_TRANSFER_NOT_AUTHORIZED/);
 assert.ok(Object.isFrozen(p));
 assert.ok(Object.isFrozen(p.excludedRoles));
 console.log('PHASE24_SAMPLE_SOURCE_EXCLUSION_PASS: old three-tab and synthetic fixture excluded; 13-tab planning only; backup, actual migration and production unchanged');
