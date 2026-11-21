@@ -89,8 +89,11 @@ def fixtures():
         [dict(rows[0], total=99)] + rows[1:],
         [dict(rows[0], status="prepared")] + rows[1:],
         [dict(rows[0], practice="DIFFERENT")] + rows[1:],
-        [dict(rows[0], chunk=rows[0]["chunk"] + "x")] + rows[1:],
+        [dict(rows[0], chunk="!" + rows[0]["chunk"][1:])] + rows[1:],
     ]
+    # A change inside a still-valid archive JSON string cannot be detected by
+    # structural checks alone: unlike match revisions, legacy archives have no hash.
+    assert validate_group([dict(rows[0], chunk=rows[0]["chunk"] + "x")] + rows[1:]) != raw
     for bad in failures:
         try:
             validate_group(bad)
