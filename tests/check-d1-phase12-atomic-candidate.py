@@ -239,9 +239,9 @@ def accounting_tests():
     ledger(db, row=O, op_id="FICT-LEDGER-10",
            action="unlock", version=4, actor=ADMIN)
     ledger(db, row=R, op_id="FICT-LEDGER-11",
-           action="unlock", version=3, actor=ADMIN)
+           action="unlock", version=4, actor=ADMIN)
     ledger(db, row=PLEDGER, op_id="FICT-LEDGER-12",
-           action="unlock", version=3, actor=ADMIN)
+           action="unlock", version=4, actor=ADMIN)
     # If a downstream *confirmed* balance would change, payment and audit
     # must roll back as one: no orphan paid flag or skewed balance.
     db.execute("UPDATE ledger_rows SET status='confirmed' WHERE row_id=?", (R,))
