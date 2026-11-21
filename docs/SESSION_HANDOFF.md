@@ -907,3 +907,12 @@
 - 実装：`d1-staging/phase10/match_preflight.py`は架空9列試合版のJSON/SHA/UTF-16分割・stage、session activeRevisionIdの同一日・版数、操作ID重複を**非破壊**でチェック。成功候補でも転送・切替は許可せず、返答にID/本文/SHAを含めない。現行GASでポインタ切替後に操作履歴の追記失敗があり得るため、監査行の不足は警告・別照合とし自動補完しない。対応架空回帰テストをD1 CIへ追加。[第10工程設計](D1_PHASE10_MATCH_PROVENANCE_BACKUP.md)には原本の書込停止、最小権限コピー、型/数式/権限/領収書を含む保全、隔離復旧、事前承認のゲートを具体化。
 - **この節の記載時点で未完了**：PR/CI/検証main統合・Pages/Worker Buildsの確認、試合版SHA不一致の確定原因、原本ネイティブバックアップ/復元、実データD1コピー・Read Shadow・API切替、GAS Date同値、全会計/権限のD1完全等価、本番反映。**47 API GAS_ONLY、性能改善とLINE機能追加保留**を維持。旧Sheet/GAS/Worker/LIFF/D1スキーマ/実業務データ、設定済みURL/ID・Secrets、本番は変更しない。
 - **次の作業**：架空CIと検証デプロイを確認後、試合履歴SHAの過去生成経路を調査し、必要なら旧7列版/削除アーカイブのロスレス検査を追加する。実データの保全・復元についてユーザーの保存先/アクセス/保持期間承認を得るまでコピーしない。
+
+
+## 86. D1第10工程 PR #155 検証合格とmain統合結果（2026/11/21）
+
+- [PR #155](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/155)で`d1-staging/phase10/match_preflight.py`と架空回帰テスト、[第10工程のバックアップ実施案](D1_PHASE10_MATCH_PROVENANCE_BACKUP.md)、README/SESSION_HANDOFF/CIを追加。対象は**架空試合版のSHA・UTF-16分割・READY・有効版ポインタ・CAS版数・監査操作ID**。読取専用の検証用v0.15ガイドとGASを照合した結果、現在のSHA不一致8件をGAS現行実装の不具合や本番データ破損とは断定しない。原文・保存SHA・実ユーザーID/実金額等はGitHubに持ち込んでいない。
+- [D1 schema-safety Actions #44851172774](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44851172774) **success**。[spec-contract Actions #44851172780](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44851172780) **success**。今回の架空SHA不一致、サロゲート跨ぎ、分割欠落/重複、active version参照、別日程、監査追記不足の警告、無断live入力拒否と、既存の47 API GAS_ONLY・会計確定順/残高・出欠・退会/再加入・試合回帰の全ステップ成功。
+- PRを検証用main **`88016e907af324c018722b8c69a7c1230cb4d0d6`**にsquash統合。同SHAの[GitHub Pages Actions #44851245967](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44851245967)はbuild/deploy/report-build-status全**success**、`Workers Builds: zenryoku-smash-staging-api`も**success**。既存Worker/GASのソース/環境設定は変更なし（ビルド合格はD1業務API実装完了ではない）。独立D1 Worker再デプロイ、Remote D1再件数監査、LINE実機受入、本番反映は今回未実施。
+- **未完了・移行阻害要因**：検証用架空試合版8/8のSHA不一致の確定原因、ソース原本の書込停止/独立ネイティブバックアップ/隔離復旧、GAS native DateとSheets APIの全件同値、チーム所属物理重複のロスレス保全、削除アーカイブ旧JSONの完全復元、操作ID/監査/会計/権限の実API等価、read shadow、実D1業務データ投入と接続切替。第10工程の判定は`CANDIDATE_ONLY`までで、絶対にwrite/cutoverを承認しない。
+- **次の作業**：旧試合版の7列形式と削除アーカイブ内の試合版のロスレス復旧を架空fixturesで検証し、原本のバックアップ先/最小権限/保存期間/書込停止方式をユーザーと事前合意。その上で明示許可された検証用の独立コピー・隔離復旧・read shadowの準備を検討。現行47 API GAS_ONLY、性能改善・LINE機能追加はD1移行後まで保留。旧Sheets/GAS/Worker/LIFF/実D1 schema/レコード・Secrets/URL/ID/本番は変更なし。
