@@ -312,9 +312,13 @@ def payment_transition(db, *, scope, op_id, actor_id, practice_id,
             if row["status"] == "confirmed" and candidate != row["balance"]:
                 raise Blocked("CONFIRMED_BALANCE_PROTECTED")
             if candidate != row["balance"]:
+                # GAS setPayment_ increments the target ledger version
+                # once before balanceRecalc_; downstream balance changes
+                # increment their own versions only once.
                 db.execute("""UPDATE ledger_rows SET balance_yen=?,
-                    version=version+1 WHERE row_id=?""",
-                    (candidate, row["row_id"]))
+                    version=version+? WHERE row_id=?""",
+                    (candidate, 0 if row["row_id"] == "P-" + practice_id else 1,
+                     row["row_id"]))
             balance = candidate
         _fault("after_balances", inject)
         _ordered_ledger(db)
