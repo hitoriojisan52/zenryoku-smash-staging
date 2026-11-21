@@ -1,0 +1,124 @@
+name: D1 Phase15 isolated native Worker batch - staging only
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'd1-staging/native-fixture/**'
+      - 'scripts/d1-phase15-native-worker.cjs'
+      - 'tests/check-d1-native-fixture-worker.mjs'
+      - '.github/workflows/d1-phase15-native-fixture-worker.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'd1-staging/native-fixture/**'
+      - 'scripts/d1-phase15-native-worker.cjs'
+      - 'tests/check-d1-native-fixture-worker.mjs'
+      - '.github/workflows/d1-phase15-native-fixture-worker.yml'
+permissions:
+  contents: read
+concurrency:
+  group: zenryoku-phase15-native-fixture-worker
+  cancel-in-progress: false
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Phase15 native D1 contract and exclusive ownership
+        run: |
+          node tests/check-d1-native-fixture-worker.mjs
+          node scripts/d1-phase15-native-worker.cjs self-test
+          node scripts/d1-phase14-readonly-postcheck.cjs self-test
+      - name: Preserve legacy GAS and staging D1 schema business contracts
+        run: |
+          python3 scripts/d1-staging-check.py
+          python3 tests/check-d1-business-schema.py
+          node tests/check-stage-ledger-confirm-order-v1651.cjs
+          node tests/check-stage-line-attendance-v1645.cjs
+          node tests/check-stage-withdraw-rejoin-v1653.cjs
+          node tests/check-stage-match-create-v1639a.cjs
+
+  deploy-native-fixture-worker:
+    needs: offline
+    if: github.repository == 'hitoriojisan52/zenryoku-smash-staging' && github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: d1-staging
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.D1_STAGE_ACCOUNT_ID }}
+      D1_STAGE_ACCOUNT_ID: ${{ vars.D1_STAGE_ACCOUNT_ID }}
+      D1_STAGE_DATABASE_ID: ${{ vars.D1_STAGE_DATABASE_ID }}
+      D1_STAGE_API_TOKEN: ${{ secrets.D1_STAGE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Explicit independent Worker opt-in after Environment loading
+        id: gate
+        shell: bash
+        env:
+          ENABLED: ${{ vars.D1_NATIVE_WORKER_DEPLOY_ENABLED }}
+        run: |
+          if [[ "$ENABLED" != 'true' ]]; then
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo 'PHASE15_SKIPPED: No native fixture Worker create/deploy; manual Worker stub/token/flag setup is required.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo 'ready=true' >> "$GITHUB_OUTPUT"
+      - name: Require separate Individual Worker Editor permission
+        if: steps.gate.outputs.ready == 'true'
+        env:
+          WORKER_TOKEN: ${{ secrets.D1_NATIVE_WORKER_STAGE_API_TOKEN }}
+        run: |
+          test -n "$WORKER_TOKEN" || { echo 'PHASE15_BLOCKED: individual Worker token missing'; exit 1; }
+          test -n "$D1_STAGE_API_TOKEN" || { echo 'PHASE15_BLOCKED: D1 read token missing'; exit 1; }
+      - name: Real read-only preflight original D1 empty and fixture D1 generated-only
+        if: steps.gate.outputs.ready == 'true'
+        run: node scripts/d1-phase15-native-worker.cjs prepare
+      - name: Reject missing/unowned/other Worker scripts
+        if: steps.gate.outputs.ready == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.D1_NATIVE_WORKER_STAGE_API_TOKEN }}
+        run: node scripts/d1-phase15-native-worker.cjs verify-ownership
+      - name: Bundle dry-run only for the approved independent Worker
+        if: steps.gate.outputs.ready == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.D1_NATIVE_WORKER_STAGE_API_TOKEN }}
+        run: |
+          npx --yes wrangler@4 deploy --config d1-staging/native-fixture/.wrangler.native.runtime.json --dry-run --outdir "$RUNNER_TEMP/native-fixture-dry-run"
+      - name: Deploy isolated fixture Worker only
+        if: steps.gate.outputs.ready == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.D1_NATIVE_WORKER_STAGE_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 deploy --config d1-staging/native-fixture/.wrangler.native.runtime.json 2>&1 | tee "$RUNNER_TEMP/native-fixture-deploy.log"
+          node scripts/d1-phase15-native-worker.cjs extract-url "$RUNNER_TEMP/native-fixture-deploy.log" "$RUNNER_TEMP/native-fixture-url.txt"
+      - name: Generate a private per-deployment bearer, no GitHub secret persisted
+        if: steps.gate.outputs.ready == 'true'
+        shell: bash
+        run: |
+          node -e "require('node:fs').writeFileSync(process.env.RUNNER_TEMP+'/native-fixture-bearer.txt',require('node:crypto').randomBytes(32).toString('base64url')+'\n',{mode:0o600})"
+          echo "::add-mask::$(cat "$RUNNER_TEMP/native-fixture-bearer.txt")"
+      - name: Set bearer on isolated fixture Worker only
+        if: steps.gate.outputs.ready == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.D1_NATIVE_WORKER_STAGE_API_TOKEN }}
+        run: |
+          npx --yes wrangler@4 secret put NATIVE_FIXTURE_RUN_TOKEN --config d1-staging/native-fixture/.wrangler.native.runtime.json < "$RUNNER_TEMP/native-fixture-bearer.txt"
+      - name: Wait for secret rollout before exercising any native writes
+        if: steps.gate.outputs.ready == 'true'
+        run: sleep 45
+      - name: Real synthetic-only Worker native batch rollback/commit/CAS test
+        if: steps.gate.outputs.ready == 'true'
+        run: |
+          node scripts/d1-phase15-native-worker.cjs probe "$RUNNER_TEMP/native-fixture-url.txt" "$RUNNER_TEMP/native-fixture-bearer.txt"
+      - name: Postcheck original D1 zero rows and original synthetic fixtures unchanged
+        if: steps.gate.outputs.ready == 'true'
+        run: node scripts/d1-phase14-readonly-postcheck.cjs run
