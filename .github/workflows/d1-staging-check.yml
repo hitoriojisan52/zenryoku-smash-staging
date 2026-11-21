@@ -5,6 +5,7 @@ on:
     paths:
       - 'd1-staging/**'
       - 'scripts/d1-staging-*'
+      - 'scripts/d1-atomic-fixture-preflight.cjs'
       - 'tests/check-d1-business-schema.py'
       - 'tests/check-d1-readonly-pilot.mjs'
       - 'tests/check-d1-phase5-route-parity.cjs'
@@ -74,6 +75,8 @@ jobs:
         run: python3 tests/check-d1-phase12-atomic-candidate.py
       - name: Keep verified private backups separate from SHA provenance and any D1 write authorization
         run: python3 tests/check-d1-phase13-backup-readiness.py
+      - name: Validate Cloudflare D1 preflight plan and quota fail-closed contracts with fake API listings
+        run: node scripts/d1-atomic-fixture-preflight.cjs self-test
       - name: Validate D1 target-account and database guard
         run: node scripts/d1-staging-config.cjs self-test
       - name: Protect legacy ledger confirmation ordering and balances
