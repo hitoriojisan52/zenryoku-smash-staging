@@ -1,0 +1,45 @@
+name: D1 Phase25 form-answer historical source offline proposal
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'd1-staging/analysis/phase25-*'
+      - 'tests/check-d1-phase25-*'
+      - '.github/workflows/d1-phase25-form-history-offline.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'd1-staging/analysis/phase25-*'
+      - 'tests/check-d1-phase25-*'
+      - '.github/workflows/d1-phase25-form-history-offline.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-history-proposal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Offline SQLite candidate DDL plus fictional Form history only
+        run: python3 tests/check-d1-phase25-form-answer-history-sqlite.py
+      - name: Prohibit live access or actual migration in Phase25 test
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import ast
+          t = Path('tests/check-d1-phase25-form-answer-history-sqlite.py').read_text()
+          tree = ast.parse(t)
+          banned = {'requests','httpx','urllib','socket','subprocess','boto3','googleapiclient','cloudflare','wrangler'}
+          for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+              assert not ({x.name.split('.')[0] for x in node.names} & banned)
+            if isinstance(node, ast.ImportFrom) and node.module:
+              assert node.module.split('.')[0] not in banned
+          sql=Path('d1-staging/analysis/phase25-form-answer-history-offline.sql').read_text().lower()
+          assert not any(token in sql for token in ('attach database','drop table','create table practices','create table attendances','d1database','fetch('))
+          assert 'phase25_synthetic_form_response_history' in sql
+          print('PHASE25_NO_EXTERNAL_DATA_ACCESS_PASS')
+          PY
