@@ -57,3 +57,12 @@
 ## PR・CI・Pages・Worker Build結果
 
 記録時点では未確認。実測結果を後から追記し、GitHubオフライン成功を実Cloudflare SQL/実データ移送成功と混同しない。
+
+
+## 第26工程PR・CI・検証用デプロイ実測（2026/11/21）
+
+[PR #193](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/193) は検証用main `009e4d8c0a972c38056899cda6e478241ae61345` へsquash統合。
+
+- PR [Phase26 #44917139998](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44917139998)、[schema #44917139912](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44917139912)、[spec #44917139971](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44917139971)、[Phase21 #44917139922](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44917139922) **すべてsuccess**。
+- main [Phase26 #44917199528](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44917199528)、[Phase21 #44917199558](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44917199558) **success**。[Pages #44917199035](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44917199035) build/deploy/report-build-status job全success。[既存Worker Builds](https://dash.cloudflare.com/5817f07a73dbb56011012074ce1b11c5/workers/services/view/zenryoku-smash-staging-api/production/builds/dcc08c49-4f59-4863-ad12-44fac8e32d2e)もGitHub check run **completed/success**。
+- **実データ移行・Cloudflare実SQL適用・D1行数新規検査・既存GASの再デプロイ・LINE実機/本番切替は未実施**。Google原本/旧3シートbk/Worker業務API/47 GAS_ONLY API/本番設定の今回の変更なし。Aの履歴保存設計は確定、閲覧ロールA/Bと個人情報の実移送は別途事前承認が必要。

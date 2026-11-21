@@ -1277,3 +1277,12 @@
 - **新しいユーザー判断地点**：履歴内のメール・備考等の個人情報を閲覧できる役割をA「管理者のみ（推奨）」／B「管理者＋当番担当」から選択。現行の通常参加者一覧と異なる歴史的原回答データの閲覧は新規業務仕様であり、既存権限の無断拡大は不可。承認があっても**実データコピー/D1書込/公開API・本番切替には別の事前承認**と同意/保持期間・監査/本人・復旧条件が必要。
 - **維持するNo-Go**：Google原本/バックアップ/bkは不変更、21シート架空のSHA不一致46版の修復/実移行禁止、会計opening/収支確定順・確定済み残高/権限、47既存API GAS_ONLY、実業務データの移送/公開と本番切替禁止。D1移行が完了するまで性能改善・LINE連携の拡張停止。
 - **この節の作成時点でPR・CI・main統合・Pages/Worker Buildは未確認**。成功の主張は実測後に別節へ記録する。
+
+
+## 122. D1第26工程のPR/main CI、Pages・既存Worker Build実測（2026/11/21）
+
+- [PR #193](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/193) を検証用main **`009e4d8c0a972c38056899cda6e478241ae61345`**へsquash統合。内容は**ユーザーAの正式な仕様書、架空SQLite in-memory用のスナップショット/行分離・更新削除拒否、純粋JSの暫定admin閲覧ガード、オフラインCI、引き継ぎ/設計書のみ**。実Google/Cloudflare D1のデータ・schema migration/Worker業務API/GAS/LINE/本番には今回の書込み・変更なし。
+- **PR CI**：[第26工程の歴史的回答・権限制御offline #44917139998](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44917139998)、[D1 schema #44917139912](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44917139912)、[仕様 #44917139971](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44917139971)、[Phase21既存 READ ONLY #44917139922](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44917139922)は**すべてsuccessを実測確認**。
+- **main CI**：[Phase26 #44917199528](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44917199528)、[Phase21 #44917199558](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44917199558) **success**。[GitHub Pages #44917199035](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44917199035) **build/deploy/report-build-status 3 job 全success**。[既存Cloudflare Worker Builds](https://dash.cloudflare.com/5817f07a73dbb56011012074ce1b11c5/workers/services/view/zenryoku-smash-staging-api/production/builds/dcc08c49-4f59-4863-ad12-44fac8e32d2e) は当該main SHAのcheck runで**completed/successを実測**。GitHub PagesやWorkerビルド成功は、実D1テーブル作成/実会員・個人情報移送やGAS本番更新を示さない。
+- **未実施**：ユーザー個人情報の実取り込み/コピー、Cloudflare D1実SQLの適用や行数新規測定、GAS再デプロイ/LIFF/LINE実機・画面受入、本番切替、個人情報の閲覧ルート・監査・保持期間の確定。現在の47業務APIはGAS_ONLY維持。元フォームの表示文字列だけでネイティブ型/数式まで保証しない。過去回答の名寄せ/会計再計算は禁止。
+- **次のユーザー判断地点（ここで停止）**：A **管理者のみ**（推奨）または B **管理者＋当番担当** が、今後D1へ設計した元フォームの個人情報を含む**参照専用履歴**を閲覧できるか。一般メンバーへの公開は対象外。既存参加者一覧とは異なる過去のメール・備考等の閲覧となるので無断で権限を広げない。選択は閲覧ロールの**設計のみ**で、実Googleコピー/D1移送/本番公開の承認ではない。[確定仕様](D1_APPROVED_13TAB_FORM_HISTORY_POLICY.md)／[第26工程設計・プライバシーと次判断](D1_PHASE26_APPROVED_HISTORY_DESIGN.md)。
