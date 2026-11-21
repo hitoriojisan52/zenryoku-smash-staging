@@ -46,3 +46,12 @@
 ## PR/CI実測記録
 
 このファイルの初版時点ではPR/CI/main結果は未確認。実測確認後に追記する。
+
+
+## 2026/11/21 検証用mainへの実装・CI実測確定
+
+- [PR #185](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/185) をmain **378b14f7d2e26cff9d2e87d1baf28e9c6587a400**へsquash統合。現13シート正本候補・旧3シートREAD ONLY参照専用を [確定仕様](D1_APPROVED_SOURCE_13TAB_POLICY.md) と仕様優先順位へ反映。公開するのは匿名の差分件数/説明のみ。
+- PRの[Phase22 offline #44886028091](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44886028091)、[Phase21既存offline #44886028080](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44886028080)、[D1 schema #44886028079](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44886028079)、[仕様優先順位 #44886028070](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44886028070) **すべてsuccess**。完全架空値のメモリSQLite・旧参照の自動合算/更新/削除禁止・現行openingと確定残高保護・匿名数字のみの移行No-Go判定を検証。
+- mainの[Phase22 offline #44886073739](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44886073739)、[Phase21 offline #44886073738](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44886073738) **ともにsuccess**。[GitHub Pages #44886073116](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44886073116) build/deploy/report-build-status **success**。[既存Worker Builds](https://dash.cloudflare.com/5817f07a73dbb56011012074ce1b11c5/workers/services/view/zenryoku-smash-staging-api/production/builds/3a885d24-5b41-46e7-80ad-de3e538df597) **success**。これは**現行Worker経路や業務APIのD1切替を示すものではない**。
+- 本工程のCloudflare D1 SQL実地書込み／Google実データのコピー・移送・変更は**未実施**。前工程第20工程の旧検証D120業務表0行という証跡を今回の実測と混同しない。旧SHA不一致46版は現状維持・移行禁止。
+- **次のユーザー判断地点**：旧3シート版のみの古い日付の収支行を A「旧Google台帳でREAD ONLY保管し、D1の現役会計へ含めない」または B「別途認可の上、将来のD1で閲覧する参照専用履歴アーカイブとして設計（現行収支計算へ一切含めない）」のどちらにするか。いずれも移送/コピー/本番反映の許可ではない。
