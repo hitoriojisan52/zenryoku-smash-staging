@@ -9,6 +9,9 @@ on:
       - 'tests/check-d1-phase16-concurrency.mjs'
       - 'scripts/d1-phase16-concurrent-worker-probe.cjs'
       - 'scripts/d1-phase17-approved-worker-probe.cjs'
+      - 'scripts/d1-phase19-generated-match-probe.cjs'
+      - 'tests/check-d1-phase19-generated-sqlite.py'
+      - 'tests/check-d1-phase19-generated-worker.mjs'
       - 'tests/check-d1-phase17-approved-worker.mjs'
       - 'tests/check-d1-phase17-approved-sqlite.py'
       - '.github/workflows/d1-phase15-native-fixture-worker.yml'
@@ -21,6 +24,9 @@ on:
       - 'tests/check-d1-phase16-concurrency.mjs'
       - 'scripts/d1-phase16-concurrent-worker-probe.cjs'
       - 'scripts/d1-phase17-approved-worker-probe.cjs'
+      - 'scripts/d1-phase19-generated-match-probe.cjs'
+      - 'tests/check-d1-phase19-generated-sqlite.py'
+      - 'tests/check-d1-phase19-generated-worker.mjs'
       - 'tests/check-d1-phase17-approved-worker.mjs'
       - 'tests/check-d1-phase17-approved-sqlite.py'
       - '.github/workflows/d1-phase15-native-fixture-worker.yml'
@@ -48,6 +54,8 @@ jobs:
           node tests/check-d1-phase17-approved-worker.mjs
           python3 tests/check-d1-phase17-approved-sqlite.py
           python3 tests/check-d1-phase12-atomic-candidate.py
+          node tests/check-d1-phase19-generated-worker.mjs
+          python3 tests/check-d1-phase19-generated-sqlite.py
       - name: Preserve legacy GAS and staging D1 schema business contracts
         run: |
           python3 scripts/d1-staging-check.py
@@ -142,6 +150,10 @@ jobs:
         if: steps.gate.outputs.ready == 'true'
         run: |
           node scripts/d1-phase17-approved-worker-probe.cjs run "$RUNNER_TEMP/native-fixture-url.txt" "$RUNNER_TEMP/native-fixture-bearer.txt"
+      - name: Phase19 user-approved A, synthetic-only SHA match save/delete/restore atomic proof
+        if: steps.gate.outputs.ready == 'true'
+        run: |
+          node scripts/d1-phase19-generated-match-probe.cjs run "$RUNNER_TEMP/native-fixture-url.txt" "$RUNNER_TEMP/native-fixture-bearer.txt"
       - name: Postcheck original D1 zero rows and original synthetic fixtures unchanged
         if: steps.gate.outputs.ready == 'true'
         run: node scripts/d1-phase14-readonly-postcheck.cjs run
