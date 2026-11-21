@@ -69,7 +69,10 @@ async function sql(token,db,baseId,body) {
   const id=targetId(db,baseId);
   assert.ok(calls++<MAX_CALLS,'QUERY_BUDGET_EXCEEDED');
   assert.ok(typeof body.sql==='string'||Array.isArray(body.batch),'UNSAFE_QUERY');
-  const r=await api('POST','/d1/database/'+id+'/query',token,body);
+  const safeBody=typeof body.sql==='string' ?
+    {sql:body.sql,params:(body.params||[]).map(String)} :
+    {batch:body.batch.map(x=>({sql:x.sql,params:(x.params||[]).map(String)}))};
+  const r=await api('POST','/d1/database/'+id+'/query',token,safeBody);
   assert.ok(Array.isArray(r.result)&&r.result.length,'MISSING_SQL_RESULT');
   if(r.result.some(x=>x?.success!==true))throw Error('SQL_STATEMENT_FAILURE');
   return r.result;
