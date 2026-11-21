@@ -182,3 +182,6 @@
 
 
 **D1第23工程（準備中、2026/11/21）**：第22工程のユーザー判断「旧3シート会計履歴を旧Google READ ONLYで維持（A・推奨）／将来のD1参照専用履歴アーカイブを設計（B）」は**未決定**。いずれも業務用D1への実移送・コピー・本番反映の承認ではない。既存20表DDLを実際に使用する、架空値/SQLiteメモリのみの出欠履歴構造試験を追加し、現行マスタにない過去日程のFK拒否、同一D1参加者IDに複数版を保存できないPK制約をテストする。現実のメール+日程重複とD1参加者ID重複は同一とは断定しない。[第23工程の準備と判断](docs/D1_PHASE23_HISTORY_MIGRATION_PREFLIGHT.md)／[引継ぎ第115節](docs/SESSION_HANDOFF.md)。旧SHA46版と会計・本人・権限・保存/復旧No-Go、47 API GAS_ONLY、性能改善/LINE連携保留、本番事前承認制は維持。**PR/CI・デプロイ結果は別途確認後のみ完了扱い**。
+
+
+**D1第23工程実測（2026/11/21）**：架空データと既存D1候補DDLを使用した過去出欠FK/PK履歴保護オフライン試験を[PR #187](https://github.com/hitoriojisan52/zenryoku-smash-staging/pull/187)で検証main `e4c318e5c04e1ac9390fe73030548e5af805ed2f` に統合。[PR offline #44898368110](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44898368110)・[仕様CI #44898368035](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44898368035)・[main offline #44898407884](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44898407884) 成功、[GitHub Pages #44898407172](https://github.com/hitoriojisan52/zenryoku-smash-staging/actions/runs/44898407172) build/deploy/report成功。**今回のWorker Builds/実D1行数の再検証は未実施**、旧47APIはGAS_ONLY、実データ移送・本番反映なし。**次のユーザー選択**は旧3シート会計A（現GoogleでREAD ONLY保持・推奨）／B（分離したD1参照専用履歴の設計のみ）、いずれも実移送承認ではない。[引継ぎ第116節](docs/SESSION_HANDOFF.md)。性能改善/LINE連携の機能開発は移行後まで保留。
