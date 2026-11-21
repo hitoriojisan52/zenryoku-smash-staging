@@ -76,13 +76,20 @@ export async function processApprovedMatch17(request,env,reply,readOnlyFingerpri
       const existing=await replay();
       if(existing)return existing;
       const revisionId=crypto.randomUUID();
-      const results=await db.batch([
+      let results;
+      try{results=await db.batch([
         db.prepare(MATCH17_SQL.revision).bind(revisionId,STATE,p.fixtureId,p.expectedVersion),
         db.prepare(MATCH17_SQL.pointer).bind(revisionId,p.fixtureId,p.expectedVersion,revisionId,p.fixtureId),
         db.prepare(MATCH17_SQL.audit).bind(
           p.operationId,p.fixtureId,ACTOR,p.expectedVersion,revisionId,
           p.injectAuditFailure?'fault':'committed',p.fixtureId,revisionId,p.expectedVersion+1)
-      ]);
+      ]);}catch(_){
+        // A competing request may have committed the same operation ID.
+        // Re-evaluate the unique key before deciding between replay, conflict,
+        // or an actual (e.g. injected audit CHECK) transaction failure.
+        const after=await replay();
+        return after||reply(503,{ok:false,code:'MATCH17_ATOMIC_PROBE_FAILED'});
+      }
       if(!Array.isArray(results)||results.length!==3)throw Error('BATCH_RESULT_INVALID');
       const counts=results.map(changes);
       if(counts.every(n=>n===1))return reply(200,{ok:true,applied:true,replayed:false});
