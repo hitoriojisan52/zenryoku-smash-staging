@@ -1,0 +1,54 @@
+name: D1 Phase14 resume SQL on previously created isolated fixture only
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/d1-phase14-resume-existing-fixture-sql.cjs'
+      - '.github/workflows/d1-phase14-resume-existing-fixture.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/d1-phase14-resume-existing-fixture-sql.cjs'
+      - '.github/workflows/d1-phase14-resume-existing-fixture.yml'
+permissions:
+  contents: read
+concurrency:
+  group: zenryoku-d1-phase14-single-fixture-resume
+  cancel-in-progress: false
+jobs:
+  offline-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: No extra D1 CREATE or source DB writes
+        run: node scripts/d1-phase14-resume-existing-fixture-sql.cjs self-test
+      - name: Preserve legacy API/ledger/match/withdrawal invariants
+        run: |
+          python3 tests/check-d1-phase13-backup-readiness.py
+          python3 tests/check-d1-phase12-atomic-candidate.py
+          node tests/check-d1-phase5-route-parity.cjs
+          node tests/check-stage-ledger-confirm-order-v1651.cjs
+          node tests/check-stage-withdraw-rejoin-v1653.cjs
+          node tests/check-stage-match-create-v1639a.cjs
+  isolated-sql-resume:
+    needs: offline-contract
+    if: github.repository == 'hitoriojisan52/zenryoku-smash-staging' && github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    environment: d1-staging
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.D1_STAGE_ACCOUNT_ID }}
+      D1_STAGE_ACCOUNT_ID: ${{ vars.D1_STAGE_ACCOUNT_ID }}
+      D1_STAGE_DATABASE_ID: ${{ vars.D1_STAGE_DATABASE_ID }}
+      D1_STAGE_API_TOKEN: ${{ secrets.D1_STAGE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify 2 DBs, exact creation provenance and 20 empty business tables; run only fabricated REST SQL
+        run: node scripts/d1-phase14-resume-existing-fixture-sql.cjs run
